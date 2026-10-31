@@ -4,7 +4,7 @@ All records below were accepted on 2026-10-31.
 
 ## ADR-001: Personal tool for Mac and Windows
 
-**Decision:** agent-deck is a personal tool for one user. It runs on Mac and Windows with the same features. Mac and Windows support is a requirement, not a quality goal that can be traded off.
+**Decision:** Grimoire is a personal tool for one user. It runs on Mac and Windows with the same features. Mac and Windows support is a requirement, not a quality goal that can be traded off.
 
 **Consequences:** no accounts or multi-user features.
 
@@ -36,28 +36,28 @@ Responsiveness with many chats, safety and resilience are secondary.
 
 ## ADR-004: TypeScript and Angular
 
-**Context:** considered React, Angular, Vue and Svelte. Angular was preferred if it has proper support for what agent-deck needs.
+**Context:** considered React, Angular, Vue and Svelte. Angular was preferred if it has proper support for what Grimoire needs.
 
 **Decision:** TypeScript throughout, with Angular for the UI.
 
-**Reasons:** every part agent-deck needs has a current Angular release or works with any framework: tabs, split panes and pop-outs (dockview), the code editor (Monaco), markdown with Mermaid, drag and drop and virtual scrolling (Angular CDK), animations (Angular's CSS animations and Motion's plain-JS version). Signals and zoneless change detection suit live streaming.
+**Reasons:** every part Grimoire needs has a current Angular release or works with any framework: tabs, split panes and pop-outs (dockview), the code editor (Monaco), markdown with Mermaid, drag and drop and virtual scrolling (Angular CDK), animations (Angular's CSS animations and Motion's plain-JS version). Signals and zoneless change detection suit live streaming.
 
 **Consequences:**
-- There's no Angular markdown renderer built for streaming, so agent-deck handles half-finished markdown itself.
+- There's no Angular markdown renderer built for streaming, so Grimoire handles half-finished markdown itself.
 - The Agent SDK UI examples are React, so we borrow ideas from them, not code.
 
 ## ADR-005: Claude Code through the Agent SDK, signed in with the Claude subscription
 
-**Decision:** agent-deck runs Claude Code through the Claude Agent SDK for TypeScript, using the user's existing Claude subscription login rather than an API key.
+**Decision:** Grimoire runs Claude Code through the Claude Agent SDK for TypeScript, using the user's existing Claude subscription login rather than an API key.
 
 **Context:**
 - The SDK provides Claude Code's agent loop, tools, permissions, sessions, hooks and skills as a library, and it loads the existing `~/.claude` setup.
-- Anthropic's docs say third-party products may not offer claude.ai login without approval. agent-deck is a personal tool used with the owner's own subscription.
+- Anthropic's docs say third-party products may not offer claude.ai login without approval. Grimoire is a personal tool used with the owner's own subscription.
 - A prototype confirmed that the SDK works with a Claude Pro login.
 
 ## ADR-006: Other agents through ACP, behind an agent-neutral contract
 
-**Context:** in the long term, agent-deck should also work with other agents. The Agent Client Protocol (ACP) is a standard many agents support, including Gemini CLI, GitHub Copilot, Cursor, OpenCode and Goose, plus Codex and Claude through adapters.
+**Context:** in the long term, Grimoire should also work with other agents. The Agent Client Protocol (ACP) is a standard many agents support, including Gemini CLI, GitHub Copilot, Cursor, OpenCode and Goose, plus Codex and Claude through adapters.
 
 **Decision:**
 - The core talks to every agent through one agent-neutral contract covering sessions, messages, tool calls and approvals.
@@ -97,22 +97,22 @@ Responsiveness with many chats, safety and resilience are secondary.
 
 **Decision:**
 
-| Data | Source of truth | What agent-deck does |
+| Data | Source of truth | What Grimoire does |
 |---|---|---|
 | Chat transcripts | The agent: Claude Code's session files | Reads them through the agent and never copies them |
 | Chat titles and tags | The agent | Writes them through the agent, so terminal Claude Code sees them too |
 | Agent config: CLAUDE.md, memory, skills, hooks, settings, plugins | The files in `~/.claude` and project `.claude` folders | Reads and edits them in place, in Claude Code's own format |
 | Credentials | Each agent | Never reads or stores them |
 | Git state, PRs, CI | git and GitHub | Reads them live and doesn't store them |
-| Layout, presets, pins and stars, kanban, schedules, theme, agent-deck settings | agent-deck | Stores them in SQLite and refers to chats by session ID |
-| Search index, usage stats | agent-deck (derived) | Treats them as a cache that can be deleted and rebuilt |
-| Running chats, pending approvals | agent-deck (in memory) | Doesn't persist them |
+| Layout, presets, pins and stars, kanban, schedules, theme, Grimoire settings | Grimoire | Stores them in SQLite and refers to chats by session ID |
+| Search index, usage stats | Grimoire (derived) | Treats them as a cache that can be deleted and rebuilt |
+| Running chats, pending approvals | Grimoire (in memory) | Doesn't persist them |
 
-agent-deck's data stays local on each machine and isn't synced, because Claude Code's session files are per machine too.
+Grimoire's data stays local on each machine and isn't synced, because Claude Code's session files are per machine too.
 
 ## ADR-010: Backend runs as a background service
 
-**Context:** chats should keep working when agent-deck is closed, as they do in herdr. agent-deck will also be restarted often while it's being built.
+**Context:** chats should keep working when Grimoire is closed, as they do in herdr. Grimoire will also be restarted often while it's being built.
 
 **Decision:**
 - The backend runs as a background service, separate from the Electron app, on Electron's built-in Node. The Electron app is only the UI (windows, tray, notifications) and connects to the service through a protected local connection.
@@ -121,13 +121,13 @@ agent-deck's data stays local on each machine and isn't synced, because Claude C
 - Windows can't reach Node or the file system. They only get the typed contract, through a preload script with context isolation.
 - Windows subscribe only to the chats they show, and streamed text is batched.
 - Heavy work like search indexing and stats runs in a separate worker process, so the service never stalls.
-- After a reboot or a service crash, agent-deck restores the layout, shows each open chat's transcript, and continues the sessions in the background. Turns that were running and pending approvals are lost.
+- After a reboot or a service crash, Grimoire restores the layout, shows each open chat's transcript, and continues the sessions in the background. Turns that were running and pending approvals are lost.
 
 **Consequences:** a second process, keeping the app and service versions compatible, and the local connection has to be protected.
 
 ## ADR-011: System context
 
-**Decision:** agent-deck talks to these external systems:
+**Decision:** Grimoire talks to these external systems:
 
 ```
                           ┌───────────┐
@@ -135,7 +135,7 @@ agent-deck's data stays local on each machine and isn't synced, because Claude C
                           └─────┬─────┘
                                 │
 ┌───────────────────────────────┴──────────────────────────────┐
-│                          agent-deck                          │
+│                           Grimoire                           │
 └──┬─────────────┬─────────────┬─────────────┬─────────────┬───┘
    │             │             │             │             │
 Claude Code   Other agents  Files         git + GitHub  Operating system
@@ -147,5 +147,5 @@ the user's                  · Claude Code
 subscription                  session files
 ```
 
-- Claude Code itself handles MCP servers, plugins, skills and hooks. agent-deck never talks to them directly.
+- Claude Code itself handles MCP servers, plugins, skills and hooks. Grimoire never talks to them directly.
 - The later release notes scraper will add the web as another external system.
