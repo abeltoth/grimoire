@@ -16,6 +16,7 @@
 </header>
 
 <main class="body">
+  <gr-drawing class="ornament" name="spine" />
   @let s = status();
   <p class="service" [attr.data-service-state]="s.state">
     @if (s.state === 'connected') {

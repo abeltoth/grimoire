@@ -1,5 +1,7 @@
 import { Component, PendingTasks, inject, signal } from '@angular/core';
 import type { PingResult } from '@grimoire/contract';
+import { DesignSettings } from '../design-system/design-settings';
+import { Drawing } from '../design-system/drawing';
 import { GRIMOIRE_BRIDGE } from './core/bridge';
 
 type ServiceStatus =
@@ -13,12 +15,15 @@ type ServiceStatus =
  */
 @Component({
   selector: 'gr-root',
+  imports: [Drawing],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
 export class App {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
   private readonly pendingTasks = inject(PendingTasks);
+  // Applies the window-wide design settings, such as drawings on or off.
+  protected readonly design = inject(DesignSettings);
 
   protected readonly platform = this.bridge.platform;
   protected readonly status = signal<ServiceStatus>({ state: 'connecting' });
