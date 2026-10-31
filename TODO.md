@@ -46,4 +46,15 @@ A custom UI for Claude Code, built on the Claude Agent SDK.
 - [ ] Theme editor with live preview
 - [ ] Animated status per chat: thinking, writing, waiting for you
 - [ ] Focus mode that hides everything except the active chat
+- [ ] Transcript detail levels: normal, thinking, verbose
+- [ ] Next-prompt suggestion you accept with Tab
+- [ ] Suggested follow-up tasks as cards that open new chats
+- [ ] @mention files or drag them into a chat
+- [ ] Mermaid diagrams drawn in the chat
+- [ ] File pane to view and edit files, using the VS Code editor
+- [ ] Kanban board: tasks as cards, each one launching a chat
+- [ ] Setup and cleanup scripts for each worktree
+- [ ] Pull request and CI status for each chat, with auto-fix
+- [ ] Auto-archive chats when their pull request is merged
+- [ ] Plugin browser to install and turn plugins on or off from marketplaces
 - [ ] Release notes scraper for new Claude Code features (later, not planned yet)
