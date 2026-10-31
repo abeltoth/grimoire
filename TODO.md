@@ -5,8 +5,8 @@ A custom UI for Claude Code, built on the Claude Agent SDK.
 ## Decisions
 
 - Personal tool, runs on Mac and Windows
-- Desktop or web app: decide later
-- TypeScript
+- Desktop app: Electron
+- TypeScript, Angular UI
 - Sign in with my Claude subscription
 - Long run: many features, custom style, animations
 
