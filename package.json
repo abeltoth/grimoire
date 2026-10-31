@@ -1,0 +1,25 @@
+{
+  "name": "grimoire",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "contract",
+    "service",
+    "app",
+    "ui"
+  ],
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "npm run build -w @grimoire/ui && node scripts/build.mjs",
+    "start": "electron app",
+    "smoke": "npm run build && electron app --smoke",
+    "test": "vitest run && npm test -w @grimoire/ui -- --watch=false",
+    "typecheck": "tsc -p contract && tsc -p service && tsc -p app",
+    "service:stop": "node scripts/stop-service.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.5"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "@grimoire/contract",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./wire": "./src/wire.ts"
+  }
+}
