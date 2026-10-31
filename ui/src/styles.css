@@ -1,12 +1,1 @@
-/* Phase 1 placeholder tokens, from the design's token set. */
-:root {
-  --gr-desk: #15110e;
-  --gr-chrome: #e6d9bd;
-}
-
-html,
-body {
-  margin: 0;
-  height: 100%;
-  background: var(--gr-desk);
-}
+@import './design-system/index.css';

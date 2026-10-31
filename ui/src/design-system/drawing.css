@@ -1,0 +1,7 @@
+:host {
+  display: block;
+  background: currentColor;
+  mask-position: center;
+  mask-size: contain;
+  mask-repeat: no-repeat;
+}

@@ -1,0 +1,171 @@
+/*
+ * The Grimoire theme: every colour, face, size, space, radius, drawing and
+ * timing in the app is one of these tokens (ADR-007). Components use only
+ * var(--gr-*), never literal values; a guard test enforces that. A theme
+ * is a file like this one that sets the same names.
+ *
+ * Source: the design's token set and screens 1-5.
+ */
+:root {
+  /* Desk, binding and thumb index */
+  --gr-desk: #15110e;
+  --gr-cover: #3a1914;
+  --gr-cover-edge: #24100c;
+  --gr-gilt: #b8913f;
+  --gr-gilt-ink: #7c5a1b;
+  --gr-gilt-line: rgba(184, 145, 63, 0.42);
+  --gr-chrome: #e6d9bd;
+  --gr-thumb-tab: #2f241c;
+  --gr-thumb-ink: #efe3c9;
+  --gr-thumb-hover: #4a3a2d;
+  --gr-thumb-index: #b8913f;
+  --gr-thumb-index-ink: #24190f;
+  --gr-thumb-index-open: #d3aa54;
+
+  /* Paper */
+  --gr-page: #f3ebd9;
+  --gr-page-facing: var(--gr-page);
+  --gr-page-next: #f9f4e8;
+  --gr-foldout: #ebe1ca;
+  --gr-fore-edge-a: #e7ddc8;
+  --gr-fore-edge-b: #c7b89b;
+  --gr-page-edge: #d6c8ac;
+  --gr-dogear-flap: #d5c5a5;
+  --gr-gutter-shade: rgba(74, 48, 22, 0.17);
+  --gr-hairline: rgba(74, 48, 22, 0.14);
+  --gr-rule-ruled: rgba(44, 74, 122, 0.13);
+  --gr-slip: #fbf7ec;
+  --gr-slip-well: rgba(74, 48, 22, 0.055);
+  --gr-slip-laid: rgba(74, 48, 22, 0.035);
+  --gr-form: var(--gr-page);
+  --gr-form-rule: var(--gr-ink-soft);
+  --gr-plate: #ede4cf;
+  --gr-plate-mark: rgba(74, 48, 22, 0.38);
+  --gr-ix-selected: rgba(184, 145, 63, 0.2);
+
+  /* Ink and stamps */
+  --gr-ink: #2a221b;
+  --gr-ink-soft: #66574a;
+  --gr-ink-placeholder: #76675a;
+  --gr-ink-faint: #b3a58f;
+  --gr-link-underline: #9d8e78;
+  --gr-link: var(--gr-lapis);
+  --gr-link-hover: #1d3358;
+  --gr-rubric: #a5321e;
+  --gr-verdigris: #2f6a55;
+  --gr-lapis: #2c4a7a;
+  --gr-pen: #24477e;
+  --gr-ink-wet: #d39a3a;
+  --gr-ink-drying: #b07a22;
+  --gr-ink-wet-glow: rgba(222, 166, 70, 0.9);
+  --gr-stamp-pr: var(--gr-lapis);
+  --gr-stamp-ci: var(--gr-ink-soft);
+
+  /* Ribbons and seals */
+  --gr-ribbon-open: #d3aa54;
+  --gr-ribbon-thinking: #b9975a;
+  --gr-ribbon-waiting: #b8402a;
+  --gr-ribbon-idle: #a99c82;
+  --gr-ribbon-seal: #7f241c;
+  --gr-ribbon-new: #e9dfc8;
+  --gr-ribbon-ink: #24190f;
+  --gr-ribbon-ink-light: #fbf3e4;
+  --gr-ribbon-meta: #3a2a19;
+  --gr-ribbon-meta-light: #fde6da;
+  --gr-ribbon-crease: rgba(0, 0, 0, 0.3);
+  --gr-glow: rgba(236, 128, 76, 0.85);
+  --gr-mote: #f3c27a;
+  --gr-wax: #8e2a20;
+  --gr-wax-light: #c4472f;
+  --gr-wax-dark: #5a160e;
+  --gr-wax-ink: #fbe7c6;
+
+  /* Window chrome */
+  --gr-window-control-hover: rgba(255, 255, 255, 0.08);
+
+  /* Faces */
+  --gr-font-display: 'IM Fell English', Georgia, serif;
+  --gr-font-display-sc: 'IM Fell English SC', Georgia, serif;
+  --gr-font-text: 'Alegreya', Georgia, serif;
+  --gr-font-sc: 'Alegreya SC', Georgia, serif;
+  --gr-font-mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+
+  /* Sizes */
+  --gr-size-chapter: 30px;
+  --gr-size-book-title: 17px;
+  --gr-size-text: 17px;
+  --gr-leading-text: 1.48;
+  --gr-size-ribbon: 13.5px;
+  --gr-size-note: 13px;
+  --gr-size-code: 12.5px;
+  --gr-leading-code: 1.5;
+  --gr-size-label: 12.5px;
+  --gr-box: 18px;
+
+  /* Space */
+  --gr-space-1: 4px;
+  --gr-space-2: 8px;
+  --gr-space-3: 12px;
+  --gr-space-4: 16px;
+  --gr-space-5: 24px;
+  --gr-space-6: 32px;
+  --gr-space-7: 48px;
+
+  /* Layout */
+  --gr-titlebar-h: 36px;
+  --gr-titlebar-side-w: 160px;
+  --gr-window-control-w: 46px;
+  --gr-window-control-h: 32px;
+  --gr-spine-ornament-w: 44px;
+  --gr-spine-ornament-h: 10px;
+  --gr-page-margin-outer: 48px;
+  --gr-page-margin-inner: 40px;
+  --gr-margin-col: 196px;
+  --gr-col-gap: 28px;
+  --gr-head-h: 86px;
+  --gr-cover-rim: 8px;
+  --gr-page-block: 10px;
+  --gr-page-block-foot: 6px;
+  --gr-notch-w: 36px;
+  --gr-ribbon-h: 36px;
+  --gr-ribbon-drop: 30px;
+
+  /* Radii */
+  --gr-radius-page: 3px;
+  --gr-radius-cover: 7px;
+  --gr-radius-slip: 2px;
+  --gr-radius-notch: 18px 0 0 18px;
+  --gr-radius-key: 3px;
+  --gr-radius-stamp: 3px;
+
+  /* Shadows */
+  --gr-shadow-book: 0 22px 44px rgba(0, 0, 0, 0.5);
+  --gr-shadow-ribbon: 0 3px 3px rgba(0, 0, 0, 0.55);
+  --gr-shadow-slip: 0 1px 0 rgba(74, 48, 22, 0.2), 0 8px 16px -10px rgba(60, 35, 10, 0.5);
+  --gr-shadow-slip-tucked: 0 2px 0 rgba(74, 48, 22, 0.12), 0 16px 26px -14px rgba(60, 35, 10, 0.6);
+  --gr-shadow-next: 0 -1px 0 rgba(74, 48, 22, 0.12), 0 -10px 18px -12px rgba(60, 35, 10, 0.4);
+  --gr-shadow-card: 0 2px 0 rgba(74, 48, 22, 0.12), 0 24px 44px -16px rgba(30, 15, 5, 0.6);
+
+  /* Drawings: shapes drawn in the colour of the place that shows them */
+  --gr-drawing-empty-page: url('../drawings/empty-page.svg');
+  --gr-drawing-spine: url('../drawings/spine.svg');
+  --gr-drawing-thought: url('../drawings/thought.svg');
+  --gr-drawing-chapter-opening: url('../drawings/chapter-opening.svg');
+  --gr-drawing-opacity: 0.16;
+
+  /* Motion */
+  --gr-dur-ink: 3.4s;
+  --gr-dur-quill: 0.9s;
+  --gr-dur-sigil: 9s;
+  --gr-dur-sway: 3.8s;
+  --gr-dur-glow: 2.6s;
+  --gr-dur-mote: 3.2s;
+  --gr-dur-sheen: 5s;
+  --gr-dur-breathe: 2.2s;
+  --gr-dur-await: 2.4s;
+  --gr-dur-seal: 380ms;
+  --gr-dur-page-turn: 700ms;
+  --gr-ease-ink: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --gr-ease-sway: cubic-bezier(0.45, 0, 0.55, 1);
+  --gr-ease-page: cubic-bezier(0.45, 0, 0.2, 1);
+}

@@ -1,0 +1,137 @@
+/*
+ * The theme's animations. Components apply them with the timing tokens,
+ * for example: animation: gr-sway var(--gr-dur-sway) var(--gr-ease-sway) infinite.
+ */
+
+/* New text arrives gilt and dries to ink. */
+@keyframes gr-ink {
+  0%,
+  5% {
+    opacity: 0;
+    color: var(--gr-ink-wet);
+    text-shadow: 0 0 9px var(--gr-ink-wet-glow);
+  }
+  14% {
+    opacity: 1;
+    color: var(--gr-ink-drying);
+    text-shadow: 0 0 6px var(--gr-ink-wet-glow);
+  }
+  42% {
+    color: var(--gr-ink);
+    text-shadow: none;
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* The quill at the writing point. */
+@keyframes gr-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+  50% {
+    transform: translateY(-2px) rotate(-7deg);
+  }
+}
+
+/* Thinking: the circle turns while it's cast. */
+@keyframes gr-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* The ribbon that is waiting for you. */
+@keyframes gr-sway {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  30% {
+    transform: rotate(1.4deg);
+  }
+  65% {
+    transform: rotate(-0.8deg);
+  }
+}
+
+@keyframes gr-glow {
+  0%,
+  100% {
+    filter: drop-shadow(var(--gr-shadow-ribbon));
+  }
+  50% {
+    filter: drop-shadow(0 0 10px var(--gr-glow));
+  }
+}
+
+@keyframes gr-mote {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-12px, -24px);
+  }
+}
+
+/* Sheen on the open chapter's ribbon. */
+@keyframes gr-sheen {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -180% 0;
+  }
+}
+
+/* The bell on a ribbon that waits for you. */
+@keyframes gr-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* The seal waiting for you. */
+@keyframes gr-await {
+  0% {
+    opacity: 0.75;
+    transform: scale(0.92);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.4);
+  }
+}
+
+/* Turning a leaf, e.g. to the index. */
+@keyframes gr-leaf {
+  0% {
+    transform: perspective(2600px) rotateY(0);
+  }
+  100% {
+    transform: perspective(2600px) rotateY(-180deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

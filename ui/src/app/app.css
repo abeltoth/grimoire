@@ -1,22 +1,29 @@
-/* Phase 1 placeholder. Phase 2 brings the full token set. */
+/* Phase 1 placeholder, until the book shell replaces it in phase 3. */
 :host {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
   background: var(--gr-desk);
   color: var(--gr-chrome);
-  font-family: system-ui, sans-serif;
+  font-family: var(--gr-font-text);
+  font-size: var(--gr-size-text);
 }
 
 .title-strip {
   position: relative;
   flex: none;
-  height: 36px;
+  height: var(--gr-titlebar-h);
   display: flex;
   align-items: center;
   justify-content: center;
   user-select: none;
   -webkit-app-region: drag;
+}
+
+.title {
+  font-family: var(--gr-font-display-sc);
+  font-size: var(--gr-size-book-title);
+  color: var(--gr-gilt);
 }
 
 .window-controls {
@@ -28,17 +35,14 @@
 }
 
 .window-controls button {
-  width: 46px;
-  height: 32px;
+  width: var(--gr-window-control-w);
+  height: var(--gr-window-control-h);
   display: grid;
   place-items: center;
-  background: none;
-  border: 0;
-  color: inherit;
 }
 
 .window-controls button:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--gr-window-control-hover);
 }
 
 .body {
@@ -46,5 +50,20 @@
   display: grid;
   place-content: center;
   justify-items: center;
-  gap: 12px;
+  gap: var(--gr-space-3);
+}
+
+.ornament {
+  width: var(--gr-spine-ornament-w);
+  height: var(--gr-spine-ornament-h);
+  color: var(--gr-gilt);
+}
+
+.service {
+  margin: 0;
+}
+
+.again {
+  font-family: var(--gr-font-sc);
+  color: var(--gr-gilt);
 }
