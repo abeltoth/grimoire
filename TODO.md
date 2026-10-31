@@ -1,4 +1,4 @@
-# agent-deck
+# Grimoire
 
 A custom UI for Claude Code, built on the Claude Agent SDK.
 
