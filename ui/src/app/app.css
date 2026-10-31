@@ -1,0 +1,50 @@
+/* Phase 1 placeholder. Phase 2 brings the full token set. */
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--gr-desk);
+  color: var(--gr-chrome);
+  font-family: system-ui, sans-serif;
+}
+
+.title-strip {
+  position: relative;
+  flex: none;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  -webkit-app-region: drag;
+}
+
+.window-controls {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  -webkit-app-region: no-drag;
+}
+
+.window-controls button {
+  width: 46px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  background: none;
+  border: 0;
+  color: inherit;
+}
+
+.window-controls button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.body {
+  flex: 1;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+}
