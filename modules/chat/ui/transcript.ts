@@ -12,6 +12,9 @@ import {
 import { Drawing } from '@ui/design-system/drawing';
 import { Icon } from '@ui/design-system/icon';
 import { type Chapter, Chats } from '@ui/app/core/chats';
+import type { Answer, ApprovalDecision } from '@grimoire/contract';
+import { ApprovalSlip } from './approval-slip';
+import { QuestionsForm } from './questions-form';
 import { toRows } from './rows';
 
 /**
@@ -21,7 +24,7 @@ import { toRows } from './rows';
  */
 @Component({
   selector: 'gr-transcript',
-  imports: [Drawing, Icon, NgTemplateOutlet],
+  imports: [ApprovalSlip, Drawing, Icon, NgTemplateOutlet, QuestionsForm],
   templateUrl: './transcript.html',
   styleUrl: './transcript.css',
   host: { role: 'log', 'aria-label': 'Transcript', '(scroll)': 'onScroll()' },
@@ -41,6 +44,10 @@ export class Transcript {
     ['thinking', 'writing', 'waiting'].includes(this.chapter().status),
   );
   protected readonly writing = computed(() => this.chapter().status === 'writing');
+  /** Stop shows while the agent works; while it waits for you, you answer instead. */
+  protected readonly stoppable = computed(() =>
+    ['thinking', 'writing'].includes(this.chapter().status),
+  );
   protected readonly endsInReply = computed(() => this.rows().at(-1)?.kind === 'reply');
   private readonly openThinking = signal<ReadonlySet<string>>(new Set());
 
@@ -51,8 +58,17 @@ export class Transcript {
     afterRenderEffect(() => {
       this.rows();
       this.chapter().error;
+      this.chapter().approvals;
       if (this.following) this.element.scrollTop = this.element.scrollHeight;
     });
+  }
+
+  protected decide(approvalId: string, decision: ApprovalDecision): void {
+    void this.chats.decide(this.chapter().id, approvalId, decision);
+  }
+
+  protected answer(approvalId: string, answers: Answer[]): void {
+    void this.chats.answer(this.chapter().id, approvalId, answers);
   }
 
   protected onScroll(): void {

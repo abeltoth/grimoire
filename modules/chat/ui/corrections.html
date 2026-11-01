@@ -1,0 +1,27 @@
+<div class="head">
+  <b>{{ file() }}</b>
+  <span class="detail">corrections, {{ caption() }}</span>
+  <span class="spacer"></span>
+  <span class="detail">+{{ inserted() }} −{{ removed() }}</span>
+  <button type="button" class="gr-link" aria-disabled="true">Open in Files</button>
+</div>
+<div #body class="body" tabindex="0">
+  @for (line of marked(); track line.key) {
+    <div
+      class="line"
+      [class.removed]="line.kind === 'removed'"
+      [class.inserted]="line.kind === 'inserted'"
+    >
+      <span class="number">{{ line.kind === 'inserted' ? '‸' : '' }}</span>
+      <span class="code">{{ line.text }}</span>
+      <span class="mark">{{ line.mark }}</span>
+    </div>
+  }
+</div>
+<div class="foot">
+  @if (shown() < lines().length) {
+    <span>{{ shown() }} of {{ lines().length }} lines shown · scroll for the rest</span>
+  }
+  <span class="spacer"></span>
+  <span>struck: removed · ‸ inserted</span>
+</div>

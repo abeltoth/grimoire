@@ -1,5 +1,7 @@
 import type {
   AgentInfo,
+  Answer,
+  Approval,
   ApprovalDecision,
   ChatId,
   ChatSettings,
@@ -40,7 +42,7 @@ export interface ChatEvents {
   /** Text streamed into a block of an entry the hub already has. */
   text(entryId: string, block: number, text: string): void;
   /** Asks for a decision. `signal` aborts when the agent stops waiting for it. */
-  approval(request: ApprovalRequest, signal: AbortSignal): Promise<ApprovalDecision>;
+  approval(request: ApprovalRequest, signal: AbortSignal): Promise<Verdict>;
   /** The agent named or renamed the chat. */
   title(title: string): void;
   turnEnded(error?: string): void;
@@ -48,10 +50,7 @@ export interface ChatEvents {
   closed(error?: string): void;
 }
 
-export interface ApprovalRequest {
-  id: string;
-  tool: string;
-  input: unknown;
-  title?: string;
-  canAlwaysAllow: boolean;
-}
+export type ApprovalRequest = Omit<Approval, 'chatId'>;
+
+/** Your decision on an approval: allow or deny, or the answers to its questions. */
+export type Verdict = ApprovalDecision | { answers: Answer[] };

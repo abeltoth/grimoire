@@ -1,0 +1,200 @@
+/* A form printed on the page. */
+:host {
+  display: block;
+  margin: var(--gr-form-margin);
+  background: var(--gr-form);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--gr-form-head-gap);
+}
+
+.head h2 {
+  margin: 0;
+  font-family: var(--gr-font-display-sc);
+  font-weight: 400;
+  font-size: var(--gr-size-form-head);
+  letter-spacing: var(--gr-tracking-form-head);
+  color: var(--gr-rubric);
+  white-space: nowrap;
+}
+
+.rule {
+  flex: 1;
+  height: var(--gr-form-rule-h);
+  border-top: 1px solid var(--gr-form-rule);
+  border-bottom: 1px solid var(--gr-form-rule);
+}
+
+.ornament {
+  color: var(--gr-rubric);
+}
+
+.sub {
+  margin: var(--gr-form-sub-margin);
+  text-align: center;
+  font-style: italic;
+  font-size: var(--gr-size-form-aside);
+  color: var(--gr-ink-soft);
+}
+
+fieldset {
+  margin: 0;
+  padding: var(--gr-form-question-pad);
+  border: 0;
+  min-width: 0;
+}
+
+legend {
+  padding: 0;
+  margin-bottom: var(--gr-form-legend-pull);
+  font-size: var(--gr-size-question);
+  font-weight: 500;
+  line-height: var(--gr-leading-question);
+}
+
+legend i {
+  font-weight: 400;
+  font-size: var(--gr-size-form-aside);
+  color: var(--gr-ink-soft);
+  margin-left: var(--gr-form-hint-gap);
+}
+
+.number {
+  font-family: var(--gr-font-display);
+  font-weight: 400;
+  color: var(--gr-rubric);
+  margin-right: var(--gr-form-number-gap);
+}
+
+.option {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  padding-left: var(--gr-form-indent);
+  min-height: var(--gr-form-line);
+  line-height: var(--gr-form-line);
+  font-size: var(--gr-size-option);
+  cursor: pointer;
+}
+
+/* The real control stays for keyboards and screen readers; the box is drawn. */
+.option input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+}
+
+.recommended {
+  font-style: italic;
+  font-size: var(--gr-size-form-aside);
+  color: var(--gr-rubric);
+  margin-left: var(--gr-form-rec-gap);
+}
+
+.leader {
+  flex: 1;
+  min-width: var(--gr-leader-min);
+  margin: 0 var(--gr-leader-gap);
+  border-bottom: var(--gr-leader);
+  transform: translateY(var(--gr-leader-lift));
+}
+
+.box {
+  position: relative;
+  flex: none;
+  align-self: center;
+  width: var(--gr-box);
+  height: var(--gr-box);
+  border: var(--gr-box-line) solid var(--gr-ink);
+  margin-right: var(--gr-box-tick-margin);
+}
+
+.box.round {
+  border-radius: 50%;
+}
+
+/* A tick in pen, drawn over the box. */
+.tick {
+  position: absolute;
+  left: var(--gr-box-tick-x);
+  top: var(--gr-box-tick-y);
+  opacity: 0;
+  color: var(--gr-pen);
+}
+
+.option.on .tick {
+  opacity: 1;
+}
+
+.option input:focus-visible ~ .box {
+  outline: var(--gr-focus-ring);
+  outline-offset: var(--gr-focus-offset);
+}
+
+.own-words {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-form-words-gap);
+  padding-left: var(--gr-form-indent);
+  margin-top: var(--gr-form-words-lift);
+  font-style: italic;
+  font-size: var(--gr-size-form-aside);
+  color: var(--gr-ink-soft);
+}
+
+.own-words input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  border-bottom: var(--gr-leader);
+  background: transparent;
+  font: inherit;
+  font-style: normal;
+  font-size: var(--gr-size-option);
+  color: var(--gr-pen);
+  padding: var(--gr-form-words-pad);
+  outline: none;
+  margin-right: var(--gr-box-tick-margin);
+}
+
+.own-words input:focus {
+  border-bottom: var(--gr-form-words-line) solid var(--gr-pen);
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  gap: var(--gr-form-foot-gap);
+  margin-top: var(--gr-form-foot-margin);
+  padding-top: var(--gr-form-foot-pad);
+  border-top: var(--gr-form-foot-rule) double var(--gr-form-rule);
+  font-style: italic;
+  font-size: var(--gr-size-form-aside);
+  color: var(--gr-ink-soft);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.send {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gr-form-send-gap);
+  padding: var(--gr-form-send-pad);
+  font-style: normal;
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-seal-button);
+  font-weight: 500;
+  letter-spacing: var(--gr-tracking-form-send);
+  color: var(--gr-rubric);
+}
+
+.send:hover {
+  color: var(--gr-ink);
+}

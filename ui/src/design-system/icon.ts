@@ -17,7 +17,10 @@ export type IconName =
   | 'pop-out'
   | 'attach'
   | 'parallel'
-  | 'hourglass';
+  | 'hourglass'
+  | 'seal'
+  | 'tick'
+  | 'ornament';
 
 /** The theme's icons, drawn in the current text colour at their design size. */
 @Component({

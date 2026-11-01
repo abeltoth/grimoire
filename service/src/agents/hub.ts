@@ -3,6 +3,7 @@ import { homedir } from 'node:os';
 import type {
   AgentId,
   AgentInfo,
+  Answer,
   Approval,
   ApprovalDecision,
   ChatId,
@@ -15,7 +16,7 @@ import type {
   NewChatSettings,
   OpenChat,
 } from '@grimoire/contract';
-import type { AgentAdapter, ChatEvents, LiveChat } from './adapter';
+import type { AgentAdapter, ChatEvents, LiveChat, Verdict } from './adapter';
 
 export type Emit = <K extends EventName>(event: K, payload: EventPayload<K>) => void;
 
@@ -35,7 +36,7 @@ interface ChatState {
 
 interface PendingApproval {
   approval: Approval;
-  resolve: (decision: ApprovalDecision) => void;
+  resolve: (verdict: Verdict) => void;
 }
 
 /**
@@ -96,9 +97,19 @@ export class AgentHub {
   }
 
   decide(approvalId: string, decision: ApprovalDecision): void {
-    const pending = this.approvals.get(approvalId);
-    if (!pending) throw new Error('This approval is no longer pending');
+    const pending = this.pending(approvalId);
+    if (pending.approval.questions && decision !== 'deny')
+      throw new Error('This approval asks questions; answer them instead');
     this.settle(pending, decision);
+  }
+
+  answer(approvalId: string, answers: Answer[]): void {
+    const pending = this.pending(approvalId);
+    const { questions } = pending.approval;
+    if (!questions) throw new Error('This approval asks no questions');
+    if (answers.length !== questions.length)
+      throw new Error(`Expected ${questions.length} answers, got ${answers.length}`);
+    this.settle(pending, { answers });
   }
 
   close(chatId: ChatId): void {
@@ -156,7 +167,7 @@ export class AgentHub {
         if (current()) this.appendText(chat, entryId, block, text);
       },
       approval: (request, signal) =>
-        new Promise<ApprovalDecision>((resolve) => {
+        new Promise<Verdict>((resolve) => {
           if (!current() || signal.aborted) return resolve('deny');
           const approval: Approval = { ...request, chatId: chat.id };
           const pending: PendingApproval = { approval, resolve };
@@ -230,10 +241,16 @@ export class AgentHub {
     this.emit('agents.status', { chatId: chat.id, status });
   }
 
-  private settle(pending: PendingApproval, decision: ApprovalDecision): void {
+  private pending(approvalId: string): PendingApproval {
+    const pending = this.approvals.get(approvalId);
+    if (!pending) throw new Error('This approval is no longer pending');
+    return pending;
+  }
+
+  private settle(pending: PendingApproval, verdict: Verdict): void {
     const { approval } = pending;
     if (!this.approvals.delete(approval.id)) return;
-    pending.resolve(decision);
+    pending.resolve(verdict);
     this.emit('agents.approvalSettled', { chatId: approval.chatId, approvalId: approval.id });
     const chat = this.chats.get(approval.chatId);
     if (chat && chat.status === 'waiting' && !this.hasApprovals(chat))

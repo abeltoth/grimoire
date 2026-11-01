@@ -71,7 +71,7 @@
           "options": {
             "include": [
               "src/**/*.spec.ts",
-              "../modules/*/ui/**/*.spec.ts"
+              "../../modules/*/ui/**/*.spec.ts"
             ]
           }
         }

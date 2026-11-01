@@ -2,6 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import type {
   AgentId,
   AgentInfo,
+  Answer,
   Approval,
   ApprovalDecision,
   ChatStatus,
@@ -127,8 +128,25 @@ export class Chats {
     return this.bridge.invoke('agents.interrupt', { chatId: id });
   }
 
-  decide(approvalId: string, decision: ApprovalDecision): Promise<void> {
-    return this.bridge.invoke('agents.decide', { approvalId, decision });
+  /** Seals or denies an approval; a failure shows as the chapter's error. */
+  decide(id: string, approvalId: string, decision: ApprovalDecision): Promise<void> {
+    return this.settle(id, this.bridge.invoke('agents.decide', { approvalId, decision }));
+  }
+
+  /** Sends your answers to the agent's questions. */
+  answer(id: string, approvalId: string, answers: Answer[]): Promise<void> {
+    return this.settle(id, this.bridge.invoke('agents.answer', { approvalId, answers }));
+  }
+
+  private async settle(id: string, request: Promise<void>): Promise<void> {
+    try {
+      await request;
+    } catch (error) {
+      this.update(id, (c) => ({
+        ...c,
+        error: error instanceof Error ? error.message : String(error),
+      }));
+    }
   }
 
   private find(id: string): Chapter | undefined {

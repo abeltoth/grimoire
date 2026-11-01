@@ -126,13 +126,15 @@ function describe(
       return ['Asked a helper', text('description')];
     case 'TodoWrite':
       return ['Updated the plan', ''];
+    case 'AskUserQuestion':
+      return ['Asked you', ''];
     default:
       return [tool, ''];
   }
 }
 
 /** A path inside the chapter's folder, written relative to it. */
-function relativeTo(cwd: string | undefined, file: string): string {
+export function relativeTo(cwd: string | undefined, file: string): string {
   if (!cwd || !file) return file;
   const normalize = (p: string) => p.replaceAll('\\', '/');
   const base = normalize(cwd).replace(/\/$/, '') + '/';

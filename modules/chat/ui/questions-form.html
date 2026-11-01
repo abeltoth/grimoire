@@ -1,0 +1,59 @@
+<form [attr.aria-labelledby]="headId()" (submit)="send($event)">
+  <header class="head">
+    <span class="rule" aria-hidden="true"></span>
+    <gr-icon name="ornament" class="ornament" />
+    <h2 [id]="headId()">Questions from {{ agentName() }}</h2>
+    <gr-icon name="ornament" class="ornament" />
+    <span class="rule" aria-hidden="true"></span>
+  </header>
+  <p class="sub">Tick your answers, or put them in your own words.</p>
+
+  @for (question of questions(); track $index; let i = $index) {
+    <fieldset>
+      <legend>
+        <span class="number">{{ numeral(i) }}.</span>{{ question.question
+        }}<i>{{ question.multiSelect ? 'Tick any.' : 'Tick one.' }}</i>
+      </legend>
+      @for (option of question.options; track option.label) {
+        <label
+          class="option"
+          [class.on]="isChosen(i, option.label)"
+          [attr.title]="option.description ?? null"
+        >
+          <input
+            [type]="question.multiSelect ? 'checkbox' : 'radio'"
+            [name]="group(i)"
+            [checked]="isChosen(i, option.label)"
+            [attr.aria-description]="option.description ?? null"
+            (change)="tick(i, option.label, question.multiSelect, $any($event.target).checked)"
+          />
+          <span>{{ option.label }}</span>
+          @if (option.recommended) {
+            <em class="recommended">recommended</em>
+          }
+          <span class="leader" aria-hidden="true"></span>
+          <span class="box" [class.round]="!question.multiSelect" aria-hidden="true">
+            <gr-icon name="tick" class="tick" />
+          </span>
+        </label>
+      }
+      <label class="own-words">
+        Or in your own words
+        <input
+          type="text"
+          [attr.aria-label]="question.question + ' In your own words'"
+          [value]="ownWords()[i]"
+          (input)="write(i, $any($event.target).value)"
+        />
+      </label>
+    </fieldset>
+  }
+
+  <footer class="foot">
+    <span>{{ agentName() }} continues when you send these.</span>
+    <span class="spacer"></span>
+    <button type="submit" class="send">
+      <gr-icon name="quill" />Send answers <span class="gr-kbd">⏎</span>
+    </button>
+  </footer>
+</form>

@@ -269,6 +269,152 @@ describe('App', () => {
     expect(texts('.you p')).toEqual(['Fix the flaky login test']);
   });
 
+  it('tucks an approval into the page and seals it', async () => {
+    const { bridge, calls, emit } = fakeBridge();
+    const { fixture, el, texts } = await render(bridge);
+    await write(fixture, el, 'Push it');
+    emit('agents.approval', {
+      approval: {
+        id: 'ap1',
+        chatId: 'chat-1',
+        tool: 'Bash',
+        input: { command: 'git push origin main', description: 'Pushes the branch' },
+        alwaysAllow: { rule: 'git push', scope: 'project' },
+      },
+    });
+    emit('agents.status', { chatId: 'chat-1', status: 'waiting' });
+    await fixture.whenStable();
+
+    expect(texts('gr-approval-slip .head > *')).toEqual([
+      '¶ Awaiting your seal',
+      'Claude Code asks to run this command',
+    ]);
+    expect(texts('gr-approval-slip .well')).toEqual(['$git push origin main']);
+    expect(texts('gr-approval-slip .meta span')).toEqual([
+      'Runs in C:/work/grimoire',
+      'Pushes the branch',
+    ]);
+    expect(texts('gr-approval-slip .choice')).toEqual([
+      'Always allow git push in this project ⇧⏎',
+      'Deny Esc',
+    ]);
+    expect(texts('.stop')).toEqual([]);
+    expect(texts('gr-ribbon .seal')).toEqual(['1']);
+    expect(document.activeElement?.textContent).toContain('Allow once');
+
+    el.querySelector<HTMLButtonElement>('gr-approval-slip .seal-button')!.click();
+    el.querySelector('gr-approval-slip')!.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true }),
+    );
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    expect(calls.filter((c) => c.command === 'agents.decide').map((c) => c.request)).toEqual([
+      { approvalId: 'ap1', decision: 'allow-once' },
+      { approvalId: 'ap1', decision: 'allow-always' },
+      { approvalId: 'ap1', decision: 'deny' },
+    ]);
+    expect(calls.some((c) => c.command === 'agents.interrupt')).toBe(false);
+
+    emit('agents.approvalSettled', { chatId: 'chat-1', approvalId: 'ap1' });
+    await fixture.whenStable();
+    expect(el.querySelector('gr-approval-slip')).toBeNull();
+    expect(texts('gr-ribbon .seal')).toEqual([]);
+  });
+
+  it('shows a file change as corrections on the slip', async () => {
+    const { bridge, emit } = fakeBridge();
+    const { fixture, el, texts } = await render(bridge);
+    await write(fixture, el, 'Rename it');
+    emit('agents.approval', {
+      approval: {
+        id: 'ap2',
+        chatId: 'chat-1',
+        tool: 'Edit',
+        input: {
+          file_path: 'C:/work/grimoire/src/a.ts',
+          old_string: 'const a = 1;\nexport { a };',
+          new_string: 'const b = 1;\nexport { b };',
+        },
+        alwaysAllow: { scope: 'chat' },
+      },
+    });
+    await fixture.whenStable();
+    expect(texts('gr-corrections .head b')).toEqual(['src/a.ts']);
+    expect(texts('gr-corrections .line .mark')).toEqual(['dele', 'dele', '‸ insert 2 lines', '']);
+    expect(texts('gr-approval-slip .choice')).toEqual([
+      'Always allow edits in this chapter ⇧⏎',
+      'Deny Esc',
+    ]);
+  });
+
+  it('prints the agent’s questions as a form and sends your answers', async () => {
+    const { bridge, calls, emit } = fakeBridge();
+    const { fixture, el, texts } = await render(bridge);
+    await write(fixture, el, 'Build the meter');
+    emit('agents.approval', {
+      approval: {
+        id: 'q1',
+        chatId: 'chat-1',
+        tool: 'AskUserQuestion',
+        input: {},
+        questions: [
+          {
+            question: 'Where should the meter appear?',
+            options: [
+              { label: 'In the composer', recommended: true },
+              { label: 'In the running head' },
+            ],
+            multiSelect: false,
+          },
+          {
+            question: 'Which warnings do you want?',
+            options: [{ label: 'At 80% used' }, { label: 'At 95% used' }],
+            multiSelect: true,
+          },
+        ],
+      },
+    });
+    emit('agents.status', { chatId: 'chat-1', status: 'waiting' });
+    await fixture.whenStable();
+
+    expect(texts('gr-questions-form h2')).toEqual(['Questions from Claude Code']);
+    expect(texts('gr-questions-form legend')).toEqual([
+      'I.Where should the meter appear?Tick one.',
+      'II.Which warnings do you want?Tick any.',
+    ]);
+    expect(texts('gr-questions-form .recommended')).toEqual(['recommended']);
+    // Questions don't wait for a seal.
+    expect(texts('gr-ribbon .seal')).toEqual([]);
+
+    const options = [...el.querySelectorAll<HTMLInputElement>('gr-questions-form .option input')];
+    expect(options.map((o) => o.type)).toEqual(['radio', 'radio', 'checkbox', 'checkbox']);
+    options[1]!.click();
+    options[0]!.click();
+    options[2]!.click();
+    options[3]!.click();
+    options[3]!.click();
+    const ownWords = el.querySelectorAll<HTMLInputElement>(
+      'gr-questions-form .own-words input',
+    )[1]!;
+    ownWords.value = ' and at 99% ';
+    ownWords.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    expect(texts('gr-questions-form .option.on span:first-of-type')).toEqual([
+      'In the composer',
+      'At 80% used',
+    ]);
+
+    el.querySelector<HTMLButtonElement>('gr-questions-form .send')!.click();
+    expect(calls.filter((c) => c.command === 'agents.answer').map((c) => c.request)).toEqual([
+      {
+        approvalId: 'q1',
+        answers: [
+          { chosen: ['In the composer'] },
+          { chosen: ['At 80% used'], ownWords: 'and at 99%' },
+        ],
+      },
+    ]);
+  });
+
   it('shows the first facing page that can be picked', async () => {
     const { el, texts } = await render(fakeBridge().bridge);
     expect(texts('.tabs [aria-pressed="true"]')).toEqual(['Outline']);

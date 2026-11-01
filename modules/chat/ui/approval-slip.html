@@ -1,0 +1,67 @@
+<span class="corner corner-near" aria-hidden="true"></span>
+<span class="corner corner-far" aria-hidden="true"></span>
+
+@let a = ask();
+<div class="head" [id]="headId()">
+  <b>¶ Awaiting your seal</b>
+  <span>{{ agentName() }} {{ a.asks }}</span>
+</div>
+
+@switch (a.kind) {
+  @case ('command') {
+    <div class="well">
+      <span class="prompt" aria-hidden="true">$</span><span>{{ a.command }}</span>
+    </div>
+    <div class="meta">
+      @if (cwd()) {
+        <span
+          >Runs in <code>{{ cwd() }}</code></span
+        >
+      }
+      @if (a.about) {
+        <span>{{ a.about }}</span>
+      }
+    </div>
+  }
+  @case ('file') {
+    <gr-corrections [file]="a.file" [lines]="a.lines" [caption]="'as proposed by ' + agentName()" />
+    @if (a.about) {
+      <div class="meta">
+        <span>{{ a.about }}</span>
+      </div>
+    }
+  }
+  @case ('tool') {
+    <div class="well detail">{{ a.detail }}</div>
+    @if (a.about) {
+      <div class="meta">
+        <span>{{ a.about }}</span>
+      </div>
+    }
+  }
+}
+
+<div class="choices">
+  <button #allow type="button" class="seal-button" (click)="decided.emit('allow-once')">
+    <span class="wax" aria-hidden="true"><gr-icon name="seal" /></span>Allow once
+    <span class="gr-kbd">⏎</span>
+  </button>
+  @if (approval().alwaysAllow; as always) {
+    <button type="button" class="choice" (click)="decided.emit('allow-always')">
+      Always allow
+      <small>
+        @if (always.rule) {
+          <code>{{ always.rule }}</code>
+        } @else {
+          {{ a.kind === 'file' ? 'edits' : approval().tool }}
+        }
+        {{ scopeText(always.scope) }}
+      </small>
+      <span class="gr-kbd">⇧⏎</span>
+    </button>
+  }
+  <span class="spacer"></span>
+  <button type="button" class="choice deny" (click)="decided.emit('deny')">
+    Deny <span class="gr-kbd">Esc</span>
+  </button>
+</div>
