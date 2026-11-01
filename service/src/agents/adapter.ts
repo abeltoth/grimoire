@@ -14,6 +14,8 @@ export interface AgentAdapter {
   /** The agent's chats, most recent first. */
   listChats(cwd?: string): Promise<ChatSummary[]>;
   transcript(chatId: ChatId, cwd: string): Promise<Entry[]>;
+  /** The chat's title; empty until the agent names it. */
+  title(chatId: ChatId, cwd: string): Promise<string>;
   /**
    * Starts the agent's process for a chat: a new chat under the given ID,
    * or, with `resume`, an existing one. Messages go in through send().
@@ -39,6 +41,8 @@ export interface ChatEvents {
   text(entryId: string, block: number, text: string): void;
   /** Asks for a decision. `signal` aborts when the agent stops waiting for it. */
   approval(request: ApprovalRequest, signal: AbortSignal): Promise<ApprovalDecision>;
+  /** The agent named or renamed the chat. */
+  title(title: string): void;
   turnEnded(error?: string): void;
   /** The agent process ended, on close() or by itself. */
   closed(error?: string): void;

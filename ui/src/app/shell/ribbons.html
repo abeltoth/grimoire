@@ -4,7 +4,7 @@
       side="left"
       [tone]="tone(chapter)"
       [current]="chapter.id === chapters.currentId()"
-      [heading]="chapter.title"
+      [heading]="title(chapter)"
       [meta]="meta(chapter)"
       (picked)="chapters.open(chapter.id)"
     >
@@ -18,7 +18,7 @@
     <gr-ribbon
       side="right"
       [tone]="tone(chapter)"
-      [heading]="chapter.title"
+      [heading]="title(chapter)"
       [meta]="meta(chapter)"
       (picked)="chapters.open(chapter.id)"
     >
@@ -45,7 +45,7 @@
     tone="new"
     heading="New chapter"
     [meta]="'Last settings' + (shortcut ? ' · ' + (shortcut | shortcut) : '')"
-    unavailable
+    (picked)="chapters.newChapter()"
   >
     <gr-icon name="plus" />
   </gr-ribbon>

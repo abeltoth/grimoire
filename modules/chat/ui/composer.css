@@ -1,0 +1,73 @@
+/* The next page, a lighter leaf tucked under the transcript. */
+:host {
+  flex: none;
+  margin: var(--gr-composer-margin);
+  padding: var(--gr-composer-pad);
+  background: var(--gr-page-next);
+  border-radius: var(--gr-radius-composer);
+  box-shadow: var(--gr-shadow-next);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-composer-gap);
+}
+
+/* Ruled lines to write on. */
+.entry {
+  width: 100%;
+  height: var(--gr-entry-lines);
+  font: inherit;
+  font-size: var(--gr-size-text);
+  line-height: var(--gr-rule-line);
+  color: var(--gr-ink);
+  background: repeating-linear-gradient(
+    transparent 0 calc(var(--gr-rule-line) - 1px),
+    var(--gr-rule-ruled) calc(var(--gr-rule-line) - 1px) var(--gr-rule-line)
+  );
+  border: 0;
+  resize: none;
+  outline: none;
+  padding: 0;
+  caret-color: var(--gr-ink);
+}
+
+.entry::placeholder {
+  color: var(--gr-ink-placeholder);
+  font-style: italic;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--gr-composer-controls-gap);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.control {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gr-composer-button-gap);
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink);
+  padding: var(--gr-composer-button-pad);
+  border-radius: var(--gr-radius-control);
+}
+
+.control:hover {
+  background: var(--gr-composer-button-hover);
+}
+
+.send {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gr-send-gap);
+  padding: var(--gr-send-pad);
+  border-radius: var(--gr-radius-control);
+  background: var(--gr-ink);
+  color: var(--gr-page-next);
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-aside);
+  letter-spacing: var(--gr-tracking-send);
+}

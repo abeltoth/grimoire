@@ -29,6 +29,10 @@ export class FakeAdapter implements AgentAdapter {
     return structuredClone(this.transcripts.get(chatId) ?? []);
   }
 
+  async title(chatId: ChatId): Promise<string> {
+    return this.chats.find((chat) => chat.id === chatId)?.title ?? '';
+  }
+
   run(chatId: ChatId, settings: ChatSettings, resume: boolean, events: ChatEvents): LiveChat {
     const run: FakeRun = {
       chatId,

@@ -2,17 +2,16 @@
 
 <div class="stage">
   <gr-book>
-    <gr-page side="left" [attr.aria-label]="'Chapter: ' + (chapters.current()?.title ?? '')">
-      <div class="chapter"></div>
-      <gr-running-foot>
-        <gr-status-indicators />
-        @if (service.state() === 'failed') {
-          <span aria-hidden="true">·</span>
-          <span class="service-failed" [attr.title]="service.error()"
-            >Background service unreachable</span
-          >
-        }
-      </gr-running-foot>
+    <gr-page
+      side="left"
+      [attr.aria-label]="'Chapter: ' + (chapters.current()?.title || 'Untitled chapter')"
+    >
+      @if (registry.chapterPage(); as chapterPage) {
+        <ng-container *ngComponentOutlet="chapterPage" />
+      } @else {
+        <div class="chapter"></div>
+        <gr-running-foot><gr-status-indicators /></gr-running-foot>
+      }
     </gr-page>
     <gr-facing-page />
     <gr-thumb-index />

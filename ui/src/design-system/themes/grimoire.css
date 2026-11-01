@@ -212,6 +212,54 @@
   --gr-size-key: 10.5px;
   --gr-key-pad: 2px 4px;
 
+  /* Chat: running head */
+  --gr-leading-chapter: 1.05;
+  --gr-icon-button: 26px;
+  --gr-radius-control: 3px;
+  --gr-leading-meta: 1.25;
+
+  /* Chat: transcript */
+  --gr-transcript-pad-bottom: 14px;
+  --gr-transcript-fade: 22px;
+  --gr-by-gap: 9px;
+  --gr-leading-entry: 1.42;
+  --gr-list-indent: 22px;
+  --gr-size-mark: 0.78em;
+  --gr-size-note-mark: 15px;
+  --gr-size-note-detail: 11.5px;
+  --gr-leading-note: 1.3;
+  --gr-note-pad: 2px 4px 3px 10px;
+  --gr-radius-note: 2px;
+  --gr-note-hover: rgba(74, 48, 22, 0.05);
+  --gr-size-code-inline: 0.78em;
+  --gr-code-inline-pad: 1px 4px;
+  --gr-code-inline-bg: rgba(74, 48, 22, 0.075);
+  --gr-radius-code-inline: 2px;
+  --gr-stop-gap: 7px;
+  --gr-stop-pad: 2px 8px 3px;
+  --gr-stop-margin: 12px;
+  --gr-radius-stop: 2px;
+  --gr-shadow-stop: 0 0 0 1px rgba(165, 50, 30, 0.45);
+  --gr-quill-lift: -3px;
+
+  /* Chat: composer */
+  --gr-composer-margin: 0 24px 0 30px;
+  --gr-composer-pad: 10px 16px 9px;
+  --gr-radius-composer: 3px 3px 0 0;
+  --gr-composer-gap: 5px;
+  --gr-rule-line: 24px;
+  --gr-entry-lines: 48px;
+  --gr-composer-controls-gap: 12px;
+  --gr-composer-button-gap: 6px;
+  --gr-composer-button-pad: 6px 8px;
+  --gr-composer-button-hover: rgba(74, 48, 22, 0.07);
+  --gr-send-gap: 9px;
+  --gr-send-pad: 7px 14px;
+  --gr-tracking-send: 0.06em;
+  --gr-edition-gap: 2px;
+  --gr-edition-pad: 2px 6px;
+  --gr-underline-edition: 1.5px;
+
   /* Drawings placed by the shell */
   --gr-sigil-size: 400px;
   --gr-sigil-bleed: 150px;

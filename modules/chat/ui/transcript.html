@@ -1,0 +1,117 @@
+<ng-template #stopButton>
+  <button type="button" class="stop" (click)="stop.emit()">
+    Stop <span class="gr-kbd">Esc</span>
+  </button>
+</ng-template>
+
+@for (row of rows(); track row.key; let last = $last) {
+  @switch (row.kind) {
+    @case ('you') {
+      <div class="row">
+        <article class="you">
+          <header class="by">
+            <span class="who">You</span>
+            @if (row.at) {
+              <span class="time">{{ time(row.at) }}</span>
+            }
+            <span class="spacer"></span>
+            <button type="button" class="gr-link" aria-disabled="true">Undo</button>
+            <button type="button" class="gr-link" aria-disabled="true">Fork</button>
+          </header>
+          <p>
+            <span class="text">{{ row.text }}</span>
+          </p>
+        </article>
+      </div>
+    }
+    @case ('thinking') {
+      <div class="row tight">
+        <div class="think">
+          <gr-drawing class="thought" name="thought" essential />
+          <span>{{ last && running() ? 'Thinking' : 'Thought' }}</span>
+          @if (row.text) {
+            <button type="button" class="gr-link" (click)="toggleThinking(row.key)">
+              {{ isOpen(row.key) ? 'Put the thinking away' : 'Read the thinking' }}
+            </button>
+          }
+        </div>
+      </div>
+      @if (row.text && isOpen(row.key)) {
+        <div class="row tight">
+          <p class="thinking">
+            <span class="text">{{ row.text }}</span>
+          </p>
+        </div>
+      }
+    }
+    @case ('reply') {
+      <div class="row" [class.tight]="row.byline">
+        <div class="reply">
+          @if (row.byline) {
+            <header class="by">
+              <span class="who">{{ agentName() }}</span>
+              @if (row.at) {
+                <span class="time">{{ time(row.at) }}</span>
+              }
+            </header>
+          }
+          <p>
+            <span class="text">{{ row.text }}</span>
+            @if (last && writing()) {
+              <gr-icon name="quill" class="quill" />
+            }
+            @if (last && running()) {
+              <ng-container *ngTemplateOutlet="stopButton" />
+            }
+          </p>
+        </div>
+        @if (row.notes.length) {
+          <div class="notes">
+            @for (note of row.notes; track note.key) {
+              <ng-container *ngTemplateOutlet="noteTemplate; context: { $implicit: note }" />
+            }
+          </div>
+        }
+      </div>
+    }
+    @case ('notes') {
+      <div class="row">
+        <div></div>
+        <div class="notes">
+          @for (note of row.notes; track note.key) {
+            <ng-container *ngTemplateOutlet="noteTemplate; context: { $implicit: note }" />
+          }
+        </div>
+      </div>
+    }
+  }
+}
+
+@if (running() && !endsInReply()) {
+  <div class="row tight">
+    <p class="waiting"><ng-container *ngTemplateOutlet="stopButton" /></p>
+  </div>
+}
+
+@if (chapter().error; as error) {
+  <div class="row">
+    <p class="error" role="alert">{{ error }}</p>
+  </div>
+}
+
+<ng-template #noteTemplate let-note>
+  <button type="button" class="note" aria-disabled="true">
+    <span class="note-head"
+      ><span class="mark">{{ note.mark }}</span
+      >{{ note.verb }}</span
+    >
+    @if (note.target) {
+      <span class="target">{{ note.target }}</span>
+    }
+    @if (note.failed) {
+      <span class="detail failed">failed</span>
+    } @else if (note.running) {
+      <span class="detail">running…</span>
+    }
+  </button>
+</ng-template>

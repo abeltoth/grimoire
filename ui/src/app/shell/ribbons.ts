@@ -1,11 +1,11 @@
 import { Component, computed, inject } from '@angular/core';
 import { Icon, type IconName } from '../../design-system/icon';
-import { type ChapterStatus, type OpenChapter, OpenChapters } from './open-chapters';
+import { type Chapter, Chats } from '../core/chats';
 import { Ribbon, type RibbonTone } from './ribbon';
 import { ShellRegistry } from './shell-registry';
 import { ShortcutPipe } from './shortcut';
 
-const STATUS_TEXT: Record<ChapterStatus, string> = {
+const STATUS_TEXT: Record<Chapter['status'], string> = {
   writing: 'writing',
   thinking: 'thinking',
   waiting: 'waiting for you',
@@ -13,7 +13,7 @@ const STATUS_TEXT: Record<ChapterStatus, string> = {
   blank: 'blank page',
 };
 
-const TONE: Record<ChapterStatus, RibbonTone> = {
+const TONE: Record<Chapter['status'], RibbonTone> = {
   writing: 'open',
   blank: 'open',
   thinking: 'thinking',
@@ -21,7 +21,7 @@ const TONE: Record<ChapterStatus, RibbonTone> = {
   idle: 'idle',
 };
 
-const ICON: Record<ChapterStatus, IconName> = {
+const ICON: Record<Chapter['status'], IconName> = {
   writing: 'quill',
   blank: 'page',
   thinking: 'circle',
@@ -30,7 +30,7 @@ const ICON: Record<ChapterStatus, IconName> = {
 };
 
 // The class that animates the icon, see ribbons.css.
-const MOTION: Partial<Record<ChapterStatus, string>> = {
+const MOTION: Partial<Record<Chapter['status'], string>> = {
   writing: 'quill',
   thinking: 'spin',
   waiting: 'breathe',
@@ -49,7 +49,7 @@ const MOTION: Partial<Record<ChapterStatus, string>> = {
   host: { role: 'navigation', 'aria-label': 'Open chapters' },
 })
 export class Ribbons {
-  protected readonly chapters = inject(OpenChapters);
+  protected readonly chapters = inject(Chats);
   private readonly registry = inject(ShellRegistry);
 
   protected readonly left = computed(() => {
@@ -67,38 +67,42 @@ export class Ribbons {
   });
 
   protected readonly awaitingSeal = computed(() =>
-    this.chapters.all().filter((c) => c.approvals > 0),
+    this.chapters.all().filter((c) => c.approvals.length > 0),
   );
   protected readonly sealMeta = computed(() =>
     this.awaitingSeal()
-      .map((c) => c.title)
+      .map((c) => this.title(c))
       .join(', '),
   );
   protected readonly seals = computed(() =>
-    this.awaitingSeal().reduce((sum, c) => sum + c.approvals, 0),
+    this.awaitingSeal().reduce((sum, c) => sum + c.approvals.length, 0),
   );
 
   protected readonly newChapter = computed(() => this.registry.commands.get('chapters.new'));
 
-  protected tone(chapter: OpenChapter): RibbonTone {
+  protected title(chapter: Chapter): string {
+    return chapter.title || 'Untitled chapter';
+  }
+
+  protected tone(chapter: Chapter): RibbonTone {
     return TONE[chapter.status];
   }
 
-  protected icon(chapter: OpenChapter): IconName {
+  protected icon(chapter: Chapter): IconName {
     return ICON[chapter.status];
   }
 
-  protected motion(chapter: OpenChapter): string {
+  protected motion(chapter: Chapter): string {
     return MOTION[chapter.status] ?? '';
   }
 
-  protected meta(chapter: OpenChapter): string {
-    return `${chapter.agent} · ${STATUS_TEXT[chapter.status]}`;
+  protected meta(chapter: Chapter): string {
+    return `${this.chapters.agentName(chapter.agent)} · ${STATUS_TEXT[chapter.status]}`;
   }
 
   protected sealLabel(): string {
     const count = this.seals();
-    const titles = this.awaitingSeal().map((c) => c.title);
+    const titles = this.awaitingSeal().map((c) => this.title(c));
     const from =
       titles.length > 1 ? `${titles.slice(0, -1).join(', ')} and ${titles.at(-1)}` : titles[0];
     return `${count} ${count === 1 ? 'approval' : 'approvals'} awaiting your seal, from ${from}`;

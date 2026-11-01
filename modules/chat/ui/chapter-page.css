@@ -1,0 +1,63 @@
+:host {
+  display: contents;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--gr-head-row-gap);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--gr-font-display);
+  font-weight: 400;
+  font-size: var(--gr-size-chapter);
+  line-height: var(--gr-leading-chapter);
+}
+
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: var(--gr-icon-button);
+  height: var(--gr-icon-button);
+  color: var(--gr-ink-soft);
+  border-radius: var(--gr-radius-control);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.meta {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--gr-head-gap);
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.meta button {
+  border-bottom: 1px dotted var(--gr-link-underline);
+  line-height: var(--gr-leading-meta);
+}
+
+.meta button:hover {
+  color: var(--gr-ink);
+}
+
+.edition {
+  display: flex;
+  align-items: center;
+  gap: var(--gr-edition-gap);
+}
+
+.edition button {
+  padding: var(--gr-edition-pad);
+}
+
+.edition button[aria-pressed='true'] {
+  color: var(--gr-ink);
+  box-shadow: inset 0 calc(var(--gr-underline-edition) * -1) 0 var(--gr-rubric);
+}

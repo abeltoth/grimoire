@@ -1,0 +1,78 @@
+import { NgTemplateOutlet } from '@angular/common';
+import {
+  Component,
+  ElementRef,
+  afterRenderEffect,
+  computed,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
+import { Drawing } from '@ui/design-system/drawing';
+import { Icon } from '@ui/design-system/icon';
+import { type Chapter, Chats } from '@ui/app/core/chats';
+import { toRows } from './rows';
+
+/**
+ * The chapter's transcript: your entries, the agent's replies, its tools
+ * as margin notes, and Stop while a turn runs. It keeps the newest text
+ * in view unless you scrolled back.
+ */
+@Component({
+  selector: 'gr-transcript',
+  imports: [Drawing, Icon, NgTemplateOutlet],
+  templateUrl: './transcript.html',
+  styleUrl: './transcript.css',
+  host: { role: 'log', 'aria-label': 'Transcript', '(scroll)': 'onScroll()' },
+})
+export class Transcript {
+  private readonly chats = inject(Chats);
+  private readonly element = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+
+  readonly chapter = input.required<Chapter>();
+  readonly stop = output<void>();
+
+  protected readonly rows = computed(() =>
+    toRows(this.chapter().entries, this.chapter().settings.cwd),
+  );
+  protected readonly agentName = computed(() => this.chats.agentName(this.chapter().agent));
+  protected readonly running = computed(() =>
+    ['thinking', 'writing', 'waiting'].includes(this.chapter().status),
+  );
+  protected readonly writing = computed(() => this.chapter().status === 'writing');
+  protected readonly endsInReply = computed(() => this.rows().at(-1)?.kind === 'reply');
+  private readonly openThinking = signal<ReadonlySet<string>>(new Set());
+
+  /** Whether the view follows new text: true unless you scrolled away from the end. */
+  private following = true;
+
+  constructor() {
+    afterRenderEffect(() => {
+      this.rows();
+      this.chapter().error;
+      if (this.following) this.element.scrollTop = this.element.scrollHeight;
+    });
+  }
+
+  protected onScroll(): void {
+    const { scrollTop, clientHeight, scrollHeight } = this.element;
+    this.following = scrollTop + clientHeight >= scrollHeight - 24;
+  }
+
+  protected isOpen(key: string): boolean {
+    return this.openThinking().has(key);
+  }
+
+  protected toggleThinking(key: string): void {
+    this.openThinking.update((open) => {
+      const next = new Set(open);
+      if (!next.delete(key)) next.add(key);
+      return next;
+    });
+  }
+
+  protected time(at: number): string {
+    return new Date(at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  }
+}
