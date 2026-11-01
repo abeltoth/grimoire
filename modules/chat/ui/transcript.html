@@ -39,7 +39,7 @@
           <gr-drawing class="thought" name="thought" essential />
           <span>{{ last && running() ? 'Thinking' : 'Thought' }}</span>
           @if (row.text) {
-            <button type="button" class="gr-link" (click)="toggleThinking(row.key)">
+            <button type="button" class="gr-link" (click)="toggle(row.key)">
               {{ isOpen(row.key) ? 'Put the thinking away' : 'Read the thinking' }}
             </button>
           }
@@ -77,6 +77,7 @@
               <ng-container *ngTemplateOutlet="noteTemplate; context: { $implicit: note }" />
             }
           </div>
+          <ng-container *ngTemplateOutlet="foldsTemplate; context: { $implicit: row.notes }" />
         }
       </div>
     }
@@ -88,6 +89,7 @@
             <ng-container *ngTemplateOutlet="noteTemplate; context: { $implicit: note }" />
           }
         </div>
+        <ng-container *ngTemplateOutlet="foldsTemplate; context: { $implicit: row.notes }" />
       </div>
     }
   }
@@ -126,7 +128,13 @@
 }
 
 <ng-template #noteTemplate let-note>
-  <button type="button" class="note" aria-disabled="true">
+  <button
+    type="button"
+    class="note"
+    [attr.aria-disabled]="note.fold ? null : true"
+    [attr.aria-expanded]="note.fold ? isOpen(note.key) : null"
+    (click)="note.fold && toggle(note.key)"
+  >
     <span class="note-head"
       ><span class="mark">{{ note.mark }}</span
       >{{ note.verb }}</span
@@ -138,6 +146,29 @@
       <span class="detail failed">failed</span>
     } @else if (note.running) {
       <span class="detail">running…</span>
+    } @else if (note.counts) {
+      <span class="detail">{{ note.counts }}</span>
+    }
+    @if (note.fold) {
+      <span class="fold">{{ isOpen(note.key) ? 'Fold away' : 'Fold out' }}</span>
     }
   </button>
+</ng-template>
+
+<!-- The details of the notes you folded out, across the text and the margin. -->
+<ng-template #foldsTemplate let-notes>
+  @for (note of notes; track note.key) {
+    @if (note.fold && isOpen(note.key)) {
+      @if (note.fold.kind === 'corrections') {
+        <gr-corrections
+          class="wide"
+          [file]="note.fold.file"
+          [lines]="note.fold.lines"
+          [caption]="'as marked by ' + agentName()"
+        />
+      } @else {
+        <gr-output class="wide" [title]="note.fold.title" [text]="note.fold.text" />
+      }
+    }
+  }
 </ng-template>

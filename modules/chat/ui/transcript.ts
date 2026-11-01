@@ -14,8 +14,10 @@ import { Icon } from '@ui/design-system/icon';
 import { type Chapter, Chats } from '@ui/app/core/chats';
 import type { Answer, ApprovalDecision } from '@grimoire/contract';
 import { ApprovalSlip } from './approval-slip';
+import { Corrections } from './corrections';
 import { MarkdownView } from './markdown/markdown-view';
 import { parseMarkdown } from './markdown/markdown';
+import { Output } from './output';
 import { QuestionsForm } from './questions-form';
 import { toRows } from './rows';
 
@@ -26,7 +28,16 @@ import { toRows } from './rows';
  */
 @Component({
   selector: 'gr-transcript',
-  imports: [ApprovalSlip, Drawing, Icon, MarkdownView, NgTemplateOutlet, QuestionsForm],
+  imports: [
+    ApprovalSlip,
+    Corrections,
+    Drawing,
+    Icon,
+    MarkdownView,
+    NgTemplateOutlet,
+    Output,
+    QuestionsForm,
+  ],
   templateUrl: './transcript.html',
   styleUrl: './transcript.css',
   host: { role: 'log', 'aria-label': 'Transcript', '(scroll)': 'onScroll()' },
@@ -63,7 +74,8 @@ export class Transcript {
     ['thinking', 'writing'].includes(this.chapter().status),
   );
   protected readonly endsInReply = computed(() => this.rows().at(-1)?.kind === 'reply');
-  private readonly openThinking = signal<ReadonlySet<string>>(new Set());
+  /** The thinking you're reading and the notes you folded out. */
+  private readonly open = signal<ReadonlySet<string>>(new Set());
 
   /** Whether the view follows new text: true unless you scrolled away from the end. */
   private following = true;
@@ -73,6 +85,7 @@ export class Transcript {
       this.rows();
       this.chapter().error;
       this.chapter().approvals;
+      this.open();
       if (this.following) this.element.scrollTop = this.element.scrollHeight;
     });
   }
@@ -91,11 +104,11 @@ export class Transcript {
   }
 
   protected isOpen(key: string): boolean {
-    return this.openThinking().has(key);
+    return this.open().has(key);
   }
 
-  protected toggleThinking(key: string): void {
-    this.openThinking.update((open) => {
+  protected toggle(key: string): void {
+    this.open.update((open) => {
       const next = new Set(open);
       if (!next.delete(key)) next.add(key);
       return next;

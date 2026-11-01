@@ -266,6 +266,60 @@ describe('App', () => {
     expect(el.querySelector('gr-listing:last-of-type .line .quill')).not.toBeNull();
   });
 
+  it('folds a margin note out to the corrections or the output', async () => {
+    const { bridge, emit } = fakeBridge();
+    const { fixture, el, texts } = await render(bridge);
+    await write(fixture, el, 'Add the meter');
+    emit('agents.entry', {
+      chatId: 'chat-1',
+      entry: {
+        kind: 'agent',
+        id: 'a1',
+        blocks: [
+          {
+            kind: 'tool',
+            id: 't1',
+            tool: 'Edit',
+            input: {
+              file_path: 'C:/work/grimoire/src/meter.ts',
+              old_string: 'const a = 1;',
+              new_string: 'const used = 1;\nconst limit = 2;',
+            },
+            result: { text: 'Updated.', isError: false },
+          },
+          {
+            kind: 'tool',
+            id: 't2',
+            tool: 'Bash',
+            input: { command: 'npm test' },
+            result: { text: '\u001b[32m12 passed\u001b[0m\n1 failed\n', isError: true },
+          },
+          { kind: 'text', text: 'One test fails.' },
+        ],
+      },
+    });
+    await fixture.whenStable();
+
+    expect(texts('.note .detail')).toEqual(['+2 −1', 'failed']);
+    expect(texts('.note .fold')).toEqual(['Fold out', 'Fold out']);
+    expect(el.querySelector('gr-corrections, gr-output')).toBeNull();
+
+    const notes = el.querySelectorAll<HTMLButtonElement>('.note');
+    notes[0]!.click();
+    notes[1]!.click();
+    await fixture.whenStable();
+    expect(notes[0]!.getAttribute('aria-expanded')).toBe('true');
+    expect(texts('.note .fold')).toEqual(['Fold away', 'Fold away']);
+    expect(texts('gr-corrections .head b')).toEqual(['src/meter.ts']);
+    expect(texts('gr-corrections .head .detail')[0]).toBe('corrections, as marked by Claude Code');
+    expect(texts('gr-output .head > *')).toEqual(['npm test', 'output']);
+    expect(texts('gr-output .line')).toEqual(['12 passed', '1 failed']);
+
+    notes[0]!.click();
+    await fixture.whenStable();
+    expect(el.querySelector('gr-corrections')).toBeNull();
+  });
+
   it('says why a chapter could not start', async () => {
     const { bridge } = fakeBridge();
     const answer = bridge.invoke;

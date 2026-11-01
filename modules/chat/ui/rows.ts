@@ -1,4 +1,10 @@
 import type { Entry, ToolBlock } from '@grimoire/contract';
+import { type DiffLine, type FileChange, fileChange } from './diff';
+
+/** What a margin note folds out: a file's corrections or what a tool printed. */
+export type Fold =
+  | { kind: 'corrections'; file: string; lines: DiffLine[] }
+  | { kind: 'output'; title: string; text: string };
 
 /** A margin note: a tool the agent used, marked like a footnote. */
 export interface Note {
@@ -8,6 +14,10 @@ export interface Note {
   target: string;
   running: boolean;
   failed: boolean;
+  /** Lines added and removed, such as "+24 −3", when the tool changed a file. */
+  counts?: string;
+  /** The details, folded out only when you ask. */
+  fold?: Fold;
 }
 
 /**
@@ -92,7 +102,25 @@ function toNote(key: string, block: ToolBlock, mark: string, cwd?: string): Note
     target,
     running: !block.result,
     failed: block.result?.isError === true,
+    ...detailsOf(block, target || verb, cwd),
   };
+}
+
+/** Diffs are worked out once per tool call, not each time the reply grows. */
+const changes = new WeakMap<ToolBlock, FileChange | null>();
+
+function detailsOf(block: ToolBlock, title: string, cwd?: string): Pick<Note, 'counts' | 'fold'> {
+  if (!changes.has(block)) changes.set(block, fileChange(block.tool, block.input) ?? null);
+  const change = changes.get(block);
+  // A change that failed wasn't made; what the tool said about it is what counts.
+  if (change && !block.result?.isError) {
+    const count = (kind: DiffLine['kind']) => change.lines.filter((l) => l.kind === kind).length;
+    return {
+      counts: `+${count('inserted')} −${count('removed')}`,
+      fold: { kind: 'corrections', file: relativeTo(cwd, change.file), lines: change.lines },
+    };
+  }
+  return block.result?.text ? { fold: { kind: 'output', title, text: block.result.text } } : {};
 }
 
 function describe(
