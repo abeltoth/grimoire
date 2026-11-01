@@ -1,4 +1,5 @@
 import type {
+  AgentCommand,
   AgentInfo,
   AgentModels,
   Answer,
@@ -30,6 +31,8 @@ export interface AgentAdapter {
   /** The chat's title; empty until the agent names it. */
   title(chatId: ChatId, cwd: string): Promise<string>;
   models(): Promise<AgentModels>;
+  /** The commands and skills you can use in a folder. Agents without them leave it out. */
+  commands?(cwd: string): Promise<AgentCommand[]>;
   /**
    * Starts the agent's process for a chat: a new chat under the given ID,
    * or, with `resume`, an existing one. Messages go in through send().

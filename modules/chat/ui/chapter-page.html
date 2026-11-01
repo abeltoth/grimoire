@@ -52,6 +52,8 @@
   }
   <gr-composer
     [chapterId]="c.id"
+    [agent]="c.agent"
+    [cwd]="c.settings.cwd"
     [first]="c.status === 'blank'"
     [queued]="c.queued"
     [context]="c.context"

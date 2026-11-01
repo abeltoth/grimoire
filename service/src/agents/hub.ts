@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { homedir } from 'node:os';
 import type {
+  AgentCommand,
   AgentId,
   AgentInfo,
   AgentModels,
@@ -114,6 +115,11 @@ export class AgentHub {
 
   models(agent: AgentId): Promise<AgentModels> {
     return this.adapter(agent).models();
+  }
+
+  /** The agent's commands and skills in a folder; none when it has no such thing. */
+  async commands(agent: AgentId, cwd?: string): Promise<AgentCommand[]> {
+    return (await this.adapter(agent).commands?.(cwd ?? homedir())) ?? [];
   }
 
   /** The folders chats with any agent ran in, most recent first. */

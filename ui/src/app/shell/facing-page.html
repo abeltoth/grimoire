@@ -5,6 +5,11 @@
     <gr-index-page [backTo]="page?.label ?? 'facing page'" />
     <gr-drawing class="sigil" name="empty-page" />
   </gr-page>
+} @else if (facing.commands()) {
+  <gr-page side="right" aria-label="Facing page: Index, commands and skills">
+    <gr-command-index [backTo]="page?.label ?? 'facing page'" />
+    <gr-drawing class="sigil" name="empty-page" />
+  </gr-page>
 } @else if (seals) {
   <gr-page side="right" aria-label="Facing page: Awaiting your seal">
     <ng-container *ngComponentOutlet="seals; inputs: { backTo: page?.label ?? 'facing page' }" />

@@ -356,6 +356,9 @@
   --gr-tracking-index-where: 0.05em;
   --gr-index-note-gap: 26px;
   --gr-index-note-width: 560px;
+  --gr-index-from-gap: 6px;
+  --gr-size-index-command: 16px;
+  --gr-size-slash-hint: 13.5px;
   --gr-thumb-open-shift: -10px;
   --gr-shadow-thumb-open: inset 5px 0 7px -3px rgba(0, 0, 0, 0.45);
 

@@ -818,6 +818,123 @@ describe('App', () => {
     expect(notch.getAttribute('aria-current')).toBeNull();
   });
 
+  it('turns the facing page to the agent\'s commands at a "/" in the entry', async () => {
+    const { bridge, calls, answers, emit } = fakeBridge();
+    answers['agents.commands'] = () => [
+      { name: 'compact', description: 'Free up context', kind: 'command' },
+      { name: 'init', description: 'Write a CLAUDE.md', kind: 'command' },
+      { name: 'code-review', description: 'Review the diff', kind: 'skill' },
+      { name: 'simplify', description: 'Tidy the changed code', kind: 'skill' },
+      { name: 'review', description: 'Review a pull request', kind: 'command' },
+    ];
+    const { fixture, el, texts } = await render(bridge);
+    await write(fixture, el, 'First');
+    emit('agents.status', { chatId: 'chat-1', status: 'idle' });
+    emit('agents.context', { chatId: 'chat-1', context: { used: 62, limit: 100 } });
+    const entry = el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!;
+    const type = async (text: string) => {
+      entry.value = text;
+      entry.dispatchEvent(new Event('input'));
+      await fixture.whenStable();
+    };
+    const press = async (key: string) => {
+      entry.dispatchEvent(new KeyboardEvent('keydown', { key, cancelable: true }));
+      await fixture.whenStable();
+    };
+
+    await type('/');
+    expect(calls.filter((c) => c.command === 'agents.commands').map((c) => c.request)).toEqual([
+      { agent: 'claude-code', cwd: 'C:/work/grimoire' },
+    ]);
+    expect(texts('gr-command-index h3')).toEqual(['Claude Code’s commands', 'Claude Code’s skills']);
+    expect(texts('gr-command-index .entry .label')).toEqual([
+      '/compact',
+      '/init',
+      '/review',
+      'code-review',
+      'simplify',
+    ]);
+    expect(texts('gr-command-index .entry .where')).toEqual([
+      '62% used',
+      'C:/work/grimoire',
+      'command',
+      'skill',
+      'skill',
+    ]);
+    expect(texts('gr-command-index .count')).toEqual(['Claude Code’s commands and skills · 5 entries']);
+    expect(texts('gr-composer .slash-hint')).toEqual([
+      'Claude Code’s commands and skills are on the facing page →',
+    ]);
+
+    await type('/re');
+    expect(texts('gr-command-index .entry .label')).toEqual(['/review', 'code-review']);
+    expect(texts('gr-command-index .entry b')).toEqual(['/re', 're']);
+    await press('ArrowDown');
+    expect(texts('gr-command-index .entry[aria-selected="true"] .label')).toEqual(['code-review']);
+    expect(entry.getAttribute('aria-activedescendant')).toBe('gr-command-code-review');
+    await press('Tab');
+    expect(entry.value).toBe('/code-review ');
+    expect(el.querySelector('gr-command-index')).toBeNull();
+    expect(texts('gr-composer .slash-hint')).toEqual([]);
+
+    await type('/zzz');
+    expect(texts('gr-command-index .entries .note')).toEqual([
+      'Nothing in Claude Code’s commands and skills matches “/zzz”.',
+    ]);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }));
+    await fixture.whenStable();
+    expect(el.querySelector('gr-command-index')).toBeNull();
+    expect(calls.filter((c) => c.command === 'agents.interrupt')).toEqual([]);
+
+    await type('/comp');
+    await press('Enter');
+    expect(calls.filter((c) => c.command === 'agents.send').map((c) => c.request)).toEqual([
+      { chatId: 'chat-1', text: '/compact' },
+    ]);
+    expect(entry.value).toBe('');
+    expect(el.querySelector('gr-command-index')).toBeNull();
+    // Asked for each time the facing page turns to them; the service keeps them a minute.
+    expect(calls.filter((c) => c.command === 'agents.commands')).toHaveLength(3);
+  });
+
+  it('uses a command clicked on the facing page', async () => {
+    const { bridge, calls, answers } = fakeBridge();
+    answers['agents.commands'] = () => [
+      { name: 'compact', description: 'Free up context', kind: 'command' },
+    ];
+    const { fixture, el } = await render(bridge);
+    await write(fixture, el, 'First');
+    const entry = el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!;
+    entry.value = '/';
+    entry.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    el.querySelector<HTMLButtonElement>('gr-command-index .entry')!.click();
+    await fixture.whenStable();
+    expect(calls.filter((c) => c.command === 'agents.send').map((c) => c.request)).toEqual([
+      { chatId: 'chat-1', text: '/compact' },
+    ]);
+    expect(document.activeElement).toBe(entry);
+  });
+
+  it('says why the agent\'s commands could not be listed', async () => {
+    const { bridge, calls, answers } = fakeBridge();
+    answers['agents.commands'] = () => {
+      throw new Error('Claude Code is not installed');
+    };
+    const { fixture, el, texts } = await render(bridge);
+    const entry = el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!;
+    entry.value = '/';
+    entry.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    // A blank chapter's folder isn't chosen yet: the agent looks in your home folder.
+    expect(calls.filter((c) => c.command === 'agents.commands').map((c) => c.request)).toEqual([
+      { agent: 'claude-code' },
+    ]);
+    expect(texts('gr-command-index .entries .note')).toEqual([
+      'Claude Code’s commands and skills couldn’t be listed: Claude Code is not installed',
+    ]);
+  });
+
   it('shows why an undo failed', async () => {
     const { bridge, answers } = fakeBridge();
     answers['agents.openChats'] = (): OpenChat[] => [

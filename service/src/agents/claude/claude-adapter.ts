@@ -8,6 +8,7 @@ import type {
   SpareProcess,
 } from '@anthropic-ai/claude-agent-sdk';
 import type {
+  AgentCommand,
   AgentInfo,
   AgentModels,
   ApprovalMode,
@@ -26,6 +27,9 @@ const sdk = () => import('@anthropic-ai/claude-agent-sdk');
 
 // Claude Code keeps its plan with its task tools only when asked to; the Outline shows it.
 const ENV = { ...process.env, CLAUDE_CODE_ENABLE_TODO_TOOLS: '1' };
+
+/** How long a folder's commands are kept before Claude Code is asked again. */
+const COMMANDS_FRESH_MS = 60_000;
 
 const MODES: Record<ApprovalMode, PermissionMode> = {
   ask: 'default',
@@ -48,6 +52,7 @@ interface Spare {
 export class ClaudeAdapter implements AgentAdapter {
   private spare: Spare | undefined;
   private modelList: Promise<AgentModels> | undefined;
+  private readonly commandLists = new Map<string, { at: number; list: Promise<AgentCommand[]> }>();
 
   readonly info: AgentInfo = {
     id: 'claude-code',
@@ -100,6 +105,18 @@ export class ClaudeAdapter implements AgentAdapter {
       throw error;
     });
     return this.modelList;
+  }
+
+  /** Claude Code's commands and skills in a folder, kept for a minute. */
+  commands(cwd: string): Promise<AgentCommand[]> {
+    const cached = this.commandLists.get(cwd);
+    if (cached && Date.now() - cached.at < COMMANDS_FRESH_MS) return cached.list;
+    const list = listCommands(cwd).catch((error: unknown) => {
+      this.commandLists.delete(cwd);
+      throw error;
+    });
+    this.commandLists.set(cwd, { at: Date.now(), list });
+    return list;
   }
 
   run(chatId: ChatId, settings: ChatSettings, resume: boolean, events: ChatEvents): LiveChat {
@@ -291,6 +308,34 @@ async function listModels(): Promise<AgentModels> {
       })),
       ...(byDefault ? { default: byDefault.value } : {}),
     };
+  } finally {
+    input.end();
+    probe.close();
+  }
+}
+
+/** Asks a Claude Code process in the folder that never gets a message for its commands and skills. */
+async function listCommands(cwd: string): Promise<AgentCommand[]> {
+  const { query } = await sdk();
+  const input = new MessageQueue<SDKUserMessage>();
+  const probe = query({ prompt: input, options: { cwd, permissionMode: MODES.ask, env: ENV } });
+  try {
+    const all = await probe.supportedCommands();
+    const skills = new Set((await probe.reloadSkills()).skills.map((skill) => skill.name));
+    const seen = new Set<string>();
+    return all.flatMap(({ name, description, argumentHint }): AgentCommand[] => {
+      // Names with two underscores are Claude Code's own plumbing; a name listed twice runs the first.
+      if (name.startsWith('__') || seen.has(name)) return [];
+      seen.add(name);
+      return [
+        {
+          name,
+          description,
+          ...(argumentHint ? { argumentHint } : {}),
+          kind: skills.has(name) ? 'skill' : 'command',
+        },
+      ];
+    });
   } finally {
     input.end();
     probe.close();

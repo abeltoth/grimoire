@@ -318,6 +318,12 @@ describe('AgentHub', () => {
       { id: 'd', agent: 'fake', title: '', cwd: '/new', updatedAt: 2 },
     ];
     expect(await hub.folders()).toEqual({ home: homedir(), recent: ['/new', '/old'] });
+    expect((await hub.commands('fake', '/work')).map((c) => `${c.kind} ${c.name}`)).toEqual([
+      'command compact',
+      'skill simplify',
+    ]);
+    await hub.commands('fake');
+    expect(fake.commandFolders).toEqual(['/work', homedir()]);
     expect((await hub.models('fake')).default).toBe('big');
   });
 
