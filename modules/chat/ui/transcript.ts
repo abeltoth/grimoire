@@ -54,7 +54,11 @@ export class Transcript {
   readonly stop = output<void>();
 
   protected readonly rows = computed(() =>
-    toRows(this.chapter().entries, this.chapter().settings.cwd),
+    toRows(
+      this.chapter().entries,
+      this.chapter().settings.cwd,
+      new Set(this.chapter().withdrawn),
+    ),
   );
   protected readonly agentName = computed(() => this.chats.agentName(this.chapter().agent));
   protected readonly running = computed(() =>
@@ -80,6 +84,8 @@ export class Transcript {
   protected readonly endsInReply = computed(() => this.rows().at(-1)?.kind === 'reply');
   /** The thinking you're reading and the notes you folded out. */
   private readonly open = signal<ReadonlySet<string>>(new Set());
+  /** The entry being undone, until the agent is done. */
+  private readonly undoing = signal<string | null>(null);
 
   /** Whether the view follows new text: true unless you scrolled away from the end. */
   private following = true;
@@ -100,6 +106,21 @@ export class Transcript {
 
   protected answer(approvalId: string, answers: Answer[]): void {
     void this.chats.answer(this.chapter().id, approvalId, answers);
+  }
+
+  /** Undo works on an entry not yet undone, while the chapter is idle. */
+  protected canUndo(row: { key: string; withdrawn: boolean }): boolean {
+    return !row.withdrawn && this.chapter().status === 'idle' && this.undoing() === null;
+  }
+
+  protected async undo(row: { key: string; withdrawn: boolean }): Promise<void> {
+    if (!this.canUndo(row)) return;
+    this.undoing.set(row.key);
+    try {
+      await this.chats.undo(this.chapter().id, row.key);
+    } finally {
+      this.undoing.set(null);
+    }
   }
 
   protected onScroll(): void {

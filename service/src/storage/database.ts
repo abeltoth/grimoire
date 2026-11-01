@@ -12,6 +12,11 @@ const MIGRATIONS = [
      key TEXT PRIMARY KEY,
      value TEXT NOT NULL
    );`,
+  `CREATE TABLE withdrawn (
+     chat_id TEXT NOT NULL,
+     entry_id TEXT NOT NULL,
+     PRIMARY KEY (chat_id, entry_id)
+   );`,
 ];
 
 /**

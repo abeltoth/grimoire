@@ -17,6 +17,9 @@ export interface FakeRun {
   resume: boolean;
   events: ChatEvents;
   sent: string[];
+  /** The entry IDs of the messages sent, in the same order. */
+  sentIds: string[];
+  undone: string[];
   interrupts: number;
   configured: SettingsChange[];
   closed: boolean;
@@ -30,6 +33,8 @@ export class FakeAdapter implements AgentAdapter {
   transcripts = new Map<ChatId, Entry[]>();
   plans = new Map<ChatId, PlanStep[]>();
   transcriptLoads = 0;
+  /** When set, undo fails with this. */
+  undoError?: string;
 
   async listChats(cwd?: string): Promise<ChatSummary[]> {
     return this.chats.filter((chat) => !cwd || chat.cwd === cwd);
@@ -64,15 +69,24 @@ export class FakeAdapter implements AgentAdapter {
       resume,
       events,
       sent: [],
+      sentIds: [],
+      undone: [],
       interrupts: 0,
       configured: [],
       closed: false,
     };
     this.runs.push(run);
     return {
-      send: (text) => void run.sent.push(text),
+      send: (text, id) => {
+        run.sent.push(text);
+        run.sentIds.push(id);
+      },
       interrupt: async () => void run.interrupts++,
       configure: async (change) => void run.configured.push(change),
+      undo: async (entryId) => {
+        if (this.undoError) throw new Error(this.undoError);
+        run.undone.push(entryId);
+      },
       close: () => void (run.closed = true),
     };
   }

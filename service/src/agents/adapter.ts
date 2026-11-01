@@ -34,7 +34,12 @@ export interface AgentAdapter {
    * chat's ID itself, as it does on a spare process (ADR-010). `bind` gets
    * the ID before any event. Without this, the hub picks the ID and calls run().
    */
-  start?(settings: ChatSettings, text: string, bind: (chatId: ChatId) => ChatEvents): Promise<LiveChat>;
+  start?(
+    settings: ChatSettings,
+    text: string,
+    id: string,
+    bind: (chatId: ChatId) => ChatEvents,
+  ): Promise<LiveChat>;
   /** Keeps a spare process started, so the next new chat opens at once (ADR-010). */
   warm?(): void;
   /** Stops any spare process, for when the service stops. */
@@ -48,11 +53,17 @@ export interface ChatHistory {
 
 /** A chat whose agent process is running. */
 export interface LiveChat {
-  send(text: string): void;
+  /** Sends your message; `id` is its entry's ID, which the agent keeps so undo() can find it. */
+  send(text: string, id: string): void;
   /** Stops the running turn; the chat stays live. */
   interrupt(): Promise<void>;
   /** Changes the model or permission; the agent takes it from its next request. */
   configure(change: SettingsChange): Promise<void>;
+  /**
+   * Restores the files to how they were before your entry with this ID.
+   * Rejects, saying why, when the agent can't. Agents without undo leave it out.
+   */
+  undo?(entryId: string): Promise<void>;
   /** Stops the agent process. */
   close(): void;
 }

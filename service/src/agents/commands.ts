@@ -16,6 +16,7 @@ export function registerAgentCommands(registry: CommandRegistry, hub: AgentHub):
     hub.start(agent, settings, text),
   );
   registry.register('agents.send', ({ chatId, text }) => hub.send(chatId, text));
+  registry.register('agents.undo', ({ chatId, entryId }) => hub.undo(chatId, entryId));
   registry.register('agents.unqueue', ({ chatId, id }) => hub.unqueue(chatId, id));
   registry.register('agents.interrupt', ({ chatId }) => hub.interrupt(chatId));
   registry.register('agents.decide', ({ approvalId, decision }) =>

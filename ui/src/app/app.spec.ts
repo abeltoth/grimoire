@@ -37,6 +37,7 @@ function fakeBridge(overrides: Partial<GrimoireBridge> = {}) {
       approvals: [],
       queued: [],
       plan: [],
+      withdrawn: [],
     }),
     'agents.unqueue': () => true,
     'agents.interrupt': () => [],
@@ -557,6 +558,86 @@ describe('App', () => {
     expect(texts('gr-settings-card .column.on h3')).toEqual(['Agent']);
   });
 
+  it('undoes an entry\'s edits, and marks them withdrawn', async () => {
+    const { bridge, calls, emit, answers } = fakeBridge();
+    const edit = (id: string, file: string) => ({
+      kind: 'tool' as const,
+      id,
+      tool: 'Edit',
+      input: { file_path: `C:/work/grimoire/${file}`, old_string: 'a', new_string: 'b' },
+      result: { text: 'ok', isError: false },
+    });
+    answers['agents.openChats'] = (): OpenChat[] => [
+      {
+        id: 'c1',
+        agent: 'claude-code',
+        title: 'Context meter',
+        settings: { cwd: 'C:/work/grimoire' },
+        status: 'idle',
+        entries: [
+          { kind: 'user', id: 'u1', text: 'Add a meter' },
+          { kind: 'agent', id: 'a1', blocks: [edit('t1', 'meter.ts'), { kind: 'text', text: 'Added.' }] },
+          { kind: 'user', id: 'u2', text: 'Colour it' },
+          {
+            kind: 'agent',
+            id: 'a2',
+            blocks: [
+              { kind: 'tool', id: 't2', tool: 'Read', input: { file_path: 'C:/work/grimoire/meter.css' }, result: { text: 'x', isError: false } },
+              edit('t3', 'meter.css'),
+              { kind: 'text', text: 'Coloured.' },
+            ],
+          },
+        ],
+        approvals: [],
+        queued: [],
+        plan: [],
+        withdrawn: [],
+      },
+    ];
+    answers['layout.get'] = () => ({ current: 'c1' });
+    const { fixture, el, texts } = await render(bridge);
+    const undoes = () => [...el.querySelectorAll<HTMLButtonElement>('.you .by button')].filter((b) => b.textContent!.trim() === 'Undo');
+    expect(undoes().map((b) => b.getAttribute('aria-disabled'))).toEqual([null, null]);
+
+    undoes()[1]!.click();
+    await fixture.whenStable();
+    expect(calls.filter((c) => c.command === 'agents.undo').map((c) => c.request)).toEqual([
+      { chatId: 'c1', entryId: 'u2' },
+    ]);
+    emit('agents.withdrawn', { chatId: 'c1', withdrawn: ['u2'] });
+    await fixture.whenStable();
+    expect(texts('.note .detail')).toEqual(['+1 −1', 'withdrawn']);
+    expect(undoes().map((b) => b.getAttribute('aria-disabled'))).toEqual([null, 'true']);
+
+    emit('agents.status', { chatId: 'c1', status: 'thinking' });
+    await fixture.whenStable();
+    expect(undoes().map((b) => b.getAttribute('aria-disabled'))).toEqual(['true', 'true']);
+  });
+
+  it('shows why an undo failed', async () => {
+    const { bridge, answers } = fakeBridge();
+    answers['agents.openChats'] = (): OpenChat[] => [
+      {
+        id: 'c1',
+        agent: 'claude-code',
+        title: '',
+        settings: { cwd: 'C:/work/grimoire' },
+        status: 'idle',
+        entries: [{ kind: 'user', id: 'u1', text: 'Add a meter' }],
+        approvals: [],
+        queued: [],
+        plan: [],
+        withdrawn: [],
+      },
+    ];
+    answers['layout.get'] = () => ({ current: 'c1' });
+    answers['agents.undo'] = () => Promise.reject(new Error('No checkpoint for this entry'));
+    const { fixture, el, texts } = await render(bridge);
+    el.querySelector<HTMLButtonElement>('.you .by button')!.click();
+    await fixture.whenStable();
+    expect(texts('.error')).toEqual(['No checkpoint for this entry']);
+  });
+
   it('reopens the chapters the hub has open, on the one you were on', async () => {
     const { bridge, calls, answers } = fakeBridge();
     const chat = (id: string, title: string, text: string): OpenChat => ({
@@ -569,6 +650,7 @@ describe('App', () => {
       approvals: [],
       queued: [],
       plan: [],
+      withdrawn: [],
     });
     answers['agents.openChats'] = () => [
       chat('c1', 'Fix flaky login test', 'Why does login fail?'),
@@ -604,6 +686,7 @@ describe('App', () => {
       approvals: [],
       queued: [],
       plan: [],
+      withdrawn: [],
     });
     answers['agents.openChats'] = () => [chat('c1', 'One'), chat('c2', 'Two'), chat('c3', 'Three')];
     answers['layout.get'] = () => ({ current: 'c2' });
@@ -654,6 +737,7 @@ describe('App', () => {
       approvals: [{ id: `${id}-seal`, chatId: id, tool: 'Bash', input: { command }, at }],
       queued: [],
       plan: [],
+      withdrawn: [],
     });
     answers['agents.openChats'] = () => [
       chat('c1', 'Fix flaky login test', 'npm test', 200),
@@ -726,6 +810,7 @@ describe('App', () => {
         approvals: [{ id: 's1', chatId: 'c1', tool: 'Bash', input: { command: 'npm test' } }],
         queued: [],
         plan: [],
+        withdrawn: [],
       },
     ];
     const { fixture, el, texts } = await render(bridge);
