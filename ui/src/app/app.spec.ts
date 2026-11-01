@@ -35,7 +35,10 @@ function fakeBridge(overrides: Partial<GrimoireBridge> = {}) {
       status: 'thinking',
       entries: [{ kind: 'user', id: 'u1', text: request.text }],
       approvals: [],
+      queued: [],
     }),
+    'agents.unqueue': () => true,
+    'agents.interrupt': () => [],
   };
   const bridge: GrimoireBridge = {
     platform: 'windows',
@@ -54,7 +57,7 @@ function fakeBridge(overrides: Partial<GrimoireBridge> = {}) {
   };
   const emit = <K extends EventName>(event: K, payload: EventPayload<K>) =>
     listeners.get(event)?.forEach((listener) => listener(payload));
-  return { bridge, calls, emit };
+  return { bridge, calls, emit, answers };
 }
 
 async function render(bridge: GrimoireBridge) {
@@ -222,6 +225,56 @@ describe('App', () => {
     expect(calls.filter((c) => c.command === 'agents.interrupt').map((c) => c.request)).toEqual([
       { chatId: 'chat-1' },
     ]);
+  });
+
+  it('shows entries queued during a turn; Edit and Remove take them out', async () => {
+    const { bridge, calls, emit } = fakeBridge();
+    const { fixture, el, texts } = await render(bridge);
+    await write(fixture, el, 'Add the meter');
+    emit('agents.queued', {
+      chatId: 'chat-1',
+      queued: [
+        { id: 'q1', text: 'Also add a tooltip.' },
+        { id: 'q2', text: 'And a test.' },
+      ],
+    });
+    await fixture.whenStable();
+    expect(texts('.queued-text')).toEqual(['Also add a tooltip.', 'And a test.']);
+    expect(texts('.queued-when')).toEqual([
+      'sends when this turn ends',
+      'sends when this turn ends',
+    ]);
+
+    const buttons = (label: string) =>
+      [...el.querySelectorAll<HTMLButtonElement>('.queued button')].filter(
+        (b) => b.textContent!.trim() === label,
+      );
+    buttons('Edit')[0]!.click();
+    buttons('Remove')[1]!.click();
+    await fixture.whenStable();
+    expect(calls.filter((c) => c.command === 'agents.unqueue').map((c) => c.request)).toEqual([
+      { chatId: 'chat-1', id: 'q1' },
+      { chatId: 'chat-1', id: 'q2' },
+    ]);
+    const entry = el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!;
+    expect(entry.value).toBe('Also add a tooltip.');
+    expect(document.activeElement).toBe(entry);
+  });
+
+  it('puts the queued entries back on the page when you stop the turn', async () => {
+    const { bridge, emit, answers } = fakeBridge();
+    answers['agents.interrupt'] = () => [{ id: 'q1', text: 'Also add a tooltip.' }];
+    const { fixture, el } = await render(bridge);
+    await write(fixture, el, 'Add the meter');
+    emit('agents.status', { chatId: 'chat-1', status: 'writing' });
+    const entry = el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!;
+    entry.value = 'Half a thought';
+    entry.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await fixture.whenStable();
+    expect(entry.value).toBe('Half a thought\n\nAlso add a tooltip.');
   });
 
   it('sets replies as markdown and numbers listings through the chapter', async () => {

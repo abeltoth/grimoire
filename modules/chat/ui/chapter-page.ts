@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, viewChild } from '@angular/core';
 import type { ApprovalMode } from '@grimoire/contract';
 import { Icon } from '@ui/design-system/icon';
 import { Chats } from '@ui/app/core/chats';
@@ -19,7 +19,7 @@ const MODE_LABELS: Record<ApprovalMode, string> = {
  * The open chapter on the left page: its running head with the chat's
  * settings, the transcript, the next page to write on, and the running
  * foot. Esc denies the approval awaiting your seal, or else stops the
- * running turn.
+ * running turn and puts the queued messages back on the next page.
  */
 @Component({
   selector: 'gr-chapter-page',
@@ -31,6 +31,7 @@ const MODE_LABELS: Record<ApprovalMode, string> = {
 export class ChapterPage {
   protected readonly chats = inject(Chats);
   protected readonly chapter = this.chats.current;
+  private readonly composer = viewChild(Composer);
   private readonly running = computed(() =>
     ['thinking', 'writing', 'waiting'].includes(this.chapter()?.status ?? ''),
   );
@@ -44,6 +45,10 @@ export class ChapterPage {
     if (!chapter) return;
     const seal = chapter.approvals.find((approval) => !approval.questions);
     if (seal) void this.chats.decide(chapter.id, seal.id, 'deny');
-    else if (this.running()) void this.chats.interrupt(chapter.id);
+    else if (this.running())
+      void this.chats.interrupt(chapter.id).then((withdrawn) => {
+        if (this.chapter()?.id === chapter.id)
+          this.composer()?.takeBack(withdrawn.map((queued) => queued.text));
+      });
   }
 }

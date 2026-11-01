@@ -11,6 +11,7 @@ import type {
   EventPayload,
   NewChatSettings,
   OpenChat,
+  QueuedEntry,
 } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from './bridge';
 
@@ -25,6 +26,8 @@ export interface Chapter {
   status: ChatStatus | 'blank';
   entries: readonly Entry[];
   approvals: readonly Approval[];
+  /** Messages you sent while a turn ran, waiting for it to end. */
+  queued: readonly QueuedEntry[];
   /** Why the last turn failed, until the next message. */
   error?: string;
 }
@@ -68,6 +71,9 @@ export class Chats {
         approvals: c.approvals.filter((a) => a.id !== approvalId),
       })),
     );
+    this.listen('agents.queued', ({ chatId, queued }) =>
+      this.update(chatId, (c) => ({ ...c, queued })),
+    );
     this.listen('agents.turnEnded', ({ chatId, error }) =>
       this.update(chatId, (c) => ({ ...c, ...(error ? { error } : {}) })),
     );
@@ -92,6 +98,7 @@ export class Chats {
       status: 'blank',
       entries: [],
       approvals: [],
+      queued: [],
     };
     this.all.update((all) => [...all, blank]);
     this.currentId.set(blank.id);
@@ -117,15 +124,28 @@ export class Chats {
       this.all.update((all) => all.map((c) => (c.id === id ? fromOpenChat(chat) : c)));
       if (this.currentId() === id) this.currentId.set(chat.id);
     } catch (error) {
-      this.update(id, (c) => ({
-        ...c,
-        error: error instanceof Error ? error.message : String(error),
-      }));
+      this.fail(id, error);
     }
   }
 
-  interrupt(id: string): Promise<void> {
-    return this.bridge.invoke('agents.interrupt', { chatId: id });
+  /** Stops the running turn; the queued messages come back, unsent. */
+  async interrupt(id: string): Promise<readonly QueuedEntry[]> {
+    try {
+      return (await this.bridge.invoke('agents.interrupt', { chatId: id })) ?? [];
+    } catch (error) {
+      this.fail(id, error);
+      return [];
+    }
+  }
+
+  /** Takes a message out of the queue; false when it had already gone. */
+  async unqueue(id: string, entryId: string): Promise<boolean> {
+    try {
+      return await this.bridge.invoke('agents.unqueue', { chatId: id, id: entryId });
+    } catch (error) {
+      this.fail(id, error);
+      return false;
+    }
   }
 
   /** Seals or denies an approval; a failure shows as the chapter's error. */
@@ -142,11 +162,16 @@ export class Chats {
     try {
       await request;
     } catch (error) {
-      this.update(id, (c) => ({
-        ...c,
-        error: error instanceof Error ? error.message : String(error),
-      }));
+      this.fail(id, error);
     }
+  }
+
+  /** Shows why a request failed as the chapter's error. */
+  private fail(id: string, error: unknown): void {
+    this.update(id, (c) => ({
+      ...c,
+      error: error instanceof Error ? error.message : String(error),
+    }));
   }
 
   private find(id: string): Chapter | undefined {
@@ -171,6 +196,7 @@ function fromOpenChat(chat: OpenChat): Chapter {
     status: chat.status,
     entries: chat.entries,
     approvals: chat.approvals,
+    queued: chat.queued,
   };
 }
 

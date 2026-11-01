@@ -1,10 +1,12 @@
-import { Component, inject, input, linkedSignal } from '@angular/core';
+import { Component, ElementRef, inject, input, linkedSignal, viewChild } from '@angular/core';
+import type { QueuedEntry } from '@grimoire/contract';
 import { Icon } from '@ui/design-system/icon';
 import { Chats } from '@ui/app/core/chats';
 
 /**
  * The next page, tucked under the transcript: where you write the next
- * entry. Enter sends it; Shift+Enter starts a new line.
+ * entry. Enter sends it; Shift+Enter starts a new line. What you send
+ * while a turn runs waits above it until the turn ends.
  */
 @Component({
   selector: 'gr-composer',
@@ -17,6 +19,9 @@ export class Composer {
   private readonly chats = inject(Chats);
 
   readonly chapterId = input.required<string>();
+  readonly queued = input<readonly QueuedEntry[]>([]);
+
+  private readonly entry = viewChild.required<ElementRef<HTMLTextAreaElement>>('entry');
 
   /** What you're writing; a fresh page for each chapter. */
   protected readonly draft = linkedSignal({ source: this.chapterId, computation: () => '' });
@@ -35,5 +40,23 @@ export class Composer {
     entry.value = '';
     this.draft.set('');
     void this.chats.send(this.chapterId(), text);
+  }
+
+  /** Puts messages back on the page, after what you're writing, to edit or send again. */
+  takeBack(texts: readonly string[]): void {
+    if (!texts.length) return;
+    this.draft.update((draft) => [draft.trim(), ...texts].filter(Boolean).join('\n\n'));
+    const entry = this.entry().nativeElement;
+    entry.value = this.draft();
+    entry.focus();
+    entry.setSelectionRange(entry.value.length, entry.value.length);
+  }
+
+  protected async edit(queued: QueuedEntry): Promise<void> {
+    if (await this.chats.unqueue(this.chapterId(), queued.id)) this.takeBack([queued.text]);
+  }
+
+  protected remove(queued: QueuedEntry): void {
+    void this.chats.unqueue(this.chapterId(), queued.id);
   }
 }

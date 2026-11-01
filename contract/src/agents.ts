@@ -139,6 +139,12 @@ export interface Answer {
 
 export type ApprovalDecision = 'allow-once' | 'allow-always' | 'deny';
 
+/** A message you sent while a turn ran: it waits until the turn ends. */
+export interface QueuedEntry {
+  id: string;
+  text: string;
+}
+
 /** A chat the hub has open: its transcript so far and what it's doing. */
 export interface OpenChat {
   id: ChatId;
@@ -149,6 +155,8 @@ export interface OpenChat {
   status: ChatStatus;
   entries: Entry[];
   approvals: Approval[];
+  /** Messages waiting for the turn to end, in the order they go. */
+  queued: QueuedEntry[];
 }
 
 declare module './commands' {
@@ -166,10 +174,15 @@ declare module './commands' {
       request: { agent: AgentId; settings: NewChatSettings; text: string };
       response: OpenChat;
     };
-    /** Sends a message; while a turn runs, the agent takes it when it can. */
+    /** Sends a message; while a turn runs, it's queued and goes when the turn ends. */
     'agents.send': { request: { chatId: ChatId; text: string }; response: void };
-    /** Stops the running turn. */
-    'agents.interrupt': { request: { chatId: ChatId }; response: void };
+    /** Takes a message out of the queue; false when it had already gone. */
+    'agents.unqueue': { request: { chatId: ChatId; id: string }; response: boolean };
+    /**
+     * Stops the running turn. The queued messages are withdrawn, not sent,
+     * and come back in the response.
+     */
+    'agents.interrupt': { request: { chatId: ChatId }; response: QueuedEntry[] };
     'agents.decide': {
       request: { approvalId: string; decision: ApprovalDecision };
       response: void;
@@ -193,5 +206,7 @@ declare module './events' {
     'agents.approvalSettled': { chatId: ChatId; approvalId: string };
     'agents.turnEnded': { chatId: ChatId; error?: string };
     'agents.title': { chatId: ChatId; title: string };
+    /** The queue changed: the messages now waiting for the turn to end. */
+    'agents.queued': { chatId: ChatId; queued: QueuedEntry[] };
   }
 }

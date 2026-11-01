@@ -203,7 +203,49 @@ describe('AgentHub', () => {
 
   it('passes interrupts to the agent', async () => {
     const { id } = hub.start('fake', settings, 'Hello');
-    await hub.interrupt(id);
+    expect(await hub.interrupt(id)).toEqual([]);
     expect(fake.runOf(id).interrupts).toBe(1);
+  });
+
+  it('queues messages sent during a turn and sends the next when it ends', async () => {
+    const { id } = hub.start('fake', settings, 'Hello');
+    const run = fake.runOf(id);
+    hub.send(id, 'Also this');
+    hub.send(id, 'And that');
+    expect(run.sent).toEqual(['Hello']);
+    const queued = () => sent.filter((s) => s.event === 'agents.queued').at(-1)!.payload;
+    expect(queued()).toEqual({
+      chatId: id,
+      queued: [
+        { id: expect.any(String), text: 'Also this' },
+        { id: expect.any(String), text: 'And that' },
+      ],
+    });
+    expect((await hub.open('fake', id, settings)).queued).toHaveLength(2);
+
+    run.events.turnEnded();
+    expect(run.sent).toEqual(['Hello', 'Also this']);
+    expect((await hub.open('fake', id, settings)).status).toBe('thinking');
+    expect(queued()).toEqual({
+      chatId: id,
+      queued: [{ id: expect.any(String), text: 'And that' }],
+    });
+  });
+
+  it('takes a message out of the queue, and Stop withdraws the rest', async () => {
+    const { id } = hub.start('fake', settings, 'Hello');
+    const run = fake.runOf(id);
+    hub.send(id, 'One');
+    hub.send(id, 'Two');
+    hub.send(id, 'Three');
+    const [one, two, three] = (await hub.open('fake', id, settings)).queued;
+
+    expect(hub.unqueue(id, two!.id)).toBe(true);
+    expect(hub.unqueue(id, two!.id)).toBe(false);
+    expect(await hub.interrupt(id)).toEqual([one, three]);
+    expect(sent.at(-1)).toEqual({ event: 'agents.queued', payload: { chatId: id, queued: [] } });
+
+    run.events.turnEnded();
+    expect(run.sent).toEqual(['Hello']);
   });
 });
