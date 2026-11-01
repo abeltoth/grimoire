@@ -89,7 +89,7 @@ export class ChapterPage {
       this.chats.closeSettings();
       return this.anchorFor(card.on)?.focus();
     }
-    if (!this.facing.seals()) this.stop();
+    if (!this.facing.turned()) this.stop();
   }
 
   protected stop(): void {

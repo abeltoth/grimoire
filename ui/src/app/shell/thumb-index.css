@@ -46,6 +46,16 @@
   background: var(--gr-gilt);
 }
 
+/* Open: the facing page is turned to the Index. */
+.index[aria-current='page'] {
+  margin-left: var(--gr-thumb-open-shift);
+  background: var(--gr-thumb-index-open);
+  box-shadow:
+    var(--gr-shadow-thumb-open),
+    -1px 0 0 var(--gr-page-edge),
+    0 0 0 var(--gr-underline-active) var(--gr-gilt-line);
+}
+
 .index > span {
   display: inline-flex;
   align-items: center;

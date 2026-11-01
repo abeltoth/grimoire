@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import type { IconName } from '../../design-system/icon';
 import { Chats } from '../core/chats';
+import { Facing } from './facing';
 import type { Shortcut } from './shortcut';
 
 interface Entry {
@@ -49,6 +50,8 @@ export interface Indicator extends Entry {
 /** Something you can do from the Index or with a shortcut. */
 export interface Command extends Entry {
   label: string;
+  /** A gloss the Index shows after the label, such as "with your last settings". */
+  hint?: string;
   shortcut?: Shortcut;
   run?: () => void;
 }
@@ -106,11 +109,18 @@ export function provideShellEntries(
 /** The shell's own commands. */
 export function provideShell(): EnvironmentProviders {
   return provideShellEntries((shell) => {
-    shell.commands.add({ id: 'shell.index', label: 'Index', shortcut: 'Mod+K' });
+    const facing = inject(Facing);
+    shell.commands.add({
+      id: 'shell.index',
+      label: 'Index',
+      shortcut: 'Mod+K',
+      run: () => facing.openIndex(),
+    });
     const chats = inject(Chats);
     shell.commands.add({
       id: 'chapters.new',
       label: 'New chapter',
+      hint: 'with your last settings',
       shortcut: 'Mod+N',
       run: () => chats.newChapter(),
     });

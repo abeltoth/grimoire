@@ -44,6 +44,7 @@ function fakeBridge(overrides: Partial<GrimoireBridge> = {}) {
     'agents.unqueue': () => true,
     'agents.interrupt': () => [],
     'agents.openChats': () => [],
+    'agents.chats': () => [],
     'agents.models': () => ({
       models: [
         { id: 'opus', name: 'Opus 5.5' },
@@ -732,6 +733,89 @@ describe('App', () => {
     expect(blank.map((b) => b.getAttribute('aria-disabled'))).toEqual(['true', 'true']);
     (blank[0] as HTMLButtonElement).click();
     expect(calls.filter((c) => c.command === 'agents.dogEar')).toHaveLength(2);
+  });
+
+  it('looks up actions and chapters in the Index, turned to with Ctrl+K', async () => {
+    const { bridge, calls, answers } = fakeBridge();
+    answers['agents.chats'] = () => [
+      { id: 'c8', agent: 'claude-code', title: 'Fix flaky login test', cwd: 'C:/Users/me/git/grimoire', updatedAt: 1 },
+      { id: 'c9', agent: 'claude-code', title: 'New onboarding flow', cwd: 'C:/Users/me/git/breeder', updatedAt: 2 },
+    ];
+    answers['agents.open'] = (request: CommandRequest<'agents.open'>): OpenChat => ({
+      id: request.chatId,
+      agent: request.agent,
+      title: 'New onboarding flow',
+      settings: request.settings,
+      status: 'idle',
+      entries: [{ kind: 'user', id: 'u1', text: 'Plan the onboarding' }],
+      approvals: [],
+      queued: [],
+      plan: [],
+      withdrawn: [],
+      dogEars: [],
+      copied: [],
+    });
+    const { fixture, el, texts } = await render(bridge);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }));
+    await fixture.whenStable();
+    // The chats arrive from the service a moment later.
+    await new Promise((resolve) => setTimeout(resolve));
+    await fixture.whenStable();
+
+    expect(texts('gr-index-page h2')).toEqual(['Index']);
+    expect(texts('gr-index-page h3')).toEqual(['Actions', 'Chapters']);
+    expect(texts('gr-index-page .entry .label')).toEqual([
+      'New chapter',
+      'Close chapter',
+      'New onboarding flow',
+      'Fix flaky login test',
+    ]);
+    const field = el.querySelector<HTMLInputElement>('#gr-index-look-up')!;
+    expect(document.activeElement).toBe(field);
+
+    field.value = 'new';
+    field.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    expect(texts('gr-index-page .entry .label')).toEqual(['New chapter', 'New onboarding flow']);
+    expect(texts('gr-index-page .entry b')).toEqual(['New', 'New']);
+    expect(texts('gr-index-page .count')).toEqual(['2 entries']);
+    expect(texts('gr-index-page .entry .gloss')).toEqual([
+      'with your last settings',
+      'Claude Code · ~/git/breeder',
+    ]);
+    expect(texts('gr-index-page .entry .where .gr-kbd')).toEqual(['Ctrl', 'N']);
+    expect(texts('gr-index-page .entry[aria-selected="true"] .label')).toEqual(['New chapter']);
+
+    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
+    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    await fixture.whenStable();
+    expect(calls.filter((c) => c.command === 'agents.open').map((c) => c.request)).toEqual([
+      { agent: 'claude-code', chatId: 'c9', settings: { cwd: 'C:/Users/me/git/breeder' } },
+    ]);
+    expect(el.querySelector('gr-index-page')).toBeNull();
+    expect(texts('gr-running-head h1')).toEqual(['New onboarding flow']);
+  });
+
+  it('opens the Index from its thumb notch, and turns back with Esc', async () => {
+    const { bridge } = fakeBridge();
+    const { fixture, el, texts } = await render(bridge);
+    const notch = el.querySelector<HTMLButtonElement>('gr-thumb-index .index')!;
+    notch.click();
+    await fixture.whenStable();
+    expect(notch.getAttribute('aria-current')).toBe('page');
+    expect(texts('gr-index-page .row .gr-link')).toEqual(['Back to the Outline Esc']);
+
+    const field = el.querySelector<HTMLInputElement>('#gr-index-look-up')!;
+    field.value = 'zzz';
+    field.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    expect(texts('gr-index-page .entries .note')).toEqual(['Nothing in the index matches “zzz”.']);
+    expect(texts('gr-index-page .count')).toEqual(['0 entries']);
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }));
+    await fixture.whenStable();
+    expect(el.querySelector('gr-index-page')).toBeNull();
+    expect(notch.getAttribute('aria-current')).toBeNull();
   });
 
   it('shows why an undo failed', async () => {

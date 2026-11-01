@@ -8,6 +8,7 @@ import type {
   Approval,
   ApprovalDecision,
   ChatStatus,
+  ChatSummary,
   ContextUsage,
   DogEar,
   Entry,
@@ -284,6 +285,33 @@ export class Chats {
     } catch (error) {
       this.fail(id, error);
       return [];
+    }
+  }
+
+  /** Every agent's chats, most recent first. */
+  async pastChats(): Promise<ChatSummary[]> {
+    const lists = await Promise.all(
+      this.agents().map((agent) =>
+        this.bridge.invoke('agents.chats', { agent: agent.id }).catch(() => []),
+      ),
+    );
+    return lists.flatMap((list) => list ?? []).sort((a, b) => b.updatedAt - a.updatedAt);
+  }
+
+  /** Opens a saved chat as a chapter, or turns to it when it's open already. */
+  async openChat(chat: ChatSummary): Promise<void> {
+    if (this.find(chat.id)) return this.turnTo(chat.id);
+    try {
+      const open = await this.bridge.invoke('agents.open', {
+        agent: chat.agent,
+        chatId: chat.id,
+        settings: { cwd: chat.cwd ?? this.folders().home },
+      });
+      this.all.update((all) => [...all.filter((c) => c.id !== open.id), fromOpenChat(open)]);
+      this.turnTo(open.id);
+    } catch (error) {
+      const current = this.currentId();
+      if (current) this.fail(current, error);
     }
   }
 
