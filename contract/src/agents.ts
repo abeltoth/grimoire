@@ -184,6 +184,15 @@ export interface QueuedEntry {
   text: string;
 }
 
+/** One of an agent's commands or skills, used by writing "/name" at the start of an entry. */
+export interface AgentCommand {
+  name: string;
+  description: string;
+  /** What it takes after its name, such as "<file>". */
+  argumentHint?: string;
+  kind: 'command' | 'skill';
+}
+
 /** A dog-ear on a chapter's page: the top corner pins it, the bottom one stars it. */
 export type DogEar = 'pin' | 'star';
 
@@ -218,6 +227,8 @@ declare module './commands' {
   interface CommandMap {
     'agents.list': { request: Record<string, never>; response: AgentInfo[] };
     'agents.models': { request: { agent: AgentId }; response: AgentModels };
+    /** The agent's commands and skills in a folder; your home folder when there's none. */
+    'agents.commands': { request: { agent: AgentId; cwd?: string }; response: AgentCommand[] };
     /** The folders your chats with any agent ran in. */
     'agents.folders': { request: Record<string, never>; response: RecentFolders };
     /** The agent's chats, most recent first, optionally only those in one folder. */

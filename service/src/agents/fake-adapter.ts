@@ -1,4 +1,5 @@
 import type {
+  AgentCommand,
   AgentInfo,
   AgentModels,
   ChatId,
@@ -71,6 +72,17 @@ export class FakeAdapter implements AgentAdapter {
       ],
       default: 'big',
     };
+  }
+
+  /** The folders commands were asked for. */
+  readonly commandFolders: string[] = [];
+
+  async commands(cwd: string): Promise<AgentCommand[]> {
+    this.commandFolders.push(cwd);
+    return [
+      { name: 'compact', description: 'Free up context', kind: 'command' },
+      { name: 'simplify', description: 'Review the changed code', kind: 'skill' },
+    ];
   }
 
   run(chatId: ChatId, settings: ChatSettings, resume: boolean, events: ChatEvents): LiveChat {

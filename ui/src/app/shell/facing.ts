@@ -1,8 +1,21 @@
 import { Injectable, computed, signal } from '@angular/core';
+import type { AgentCommand, AgentId } from '@grimoire/contract';
+
+/** What you're looking up among an agent's commands, from the start of an entry. */
+export interface CommandLookUp {
+  chapterId: string;
+  agent: AgentId;
+  /** The chapter's folder; the agent's commands can differ between folders. */
+  cwd?: string;
+  /** What follows the "/" so far. */
+  query: string;
+  /** Writes the command in the entry and sends it. */
+  use(command: AgentCommand): void;
+}
 
 /**
- * Turns the facing page to the slips awaiting your seal, or to the Index,
- * and back. While it's turned to the slips, each chapter shows its slip as
+ * Turns the facing page to the slips awaiting your seal, to the Index, or
+ * to an agent's commands, and back. While it's turned to the slips, each chapter shows its slip as
  * a stub that points to it.
  */
 @Injectable({ providedIn: 'root' })
@@ -13,18 +26,34 @@ export class Facing {
   readonly sealFirst = signal<string | undefined>(undefined);
   /** What the Index looks up while the facing page shows it; null when it doesn't. */
   readonly index = signal<string | null>(null);
+  /** The agent's commands the facing page lists; null when it doesn't. */
+  readonly commands = signal<CommandLookUp | null>(null);
   /** Whether the facing page is turned away from its own pages. */
-  readonly turned = computed(() => this.seals() || this.index() !== null);
+  readonly turned = computed(
+    () => this.seals() || this.index() !== null || this.commands() !== null,
+  );
 
   openSeals(approvalId?: string): void {
     this.index.set(null);
+    this.commands.set(null);
     this.sealFirst.set(approvalId);
     this.seals.set(true);
   }
 
   openIndex(lookUp = ''): void {
     this.seals.set(false);
+    this.commands.set(null);
     this.index.set(lookUp);
+  }
+
+  openCommands(lookUp: CommandLookUp): void {
+    this.seals.set(false);
+    this.index.set(null);
+    this.commands.set(lookUp);
+  }
+
+  closeCommands(): void {
+    this.commands.set(null);
   }
 
   closeIndex(): void {

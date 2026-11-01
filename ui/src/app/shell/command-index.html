@@ -1,0 +1,79 @@
+<gr-running-head>
+  <div class="row">
+    <h2 class="title">Index</h2>
+    <span class="hint">
+      <span>turned to by</span>
+      <span class="gr-kbd">/</span>
+      <span>at the start of your entry</span>
+    </span>
+    <span class="spacer"></span>
+    <button type="button" class="gr-link" (click)="commands.close()">
+      Back to the {{ backTo() }} <span class="gr-kbd">Esc</span>
+    </button>
+  </div>
+</gr-running-head>
+
+<div class="index">
+  <div class="look-up">
+    <label>Look up</label>
+    <span class="from"><span class="slash">/{{ commands.lookUp()?.query }}</span>in your entry</span>
+    <span class="spacer"></span>
+    <span class="count">{{ agentName() }}’s commands and skills · {{ count() }}</span>
+  </div>
+
+  <div
+    class="entries"
+    id="gr-command-entries"
+    role="listbox"
+    [attr.aria-label]="agentName() + ' commands and skills'"
+  >
+    @for (section of sections(); track section.title) {
+      <div class="section" role="group" [attr.aria-label]="section.title">
+        <h3>{{ section.title }}</h3>
+        @for (command of section.entries; track command.name) {
+          @let place = where(command);
+          <button
+            type="button"
+            class="entry"
+            role="option"
+            tabindex="-1"
+            [id]="'gr-command-' + command.name"
+            [attr.aria-selected]="command.name === commands.selected()"
+            (click)="use(command)"
+          >
+            <span class="cursor" aria-hidden="true"><gr-icon name="quill" /></span>
+            <code class="label"
+              >{{ command.parts[0] }}<b>{{ command.parts[1] }}</b>{{ command.parts[2] }}</code
+            >
+            @if (command.kind === 'command' && command.description) {
+              <span class="gloss">{{ command.description }}</span>
+            }
+            <span class="leader" aria-hidden="true"></span>
+            <span class="where">
+              @if (place.folder) {
+                <code>{{ place.text }}</code>
+              } @else {
+                {{ place.text }}
+              }
+            </span>
+          </button>
+        }
+      </div>
+    } @empty {
+      <p class="note">{{ empty() }}</p>
+    }
+  </div>
+
+  <p class="note">
+    Keep typing in your entry to narrow the list. Only {{ agentName() }}’s own commands and skills
+    are listed; another agent shows its own.
+  </p>
+</div>
+
+<gr-running-foot>
+  <span class="spacer"></span>
+  <span class="caps"><span class="gr-kbd">↑</span><span class="gr-kbd">↓</span> move</span>
+  <span class="caps"><span class="gr-kbd">Tab</span> complete</span>
+  <span class="caps"><span class="gr-kbd">⏎</span> use</span>
+  <span class="caps"><span class="gr-kbd">Esc</span> back</span>
+</gr-running-foot>

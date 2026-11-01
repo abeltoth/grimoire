@@ -10,6 +10,7 @@ export function registerAgentCommands(registry: CommandRegistry, hub: AgentHub):
     hub.open(agent, chatId, settings),
   );
   registry.register('agents.models', ({ agent }) => hub.models(agent));
+  registry.register('agents.commands', ({ agent, cwd }) => hub.commands(agent, cwd));
   registry.register('agents.folders', () => hub.folders());
   registry.register('agents.configure', ({ chatId, change }) => hub.configure(chatId, change));
   registry.register('agents.start', ({ agent, settings, text }) =>

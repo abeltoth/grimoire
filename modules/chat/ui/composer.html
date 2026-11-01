@@ -9,16 +9,27 @@
 }
 
 <label class="sr-only" for="gr-next-entry">{{ first() ? 'First entry' : 'Next entry' }}</label>
-<textarea
-  #entry
-  id="gr-next-entry"
-  class="entry"
-  rows="2"
-  [placeholder]="first() ? 'Write the first entry…' : 'Write the next entry…'"
-  [value]="draft()"
-  (input)="draft.set($any($event.target).value)"
-  (keydown.enter)="enter($event, entry)"
-></textarea>
+<div class="writing">
+  <textarea
+    #entry
+    id="gr-next-entry"
+    class="entry"
+    rows="2"
+    [class.slash]="lookingUp()"
+    [placeholder]="first() ? 'Write the first entry…' : 'Write the next entry…'"
+    [value]="draft()"
+    [attr.aria-controls]="lookingUp() ? 'gr-command-entries' : null"
+    [attr.aria-expanded]="lookingUp() ? true : null"
+    [attr.aria-activedescendant]="chosen() ? 'gr-command-' + chosen()!.name : null"
+    (input)="write($any($event.target).value)"
+    (keydown)="key($event, entry)"
+  ></textarea>
+  @if (lookingUp()) {
+    <span class="slash-hint"
+      >{{ chats.agentName(agent()) }}’s commands and skills are on the facing page →</span
+    >
+  }
+</div>
 
 <div class="controls">
   <button
