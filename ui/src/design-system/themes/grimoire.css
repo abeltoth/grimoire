@@ -247,6 +247,22 @@
   --gr-shadow-stop: 0 0 0 1px rgba(165, 50, 30, 0.45);
   --gr-quill-lift: -3px;
 
+  /* Chat: a new chapter's opening page */
+  --gr-opening-pad-top: 64px;
+  --gr-opening-width: 560px;
+  --gr-opening-gap: 6px;
+  --gr-headpiece-width: 320px;
+  --gr-headpiece-height: 22px;
+  --gr-headpiece-opacity: 0.55;
+  --gr-opening-kicker-margin: 10px;
+  --gr-size-opening-kicker: 19px;
+  --gr-tracking-opening: 0.18em;
+  --gr-size-opening-begun: 15px;
+  --gr-opening-note-margin: 22px;
+  --gr-size-opening-note: 16.5px;
+  --gr-leading-opening-note: 1.5;
+  --gr-size-opening-code: 0.8em;
+
   /* Chat: composer */
   --gr-composer-margin: 0 24px 0 30px;
   --gr-composer-pad: 10px 16px 9px;

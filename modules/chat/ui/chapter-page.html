@@ -1,7 +1,7 @@
 @if (chapter(); as c) {
   <gr-running-head>
     <div class="row">
-      <h1 class="title">{{ c.title || 'Untitled chapter' }}</h1>
+      <h1 class="title" [class.untitled]="!c.title">{{ c.title || 'Untitled chapter' }}</h1>
       <button type="button" class="icon-button" aria-label="Rename chapter" aria-disabled="true">
         <gr-icon name="pen" />
       </button>
@@ -27,8 +27,23 @@
     </div>
   </gr-running-head>
 
-  <gr-transcript [chapter]="c" (stop)="stop()" />
-  <gr-composer [chapterId]="c.id" [queued]="c.queued" [context]="c.context" />
+  @if (c.status === 'blank') {
+    <gr-chapter-opening
+      [agentName]="chats.agentName(c.agent)"
+      [cwd]="c.settings.cwd"
+      [mode]="c.settings.mode"
+      [begunAt]="c.begunAt ?? 0"
+      [error]="c.error"
+    />
+  } @else {
+    <gr-transcript [chapter]="c" (stop)="stop()" />
+  }
+  <gr-composer
+    [chapterId]="c.id"
+    [first]="c.status === 'blank'"
+    [queued]="c.queued"
+    [context]="c.context"
+  />
 
   <gr-running-foot>
     <gr-status-indicators />

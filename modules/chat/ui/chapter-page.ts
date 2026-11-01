@@ -5,6 +5,7 @@ import { Chats } from '@ui/app/core/chats';
 import { RunningFoot } from '@ui/app/shell/running-foot';
 import { RunningHead } from '@ui/app/shell/running-head';
 import { StatusIndicators } from '@ui/app/shell/status-indicators';
+import { ChapterOpening } from './chapter-opening';
 import { Composer } from './composer';
 import { Transcript } from './transcript';
 
@@ -17,13 +18,21 @@ const MODE_LABELS: Record<ApprovalMode, string> = {
 
 /**
  * The open chapter on the left page: its running head with the chat's
- * settings, the transcript, the next page to write on, and the running
- * foot. Esc denies the approval awaiting your seal, or else stops the
+ * settings, the transcript (or a blank chapter's opening page), the next
+ * page to write on, and the running foot. Esc denies the approval awaiting your seal, or else stops the
  * running turn and puts the queued messages back on the next page.
  */
 @Component({
   selector: 'gr-chapter-page',
-  imports: [Composer, Icon, RunningFoot, RunningHead, StatusIndicators, Transcript],
+  imports: [
+    ChapterOpening,
+    Composer,
+    Icon,
+    RunningFoot,
+    RunningHead,
+    StatusIndicators,
+    Transcript,
+  ],
   templateUrl: './chapter-page.html',
   styleUrl: './chapter-page.css',
   host: { '(document:keydown.escape)': 'stop()' },

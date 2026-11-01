@@ -1,0 +1,60 @@
+/* Set in the middle of the page, a little way down, like a book's first page. */
+:host {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gr-opening-gap);
+  max-width: var(--gr-opening-width);
+  margin: 0 auto;
+  padding-top: var(--gr-opening-pad-top);
+  text-align: center;
+}
+
+.headpiece {
+  width: var(--gr-headpiece-width);
+  height: var(--gr-headpiece-height);
+  color: var(--gr-ink);
+  opacity: var(--gr-headpiece-opacity);
+}
+
+p {
+  margin: 0;
+}
+
+.kicker {
+  margin-top: var(--gr-opening-kicker-margin);
+  font-family: var(--gr-font-display-sc);
+  font-size: var(--gr-size-opening-kicker);
+  letter-spacing: var(--gr-tracking-opening);
+  color: var(--gr-rubric);
+}
+
+.begun {
+  font-style: italic;
+  font-size: var(--gr-size-opening-begun);
+  color: var(--gr-ink-soft);
+}
+
+.note {
+  margin-top: var(--gr-opening-note-margin);
+  font-size: var(--gr-size-opening-note);
+  line-height: var(--gr-leading-opening-note);
+  color: var(--gr-ink-soft);
+  text-wrap: balance;
+}
+
+code {
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-opening-code);
+  color: var(--gr-ink);
+}
+
+.error {
+  margin-top: var(--gr-opening-note-margin);
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-rubric);
+}

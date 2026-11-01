@@ -16,6 +16,12 @@
   line-height: var(--gr-leading-chapter);
 }
 
+/* A chapter without a title yet. */
+.title.untitled {
+  font-style: italic;
+  color: var(--gr-ink-soft);
+}
+
 .icon-button {
   display: inline-grid;
   place-items: center;
