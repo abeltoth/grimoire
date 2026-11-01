@@ -7,6 +7,7 @@ import { RunningHead } from '@ui/app/shell/running-head';
 import { StatusIndicators } from '@ui/app/shell/status-indicators';
 import { ChapterOpening } from './chapter-opening';
 import { Composer } from './composer';
+import { DogEars } from './dog-ears';
 import { MODES, SettingsCard } from './settings-card';
 import { Transcript } from './transcript';
 
@@ -24,6 +25,7 @@ import { Transcript } from './transcript';
   imports: [
     ChapterOpening,
     Composer,
+    DogEars,
     Icon,
     RunningFoot,
     RunningHead,

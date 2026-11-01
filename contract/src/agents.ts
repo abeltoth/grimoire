@@ -184,6 +184,9 @@ export interface QueuedEntry {
   text: string;
 }
 
+/** A dog-ear on a chapter's page: the top corner pins it, the bottom one stars it. */
+export type DogEar = 'pin' | 'star';
+
 /** A chat the hub has open: its transcript so far and what it's doing. */
 export interface OpenChat {
   id: ChatId;
@@ -202,6 +205,8 @@ export interface OpenChat {
   plan: PlanStep[];
   /** Your entries whose file changes were undone; their edits show as withdrawn. */
   withdrawn: string[];
+  /** The dog-ears folded down on the chapter. */
+  dogEars: DogEar[];
 }
 
 declare module './commands' {
@@ -239,6 +244,11 @@ declare module './commands' {
      * chapter, and the original stays as it was.
      */
     'agents.fork': { request: { chatId: ChatId; entryId: string }; response: OpenChat };
+    /** Folds a chat's dog-ear down, or unfolds it: pins or stars the chat, or takes that back. */
+    'agents.dogEar': {
+      request: { chatId: ChatId; dogEar: DogEar; folded: boolean };
+      response: void;
+    };
     /** Takes a message out of the queue; false when it had already gone. */
     'agents.unqueue': { request: { chatId: ChatId; id: string }; response: boolean };
     /**
@@ -280,6 +290,8 @@ declare module './events' {
     'agents.settings': { chatId: ChatId; settings: ChatSettings };
     /** The agent changed its plan. */
     'agents.plan': { chatId: ChatId; plan: PlanStep[] };
+    /** A chat's dog-ears changed: the ones now folded down. */
+    'agents.dogEars': { chatId: ChatId; dogEars: DogEar[] };
     /** Edits were undone: your entries whose file changes are now withdrawn. */
     'agents.withdrawn': { chatId: ChatId; withdrawn: string[] };
   }

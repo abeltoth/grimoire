@@ -9,6 +9,7 @@ import type {
   ApprovalDecision,
   ChatStatus,
   ContextUsage,
+  DogEar,
   Entry,
   EventName,
   EventPayload,
@@ -39,6 +40,8 @@ export interface Chapter {
   plan: readonly PlanStep[];
   /** Your entries whose file changes were undone. */
   withdrawn: readonly string[];
+  /** The dog-ears folded down: pinned, starred. */
+  dogEars: readonly DogEar[];
   /** Why the last turn failed, until the next message. */
   error?: string;
   /** When a blank chapter was opened, in ms since the epoch. */
@@ -121,6 +124,9 @@ export class Chats {
       this.update(chatId, (c) => ({ ...c, settings })),
     );
     this.listen('agents.plan', ({ chatId, plan }) => this.update(chatId, (c) => ({ ...c, plan })));
+    this.listen('agents.dogEars', ({ chatId, dogEars }) =>
+      this.update(chatId, (c) => ({ ...c, dogEars })),
+    );
     this.listen('agents.withdrawn', ({ chatId, withdrawn }) =>
       this.update(chatId, (c) => ({ ...c, withdrawn })),
     );
@@ -217,6 +223,7 @@ export class Chats {
       queued: [],
       plan: [],
       withdrawn: [],
+      dogEars: [],
       begunAt: Date.now(),
     };
     this.all.update((all) => [...all, blank]);
@@ -293,6 +300,11 @@ export class Chats {
     } catch (error) {
       this.fail(id, error);
     }
+  }
+
+  /** Folds a chapter's dog-ear down, or unfolds it. */
+  dogEar(id: string, dogEar: DogEar, folded: boolean): Promise<void> {
+    return this.settle(id, this.bridge.invoke('agents.dogEar', { chatId: id, dogEar, folded }));
   }
 
   /** Takes a message out of the queue; false when it had already gone. */
@@ -397,6 +409,7 @@ function fromOpenChat(chat: OpenChat): Chapter {
     queued: chat.queued,
     plan: chat.plan ?? [],
     withdrawn: chat.withdrawn ?? [],
+    dogEars: chat.dogEars ?? [],
     ...(chat.context ? { context: chat.context } : {}),
   };
 }

@@ -1,4 +1,5 @@
 @if (chapter(); as c) {
+  <gr-dog-ears [chapter]="c" />
   <gr-running-head>
     <div class="row">
       <h1 class="title" [class.untitled]="!c.title">{{ c.title || 'Untitled chapter' }}</h1>

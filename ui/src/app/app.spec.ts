@@ -38,6 +38,7 @@ function fakeBridge(overrides: Partial<GrimoireBridge> = {}) {
       queued: [],
       plan: [],
       withdrawn: [],
+      dogEars: [],
     }),
     'agents.unqueue': () => true,
     'agents.interrupt': () => [],
@@ -592,6 +593,7 @@ describe('App', () => {
         queued: [],
         plan: [],
         withdrawn: [],
+        dogEars: [],
       },
     ];
     answers['layout.get'] = () => ({ current: 'c1' });
@@ -627,6 +629,7 @@ describe('App', () => {
       queued: [],
       plan: [],
       withdrawn: [],
+      dogEars: [],
     });
     answers['agents.openChats'] = () => [chat('c1', 'Context meter')];
     answers['layout.get'] = () => ({ current: 'c1' });
@@ -644,6 +647,46 @@ describe('App', () => {
     expect(texts('gr-ribbon b')).toEqual(['Context meter (a)', 'Context meter', 'New chapter']);
   });
 
+  it('pins and stars a chapter with its dog-ears, but not a blank one', async () => {
+    const { bridge, calls, emit, answers } = fakeBridge();
+    answers['agents.openChats'] = (): OpenChat[] => [
+      {
+        id: 'c1',
+        agent: 'claude-code',
+        title: 'Context meter',
+        settings: { cwd: 'C:/work/grimoire' },
+        status: 'idle',
+        entries: [{ kind: 'user', id: 'u1', text: 'Add a meter' }],
+        approvals: [],
+        queued: [],
+        plan: [],
+        withdrawn: [],
+        dogEars: ['star'],
+      },
+    ];
+    answers['layout.get'] = () => ({ current: 'c1' });
+    const { fixture, el } = await render(bridge);
+    const labels = () => [...el.querySelectorAll('gr-dog-ears button')].map((b) => b.getAttribute('aria-label'));
+    expect(labels()).toEqual(['Pin this chapter', 'Starred. Unfold to unstar']);
+
+    el.querySelector<HTMLButtonElement>('gr-dog-ears .pin')!.click();
+    el.querySelector<HTMLButtonElement>('gr-dog-ears .star')!.click();
+    expect(calls.filter((c) => c.command === 'agents.dogEar').map((c) => c.request)).toEqual([
+      { chatId: 'c1', dogEar: 'pin', folded: true },
+      { chatId: 'c1', dogEar: 'star', folded: false },
+    ]);
+    emit('agents.dogEars', { chatId: 'c1', dogEars: ['pin'] });
+    await fixture.whenStable();
+    expect(labels()).toEqual(['Pinned. Unfold to unpin', 'Star this chapter']);
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'n', ctrlKey: true }));
+    await fixture.whenStable();
+    const blank = [...el.querySelectorAll('gr-dog-ears button')];
+    expect(blank.map((b) => b.getAttribute('aria-disabled'))).toEqual(['true', 'true']);
+    (blank[0] as HTMLButtonElement).click();
+    expect(calls.filter((c) => c.command === 'agents.dogEar')).toHaveLength(2);
+  });
+
   it('shows why an undo failed', async () => {
     const { bridge, answers } = fakeBridge();
     answers['agents.openChats'] = (): OpenChat[] => [
@@ -658,6 +701,7 @@ describe('App', () => {
         queued: [],
         plan: [],
         withdrawn: [],
+        dogEars: [],
       },
     ];
     answers['layout.get'] = () => ({ current: 'c1' });
@@ -681,6 +725,7 @@ describe('App', () => {
       queued: [],
       plan: [],
       withdrawn: [],
+      dogEars: [],
     });
     answers['agents.openChats'] = () => [
       chat('c1', 'Fix flaky login test', 'Why does login fail?'),
@@ -717,6 +762,7 @@ describe('App', () => {
       queued: [],
       plan: [],
       withdrawn: [],
+      dogEars: [],
     });
     answers['agents.openChats'] = () => [chat('c1', 'One'), chat('c2', 'Two'), chat('c3', 'Three')];
     answers['layout.get'] = () => ({ current: 'c2' });
@@ -768,6 +814,7 @@ describe('App', () => {
       queued: [],
       plan: [],
       withdrawn: [],
+      dogEars: [],
     });
     answers['agents.openChats'] = () => [
       chat('c1', 'Fix flaky login test', 'npm test', 200),
@@ -841,6 +888,7 @@ describe('App', () => {
         queued: [],
         plan: [],
         withdrawn: [],
+        dogEars: [],
       },
     ];
     const { fixture, el, texts } = await render(bridge);

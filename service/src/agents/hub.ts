@@ -12,6 +12,7 @@ import type {
   ChatStatus,
   ChatSummary,
   ContextUsage,
+  DogEar,
   Entry,
   EventName,
   EventPayload,
@@ -24,6 +25,7 @@ import type {
 } from '@grimoire/contract';
 import { Chapters } from '../storage/chapters';
 import { openDatabase } from '../storage/database';
+import { DogEars } from '../storage/dog-ears';
 import { Withdrawn } from '../storage/withdrawn';
 import type { AgentAdapter, ChatEvents, LiveChat, Verdict } from './adapter';
 
@@ -43,6 +45,7 @@ interface ChatState {
   plan: PlanStep[];
   /** Your entries whose file changes were undone. */
   withdrawn: string[];
+  dogEars: DogEar[];
   /** While the agent process runs. */
   live?: LiveChat;
   /** Streamed text not sent to windows yet, per entry and block. */
@@ -58,8 +61,8 @@ interface PendingApproval {
 /**
  * The agent hub (ADR-007): the open chats, their transcripts and pending
  * approvals, kept in memory (ADR-009). Which chats are open is kept in
- * `chapters`, so they reopen after a restart, and which entries were undone
- * in `withdrawn`. Windows are views of it:
+ * `chapters`, so they reopen after a restart, which entries were undone
+ * in `withdrawn`, and which chats are pinned or starred in `dogEars`. Windows are views of it:
  * they get a chat's state when they open it and its changes as events.
  * Streamed text is batched, at most one event per chat every `textBatchMs`.
  */
@@ -73,6 +76,7 @@ export class AgentHub {
     private readonly textBatchMs = 50,
     private readonly chapters = new Chapters(openDatabase(':memory:')),
     private readonly withdrawn = new Withdrawn(openDatabase(':memory:')),
+    private readonly dogEars = new DogEars(openDatabase(':memory:')),
   ) {}
 
   addAdapter(adapter: AgentAdapter): void {
@@ -128,6 +132,7 @@ export class AgentHub {
       chat = this.chats.get(chatId) ?? this.track(chatId, adapter, settings, history.entries, title);
       chat.plan = history.plan;
       chat.withdrawn = this.withdrawn.list(chatId);
+      chat.dogEars = this.dogEars.of(chatId);
     }
     this.chapters.add({ chatId, agent, settings: chat.settings });
     return this.snapshot(chat);
@@ -221,6 +226,15 @@ export class AgentHub {
     return `${base} (${letter ?? 'z'})`;
   }
 
+  /** Folds a chat's dog-ear down, or unfolds it. */
+  dogEar(chatId: ChatId, dogEar: DogEar, folded: boolean): void {
+    this.dogEars.set(chatId, dogEar, folded);
+    const dogEars = this.dogEars.of(chatId);
+    const chat = this.chats.get(chatId);
+    if (chat) chat.dogEars = dogEars;
+    this.emit('agents.dogEars', { chatId, dogEars });
+  }
+
   /** Takes a message out of the queue; false when it had already gone. */
   unqueue(chatId: ChatId, id: string): boolean {
     const chat = this.chat(chatId);
@@ -294,6 +308,7 @@ export class AgentHub {
       queued: [],
       plan: [],
       withdrawn: [],
+      dogEars: [],
       pendingText: new Map(),
     };
     this.chats.set(id, chat);
@@ -462,6 +477,7 @@ export class AgentHub {
       ...(chat.context ? { context: chat.context } : {}),
       plan: chat.plan,
       withdrawn: [...chat.withdrawn],
+      dogEars: [...chat.dogEars],
     };
   }
 

@@ -22,6 +22,7 @@ import { CommandRegistry } from './registry';
 import { AlreadyRunningError, startServer, type ServiceServer } from './server';
 import { Chapters } from './storage/chapters';
 import { openDatabase } from './storage/database';
+import { DogEars } from './storage/dog-ears';
 import { Withdrawn } from './storage/withdrawn';
 
 const { values } = parseArgs({
@@ -62,6 +63,7 @@ const hub = new AgentHub(
   50,
   new Chapters(db),
   new Withdrawn(db),
+  new DogEars(db),
 );
 const claude = new ClaudeAdapter();
 hub.addAdapter(claude);
