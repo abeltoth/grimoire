@@ -304,6 +304,27 @@
   --gr-card-foot-margin: 10px;
   --gr-card-foot-pad: 9px;
 
+  /* Chat: the facing page turned to the slips awaiting your seal */
+  --gr-seals-pad-top: 30px;
+  --gr-seals-pad-bottom: 24px;
+  --gr-seals-inset: 4px;
+  --gr-seals-gap: 34px;
+  --gr-seals-tilt-alt: 0.45deg;
+  --gr-seals-note-width: 600px;
+  --gr-seals-foot-gap: 16px;
+  --gr-slip-from-gap: 10px;
+  --gr-size-slip-from: 15px;
+  --gr-size-slip-from-title: 16.5px;
+  --gr-size-slip-open: 12.5px;
+  --gr-stub-gap: 14px;
+  --gr-stub-margin: 14px 0 4px;
+  --gr-stub-pad: 10px 18px 10px 20px;
+  --gr-stub-tilt: -0.5deg;
+  --gr-size-stub: 14.5px;
+  --gr-size-stub-head: 13.5px;
+  --gr-tracking-stub-head: 0.07em;
+  --gr-size-stub-code: 13px;
+
   /* Chat: composer */
   --gr-composer-margin: 0 24px 0 30px;
   --gr-composer-pad: 10px 16px 9px;

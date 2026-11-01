@@ -56,6 +56,33 @@
   font-size: var(--gr-size-slip-title);
 }
 
+/* On the facing page: the chapter it's from, in plain text. */
+:host(.from) .head {
+  gap: var(--gr-slip-from-gap);
+  font-family: var(--gr-font-text);
+  font-size: var(--gr-size-slip-from);
+  letter-spacing: 0;
+}
+
+:host(.from) .head b {
+  color: var(--gr-ink);
+  font-size: var(--gr-size-slip-from-title);
+}
+
+:host(.from) .asks {
+  font-style: italic;
+}
+
+:host(.from) .gr-link {
+  font-size: var(--gr-size-slip-open);
+}
+
+/* Hints show on the slip you're on; Esc turns back there. */
+:host(.from:not(:focus-within)) .gr-kbd,
+:host(.from) .deny .gr-kbd {
+  display: none;
+}
+
 /* Exactly what will run. */
 .well {
   display: flex;

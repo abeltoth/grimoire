@@ -2,6 +2,7 @@
   type="button"
   class="flat"
   [attr.aria-current]="current() ? 'page' : null"
+  [attr.aria-expanded]="expanded() ?? null"
   [attr.aria-label]="label() ?? null"
   [attr.aria-disabled]="unavailable() || null"
   (click)="pick()"

@@ -12,6 +12,7 @@ import {
 import { Drawing } from '@ui/design-system/drawing';
 import { Icon } from '@ui/design-system/icon';
 import { type Chapter, Chats } from '@ui/app/core/chats';
+import { Facing } from '@ui/app/shell/facing';
 import type { Answer, ApprovalDecision } from '@grimoire/contract';
 import { ApprovalSlip } from './approval-slip';
 import { Corrections } from './corrections';
@@ -19,6 +20,7 @@ import { MarkdownView } from './markdown/markdown-view';
 import { parseMarkdown } from './markdown/markdown';
 import { Output } from './output';
 import { QuestionsForm } from './questions-form';
+import { SealStub } from './seal-stub';
 import { toRows } from './rows';
 
 /**
@@ -37,6 +39,7 @@ import { toRows } from './rows';
     NgTemplateOutlet,
     Output,
     QuestionsForm,
+    SealStub,
   ],
   templateUrl: './transcript.html',
   styleUrl: './transcript.css',
@@ -44,6 +47,7 @@ import { toRows } from './rows';
 })
 export class Transcript {
   private readonly chats = inject(Chats);
+  protected readonly facing = inject(Facing);
   private readonly element = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
 
   readonly chapter = input.required<Chapter>();

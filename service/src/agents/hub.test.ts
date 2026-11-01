@@ -126,6 +126,7 @@ describe('AgentHub', () => {
         tool: 'Write',
         input: { path: 'x' },
         alwaysAllow: { scope: 'project' },
+        at: expect.any(Number),
       },
     ]);
 

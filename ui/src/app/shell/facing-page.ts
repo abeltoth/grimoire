@@ -5,11 +5,13 @@ import { Icon } from '../../design-system/icon';
 import { Page } from './page';
 import { RunningFoot } from './running-foot';
 import { RunningHead } from './running-head';
+import { Facing } from './facing';
 import { type FacingPageEntry, ShellRegistry } from './shell-registry';
 
 /**
  * The right-hand page. Its running head lists what it can show, as
  * registered by features; the first one that can be picked shows first.
+ * The seal ribbon turns it to the slips awaiting your seal for a while.
  */
 @Component({
   selector: 'gr-facing-page',
@@ -19,6 +21,7 @@ import { type FacingPageEntry, ShellRegistry } from './shell-registry';
 })
 export class FacingPage {
   protected readonly registry = inject(ShellRegistry);
+  protected readonly facing = inject(Facing);
 
   protected readonly shown = linkedSignal<FacingPageEntry | undefined>(() =>
     this.registry.facingPages.all().find((page) => page.component),

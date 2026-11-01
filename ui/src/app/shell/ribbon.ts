@@ -37,6 +37,8 @@ export class Ribbon {
   readonly label = input<string>();
   /** The number pressed into a wax seal on the ribbon; none at 0. */
   readonly seal = input(0, { transform: numberAttribute });
+  /** For a ribbon that opens something: whether it's open. */
+  readonly expanded = input<boolean>();
   /** Shows the ribbon, but it does nothing yet. */
   readonly unavailable = input(false, { transform: booleanAttribute });
 

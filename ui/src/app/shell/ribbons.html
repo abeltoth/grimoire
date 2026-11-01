@@ -38,7 +38,8 @@
       [meta]="sealMeta()"
       [label]="sealLabel()"
       [seal]="seals()"
-      unavailable
+      [expanded]="facing.seals()"
+      (picked)="facing.seals() ? facing.closeSeals() : facing.openSeals()"
     />
   }
 

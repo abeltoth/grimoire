@@ -119,6 +119,8 @@ export interface Approval {
   chatId: ChatId;
   tool: string;
   input: unknown;
+  /** When the agent asked, in ms since the epoch. */
+  at?: number;
   /** The agent's own description of the request, when it gives one. */
   title?: string;
   /** What Always allow would allow from now on; missing when the agent doesn't offer it. */

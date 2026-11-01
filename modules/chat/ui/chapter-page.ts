@@ -1,6 +1,7 @@
 import { Component, ElementRef, computed, inject, viewChild, viewChildren } from '@angular/core';
 import { Icon } from '@ui/design-system/icon';
 import { Chats, type Setting } from '@ui/app/core/chats';
+import { Facing } from '@ui/app/shell/facing';
 import { RunningFoot } from '@ui/app/shell/running-foot';
 import { RunningHead } from '@ui/app/shell/running-head';
 import { StatusIndicators } from '@ui/app/shell/status-indicators';
@@ -15,7 +16,8 @@ import { Transcript } from './transcript';
  * page to write on, and the running foot. The settings in the running head
  * open the chapter's settings card. Esc closes the card, or else denies the
  * approval awaiting your seal, or else stops the running turn and puts the
- * queued messages back on the next page.
+ * queued messages back on the next page. While the facing page shows the
+ * slips, Esc is theirs.
  */
 @Component({
   selector: 'gr-chapter-page',
@@ -31,10 +33,11 @@ import { Transcript } from './transcript';
   ],
   templateUrl: './chapter-page.html',
   styleUrl: './chapter-page.css',
-  host: { '(document:keydown.escape)': 'stop()' },
+  host: { '(document:keydown.escape)': 'escape($event)' },
 })
 export class ChapterPage {
   protected readonly chats = inject(Chats);
+  private readonly facing = inject(Facing);
   protected readonly chapter = this.chats.current;
   private readonly composer = viewChild(Composer);
   private readonly running = computed(() =>
@@ -76,14 +79,20 @@ export class ChapterPage {
     else this.chats.openSettings(chapter.id, setting);
   }
 
-  protected stop(): void {
-    const chapter = this.chapter();
-    if (!chapter) return;
+  protected escape(event: Event): void {
+    if (event.defaultPrevented) return;
     const card = this.card();
     if (card) {
+      event.preventDefault();
       this.chats.closeSettings();
       return this.anchorFor(card.on)?.focus();
     }
+    if (!this.facing.seals()) this.stop();
+  }
+
+  protected stop(): void {
+    const chapter = this.chapter();
+    if (!chapter) return;
     const seal = chapter.approvals.find((approval) => !approval.questions);
     if (seal) void this.chats.decide(chapter.id, seal.id, 'deny');
     else if (this.running())

@@ -3,8 +3,15 @@
 
 @let a = ask();
 <div class="head" [id]="headId()">
-  <b>¶ Awaiting your seal</b>
-  <span>{{ agentName() }} {{ a.asks }}</span>
+  @if (from(); as from) {
+    <b>{{ from }}</b>
+    <span class="asks">{{ agentName() }} {{ a.asks }}</span>
+    <span class="spacer"></span>
+    <button type="button" class="gr-link" (click)="opened.emit()">Open the chapter →</button>
+  } @else {
+    <b>¶ Awaiting your seal</b>
+    <span>{{ agentName() }} {{ a.asks }}</span>
+  }
 </div>
 
 @switch (a.kind) {
@@ -15,7 +22,7 @@
     <div class="meta">
       @if (cwd()) {
         <span
-          >Runs in <code>{{ cwd() }}</code></span
+          >Runs in <code>{{ folder() }}</code></span
         >
       }
       @if (a.about) {
