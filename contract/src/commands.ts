@@ -9,7 +9,8 @@
  *     }
  *   }
  *
- * Names are prefixed with the owning module ("core." for the core).
+ * Names are prefixed with their owner: a module, or a core service such as
+ * "core." or "agents." (the agent hub).
  */
 export interface CommandMap {
   'core.ping': { request: Record<string, never>; response: PingResult };

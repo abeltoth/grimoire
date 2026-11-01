@@ -10,6 +10,9 @@ import { appendFileSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileS
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { PROTOCOL_VERSION, SERVICE_INFO_FILE, type ServiceInfo } from '@grimoire/contract';
+import { ClaudeAdapter } from './agents/claude/claude-adapter';
+import { registerAgentCommands } from './agents/commands';
+import { AgentHub } from './agents/hub';
 import { registerPing } from './core/ping';
 import { endpointFor } from './endpoint';
 import { CommandRegistry } from './registry';
@@ -42,12 +45,17 @@ process.on('uncaughtException', (error) => {
 const registry = new CommandRegistry();
 registerPing(registry, { buildId, startedAt: Date.now() });
 
+let server: ServiceServer | undefined;
+
+const hub = new AgentHub((event, payload) => server?.broadcast(event, payload));
+hub.addAdapter(new ClaudeAdapter());
+registerAgentCommands(registry, hub);
+
 const token = randomBytes(32).toString('hex');
 const endpoint = endpointFor(dataDir);
 
-let server: ServiceServer | undefined;
-
 async function stop(): Promise<void> {
+  hub.closeAll();
   await server?.close();
   removeInfoFileIfOurs();
   log('Stopped');
