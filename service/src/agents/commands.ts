@@ -16,5 +16,6 @@ export function registerAgentCommands(registry: CommandRegistry, hub: AgentHub):
   registry.register('agents.decide', ({ approvalId, decision }) =>
     hub.decide(approvalId, decision),
   );
+  registry.register('agents.answer', ({ approvalId, answers }) => hub.answer(approvalId, answers));
   registry.register('agents.close', ({ chatId }) => hub.close(chatId));
 }

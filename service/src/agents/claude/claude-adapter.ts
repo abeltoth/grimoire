@@ -15,6 +15,7 @@ import type {
 } from '@grimoire/contract';
 import type { AgentAdapter, ChatEvents, LiveChat } from '../adapter';
 import { MessageQueue } from './message-queue';
+import { ASK_TOOL, alwaysAllowOf, toClaudeAnswers, toQuestions } from './permissions';
 import { ClaudeTranscript } from './transcript';
 
 // Loaded on first use: it's large, and the service starts without it.
@@ -79,22 +80,32 @@ export class ClaudeAdapter implements AgentAdapter {
           includePartialMessages: true,
           ...(resume ? { resume: chatId } : { sessionId: chatId }),
           canUseTool: async (tool, toolInput, { signal, suggestions, title, toolUseID }) => {
-            const decision = await events.approval(
+            const asks = tool === ASK_TOOL;
+            const alwaysAllow = asks ? undefined : alwaysAllowOf(suggestions);
+            const verdict = await events.approval(
               {
                 id: toolUseID ?? randomUUID(),
                 tool,
                 input: toolInput,
                 ...(title ? { title } : {}),
-                canAlwaysAllow: (suggestions?.length ?? 0) > 0,
+                ...(alwaysAllow ? { alwaysAllow } : {}),
+                ...(asks ? { questions: toQuestions(toolInput) } : {}),
               },
               signal,
             );
-            if (decision === 'deny')
-              return { behavior: 'deny', message: 'The user declined this.' };
+            if (verdict === 'deny') return { behavior: 'deny', message: 'The user declined this.' };
+            if (typeof verdict === 'object')
+              return {
+                behavior: 'allow',
+                updatedInput: {
+                  ...toolInput,
+                  answers: toClaudeAnswers(toolInput, verdict.answers),
+                },
+              };
             return {
               behavior: 'allow',
               updatedInput: toolInput,
-              ...(decision === 'allow-always' && suggestions
+              ...(verdict === 'allow-always' && suggestions
                 ? { updatedPermissions: suggestions }
                 : {}),
             };

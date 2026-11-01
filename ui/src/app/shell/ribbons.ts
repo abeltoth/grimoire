@@ -66,8 +66,11 @@ export class Ribbons {
     return this.chapters.all().filter((c) => c.id !== current && c.status === 'idle');
   });
 
+  // Questions wait for answers, not for a seal.
+  private readonly sealsOf = (chapter: Chapter) =>
+    chapter.approvals.filter((approval) => !approval.questions).length;
   protected readonly awaitingSeal = computed(() =>
-    this.chapters.all().filter((c) => c.approvals.length > 0),
+    this.chapters.all().filter((c) => this.sealsOf(c) > 0),
   );
   protected readonly sealMeta = computed(() =>
     this.awaitingSeal()
@@ -75,7 +78,7 @@ export class Ribbons {
       .join(', '),
   );
   protected readonly seals = computed(() =>
-    this.awaitingSeal().reduce((sum, c) => sum + c.approvals.length, 0),
+    this.awaitingSeal().reduce((sum, c) => sum + this.sealsOf(c), 0),
   );
 
   protected readonly newChapter = computed(() => this.registry.commands.get('chapters.new'));

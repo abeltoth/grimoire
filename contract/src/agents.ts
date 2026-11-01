@@ -98,8 +98,43 @@ export interface Approval {
   input: unknown;
   /** The agent's own description of the request, when it gives one. */
   title?: string;
-  /** Whether the agent offers to remember an "always allow". */
-  canAlwaysAllow: boolean;
+  /** What Always allow would allow from now on; missing when the agent doesn't offer it. */
+  alwaysAllow?: AlwaysAllow;
+  /**
+   * When set, the agent asks you these questions instead of asking to use a
+   * tool. Answer them with agents.answer.
+   */
+  questions?: Question[];
+}
+
+export interface AlwaysAllow {
+  /** The rule, such as the command `git push`; missing when it covers the whole tool. */
+  rule?: string;
+  /** Where it applies: this chat, this project, or every project. */
+  scope: 'chat' | 'project' | 'everywhere';
+}
+
+/** A question the agent asks before it continues, with options to tick. */
+export interface Question {
+  question: string;
+  /** A short label for the question, such as "Library". */
+  header?: string;
+  options: QuestionOption[];
+  /** Whether you may tick more than one option. */
+  multiSelect: boolean;
+}
+
+export interface QuestionOption {
+  label: string;
+  description?: string;
+  /** The agent recommends this option. */
+  recommended?: boolean;
+}
+
+/** Your answer to one question: the options you ticked, and anything in your own words. */
+export interface Answer {
+  chosen: string[];
+  ownWords?: string;
 }
 
 export type ApprovalDecision = 'allow-once' | 'allow-always' | 'deny';
@@ -139,6 +174,8 @@ declare module './commands' {
       request: { approvalId: string; decision: ApprovalDecision };
       response: void;
     };
+    /** Answers an approval's questions, one answer per question, in order. */
+    'agents.answer': { request: { approvalId: string; answers: Answer[] }; response: void };
     /** Closes a chat and stops its agent process. The chat itself stays with the agent. */
     'agents.close': { request: { chatId: ChatId }; response: void };
   }

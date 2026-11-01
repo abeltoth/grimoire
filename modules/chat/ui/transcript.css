@@ -20,6 +20,11 @@
   margin-top: var(--gr-space-3);
 }
 
+/* Spans the text column and the margin, like a slip tucked into the page. */
+.wide {
+  grid-column: 1 / -1;
+}
+
 .row.tight {
   margin-top: var(--gr-space-2);
 }

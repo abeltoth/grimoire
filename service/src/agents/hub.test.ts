@@ -88,13 +88,19 @@ describe('AgentHub', () => {
     sent = [];
 
     const decision = agent.approval(
-      { id: 'a1', tool: 'Write', input: { path: 'x' }, canAlwaysAllow: true },
+      { id: 'a1', tool: 'Write', input: { path: 'x' }, alwaysAllow: { scope: 'project' } },
       new AbortController().signal,
     );
     expect(events()).toEqual(['agents.approval', 'agents.status']);
     expect(sent[1]!.payload).toEqual({ chatId: id, status: 'waiting' });
     expect((await hub.open('fake', id, settings)).approvals).toEqual([
-      { id: 'a1', chatId: id, tool: 'Write', input: { path: 'x' }, canAlwaysAllow: true },
+      {
+        id: 'a1',
+        chatId: id,
+        tool: 'Write',
+        input: { path: 'x' },
+        alwaysAllow: { scope: 'project' },
+      },
     ]);
 
     // The agent's own status updates don't hide that it waits for you.
@@ -112,11 +118,32 @@ describe('AgentHub', () => {
     const abort = new AbortController();
     const decision = fake
       .runOf(id)
-      .events.approval({ id: 'a1', tool: 'Write', input: {}, canAlwaysAllow: false }, abort.signal);
+      .events.approval({ id: 'a1', tool: 'Write', input: {} }, abort.signal);
 
     abort.abort();
     await expect(decision).resolves.toBe('deny');
     expect(events()).toContain('agents.approvalSettled');
+  });
+
+  it('takes your answers to an approval that asks questions', async () => {
+    const { id } = hub.start('fake', settings, 'Build it');
+    const questions = [
+      { question: 'Where?', options: [{ label: 'Here' }, { label: 'There' }], multiSelect: false },
+    ];
+    const verdict = fake
+      .runOf(id)
+      .events.approval(
+        { id: 'q1', tool: 'Ask', input: {}, questions },
+        new AbortController().signal,
+      );
+
+    expect(() => hub.decide('q1', 'allow-once')).toThrow('answer them instead');
+    expect(() => hub.answer('q1', [])).toThrow('Expected 1 answers, got 0');
+    hub.answer('q1', [{ chosen: ['Here'], ownWords: 'near the top' }]);
+    await expect(verdict).resolves.toEqual({
+      answers: [{ chosen: ['Here'], ownWords: 'near the top' }],
+    });
+    expect(() => hub.answer('q1', [{ chosen: [] }])).toThrow('no longer pending');
   });
 
   it('opens a saved chat once, and continues it when you send', async () => {

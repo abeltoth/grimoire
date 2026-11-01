@@ -18,7 +18,8 @@ const MODE_LABELS: Record<ApprovalMode, string> = {
 /**
  * The open chapter on the left page: its running head with the chat's
  * settings, the transcript, the next page to write on, and the running
- * foot. Esc stops the running turn.
+ * foot. Esc denies the approval awaiting your seal, or else stops the
+ * running turn.
  */
 @Component({
   selector: 'gr-chapter-page',
@@ -40,6 +41,9 @@ export class ChapterPage {
 
   protected stop(): void {
     const chapter = this.chapter();
-    if (chapter && this.running()) void this.chats.interrupt(chapter.id);
+    if (!chapter) return;
+    const seal = chapter.approvals.find((approval) => !approval.questions);
+    if (seal) void this.chats.decide(chapter.id, seal.id, 'deny');
+    else if (this.running()) void this.chats.interrupt(chapter.id);
   }
 }

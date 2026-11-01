@@ -60,7 +60,7 @@
             @if (last && writing()) {
               <gr-icon name="quill" class="quill" />
             }
-            @if (last && running()) {
+            @if (last && stoppable()) {
               <ng-container *ngTemplateOutlet="stopButton" />
             }
           </p>
@@ -87,9 +87,29 @@
   }
 }
 
-@if (running() && !endsInReply()) {
+@if (stoppable() && !endsInReply()) {
   <div class="row tight">
     <p class="waiting"><ng-container *ngTemplateOutlet="stopButton" /></p>
+  </div>
+}
+
+@for (approval of chapter().approvals; track approval.id) {
+  <div class="row">
+    @if (approval.questions) {
+      <gr-questions-form
+        [approval]="approval"
+        [agentName]="agentName()"
+        (answered)="answer(approval.id, $event)"
+      />
+    } @else {
+      <gr-approval-slip
+        class="wide"
+        [approval]="approval"
+        [agentName]="agentName()"
+        [cwd]="chapter().settings.cwd"
+        (decided)="decide(approval.id, $event)"
+      />
+    }
   </div>
 }
 
