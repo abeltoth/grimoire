@@ -79,6 +79,50 @@ describe('toRows', () => {
     ]);
   });
 
+  it('folds out a change as corrections and anything else as its output', () => {
+    const edit = tool(
+      'Write',
+      { file_path: '/repo/a.ts', content: 'one\ntwo\n' },
+      { text: 'Written.', isError: false },
+    );
+    const failedEdit = tool(
+      'Edit',
+      { file_path: '/repo/b.ts', old_string: 'x', new_string: 'y' },
+      { text: 'String not found.', isError: true },
+    );
+    const rows = toRows(
+      [
+        agent(
+          'a1',
+          edit,
+          failedEdit,
+          tool('Glob', { pattern: '*.ts' }, { text: 'a.ts\nb.ts', isError: false }),
+          tool('Read', { file_path: '/repo/c.ts' }, { text: '', isError: false }),
+          tool('Bash', { command: 'npm test' }),
+        ),
+      ],
+      '/repo',
+    );
+    const notes = rows[0]!.kind === 'notes' ? rows[0]!.notes : [];
+    expect(notes.map(({ counts, fold }) => ({ counts, fold }))).toEqual([
+      {
+        counts: '+2 −0',
+        fold: {
+          kind: 'corrections',
+          file: 'a.ts',
+          lines: [
+            { kind: 'inserted', text: 'one' },
+            { kind: 'inserted', text: 'two' },
+          ],
+        },
+      },
+      { counts: undefined, fold: { kind: 'output', title: 'b.ts', text: 'String not found.' } },
+      { counts: undefined, fold: { kind: 'output', title: '*.ts', text: 'a.ts\nb.ts' } },
+      { counts: undefined, fold: undefined },
+      { counts: undefined, fold: undefined },
+    ]);
+  });
+
   it('keeps thinking as its own row and doubles the marks after six notes', () => {
     const tools = Array.from({ length: 7 }, () => tool('WebFetch', { url: 'https://example.com' }));
     const rows = toRows([agent('a1', { kind: 'thinking', text: 'Hmm' }, ...tools)]);

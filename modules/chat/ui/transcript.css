@@ -184,3 +184,11 @@ p {
   font-style: normal;
   font-weight: 500;
 }
+
+.fold {
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-note-detail);
+  letter-spacing: var(--gr-tracking-label);
+  color: var(--gr-link);
+  margin-top: 1px;
+}

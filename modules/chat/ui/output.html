@@ -1,0 +1,18 @@
+<div class="head">
+  <b>{{ title() }}</b>
+  <span class="detail">output</span>
+</div>
+<div #body class="body" tabindex="0">
+  @for (line of lines(); track $index) {
+    <div class="line">
+      <span class="number"></span>
+      <span class="code">{{ line }}</span>
+      <span class="mark"></span>
+    </div>
+  }
+</div>
+@if (shown() < lines().length) {
+  <div class="foot">
+    <span>{{ shown() }} of {{ lines().length }} lines shown · scroll for the rest</span>
+  </div>
+}

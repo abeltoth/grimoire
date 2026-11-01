@@ -71,6 +71,11 @@
   overflow-wrap: anywhere;
 }
 
+/* A blank line keeps its height. */
+.code:empty::before {
+  content: ' ';
+}
+
 .mark {
   font-family: var(--gr-font-text);
   font-style: italic;

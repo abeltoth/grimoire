@@ -1,13 +1,6 @@
-import {
-  Component,
-  ElementRef,
-  afterRenderEffect,
-  computed,
-  input,
-  signal,
-  viewChild,
-} from '@angular/core';
+import { Component, ElementRef, computed, input, viewChild } from '@angular/core';
 import type { DiffLine } from './diff';
+import { linesShown } from './fold-out';
 
 interface Line extends DiffLine {
   key: number;
@@ -22,7 +15,7 @@ interface Line extends DiffLine {
 @Component({
   selector: 'gr-corrections',
   templateUrl: './corrections.html',
-  styleUrl: './corrections.css',
+  styleUrl: './fold-out.css',
   host: { role: 'region', '[attr.aria-label]': "'Corrections to ' + file()" },
 })
 export class Corrections {
@@ -42,20 +35,10 @@ export class Corrections {
   protected readonly removed = computed(
     () => this.lines().filter((line) => line.kind === 'removed').length,
   );
-  /** How many lines fit before you scroll; all of them when they all fit. */
-  protected readonly shown = signal(0);
-
-  constructor() {
-    afterRenderEffect(() => {
-      const total = this.lines().length;
-      const { clientHeight, scrollHeight } = this.body().nativeElement;
-      this.shown.set(
-        scrollHeight > clientHeight && total
-          ? Math.floor(clientHeight / (scrollHeight / total))
-          : total,
-      );
-    });
-  }
+  protected readonly shown = linesShown(
+    () => this.body().nativeElement,
+    () => this.lines().length,
+  );
 }
 
 function markOf(lines: readonly DiffLine[], index: number): string {
