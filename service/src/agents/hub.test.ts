@@ -1,3 +1,4 @@
+import { homedir } from 'node:os';
 import type { AgentEntry, EventName, EventPayload } from '@grimoire/contract';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FakeAdapter } from './fake-adapter';
@@ -35,7 +36,10 @@ describe('AgentHub', () => {
     const chat = hub.start('fake', settings, 'Hello');
 
     expect(chat.status).toBe('thinking');
-    expect(chat.entries).toEqual([{ kind: 'user', id: expect.any(String), text: 'Hello' }]);
+    expect(chat.entries).toEqual([
+      { kind: 'user', id: expect.any(String), text: 'Hello', at: expect.any(Number) },
+    ]);
+    expect(chat.title).toBe('');
     const run = fake.runOf(chat.id);
     expect(run).toMatchObject({ resume: false, settings, sent: ['Hello'] });
     expect(events()).toEqual(['agents.entry', 'agents.status']);
@@ -151,6 +155,23 @@ describe('AgentHub', () => {
     expect(run.closed).toBe(true);
     expect(sent).toEqual([]);
     expect(() => hub.send(id, 'Hi')).toThrow('not open');
+  });
+
+  it('opens a chat with its title, and passes on new titles', async () => {
+    fake.chats = [{ id: 'c1', agent: 'fake', title: 'Earlier chat', updatedAt: 0 }];
+    expect((await hub.open('fake', 'c1', settings)).title).toBe('Earlier chat');
+
+    hub.send('c1', 'Hi');
+    const { events: agent } = fake.runOf('c1');
+    agent.title('Renamed');
+    agent.title('Renamed');
+    expect(sent.filter((s) => s.event === 'agents.title')).toEqual([
+      { event: 'agents.title', payload: { chatId: 'c1', title: 'Renamed' } },
+    ]);
+  });
+
+  it('starts new chats in your home folder unless told otherwise', () => {
+    expect(hub.start('fake', {}, 'Hi').settings.cwd).toBe(homedir());
   });
 
   it('passes interrupts to the agent', async () => {

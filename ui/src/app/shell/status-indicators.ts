@@ -14,6 +14,8 @@ import { ShellRegistry } from './shell-registry';
       <button
         type="button"
         class="gr-link"
+        [class.alert]="indicator.tone === 'alert'"
+        [attr.title]="indicator.detail ?? null"
         [attr.aria-disabled]="indicator.open ? null : true"
         (click)="indicator.open?.()"
       >

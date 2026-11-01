@@ -1,3 +1,7 @@
 :host {
   display: contents;
 }
+
+.alert {
+  color: var(--gr-rubric);
+}

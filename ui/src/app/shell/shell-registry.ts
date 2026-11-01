@@ -6,6 +6,7 @@ import {
   inject,
   provideAppInitializer,
   signal,
+  untracked,
 } from '@angular/core';
 import type { IconName } from '../../design-system/icon';
 import type { Shortcut } from './shortcut';
@@ -34,6 +35,10 @@ export interface FacingPageEntry extends Entry {
 export interface Indicator extends Entry {
   label: string;
   icon?: IconName;
+  /** An alert shows in rubric. */
+  tone?: 'alert';
+  /** More about it, shown on hover. */
+  detail?: string;
   /** Without it the indicator shows but does nothing yet. */
   open?: () => void;
 }
@@ -53,9 +58,9 @@ export class Slot<T extends Entry> {
     [...this.entries()].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
   );
 
-  /** Adds an entry and returns a function that removes it again. */
+  /** Adds an entry and returns a function that removes it again. Safe to call from an effect. */
   add(entry: T): () => void {
-    if (this.entries().some((existing) => existing.id === entry.id)) {
+    if (untracked(this.entries).some((existing) => existing.id === entry.id)) {
       throw new Error(`"${entry.id}" is already registered`);
     }
     this.entries.update((entries) => [...entries, entry]);
@@ -78,6 +83,8 @@ export class ShellRegistry {
   readonly facingPages = new Slot<FacingPageEntry>();
   readonly indicators = new Slot<Indicator>();
   readonly commands = new Slot<Command>();
+  /** What the left page shows for the open chapter: the chat module's page. */
+  readonly chapterPage = signal<Type<unknown> | undefined>(undefined);
 }
 
 /** How a feature adds its entries to the shell, from its providers. */

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { homedir } from 'node:os';
 import type {
   AgentId,
   AgentInfo,
@@ -11,6 +12,7 @@ import type {
   Entry,
   EventName,
   EventPayload,
+  NewChatSettings,
   OpenChat,
 } from '@grimoire/contract';
 import type { AgentAdapter, ChatEvents, LiveChat } from './adapter';
@@ -20,6 +22,7 @@ export type Emit = <K extends EventName>(event: K, payload: EventPayload<K>) => 
 interface ChatState {
   id: ChatId;
   agent: AgentAdapter;
+  title: string;
   settings: ChatSettings;
   status: ChatStatus;
   entries: Entry[];
@@ -67,15 +70,19 @@ export class AgentHub {
     let chat = this.chats.get(chatId);
     if (!chat) {
       const adapter = this.adapter(agent);
-      const entries = await adapter.transcript(chatId, settings.cwd);
+      const [entries, title] = await Promise.all([
+        adapter.transcript(chatId, settings.cwd),
+        adapter.title(chatId, settings.cwd),
+      ]);
       // Another window may have opened it meanwhile.
-      chat = this.chats.get(chatId) ?? this.track(chatId, adapter, settings, entries);
+      chat = this.chats.get(chatId) ?? this.track(chatId, adapter, settings, entries, title);
     }
     return this.snapshot(chat);
   }
 
-  start(agent: AgentId, settings: ChatSettings, text: string): OpenChat {
-    const chat = this.track(randomUUID(), this.adapter(agent), settings, []);
+  start(agent: AgentId, settings: NewChatSettings, text: string): OpenChat {
+    const resolved: ChatSettings = { ...settings, cwd: settings.cwd ?? homedir() };
+    const chat = this.track(randomUUID(), this.adapter(agent), resolved, [], '');
     this.sendTo(chat, text, false);
     return this.snapshot(chat);
   }
@@ -113,10 +120,12 @@ export class AgentHub {
     agent: AgentAdapter,
     settings: ChatSettings,
     entries: Entry[],
+    title: string,
   ): ChatState {
     const chat: ChatState = {
       id,
       agent,
+      title,
       settings,
       status: 'idle',
       entries,
@@ -157,6 +166,11 @@ export class AgentHub {
           this.emit('agents.approval', { approval });
           this.setStatus(chat, 'waiting');
         }),
+      title: (title) => {
+        if (!current() || title === chat.title) return;
+        chat.title = title;
+        this.emit('agents.title', { chatId: chat.id, title });
+      },
       turnEnded: (error) => {
         if (!current()) return;
         this.settleAll(chat);
@@ -179,6 +193,8 @@ export class AgentHub {
     this.flush(chat);
     // A copy: the hub appends streamed text to its own entries.
     const entry = structuredClone(update);
+    const known = chat.entries.find((existing) => existing.id === entry.id);
+    entry.at ??= known?.at ?? Date.now();
     const index = chat.entries.findIndex((existing) => existing.id === entry.id);
     if (index === -1) chat.entries.push(entry);
     else chat.entries[index] = entry;
@@ -239,6 +255,8 @@ export class AgentHub {
     return {
       id: chat.id,
       agent: chat.agent.info.id,
+      title: chat.title,
+      settings: chat.settings,
       status: chat.status,
       entries: structuredClone(chat.entries),
       approvals: [...this.approvals.values()]

@@ -1,5 +1,5 @@
 import { Component, computed, inject } from '@angular/core';
-import { OpenChapters } from '../shell/open-chapters';
+import { Chats } from '../core/chats';
 
 /** The Outline's heading, until the Outline itself is built (phase 7). */
 @Component({
@@ -11,6 +11,8 @@ import { OpenChapters } from '../shell/open-chapters';
   styleUrl: './outline-placeholder.css',
 })
 export class OutlinePlaceholder {
-  private readonly chapters = inject(OpenChapters);
-  protected readonly agent = computed(() => this.chapters.current()?.agent ?? 'The agent');
+  private readonly chapters = inject(Chats);
+  protected readonly agent = computed(() =>
+    this.chapters.agentName(this.chapters.current()?.agent ?? 'claude-code'),
+  );
 }

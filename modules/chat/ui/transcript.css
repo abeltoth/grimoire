@@ -1,0 +1,187 @@
+/* The transcript scrolls; the first row is pushed down so short chats sit at the foot. */
+:host {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 0 var(--page-inset-end) var(--gr-transcript-pad-bottom) var(--page-inset-start);
+  mask-image: linear-gradient(transparent, black var(--gr-transcript-fade));
+}
+
+:host > :first-child {
+  margin-top: auto;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--gr-margin-col);
+  column-gap: var(--gr-col-gap);
+  margin-top: var(--gr-space-3);
+}
+
+.row.tight {
+  margin-top: var(--gr-space-2);
+}
+
+.by {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-by-gap);
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-control);
+  letter-spacing: var(--gr-tracking-label);
+  color: var(--gr-ink-soft);
+  margin-bottom: 1px;
+}
+
+.who {
+  color: var(--gr-ink);
+  font-weight: 500;
+}
+
+.time {
+  font-family: var(--gr-font-text);
+  font-style: italic;
+  letter-spacing: 0;
+  font-size: var(--gr-size-label);
+}
+
+.spacer {
+  flex: 1;
+}
+
+p {
+  margin: 0;
+}
+
+.text {
+  white-space: pre-wrap;
+}
+
+.you p {
+  font-style: italic;
+  font-size: var(--gr-size-text);
+  line-height: var(--gr-leading-entry);
+}
+
+.think {
+  display: flex;
+  align-items: center;
+  gap: var(--gr-by-gap);
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.thought {
+  width: var(--gr-box);
+  height: var(--gr-box);
+}
+
+.thinking {
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  line-height: var(--gr-leading-entry);
+  color: var(--gr-ink-soft);
+}
+
+.reply p {
+  font-size: var(--gr-size-text);
+  line-height: var(--gr-leading-text);
+  text-wrap: pretty;
+}
+
+/* The quill at the writing point. */
+.quill {
+  display: inline-flex;
+  vertical-align: var(--gr-quill-lift);
+  margin-left: 1px;
+  color: var(--gr-gilt-ink);
+  transform-origin: 20% 90%;
+  animation: gr-bob var(--gr-dur-quill) ease-in-out infinite;
+}
+
+.stop {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--gr-stop-gap);
+  margin-left: var(--gr-stop-margin);
+  padding: var(--gr-stop-pad);
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-control);
+  letter-spacing: var(--gr-tracking-label);
+  color: var(--gr-rubric);
+  background: var(--gr-page);
+  border-radius: var(--gr-radius-stop);
+  box-shadow: var(--gr-shadow-stop);
+  white-space: nowrap;
+}
+
+.waiting .stop {
+  margin-left: 0;
+}
+
+.error {
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-rubric);
+}
+
+/* Margin notes */
+.notes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-space-2);
+  align-self: start;
+}
+
+.note {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-aside-gap);
+  width: 100%;
+  font-size: var(--gr-size-note);
+  line-height: var(--gr-leading-note);
+  color: var(--gr-ink-soft);
+  padding: var(--gr-note-pad);
+  border-radius: var(--gr-radius-note);
+  text-align: left;
+}
+
+.note:hover {
+  background: var(--gr-note-hover);
+}
+
+.note-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-control-gap);
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-control);
+  letter-spacing: var(--gr-tracking-control);
+  color: var(--gr-ink);
+}
+
+.mark {
+  color: var(--gr-rubric);
+  font-weight: 700;
+  font-size: var(--gr-size-note-mark);
+}
+
+.target {
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-note-detail);
+  color: var(--gr-ink);
+  overflow-wrap: anywhere;
+}
+
+.detail {
+  font-style: italic;
+}
+
+.failed {
+  color: var(--gr-rubric);
+  font-style: normal;
+  font-weight: 500;
+}

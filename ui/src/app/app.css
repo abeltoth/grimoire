@@ -20,7 +20,3 @@
   flex: 1;
   min-height: 0;
 }
-
-.service-failed {
-  color: var(--gr-rubric);
-}

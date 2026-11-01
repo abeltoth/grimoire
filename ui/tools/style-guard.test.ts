@@ -8,17 +8,19 @@ import {
   filesUnder,
   inlineDeclarations,
   literalsIn,
-  uiSrc,
+  repoRoot,
+  uiRoots,
   usedTokens,
 } from './style-guard';
 
 const outsideDesignSystem = (file: string) => !file.startsWith(designSystem + path.sep);
-const relative = (file: string) => path.relative(uiSrc, file).replaceAll('\\', '/');
+const relative = (file: string) => path.relative(repoRoot, file).replaceAll('\\', '/');
+const filesIn = (extensions: string[]) => uiRoots().flatMap((root) => filesUnder(root, extensions));
 
 describe('style guard', () => {
   it('finds no literal values outside the design system', () => {
     const problems: string[] = [];
-    for (const file of filesUnder(uiSrc, ['.css', '.html']).filter(outsideDesignSystem)) {
+    for (const file of filesIn(['.css', '.html']).filter(outsideDesignSystem)) {
       const source = readFileSync(file, 'utf8');
       const declarations = file.endsWith('.css')
         ? cssDeclarations(source)
@@ -34,7 +36,7 @@ describe('style guard', () => {
 
   it('uses only tokens the theme defines', () => {
     const defined = definedTokens();
-    const missing = filesUnder(uiSrc, ['.css', '.html', '.ts']).flatMap((file) =>
+    const missing = filesIn(['.css', '.html', '.ts']).flatMap((file) =>
       usedTokens(readFileSync(file, 'utf8'))
         .filter((token) => !defined.has(token))
         .map((token) => `${relative(file)}: ${token}`),
@@ -50,7 +52,9 @@ describe('literalsIn', () => {
     expect(literalsIn('margin', '0 auto')).toEqual([]);
     expect(literalsIn('width', '100%')).toEqual([]);
     expect(literalsIn('font-family', 'inherit')).toEqual([]);
-    expect(literalsIn('animation', 'gr-sway var(--gr-dur-sway) var(--gr-ease-sway) infinite')).toEqual([]);
+    expect(
+      literalsIn('animation', 'gr-sway var(--gr-dur-sway) var(--gr-ease-sway) infinite'),
+    ).toEqual([]);
   });
 
   it('flags literal colours, timings, lengths and fonts', () => {

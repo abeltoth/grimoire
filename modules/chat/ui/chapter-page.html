@@ -1,0 +1,43 @@
+@if (chapter(); as c) {
+  <gr-running-head>
+    <div class="row">
+      <h1 class="title">{{ c.title || 'Untitled chapter' }}</h1>
+      <button type="button" class="icon-button" aria-label="Rename chapter" aria-disabled="true">
+        <gr-icon name="pen" />
+      </button>
+      <button type="button" class="gr-link" aria-disabled="true">+ Tag</button>
+    </div>
+    <div class="row">
+      <div class="meta" role="group" aria-label="Chapter settings">
+        <button type="button" aria-disabled="true">{{ chats.agentName(c.agent) }}</button>
+        <span aria-hidden="true">·</span>
+        <button type="button" aria-disabled="true">
+          {{ c.settings.model ?? 'Default model' }}
+        </button>
+        <span aria-hidden="true">·</span>
+        <button type="button" aria-disabled="true">{{ modeLabel(c.settings.mode) }}</button>
+        <span aria-hidden="true">·</span>
+        <button type="button" aria-disabled="true">{{ c.settings.cwd ?? 'Home folder' }}</button>
+      </div>
+      <span class="spacer"></span>
+      <button type="button" class="gr-link" aria-disabled="true">
+        <gr-icon name="pop-out" />Pop out
+      </button>
+    </div>
+  </gr-running-head>
+
+  <gr-transcript [chapter]="c" (stop)="stop()" />
+  <gr-composer [chapterId]="c.id" />
+
+  <gr-running-foot>
+    <gr-status-indicators />
+    <span class="spacer"></span>
+    <div class="edition" role="group" aria-label="Edition: transcript detail">
+      <button type="button" aria-pressed="true">Plain</button>
+      <span aria-hidden="true">·</span>
+      <button type="button" aria-pressed="false" aria-disabled="true">Annotated</button>
+      <span aria-hidden="true">·</span>
+      <button type="button" aria-pressed="false" aria-disabled="true">Variorum</button>
+    </div>
+  </gr-running-foot>
+}

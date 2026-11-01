@@ -28,6 +28,9 @@ export interface ChatSettings {
   mode?: ApprovalMode;
 }
 
+/** Settings for a new chat; the folder defaults to your home folder. */
+export type NewChatSettings = Omit<ChatSettings, 'cwd'> & { cwd?: string };
+
 /** A chat as the agent lists it, open or not. */
 export interface ChatSummary {
   id: ChatId;
@@ -48,12 +51,16 @@ export interface UserEntry {
   kind: 'user';
   id: string;
   text: string;
+  /** When it was written, in ms since the epoch, when known. */
+  at?: number;
 }
 
 export interface AgentEntry {
   kind: 'agent';
   id: string;
   blocks: Block[];
+  /** When it was written, in ms since the epoch, when known. */
+  at?: number;
 }
 
 export type Block = TextBlock | ThinkingBlock | ToolBlock;
@@ -101,6 +108,9 @@ export type ApprovalDecision = 'allow-once' | 'allow-always' | 'deny';
 export interface OpenChat {
   id: ChatId;
   agent: AgentId;
+  /** Empty until the agent names the chat. */
+  title: string;
+  settings: ChatSettings;
   status: ChatStatus;
   entries: Entry[];
   approvals: Approval[];
@@ -112,14 +122,23 @@ declare module './commands' {
     /** The agent's chats, most recent first, optionally only those in one folder. */
     'agents.chats': { request: { agent: AgentId; cwd?: string }; response: ChatSummary[] };
     /** Opens a chat: loads its transcript, and later messages continue it. */
-    'agents.open': { request: { agent: AgentId; chatId: ChatId; settings: ChatSettings }; response: OpenChat };
+    'agents.open': {
+      request: { agent: AgentId; chatId: ChatId; settings: ChatSettings };
+      response: OpenChat;
+    };
     /** Starts a new chat with a first message. */
-    'agents.start': { request: { agent: AgentId; settings: ChatSettings; text: string }; response: OpenChat };
+    'agents.start': {
+      request: { agent: AgentId; settings: NewChatSettings; text: string };
+      response: OpenChat;
+    };
     /** Sends a message; while a turn runs, the agent takes it when it can. */
     'agents.send': { request: { chatId: ChatId; text: string }; response: void };
     /** Stops the running turn. */
     'agents.interrupt': { request: { chatId: ChatId }; response: void };
-    'agents.decide': { request: { approvalId: string; decision: ApprovalDecision }; response: void };
+    'agents.decide': {
+      request: { approvalId: string; decision: ApprovalDecision };
+      response: void;
+    };
     /** Closes a chat and stops its agent process. The chat itself stays with the agent. */
     'agents.close': { request: { chatId: ChatId }; response: void };
   }
@@ -136,5 +155,6 @@ declare module './events' {
     /** An approval was decided, or dropped because the turn stopped. */
     'agents.approvalSettled': { chatId: ChatId; approvalId: string };
     'agents.turnEnded': { chatId: ChatId; error?: string };
+    'agents.title': { chatId: ChatId; title: string };
   }
 }

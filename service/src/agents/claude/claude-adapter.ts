@@ -59,6 +59,12 @@ export class ClaudeAdapter implements AgentAdapter {
     return transcript.entries;
   }
 
+  async title(chatId: ChatId, cwd: string): Promise<string> {
+    const { getSessionInfo } = await sdk();
+    const info = await getSessionInfo(chatId, { dir: cwd });
+    return info?.customTitle ?? info?.summary ?? '';
+  }
+
   run(chatId: ChatId, settings: ChatSettings, resume: boolean, events: ChatEvents): LiveChat {
     const input = new MessageQueue<SDKUserMessage>();
     const transcript = new ClaudeTranscript(true, events);
@@ -101,7 +107,10 @@ export class ClaudeAdapter implements AgentAdapter {
       try {
         for await (const message of await started) {
           transcript.apply(message);
-          if (message.type === 'result') events.turnEnded(resultError(message));
+          if (message.type !== 'result') continue;
+          events.turnEnded(resultError(message));
+          // Claude Code names the chat after its first turns.
+          this.title(chatId, settings.cwd).then(events.title, () => {});
         }
         events.closed();
       } catch (error) {

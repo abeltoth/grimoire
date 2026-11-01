@@ -12,7 +12,12 @@ export type IconName =
   | 'single-page'
   | 'minimize'
   | 'maximize'
-  | 'close';
+  | 'close'
+  | 'pen'
+  | 'pop-out'
+  | 'attach'
+  | 'parallel'
+  | 'hourglass';
 
 /** The theme's icons, drawn in the current text colour at their design size. */
 @Component({
