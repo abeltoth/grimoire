@@ -57,7 +57,9 @@ const db = openDatabase(values.ephemeral ? ':memory:' : path.join(dataDir, 'grim
 registerLayout(registry, new LayoutStore(db));
 
 const hub = new AgentHub((event, payload) => server?.broadcast(event, payload), 50, new Chapters(db));
-hub.addAdapter(new ClaudeAdapter());
+const claude = new ClaudeAdapter();
+hub.addAdapter(claude);
+claude.warm();
 registerAgentCommands(registry, hub);
 
 const token = randomBytes(32).toString('hex');

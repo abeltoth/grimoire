@@ -105,11 +105,28 @@ export class AgentHub {
     return this.snapshot(chat);
   }
 
-  start(agent: AgentId, settings: NewChatSettings, text: string): OpenChat {
+  async start(agent: AgentId, settings: NewChatSettings, text: string): Promise<OpenChat> {
     const resolved: ChatSettings = { ...settings, cwd: settings.cwd ?? homedir() };
-    const chat = this.track(randomUUID(), this.adapter(agent), resolved, [], '');
-    this.chapters.add({ chatId: chat.id, agent, settings: resolved });
-    this.sendTo(chat, text, false);
+    const adapter = this.adapter(agent);
+    if (!adapter.start) {
+      const chat = this.track(randomUUID(), adapter, resolved, [], '');
+      this.chapters.add({ chatId: chat.id, agent, settings: resolved });
+      this.sendTo(chat, text, false);
+      return this.snapshot(chat);
+    }
+    // The agent picks the chat's ID, on a spare process when it has one.
+    let chat: ChatState | undefined;
+    const live = await adapter.start(resolved, text, (chatId) => {
+      chat = this.track(chatId, adapter, resolved, [], '');
+      this.chapters.add({ chatId, agent, settings: resolved });
+      this.upsert(chat, { kind: 'user', id: randomUUID(), text });
+      this.setStatus(chat, 'thinking');
+      return this.eventsFor(chat);
+    });
+    if (!chat) throw new Error(`${agent} started a chat without naming it`);
+    // Closed while it started.
+    if (this.chats.get(chat.id) !== chat) live.close();
+    else chat.live = live;
     return this.snapshot(chat);
   }
 
@@ -162,9 +179,10 @@ export class AgentHub {
     this.release(chatId);
   }
 
-  /** Stops every chat, for when the service stops; they reopen when it starts again. */
+  /** Stops every chat and spare process, for when the service stops; chats reopen when it starts again. */
   closeAll(): void {
     for (const id of [...this.chats.keys()]) this.release(id);
+    for (const adapter of this.adapters.values()) adapter.dispose?.();
   }
 
   private release(chatId: ChatId): void {

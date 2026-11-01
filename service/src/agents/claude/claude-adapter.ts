@@ -1,9 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import type {
+  CanUseTool,
   PermissionMode,
   Query,
   SDKMessage,
   SDKUserMessage,
+  SpareProcess,
 } from '@anthropic-ai/claude-agent-sdk';
 import type {
   AgentInfo,
@@ -28,11 +30,20 @@ const MODES: Record<ApprovalMode, PermissionMode> = {
   'allow-all': 'bypassPermissions',
 };
 
+/** A parked Claude Code process, and where its approvals go once a chat claims it. */
+interface Spare {
+  process: Promise<SpareProcess>;
+  claimedBy: Deferred<ChatEvents>;
+}
+
 /**
  * Claude Code through the Agent SDK (ADR-005), signed in with the user's
- * own Claude login. One Claude Code process per live chat (ADR-010).
+ * own Claude login. One Claude Code process per live chat, and one spare
+ * kept parked so a new chat starts at once (ADR-010).
  */
 export class ClaudeAdapter implements AgentAdapter {
+  private spare: Spare | undefined;
+
   readonly info: AgentInfo = {
     id: 'claude-code',
     name: 'Claude Code',
@@ -68,8 +79,6 @@ export class ClaudeAdapter implements AgentAdapter {
 
   run(chatId: ChatId, settings: ChatSettings, resume: boolean, events: ChatEvents): LiveChat {
     const input = new MessageQueue<SDKUserMessage>();
-    const transcript = new ClaudeTranscript(true, events);
-
     const started: Promise<Query> = sdk().then(({ query }) =>
       query({
         prompt: input,
@@ -79,41 +88,115 @@ export class ClaudeAdapter implements AgentAdapter {
           permissionMode: MODES[settings.mode ?? 'ask'],
           includePartialMessages: true,
           ...(resume ? { resume: chatId } : { sessionId: chatId }),
-          canUseTool: async (tool, toolInput, { signal, suggestions, title, toolUseID }) => {
-            const asks = tool === ASK_TOOL;
-            const alwaysAllow = asks ? undefined : alwaysAllowOf(suggestions);
-            const verdict = await events.approval(
-              {
-                id: toolUseID ?? randomUUID(),
-                tool,
-                input: toolInput,
-                ...(title ? { title } : {}),
-                ...(alwaysAllow ? { alwaysAllow } : {}),
-                ...(asks ? { questions: toQuestions(toolInput) } : {}),
-              },
-              signal,
-            );
-            if (verdict === 'deny') return { behavior: 'deny', message: 'The user declined this.' };
-            if (typeof verdict === 'object')
-              return {
-                behavior: 'allow',
-                updatedInput: {
-                  ...toolInput,
-                  answers: toClaudeAnswers(toolInput, verdict.answers),
-                },
-              };
-            return {
-              behavior: 'allow',
-              updatedInput: toolInput,
-              ...(verdict === 'allow-always' && suggestions
-                ? { updatedPermissions: suggestions }
-                : {}),
-            };
-          },
+          canUseTool: approvalsTo(async () => events),
         },
       }),
     );
+    return this.drive(chatId, settings, started, input, events);
+  }
 
+  /**
+   * Starts a new chat on the spare process when one is parked; Claude Code
+   * then picks the session ID. When there's no spare, or the spare refuses
+   * the claim, the chat starts on a process of its own.
+   */
+  async start(
+    settings: ChatSettings,
+    text: string,
+    bind: (chatId: ChatId) => ChatEvents,
+  ): Promise<LiveChat> {
+    // Full access needs a spare parked with that permission, which isn't kept.
+    const spare = settings.mode === 'allow-all' ? undefined : this.takeSpare();
+    try {
+      if (spare) return await this.claim(spare, settings, text, bind);
+    } catch {
+      // Refused, or the spare died: start the usual way.
+    } finally {
+      this.warm();
+    }
+    const chatId = randomUUID();
+    const live = this.run(chatId, settings, false, bind(chatId));
+    live.send(text);
+    return live;
+  }
+
+  warm(): void {
+    if (this.spare) return;
+    const claimedBy = new Deferred<ChatEvents>();
+    const spare: Spare = {
+      claimedBy,
+      process: sdk().then(({ prewarm }) =>
+        prewarm({
+          options: {
+            includePartialMessages: true,
+            permissionMode: MODES.ask,
+            canUseTool: approvalsTo(() => claimedBy.promise),
+          },
+        }),
+      ),
+    };
+    this.spare = spare;
+    // A spare that fails to start, or dies parked, is dropped; the next chat starts one.
+    const drop = () => {
+      if (this.spare === spare) this.spare = undefined;
+    };
+    spare.process.then((process) => process.exited.then(drop), drop);
+  }
+
+  dispose(): void {
+    const spare = this.takeSpare();
+    void spare?.process.then((process) => process.close(), () => {});
+  }
+
+  private takeSpare(): Spare | undefined {
+    const spare = this.spare;
+    this.spare = undefined;
+    return spare;
+  }
+
+  private async claim(
+    spare: Spare,
+    settings: ChatSettings,
+    text: string,
+    bind: (chatId: ChatId) => ChatEvents,
+  ): Promise<LiveChat> {
+    const process = await spare.process;
+    const input = new MessageQueue<SDKUserMessage>();
+    input.push(userMessage(text));
+    const query = process.claim({
+      prompt: input,
+      options: {
+        cwd: settings.cwd,
+        ...(settings.model ? { model: settings.model } : {}),
+        permissionMode: MODES[settings.mode ?? 'ask'],
+      },
+    });
+    let chatId: ChatId;
+    try {
+      ({ sessionId: chatId } = await process.claimed);
+    } catch (error) {
+      // Only the model was refused: the chat runs, on the default model.
+      const claim = (error as { claim?: { sessionId: string } }).claim;
+      if (!(error instanceof Error && error.message.startsWith('option_not_applied') && claim)) {
+        process.close();
+        throw error;
+      }
+      chatId = claim.sessionId;
+    }
+    const events = bind(chatId);
+    spare.claimedBy.resolve(events);
+    return this.drive(chatId, settings, Promise.resolve(query), input, events);
+  }
+
+  /** Follows a live query: its messages become the chat's events. */
+  private drive(
+    chatId: ChatId,
+    settings: ChatSettings,
+    started: Promise<Query>,
+    input: MessageQueue<SDKUserMessage>,
+    events: ChatEvents,
+  ): LiveChat {
+    const transcript = new ClaudeTranscript(true, events);
     void (async () => {
       try {
         const live = await started;
@@ -135,12 +218,7 @@ export class ClaudeAdapter implements AgentAdapter {
     })();
 
     return {
-      send: (text) =>
-        input.push({
-          type: 'user',
-          message: { role: 'user', content: text },
-          parent_tool_use_id: null,
-        }),
+      send: (text) => input.push(userMessage(text)),
       interrupt: async () => {
         await (await started).interrupt();
       },
@@ -150,6 +228,48 @@ export class ClaudeAdapter implements AgentAdapter {
       },
     };
   }
+}
+
+/** A promise you settle from outside. */
+class Deferred<T> {
+  resolve!: (value: T) => void;
+  readonly promise = new Promise<T>((resolve) => (this.resolve = resolve));
+}
+
+function userMessage(text: string): SDKUserMessage {
+  return { type: 'user', message: { role: 'user', content: text }, parent_tool_use_id: null };
+}
+
+/** Asks the chat's events for each approval, and answers Claude Code the way it expects. */
+function approvalsTo(events: () => Promise<ChatEvents>): CanUseTool {
+  return async (tool, toolInput, { signal, suggestions, title, toolUseID }) => {
+    const asks = tool === ASK_TOOL;
+    const alwaysAllow = asks ? undefined : alwaysAllowOf(suggestions);
+    const verdict = await (
+      await events()
+    ).approval(
+      {
+        id: toolUseID ?? randomUUID(),
+        tool,
+        input: toolInput,
+        ...(title ? { title } : {}),
+        ...(alwaysAllow ? { alwaysAllow } : {}),
+        ...(asks ? { questions: toQuestions(toolInput) } : {}),
+      },
+      signal,
+    );
+    if (verdict === 'deny') return { behavior: 'deny', message: 'The user declined this.' };
+    if (typeof verdict === 'object')
+      return {
+        behavior: 'allow',
+        updatedInput: { ...toolInput, answers: toClaudeAnswers(toolInput, verdict.answers) },
+      };
+    return {
+      behavior: 'allow',
+      updatedInput: toolInput,
+      ...(verdict === 'allow-always' && suggestions ? { updatedPermissions: suggestions } : {}),
+    };
+  };
 }
 
 function resultError(result: Extract<SDKMessage, { type: 'result' }>): string | undefined {
