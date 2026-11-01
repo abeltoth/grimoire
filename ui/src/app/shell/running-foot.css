@@ -1,0 +1,14 @@
+:host {
+  flex: none;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--gr-foot-gap);
+  height: var(--gr-foot-h);
+  padding: 0 var(--page-inset-end) var(--gr-foot-pad-bottom) var(--page-inset-start);
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-foot);
+  letter-spacing: var(--gr-tracking-control);
+  color: var(--gr-ink-soft);
+}

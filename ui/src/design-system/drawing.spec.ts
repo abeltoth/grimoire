@@ -13,7 +13,9 @@ describe('Drawing', () => {
   it('paints the named drawing token', async () => {
     const fixture = TestBed.createComponent(Host);
     await fixture.whenStable();
-    const [spine, thought] = fixture.nativeElement.querySelectorAll('gr-drawing') as NodeListOf<HTMLElement>;
+    const [spine, thought] = fixture.nativeElement.querySelectorAll(
+      'gr-drawing',
+    ) as NodeListOf<HTMLElement>;
     expect(spine.style.maskImage).toBe('var(--gr-drawing-spine)');
     expect(spine.getAttribute('aria-hidden')).toBe('true');
     expect(spine.classList.contains('essential')).toBe(false);

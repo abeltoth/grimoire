@@ -1,0 +1,96 @@
+import {
+  type EnvironmentProviders,
+  Injectable,
+  type Type,
+  computed,
+  inject,
+  provideAppInitializer,
+  signal,
+} from '@angular/core';
+import type { IconName } from '../../design-system/icon';
+import type { Shortcut } from './shortcut';
+
+interface Entry {
+  id: string;
+  /** Lower comes first; entries without one keep the order they were added in. */
+  order?: number;
+}
+
+/** A tab on the fore-edge that opens one of the book's pages. */
+export interface ThumbTab extends Entry {
+  label: string;
+  /** Without it the tab shows but does nothing yet. */
+  open?: () => void;
+}
+
+/** Something the facing page can show, picked from the tabs in its running head. */
+export interface FacingPageEntry extends Entry {
+  label: string;
+  /** Without it the tab shows but can't be picked yet. */
+  component?: Type<unknown>;
+}
+
+/** A status in the chapter's running foot, such as the git branch. */
+export interface Indicator extends Entry {
+  label: string;
+  icon?: IconName;
+  /** Without it the indicator shows but does nothing yet. */
+  open?: () => void;
+}
+
+/** Something you can do from the Index or with a shortcut. */
+export interface Command extends Entry {
+  label: string;
+  shortcut?: Shortcut;
+  run?: () => void;
+}
+
+/** A list in the shell that modules add entries to. */
+export class Slot<T extends Entry> {
+  private readonly entries = signal<readonly T[]>([]);
+
+  readonly all = computed(() =>
+    [...this.entries()].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+  );
+
+  /** Adds an entry and returns a function that removes it again. */
+  add(entry: T): () => void {
+    if (this.entries().some((existing) => existing.id === entry.id)) {
+      throw new Error(`"${entry.id}" is already registered`);
+    }
+    this.entries.update((entries) => [...entries, entry]);
+    return () => this.entries.update((entries) => entries.filter((existing) => existing !== entry));
+  }
+
+  get(id: string): T | undefined {
+    return this.entries().find((entry) => entry.id === id);
+  }
+}
+
+/**
+ * The places in the shell that features fill (ADR-008): thumb tabs, facing
+ * pages, running-foot indicators and commands. The shell draws whatever is
+ * registered here and knows nothing about the features themselves.
+ */
+@Injectable({ providedIn: 'root' })
+export class ShellRegistry {
+  readonly thumbs = new Slot<ThumbTab>();
+  readonly facingPages = new Slot<FacingPageEntry>();
+  readonly indicators = new Slot<Indicator>();
+  readonly commands = new Slot<Command>();
+}
+
+/** How a feature adds its entries to the shell, from its providers. */
+export function provideShellEntries(
+  register: (shell: ShellRegistry) => void,
+): EnvironmentProviders {
+  return provideAppInitializer(() => register(inject(ShellRegistry)));
+}
+
+/** The shell's own commands. */
+export function provideShell(): EnvironmentProviders {
+  return provideShellEntries((shell) => {
+    shell.commands.add({ id: 'shell.index', label: 'Index', shortcut: 'Mod+K' });
+    shell.commands.add({ id: 'chapters.new', label: 'New chapter', shortcut: 'Mod+N' });
+  });
+}

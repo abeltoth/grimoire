@@ -1,69 +1,26 @@
-/* Phase 1 placeholder, until the book shell replaces it in phase 3. */
 :host {
   display: flex;
   flex-direction: column;
   height: 100%;
+  overflow: hidden;
   background: var(--gr-desk);
-  color: var(--gr-chrome);
+  color: var(--gr-ink);
   font-family: var(--gr-font-text);
-  font-size: var(--gr-size-text);
 }
 
-.title-strip {
-  position: relative;
-  flex: none;
-  height: var(--gr-titlebar-h);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  user-select: none;
-  -webkit-app-region: drag;
-}
-
-.title {
-  font-family: var(--gr-font-display-sc);
-  font-size: var(--gr-size-book-title);
-  color: var(--gr-gilt);
-}
-
-.window-controls {
-  position: absolute;
-  top: 0;
-  right: 0;
-  display: flex;
-  -webkit-app-region: no-drag;
-}
-
-.window-controls button {
-  width: var(--gr-window-control-w);
-  height: var(--gr-window-control-h);
-  display: grid;
-  place-items: center;
-}
-
-.window-controls button:hover {
-  background: var(--gr-window-control-hover);
-}
-
-.body {
+.stage {
   flex: 1;
-  display: grid;
-  place-content: center;
-  justify-items: center;
-  gap: var(--gr-space-3);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0 var(--gr-stage-pad-x) var(--gr-stage-pad-bottom);
 }
 
-.ornament {
-  width: var(--gr-spine-ornament-w);
-  height: var(--gr-spine-ornament-h);
-  color: var(--gr-gilt);
+.chapter {
+  flex: 1;
+  min-height: 0;
 }
 
-.service {
-  margin: 0;
-}
-
-.again {
-  font-family: var(--gr-font-sc);
-  color: var(--gr-gilt);
+.service-failed {
+  color: var(--gr-rubric);
 }

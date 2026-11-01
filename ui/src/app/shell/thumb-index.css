@@ -1,0 +1,66 @@
+/* The tabs are notches cut into the right-hand page block. */
+:host {
+  position: absolute;
+  right: 0;
+  top: var(--gr-thumbs-top);
+  bottom: var(--gr-thumbs-bottom);
+  width: var(--gr-notch-w);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-thumbs-gap);
+  z-index: 3;
+}
+
+.thumb {
+  display: flex;
+  justify-content: center;
+  padding: var(--gr-thumb-pad-y) 0 var(--gr-thumb-pad-y) var(--gr-thumb-pad-spine);
+  background: var(--gr-thumb-tab);
+  color: var(--gr-thumb-ink);
+  border-radius: var(--gr-radius-notch);
+  box-shadow:
+    var(--gr-shadow-notch),
+    -1px 0 0 var(--gr-page-edge);
+}
+
+.thumb:hover {
+  background: var(--gr-thumb-hover);
+}
+
+.thumb span {
+  writing-mode: vertical-rl;
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-label);
+  letter-spacing: var(--gr-tracking-label);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.index {
+  margin-top: auto;
+  background: var(--gr-thumb-index);
+  color: var(--gr-thumb-index-ink);
+}
+
+.index:hover {
+  background: var(--gr-gilt);
+}
+
+.index > span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gr-thumb-index-gap);
+}
+
+/* ⌘K stands upright, one symbol under the other. */
+.index .gr-kbd {
+  text-orientation: upright;
+  letter-spacing: var(--gr-thumb-key-tracking-symbols);
+  padding: var(--gr-thumb-key-pad);
+}
+
+/* "Ctrl K" runs along the tab like the label. */
+.index .gr-kbd.words {
+  text-orientation: mixed;
+  letter-spacing: var(--gr-thumb-key-tracking-words);
+}

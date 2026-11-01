@@ -1,0 +1,32 @@
+@let page = shown();
+<gr-page side="right" [attr.aria-label]="page ? 'Facing page: ' + page.label : 'Facing page'">
+  <gr-running-head>
+    <div class="row">
+      <nav class="tabs" aria-label="Facing page shows">
+        @for (entry of registry.facingPages.all(); track entry.id) {
+          <button
+            type="button"
+            [attr.aria-pressed]="entry.id === page?.id"
+            [attr.aria-disabled]="entry.component ? null : true"
+            (click)="show(entry)"
+          >
+            {{ entry.label }}
+          </button>
+        }
+      </nav>
+      <span class="spacer"></span>
+      <button type="button" class="gr-link" aria-disabled="true">
+        <gr-icon name="single-page" />Single page
+      </button>
+    </div>
+  </gr-running-head>
+
+  <div class="body">
+    @if (page?.component; as component) {
+      <ng-container *ngComponentOutlet="component" />
+    }
+  </div>
+
+  <gr-drawing class="sigil" name="empty-page" />
+  <gr-running-foot />
+</gr-page>

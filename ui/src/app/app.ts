@@ -1,64 +1,37 @@
-import { Component, PendingTasks, inject, signal } from '@angular/core';
-import type { PingResult } from '@grimoire/contract';
+import { Component, inject } from '@angular/core';
 import { DesignSettings } from '../design-system/design-settings';
-import { Drawing } from '../design-system/drawing';
-import { GRIMOIRE_BRIDGE } from './core/bridge';
-
-type ServiceStatus =
-  | { state: 'connecting' }
-  | { state: 'connected'; ping: PingResult }
-  | { state: 'failed'; message: string };
+import { ServiceStatus } from './core/service-status';
+import { Book } from './shell/book';
+import { FacingPage } from './shell/facing-page';
+import { OpenChapters } from './shell/open-chapters';
+import { Page } from './shell/page';
+import { Ribbons } from './shell/ribbons';
+import { RunningFoot } from './shell/running-foot';
+import { StatusIndicators } from './shell/status-indicators';
+import { ThumbIndex } from './shell/thumb-index';
+import { TitleStrip } from './shell/title-strip';
 
 /**
- * Phase 1 placeholder: a title strip with window controls, and the
- * background service's ping. The book shell replaces it in phase 3.
+ * The window: the title strip, and the open book on the desk with its
+ * ribbons. The chapter on the left page arrives with the chat (phase 5).
  */
 @Component({
   selector: 'gr-root',
-  imports: [Drawing],
+  imports: [Book, FacingPage, Page, Ribbons, RunningFoot, StatusIndicators, ThumbIndex, TitleStrip],
   templateUrl: './app.html',
   styleUrl: './app.css',
+  host: { '[attr.data-service-state]': 'service.state()' },
 })
 export class App {
-  private readonly bridge = inject(GRIMOIRE_BRIDGE);
-  private readonly pendingTasks = inject(PendingTasks);
   // Applies the window-wide design settings, such as drawings on or off.
   protected readonly design = inject(DesignSettings);
+  protected readonly service = inject(ServiceStatus);
+  protected readonly chapters = inject(OpenChapters);
 
-  protected readonly platform = this.bridge.platform;
-  protected readonly status = signal<ServiceStatus>({ state: 'connecting' });
+  // Mock until profiles exist.
+  protected readonly profile = 'Work';
 
   constructor() {
-    this.ping();
-  }
-
-  protected ping(): void {
-    this.status.set({ state: 'connecting' });
-    // A pending task keeps the app "unstable" until the answer is shown.
-    this.pendingTasks.run(async () => {
-      try {
-        const ping = await this.bridge.invoke('core.ping', {});
-        this.status.set({ state: 'connected', ping });
-      } catch (error) {
-        this.status.set({ state: 'failed', message: error instanceof Error ? error.message : String(error) });
-      }
-    });
-  }
-
-  protected minimize(): void {
-    this.bridge.window.minimize();
-  }
-
-  protected toggleMaximize(): void {
-    this.bridge.window.toggleMaximize();
-  }
-
-  protected close(): void {
-    this.bridge.window.close();
-  }
-
-  protected uptime(ping: PingResult): string {
-    const seconds = Math.round(ping.uptimeMs / 1000);
-    return seconds < 60 ? `${seconds} s` : `${Math.floor(seconds / 60)} min ${seconds % 60} s`;
+    this.service.check();
   }
 }

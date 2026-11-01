@@ -1,0 +1,52 @@
+<div class="half left-half">
+  @for (chapter of left(); track chapter.id) {
+    <gr-ribbon
+      side="left"
+      [tone]="tone(chapter)"
+      [current]="chapter.id === chapters.currentId()"
+      [heading]="chapter.title"
+      [meta]="meta(chapter)"
+      (picked)="chapters.open(chapter.id)"
+    >
+      <gr-icon [name]="icon(chapter)" [class]="motion(chapter)" />
+    </gr-ribbon>
+  }
+</div>
+
+<div class="half right-half">
+  @for (chapter of right(); track chapter.id) {
+    <gr-ribbon
+      side="right"
+      [tone]="tone(chapter)"
+      [heading]="chapter.title"
+      [meta]="meta(chapter)"
+      (picked)="chapters.open(chapter.id)"
+    >
+      <gr-icon [name]="icon(chapter)" [class]="motion(chapter)" />
+    </gr-ribbon>
+  }
+
+  @if (seals()) {
+    <gr-ribbon
+      side="right"
+      tone="seal"
+      heading="Awaiting your seal"
+      [meta]="sealMeta()"
+      [label]="sealLabel()"
+      [seal]="seals()"
+      unavailable
+    />
+  }
+
+  @let shortcut = newChapter()?.shortcut;
+  <gr-ribbon
+    class="new"
+    side="right"
+    tone="new"
+    heading="New chapter"
+    [meta]="'Last settings' + (shortcut ? ' · ' + (shortcut | shortcut) : '')"
+    unavailable
+  >
+    <gr-icon name="plus" />
+  </gr-ribbon>
+</div>

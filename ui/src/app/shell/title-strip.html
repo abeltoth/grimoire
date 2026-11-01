@@ -1,0 +1,27 @@
+<!-- On a Mac the system's window buttons sit in this corner. -->
+<div class="side"></div>
+
+<button
+  type="button"
+  class="book-title"
+  [attr.aria-label]="'Profile: ' + profile() + '. Switch profile'"
+  aria-disabled="true"
+>
+  {{ profile() }}<gr-icon name="chevron-down" />
+</button>
+
+<div class="side end">
+  @if (platform !== 'mac') {
+    <div class="window-controls">
+      <button type="button" aria-label="Minimize window" (click)="minimize()">
+        <gr-icon name="minimize" />
+      </button>
+      <button type="button" aria-label="Maximize window" (click)="toggleMaximize()">
+        <gr-icon name="maximize" />
+      </button>
+      <button type="button" aria-label="Close window" (click)="close()">
+        <gr-icon name="close" />
+      </button>
+    </div>
+  }
+</div>

@@ -1,0 +1,21 @@
+:host {
+  --page-inset-start: var(--gr-page-margin-outer);
+  --page-inset-end: var(--gr-page-margin-inner);
+  flex: 1 1 0;
+  min-width: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background:
+    linear-gradient(to left, var(--gr-gutter-shade), transparent var(--gr-gutter-shade-w)),
+    var(--gr-page);
+}
+
+:host(.facing) {
+  --page-inset-start: var(--gr-page-margin-inner);
+  --page-inset-end: var(--gr-facing-margin-outer);
+  overflow: hidden;
+  background:
+    linear-gradient(to right, var(--gr-gutter-shade), transparent var(--gr-gutter-shade-w)),
+    var(--gr-page-facing);
+}
