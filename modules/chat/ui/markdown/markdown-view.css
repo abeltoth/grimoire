@@ -1,0 +1,97 @@
+:host {
+  display: block;
+  font-size: var(--gr-size-text);
+  line-height: var(--gr-leading-text);
+}
+
+p {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+/* Blocks follow each other with a small gap; a list hugs the line that introduces it. */
+:host > * + *,
+li > * + *,
+blockquote > * + * {
+  margin-top: var(--gr-block-gap);
+}
+
+:host > * + :is(ul, ol) {
+  margin-top: var(--gr-list-gap);
+}
+
+:host > * + gr-listing,
+:host > gr-listing + * {
+  margin-top: var(--gr-listing-margin);
+}
+
+ul,
+ol {
+  margin: 0;
+  padding-left: var(--gr-list-indent);
+}
+
+li {
+  line-height: var(--gr-leading-entry);
+}
+
+li::marker {
+  color: var(--gr-rubric);
+}
+
+.heading {
+  font-weight: 700;
+}
+
+strong {
+  font-weight: 700;
+}
+
+code {
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-code-inline);
+  padding: var(--gr-code-inline-pad);
+  background: var(--gr-code-inline-bg);
+  border-radius: var(--gr-radius-code-inline);
+}
+
+a {
+  color: inherit;
+  text-decoration: underline dotted var(--gr-link-underline);
+}
+
+blockquote {
+  margin: 0;
+  padding-left: var(--gr-quote-pad);
+  border-left: var(--gr-quote-rule) solid var(--gr-hairline);
+  color: var(--gr-ink-soft);
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--gr-hairline);
+}
+
+.table {
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+  font-size: var(--gr-size-aside);
+  line-height: var(--gr-leading-entry);
+}
+
+th {
+  text-align: left;
+  font-family: var(--gr-font-sc);
+  font-weight: 500;
+  letter-spacing: var(--gr-tracking-label);
+  border-bottom: 1px solid var(--gr-ink-faint);
+}
+
+th,
+td {
+  padding: var(--gr-table-cell-pad);
+  vertical-align: baseline;
+}

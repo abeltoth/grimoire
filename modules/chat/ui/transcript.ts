@@ -14,6 +14,8 @@ import { Icon } from '@ui/design-system/icon';
 import { type Chapter, Chats } from '@ui/app/core/chats';
 import type { Answer, ApprovalDecision } from '@grimoire/contract';
 import { ApprovalSlip } from './approval-slip';
+import { MarkdownView } from './markdown/markdown-view';
+import { parseMarkdown } from './markdown/markdown';
 import { QuestionsForm } from './questions-form';
 import { toRows } from './rows';
 
@@ -24,7 +26,7 @@ import { toRows } from './rows';
  */
 @Component({
   selector: 'gr-transcript',
-  imports: [ApprovalSlip, Drawing, Icon, NgTemplateOutlet, QuestionsForm],
+  imports: [ApprovalSlip, Drawing, Icon, MarkdownView, NgTemplateOutlet, QuestionsForm],
   templateUrl: './transcript.html',
   styleUrl: './transcript.css',
   host: { role: 'log', 'aria-label': 'Transcript', '(scroll)': 'onScroll()' },
@@ -44,6 +46,18 @@ export class Transcript {
     ['thinking', 'writing', 'waiting'].includes(this.chapter().status),
   );
   protected readonly writing = computed(() => this.chapter().status === 'writing');
+  /** Code listings are numbered through the chapter: each reply's first number. */
+  protected readonly listingStarts = computed(() => {
+    const starts = new Map<string, number>();
+    const rows = this.rows();
+    let next = 1;
+    rows.forEach((row, i) => {
+      if (row.kind !== 'reply') return;
+      starts.set(row.key, next);
+      next += parseMarkdown(row.text, i === rows.length - 1 && this.writing()).listings;
+    });
+    return starts;
+  });
   /** Stop shows while the agent works; while it waits for you, you answer instead. */
   protected readonly stoppable = computed(() =>
     ['thinking', 'writing'].includes(this.chapter().status),

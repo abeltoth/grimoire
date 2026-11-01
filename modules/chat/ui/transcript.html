@@ -1,3 +1,12 @@
+<ng-template #replyTail>
+  @if (writing()) {
+    <gr-icon name="quill" class="quill" />
+  }
+  @if (stoppable()) {
+    <ng-container *ngTemplateOutlet="stopButton" />
+  }
+</ng-template>
+
 <ng-template #stopButton>
   <button type="button" class="stop" (click)="stop.emit()">
     Stop <span class="gr-kbd">Esc</span>
@@ -55,15 +64,12 @@
               }
             </header>
           }
-          <p>
-            <span class="text">{{ row.text }}</span>
-            @if (last && writing()) {
-              <gr-icon name="quill" class="quill" />
-            }
-            @if (last && stoppable()) {
-              <ng-container *ngTemplateOutlet="stopButton" />
-            }
-          </p>
+          <gr-markdown
+            [text]="row.text"
+            [writing]="last && writing()"
+            [firstListing]="listingStarts().get(row.key) ?? 1"
+            [tail]="last && (writing() || stoppable()) ? replyTail : null"
+          />
         </div>
         @if (row.notes.length) {
           <div class="notes">

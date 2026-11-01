@@ -91,12 +91,6 @@ p {
   color: var(--gr-ink-soft);
 }
 
-.reply p {
-  font-size: var(--gr-size-text);
-  line-height: var(--gr-leading-text);
-  text-wrap: pretty;
-}
-
 /* The quill at the writing point. */
 .quill {
   display: inline-flex;

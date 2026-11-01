@@ -260,6 +260,28 @@
   --gr-edition-pad: 2px 6px;
   --gr-underline-edition: 1.5px;
 
+  /* Chat: markdown in replies */
+  --gr-block-gap: 8px;
+  --gr-list-gap: 4px;
+  --gr-listing-margin: 12px;
+  --gr-quote-pad: 12px;
+  --gr-quote-rule: 2px;
+  --gr-table-cell-pad: 2px 16px 2px 0;
+
+  /* Chat: code listings, coloured as the design marks code */
+  --gr-code-text: var(--gr-ink);
+  --gr-code-keyword: var(--gr-rubric);
+  --gr-code-string: var(--gr-verdigris);
+  --gr-code-comment: var(--gr-ink-soft);
+  --gr-code-type: var(--gr-lapis);
+  --gr-size-listing-caption: 13px;
+  --gr-listing-caption-gap: 2px;
+  --gr-tracking-listing: 0.05em;
+  --gr-listing-number: 32px;
+  --gr-listing-pad: 4px 0;
+  --gr-listing-number-pad: 12px;
+  --gr-size-listing-number: 11.5px;
+
   /* Chat: approval slip, tucked into the page */
   --gr-slip-margin: 16px 4px 4px 0;
   --gr-slip-pad: 15px 22px 14px 24px;

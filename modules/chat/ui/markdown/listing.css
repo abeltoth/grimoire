@@ -1,0 +1,58 @@
+:host {
+  display: block;
+}
+
+figure {
+  margin: 0;
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-code);
+  line-height: var(--gr-leading-code);
+}
+
+figcaption {
+  font-family: var(--gr-font-text);
+  font-style: italic;
+  font-size: var(--gr-size-listing-caption);
+  color: var(--gr-ink-soft);
+  margin-bottom: var(--gr-listing-caption-gap);
+}
+
+figcaption b {
+  font-family: var(--gr-font-sc);
+  font-style: normal;
+  font-weight: 500;
+  letter-spacing: var(--gr-tracking-listing);
+  color: var(--gr-ink);
+}
+
+/* Between rules; open at the foot while it's still being written. */
+.code {
+  display: grid;
+  grid-template-columns: var(--gr-listing-number) minmax(0, 1fr);
+  border-top: 1px solid var(--gr-ink-faint);
+  border-bottom: 1px solid var(--gr-ink-faint);
+  padding: var(--gr-listing-pad);
+  color: var(--gr-code-text);
+}
+
+.code.open {
+  border-bottom: 0;
+}
+
+.number {
+  color: var(--gr-ink-soft);
+  text-align: right;
+  padding-right: var(--gr-listing-number-pad);
+  font-size: var(--gr-size-listing-number);
+  user-select: none;
+}
+
+/* Long lines wrap rather than hide. */
+.line {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.italic {
+  font-style: italic;
+}
