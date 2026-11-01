@@ -8,13 +8,13 @@
   </div>
 }
 
-<label class="sr-only" for="gr-next-entry">Next entry</label>
+<label class="sr-only" for="gr-next-entry">{{ first() ? 'First entry' : 'Next entry' }}</label>
 <textarea
   #entry
   id="gr-next-entry"
   class="entry"
   rows="2"
-  placeholder="Write the next entry…"
+  [placeholder]="first() ? 'Write the first entry…' : 'Write the next entry…'"
   [value]="draft()"
   (input)="draft.set($any($event.target).value)"
   (keydown.enter)="enter($event, entry)"

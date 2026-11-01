@@ -33,6 +33,8 @@ export interface Chapter {
   context?: ContextUsage;
   /** Why the last turn failed, until the next message. */
   error?: string;
+  /** When a blank chapter was opened, in ms since the epoch. */
+  begunAt?: number;
 }
 
 const DEFAULT_AGENT = 'claude-code';
@@ -106,6 +108,7 @@ export class Chats {
       entries: [],
       approvals: [],
       queued: [],
+      begunAt: Date.now(),
     };
     this.all.update((all) => [...all, blank]);
     this.turnTo(blank.id);

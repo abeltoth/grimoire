@@ -155,7 +155,15 @@ describe('App', () => {
     expect(texts('.left-half gr-ribbon b')).toEqual(['Untitled chapter']);
     expect(texts('.left-half gr-ribbon i')).toEqual(['Claude Code · blank page']);
     expect(texts('.right-half gr-ribbon b')).toEqual(['New chapter']);
-    expect(texts('gr-transcript .row')).toEqual([]);
+    expect(texts('gr-chapter-opening p')).toEqual([
+      'A new chapter',
+      expect.stringMatching(/^Begun at .+, to be written by Claude Code$/),
+      'Write your first entry on the page below. Claude Code works in your home folder and asks before it edits a file or runs a command.',
+    ]);
+    expect(document.querySelector('#gr-next-entry')!.getAttribute('placeholder')).toBe(
+      'Write the first entry…',
+    );
+    expect(texts('gr-transcript')).toEqual([]);
   });
 
   it('starts the chat with the first entry and follows its events', async () => {

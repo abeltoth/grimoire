@@ -1,0 +1,15 @@
+<gr-drawing class="headpiece" name="chapter-opening" />
+<p class="kicker">A new chapter</p>
+<p class="begun">Begun at {{ begun() }}, to be written by {{ agentName() }}</p>
+<p class="note">
+  Write your first entry on the page below. {{ agentName() }} works in
+  @if (cwd(); as cwd) {
+    <code>{{ cwd }}</code>
+  } @else {
+    your home folder
+  }
+  and {{ manner() }}.
+</p>
+@if (error(); as error) {
+  <p class="error" role="alert">{{ error }}</p>
+}

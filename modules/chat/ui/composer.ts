@@ -27,6 +27,8 @@ export class Composer {
   private readonly chats = inject(Chats);
 
   readonly chapterId = input.required<string>();
+  /** A blank chapter's composer: it takes the first entry. */
+  readonly first = input(false);
   readonly queued = input<readonly QueuedEntry[]>([]);
   /** How full the context window is: the chapter's page allowance. */
   readonly context = input<ContextUsage>();
