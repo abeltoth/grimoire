@@ -221,6 +221,11 @@
   /* Chat: transcript */
   --gr-transcript-pad-bottom: 14px;
   --gr-transcript-fade: 22px;
+  --gr-scrollbar-width: 10px;
+  --gr-scrollbar-inset: 3px;
+  --gr-radius-scrollbar: 5px;
+  --gr-scrollbar-thumb: rgba(74, 48, 22, 0.28);
+  --gr-scrollbar-thumb-hover: rgba(74, 48, 22, 0.45);
   --gr-by-gap: 9px;
   --gr-leading-entry: 1.42;
   --gr-list-indent: 22px;
