@@ -3,6 +3,7 @@ import type { AgentEntry, EventName, EventPayload } from '@grimoire/contract';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Chapters } from '../storage/chapters';
 import { openDatabase } from '../storage/database';
+import type { ChatEvents, LiveChat } from './adapter';
 import { FakeAdapter } from './fake-adapter';
 import { AgentHub } from './hub';
 
@@ -33,9 +34,26 @@ afterEach(() => {
 
 const events = () => sent.map((s) => s.event);
 
+/** An agent that picks a new chat's ID itself, as Claude Code does on a spare process. */
+class PickingAdapter extends FakeAdapter {
+  started?: { text: string; events: ChatEvents; live: LiveChat & { closed: boolean } };
+  disposed = false;
+
+  async start(chatSettings: typeof settings, text: string, bind: (id: string) => ChatEvents) {
+    await Promise.resolve();
+    const live = { closed: false, send() {}, interrupt: async () => {}, close: () => void (live.closed = true) };
+    this.started = { text, events: bind('picked'), live };
+    return live;
+  }
+
+  dispose() {
+    this.disposed = true;
+  }
+}
+
 describe('AgentHub', () => {
-  it('starts a chat with your first message', () => {
-    const chat = hub.start('fake', settings, 'Hello');
+  it('starts a chat with your first message', async () => {
+    const chat = await hub.start('fake', settings, 'Hello');
 
     expect(chat.status).toBe('thinking');
     expect(chat.entries).toEqual([
@@ -48,7 +66,7 @@ describe('AgentHub', () => {
   });
 
   it('batches streamed text, and keeps it in the transcript', async () => {
-    const { id } = hub.start('fake', settings, 'Hello');
+    const { id } = await hub.start('fake', settings, 'Hello');
     const { events: agent } = fake.runOf(id);
     agent.entry(reply('r1'));
     sent = [];
@@ -70,8 +88,8 @@ describe('AgentHub', () => {
     });
   });
 
-  it('sends batched text before any later event', () => {
-    const { id } = hub.start('fake', settings, 'Hello');
+  it('sends batched text before any later event', async () => {
+    const { id } = await hub.start('fake', settings, 'Hello');
     const { events: agent } = fake.runOf(id);
     agent.entry(reply('r1'));
     agent.status('writing');
@@ -85,7 +103,7 @@ describe('AgentHub', () => {
   });
 
   it('waits for your decision on an approval', async () => {
-    const { id } = hub.start('fake', settings, 'Make a file');
+    const { id } = await hub.start('fake', settings, 'Make a file');
     const { events: agent } = fake.runOf(id);
     sent = [];
 
@@ -116,7 +134,7 @@ describe('AgentHub', () => {
   });
 
   it('drops an approval the agent stops waiting for', async () => {
-    const { id } = hub.start('fake', settings, 'Make a file');
+    const { id } = await hub.start('fake', settings, 'Make a file');
     const abort = new AbortController();
     const decision = fake
       .runOf(id)
@@ -128,7 +146,7 @@ describe('AgentHub', () => {
   });
 
   it('takes your answers to an approval that asks questions', async () => {
-    const { id } = hub.start('fake', settings, 'Build it');
+    const { id } = await hub.start('fake', settings, 'Build it');
     const questions = [
       { question: 'Where?', options: [{ label: 'Here' }, { label: 'There' }], multiSelect: false },
     ];
@@ -161,8 +179,8 @@ describe('AgentHub', () => {
     expect(fake.runOf('c1')).toMatchObject({ resume: true, sent: ['And now?'] });
   });
 
-  it('ends the turn when the agent process stops by itself, and restarts it on the next message', () => {
-    const { id } = hub.start('fake', settings, 'Hello');
+  it('ends the turn when the agent process stops by itself, and restarts it on the next message', async () => {
+    const { id } = await hub.start('fake', settings, 'Hello');
     fake.runOf(id).events.closed('Not signed in');
 
     expect(sent.at(-1)).toEqual({
@@ -174,8 +192,8 @@ describe('AgentHub', () => {
     expect(fake.runOf(id).resume).toBe(true);
   });
 
-  it('closes a chat: stops its process and ignores what it still reports', () => {
-    const { id } = hub.start('fake', settings, 'Hello');
+  it('closes a chat: stops its process and ignores what it still reports', async () => {
+    const { id } = await hub.start('fake', settings, 'Hello');
     const run = fake.runOf(id);
     hub.close(id);
     sent = [];
@@ -199,8 +217,8 @@ describe('AgentHub', () => {
     ]);
   });
 
-  it('starts new chats in your home folder unless told otherwise', () => {
-    expect(hub.start('fake', {}, 'Hi').settings.cwd).toBe(homedir());
+  it('starts new chats in your home folder unless told otherwise', async () => {
+    expect((await hub.start('fake', {}, 'Hi')).settings.cwd).toBe(homedir());
   });
 
   it('remembers the open chats, and reopens them after a restart', async () => {
@@ -208,9 +226,9 @@ describe('AgentHub', () => {
     hub = new AgentHub(() => {}, 50, chapters);
     hub.addAdapter(fake);
     fake.transcripts.set('saved', [{ kind: 'user', id: 'u1', text: 'Earlier' }]);
-    const started = hub.start('fake', settings, 'Hello');
+    const started = await hub.start('fake', settings, 'Hello');
     await hub.open('fake', 'saved', settings);
-    const closed = hub.start('fake', settings, 'Bye');
+    const closed = await hub.start('fake', settings, 'Bye');
     hub.close(closed.id);
     hub.closeAll();
     expect(fake.runOf(started.id).closed).toBe(true);
@@ -227,14 +245,45 @@ describe('AgentHub', () => {
     expect(chapters.list().map((c) => c.chatId)).toEqual([started.id, 'saved']);
   });
 
+  it('starts a chat under the ID the agent picks, and stops its spare on closeAll', async () => {
+    const picking = new PickingAdapter();
+    hub.addAdapter(picking);
+    const chat = await hub.start('fake', settings, 'Hello');
+
+    expect(chat).toMatchObject({ id: 'picked', status: 'thinking', entries: [{ text: 'Hello' }] });
+    expect(picking.started?.text).toBe('Hello');
+    expect(events()).toEqual(['agents.entry', 'agents.status']);
+    picking.started?.events.turnEnded();
+    expect((await hub.open('fake', 'picked', settings)).status).toBe('idle');
+
+    hub.closeAll();
+    expect(picking.started?.live.closed).toBe(true);
+    expect(picking.disposed).toBe(true);
+  });
+
+  it('stops a chat closed while its agent was starting it', async () => {
+    const picking = new PickingAdapter();
+    hub.addAdapter(picking);
+    const original = picking.start.bind(picking);
+    picking.start = async (chatSettings, text, bind) =>
+      original(chatSettings, text, (id) => {
+        const events = bind(id);
+        hub.close(id);
+        return events;
+      });
+
+    await hub.start('fake', settings, 'Hello');
+    expect(picking.started?.live.closed).toBe(true);
+  });
+
   it('passes interrupts to the agent', async () => {
-    const { id } = hub.start('fake', settings, 'Hello');
+    const { id } = await hub.start('fake', settings, 'Hello');
     expect(await hub.interrupt(id)).toEqual([]);
     expect(fake.runOf(id).interrupts).toBe(1);
   });
 
   it('queues messages sent during a turn and sends the next when it ends', async () => {
-    const { id } = hub.start('fake', settings, 'Hello');
+    const { id } = await hub.start('fake', settings, 'Hello');
     const run = fake.runOf(id);
     hub.send(id, 'Also this');
     hub.send(id, 'And that');
@@ -259,7 +308,7 @@ describe('AgentHub', () => {
   });
 
   it('passes on how full the context window is', async () => {
-    const { id } = hub.start('fake', settings, 'Hello');
+    const { id } = await hub.start('fake', settings, 'Hello');
     fake.runOf(id).events.context({ used: 62_000, limit: 100_000 });
     expect(sent.at(-1)).toEqual({
       event: 'agents.context',
@@ -269,7 +318,7 @@ describe('AgentHub', () => {
   });
 
   it('takes a message out of the queue, and Stop withdraws the rest', async () => {
-    const { id } = hub.start('fake', settings, 'Hello');
+    const { id } = await hub.start('fake', settings, 'Hello');
     const run = fake.runOf(id);
     hub.send(id, 'One');
     hub.send(id, 'Two');

@@ -24,6 +24,16 @@ export interface AgentAdapter {
    * or, with `resume`, an existing one. Messages go in through send().
    */
   run(chatId: ChatId, settings: ChatSettings, resume: boolean, events: ChatEvents): LiveChat;
+  /**
+   * Starts a new chat with its first message, when the agent picks the
+   * chat's ID itself, as it does on a spare process (ADR-010). `bind` gets
+   * the ID before any event. Without this, the hub picks the ID and calls run().
+   */
+  start?(settings: ChatSettings, text: string, bind: (chatId: ChatId) => ChatEvents): Promise<LiveChat>;
+  /** Keeps a spare process started, so the next new chat opens at once (ADR-010). */
+  warm?(): void;
+  /** Stops any spare process, for when the service stops. */
+  dispose?(): void;
 }
 
 /** A chat whose agent process is running. */
