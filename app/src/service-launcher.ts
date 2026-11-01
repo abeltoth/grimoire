@@ -12,6 +12,8 @@ export interface LaunchOptions {
   serviceEntry: string;
   /** The Node binary that runs the service: Electron itself, as Node. */
   nodePath: string;
+  /** Keeps Grimoire's own data in memory, for smoke tests and captures. */
+  ephemeral?: boolean;
   log: (message: string) => void;
   startTimeoutMs?: number;
 }
@@ -64,7 +66,9 @@ async function stop(client: ServiceClient): Promise<void> {
 }
 
 function spawnService(options: LaunchOptions, buildId: string): void {
-  const child = spawn(options.nodePath, [options.serviceEntry, '--data-dir', options.dataDir, '--build-id', buildId], {
+  const args = [options.serviceEntry, '--data-dir', options.dataDir, '--build-id', buildId];
+  if (options.ephemeral) args.push('--ephemeral');
+  const child = spawn(options.nodePath, args, {
     detached: true,
     stdio: 'ignore',
     windowsHide: true,

@@ -172,6 +172,8 @@ declare module './commands' {
     'agents.list': { request: Record<string, never>; response: AgentInfo[] };
     /** The agent's chats, most recent first, optionally only those in one folder. */
     'agents.chats': { request: { agent: AgentId; cwd?: string }; response: ChatSummary[] };
+    /** The chats open as chapters, in ribbon order, remembered across restarts. */
+    'agents.openChats': { request: Record<string, never>; response: OpenChat[] };
     /** Opens a chat: loads its transcript, and later messages continue it. */
     'agents.open': {
       request: { agent: AgentId; chatId: ChatId; settings: ChatSettings };
@@ -197,7 +199,10 @@ declare module './commands' {
     };
     /** Answers an approval's questions, one answer per question, in order. */
     'agents.answer': { request: { approvalId: string; answers: Answer[] }; response: void };
-    /** Closes a chat and stops its agent process. The chat itself stays with the agent. */
+    /**
+     * Closes a chat's chapter and stops its agent process. The chat itself
+     * stays with the agent.
+     */
     'agents.close': { request: { chatId: ChatId }; response: void };
   }
 }

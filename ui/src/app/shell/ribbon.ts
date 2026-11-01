@@ -41,10 +41,16 @@ export class Ribbon {
   readonly unavailable = input(false, { transform: booleanAttribute });
 
   readonly picked = output<void>();
+  /** Middle-clicked, to close what it marks. */
+  readonly dismissed = output<void>();
 
   protected readonly motes = computed(() => this.tone() === 'waiting');
 
   protected pick(): void {
     if (!this.unavailable()) this.picked.emit();
+  }
+
+  protected auxClick(event: MouseEvent): void {
+    if (event.button === 1 && !this.unavailable()) this.dismissed.emit();
   }
 }

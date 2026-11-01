@@ -5,6 +5,7 @@
   [attr.aria-label]="label() ?? null"
   [attr.aria-disabled]="unavailable() || null"
   (click)="pick()"
+  (auxclick)="auxClick($event)"
 >
   <ng-content />
   <span class="text">

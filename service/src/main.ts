@@ -3,7 +3,9 @@
  * Electron's own Node (ELECTRON_RUN_AS_NODE), and it keeps running when the
  * app quits.
  *
- *   node service.mjs --data-dir <dir> --build-id <id>
+ *   node service.mjs --data-dir <dir> --build-id <id> [--ephemeral]
+ *
+ * --ephemeral keeps Grimoire's own data in memory, for smoke tests and captures.
  */
 import { randomBytes } from 'node:crypto';
 import { appendFileSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
@@ -13,15 +15,19 @@ import { PROTOCOL_VERSION, SERVICE_INFO_FILE, type ServiceInfo } from '@grimoire
 import { ClaudeAdapter } from './agents/claude/claude-adapter';
 import { registerAgentCommands } from './agents/commands';
 import { AgentHub } from './agents/hub';
+import { LayoutStore, registerLayout } from './core/layout';
 import { registerPing } from './core/ping';
 import { endpointFor } from './endpoint';
 import { CommandRegistry } from './registry';
 import { AlreadyRunningError, startServer, type ServiceServer } from './server';
+import { Chapters } from './storage/chapters';
+import { openDatabase } from './storage/database';
 
 const { values } = parseArgs({
   options: {
     'data-dir': { type: 'string' },
     'build-id': { type: 'string', default: 'unknown' },
+    ephemeral: { type: 'boolean', default: false },
   },
 });
 
@@ -47,7 +53,10 @@ registerPing(registry, { buildId, startedAt: Date.now() });
 
 let server: ServiceServer | undefined;
 
-const hub = new AgentHub((event, payload) => server?.broadcast(event, payload));
+const db = openDatabase(values.ephemeral ? ':memory:' : path.join(dataDir, 'grimoire.db'));
+registerLayout(registry, new LayoutStore(db));
+
+const hub = new AgentHub((event, payload) => server?.broadcast(event, payload), 50, new Chapters(db));
 hub.addAdapter(new ClaudeAdapter());
 registerAgentCommands(registry, hub);
 
@@ -57,6 +66,7 @@ const endpoint = endpointFor(dataDir);
 async function stop(): Promise<void> {
   hub.closeAll();
   await server?.close();
+  db.close();
   removeInfoFileIfOurs();
   log('Stopped');
   process.exit(0);
