@@ -23,10 +23,11 @@ import type {
   RecentFolders,
   SettingsChange,
 } from '@grimoire/contract';
+import type { DatabaseSync } from 'node:sqlite';
 import { Chapters } from '../storage/chapters';
 import { openDatabase } from '../storage/database';
 import { DogEars } from '../storage/dog-ears';
-import { Withdrawn } from '../storage/withdrawn';
+import { EntryIds } from '../storage/entry-ids';
 import type { AgentAdapter, ChatEvents, LiveChat, Verdict } from './adapter';
 
 export type Emit = <K extends EventName>(event: K, payload: EventPayload<K>) => void;
@@ -46,6 +47,8 @@ interface ChatState {
   /** Your entries whose file changes were undone. */
   withdrawn: string[];
   dogEars: DogEar[];
+  /** Your entries copied from the chat this one was forked from. */
+  copied: string[];
   /** While the agent process runs. */
   live?: LiveChat;
   /** Streamed text not sent to windows yet, per entry and block. */
@@ -58,11 +61,31 @@ interface PendingApproval {
   resolve: (verdict: Verdict) => void;
 }
 
+/** What the hub keeps across restarts, in Grimoire's database (ADR-009). */
+export interface HubStore {
+  /** The chats open as chapters, so they reopen after a restart. */
+  chapters: Chapters;
+  /** Your entries whose edits were undone. */
+  withdrawn: EntryIds;
+  /** Your entries a fork copied; the agent can't undo them. */
+  copied: EntryIds;
+  /** Which chats are pinned or starred. */
+  dogEars: DogEars;
+}
+
+export function hubStore(db: DatabaseSync): HubStore {
+  return {
+    chapters: new Chapters(db),
+    withdrawn: new EntryIds(db, 'withdrawn'),
+    copied: new EntryIds(db, 'copied'),
+    dogEars: new DogEars(db),
+  };
+}
+
 /**
  * The agent hub (ADR-007): the open chats, their transcripts and pending
- * approvals, kept in memory (ADR-009). Which chats are open is kept in
- * `chapters`, so they reopen after a restart, which entries were undone
- * in `withdrawn`, and which chats are pinned or starred in `dogEars`. Windows are views of it:
+ * approvals, kept in memory (ADR-009), with what outlasts a restart in
+ * `store`. Windows are views of it:
  * they get a chat's state when they open it and its changes as events.
  * Streamed text is batched, at most one event per chat every `textBatchMs`.
  */
@@ -74,9 +97,7 @@ export class AgentHub {
   constructor(
     private readonly emit: Emit,
     private readonly textBatchMs = 50,
-    private readonly chapters = new Chapters(openDatabase(':memory:')),
-    private readonly withdrawn = new Withdrawn(openDatabase(':memory:')),
-    private readonly dogEars = new DogEars(openDatabase(':memory:')),
+    private readonly store = hubStore(openDatabase(':memory:')),
   ) {}
 
   addAdapter(adapter: AgentAdapter): void {
@@ -110,9 +131,9 @@ export class AgentHub {
   /** The chats open as chapters, in ribbon order. Those that no longer open are forgotten. */
   async openChats(): Promise<OpenChat[]> {
     const chats = await Promise.all(
-      this.chapters.list().map(({ agent, chatId, settings }) =>
+      this.store.chapters.list().map(({ agent, chatId, settings }) =>
         this.open(agent, chatId, settings).catch(() => {
-          this.chapters.remove(chatId);
+          this.store.chapters.remove(chatId);
           return undefined;
         }),
       ),
@@ -131,10 +152,11 @@ export class AgentHub {
       // Another window may have opened it meanwhile.
       chat = this.chats.get(chatId) ?? this.track(chatId, adapter, settings, history.entries, title);
       chat.plan = history.plan;
-      chat.withdrawn = this.withdrawn.list(chatId);
-      chat.dogEars = this.dogEars.of(chatId);
+      chat.withdrawn = this.store.withdrawn.list(chatId);
+      chat.dogEars = this.store.dogEars.of(chatId);
+      chat.copied = this.store.copied.list(chatId);
     }
-    this.chapters.add({ chatId, agent, settings: chat.settings });
+    this.store.chapters.add({ chatId, agent, settings: chat.settings });
     return this.snapshot(chat);
   }
 
@@ -143,7 +165,7 @@ export class AgentHub {
     const adapter = this.adapter(agent);
     if (!adapter.start) {
       const chat = this.track(randomUUID(), adapter, resolved, [], '');
-      this.chapters.add({ chatId: chat.id, agent, settings: resolved });
+      this.store.chapters.add({ chatId: chat.id, agent, settings: resolved });
       this.sendTo(chat, text, false);
       return this.snapshot(chat);
     }
@@ -152,7 +174,7 @@ export class AgentHub {
     const id = randomUUID();
     const live = await adapter.start(resolved, text, id, (chatId) => {
       chat = this.track(chatId, adapter, resolved, [], '');
-      this.chapters.add({ chatId, agent, settings: resolved });
+      this.store.chapters.add({ chatId, agent, settings: resolved });
       this.upsert(chat, { kind: 'user', id, text });
       this.setStatus(chat, 'thinking');
       return this.eventsFor(chat);
@@ -177,7 +199,7 @@ export class AgentHub {
     const chat = this.chat(chatId);
     await chat.live?.configure(change);
     chat.settings = { ...chat.settings, ...change };
-    this.chapters.add({ chatId, agent: chat.agent.info.id, settings: chat.settings });
+    this.store.chapters.add({ chatId, agent: chat.agent.info.id, settings: chat.settings });
     this.emit('agents.settings', { chatId, settings: chat.settings });
   }
 
@@ -192,6 +214,8 @@ export class AgentHub {
     const from = chat.entries.findIndex((entry) => entry.kind === 'user' && entry.id === entryId);
     if (from === -1) throw new Error('This entry is not in the chat');
     if (chat.withdrawn.includes(entryId)) throw new Error('This entry is already undone');
+    if (chat.copied.includes(entryId))
+      throw new Error("This entry was copied from the chat this one was forked from, so it can't be undone");
     chat.live ??= chat.agent.run(chat.id, chat.settings, true, this.eventsFor(chat));
     if (!chat.live.undo) throw new Error(`${chat.agent.info.name} can't undo`);
     await chat.live.undo(entryId);
@@ -200,7 +224,7 @@ export class AgentHub {
       .slice(from)
       .filter((entry) => entry.kind === 'user' && !chat.withdrawn.includes(entry.id))
       .map((entry) => entry.id);
-    this.withdrawn.add(chatId, undone);
+    this.store.withdrawn.add(chatId, undone);
     chat.withdrawn.push(...undone);
     this.emit('agents.withdrawn', { chatId, withdrawn: [...chat.withdrawn] });
   }
@@ -215,7 +239,16 @@ export class AgentHub {
     if (chat.status !== 'idle') throw new Error('Stop the turn before forking');
     const title = await this.variantTitle(chat);
     const forkId = await chat.agent.fork(chat.id, chat.settings.cwd, entryId, title);
-    return this.open(chat.agent.info.id, forkId, chat.settings);
+    const variant = await this.open(chat.agent.info.id, forkId, chat.settings);
+    // The fork's entries are copies, without the original's file checkpoints.
+    this.store.copied.add(
+      forkId,
+      variant.entries.filter((entry) => entry.kind === 'user').map((entry) => entry.id),
+    );
+    const copied = this.store.copied.list(forkId);
+    const opened = this.chats.get(forkId);
+    if (opened) opened.copied = copied;
+    return { ...variant, copied };
   }
 
   /** The chat's title with the first free variant letter: "Context meter (a)", then "(b)". */
@@ -228,8 +261,8 @@ export class AgentHub {
 
   /** Folds a chat's dog-ear down, or unfolds it. */
   dogEar(chatId: ChatId, dogEar: DogEar, folded: boolean): void {
-    this.dogEars.set(chatId, dogEar, folded);
-    const dogEars = this.dogEars.of(chatId);
+    this.store.dogEars.set(chatId, dogEar, folded);
+    const dogEars = this.store.dogEars.of(chatId);
     const chat = this.chats.get(chatId);
     if (chat) chat.dogEars = dogEars;
     this.emit('agents.dogEars', { chatId, dogEars });
@@ -272,7 +305,7 @@ export class AgentHub {
 
   /** Closes a chat's chapter: it's no longer open after a restart. */
   close(chatId: ChatId): void {
-    this.chapters.remove(chatId);
+    this.store.chapters.remove(chatId);
     this.release(chatId);
   }
 
@@ -309,6 +342,7 @@ export class AgentHub {
       plan: [],
       withdrawn: [],
       dogEars: [],
+      copied: [],
       pendingText: new Map(),
     };
     this.chats.set(id, chat);
@@ -478,6 +512,7 @@ export class AgentHub {
       plan: chat.plan,
       withdrawn: [...chat.withdrawn],
       dogEars: [...chat.dogEars],
+      copied: [...chat.copied],
     };
   }
 

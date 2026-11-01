@@ -42,6 +42,8 @@ export interface Chapter {
   withdrawn: readonly string[];
   /** The dog-ears folded down: pinned, starred. */
   dogEars: readonly DogEar[];
+  /** Your entries copied from the chat this one was forked from; they can't be undone. */
+  copied: readonly string[];
   /** Why the last turn failed, until the next message. */
   error?: string;
   /** When a blank chapter was opened, in ms since the epoch. */
@@ -224,6 +226,7 @@ export class Chats {
       plan: [],
       withdrawn: [],
       dogEars: [],
+      copied: [],
       begunAt: Date.now(),
     };
     this.all.update((all) => [...all, blank]);
@@ -410,6 +413,7 @@ function fromOpenChat(chat: OpenChat): Chapter {
     plan: chat.plan ?? [],
     withdrawn: chat.withdrawn ?? [],
     dogEars: chat.dogEars ?? [],
+    copied: chat.copied ?? [],
     ...(chat.context ? { context: chat.context } : {}),
   };
 }

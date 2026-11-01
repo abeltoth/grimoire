@@ -14,16 +14,13 @@ import { parseArgs } from 'node:util';
 import { PROTOCOL_VERSION, SERVICE_INFO_FILE, type ServiceInfo } from '@grimoire/contract';
 import { ClaudeAdapter } from './agents/claude/claude-adapter';
 import { registerAgentCommands } from './agents/commands';
-import { AgentHub } from './agents/hub';
+import { AgentHub, hubStore } from './agents/hub';
 import { LayoutStore, registerLayout } from './core/layout';
 import { registerPing } from './core/ping';
 import { endpointFor } from './endpoint';
 import { CommandRegistry } from './registry';
 import { AlreadyRunningError, startServer, type ServiceServer } from './server';
-import { Chapters } from './storage/chapters';
 import { openDatabase } from './storage/database';
-import { DogEars } from './storage/dog-ears';
-import { Withdrawn } from './storage/withdrawn';
 
 const { values } = parseArgs({
   options: {
@@ -61,9 +58,7 @@ registerLayout(registry, new LayoutStore(db));
 const hub = new AgentHub(
   (event, payload) => server?.broadcast(event, payload),
   50,
-  new Chapters(db),
-  new Withdrawn(db),
-  new DogEars(db),
+  hubStore(db),
 );
 const claude = new ClaudeAdapter();
 hub.addAdapter(claude);

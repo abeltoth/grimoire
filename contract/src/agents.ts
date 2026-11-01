@@ -207,6 +207,11 @@ export interface OpenChat {
   withdrawn: string[];
   /** The dog-ears folded down on the chapter. */
   dogEars: DogEar[];
+  /**
+   * Your entries copied from the chat this one was forked from. The agent
+   * keeps no file checkpoints for them, so they can't be undone.
+   */
+  copied: string[];
 }
 
 declare module './commands' {

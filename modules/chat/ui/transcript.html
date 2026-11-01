@@ -24,14 +24,16 @@
               <span class="time">{{ time(row.at) }}</span>
             }
             <span class="spacer"></span>
-            <button
-              type="button"
-              class="gr-link"
-              [attr.aria-disabled]="canUndo(row) ? null : true"
-              (click)="undo(row)"
-            >
-              Undo
-            </button>
+            @if (row.undoable) {
+              <button
+                type="button"
+                class="gr-link"
+                [attr.aria-disabled]="canUndo() ? null : true"
+                (click)="undo(row)"
+              >
+                Undo
+              </button>
+            }
             <button
               type="button"
               class="gr-link"

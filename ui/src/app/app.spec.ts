@@ -39,6 +39,7 @@ function fakeBridge(overrides: Partial<GrimoireBridge> = {}) {
       plan: [],
       withdrawn: [],
       dogEars: [],
+      copied: [],
     }),
     'agents.unqueue': () => true,
     'agents.interrupt': () => [],
@@ -594,12 +595,14 @@ describe('App', () => {
         plan: [],
         withdrawn: [],
         dogEars: [],
+        copied: [],
       },
     ];
     answers['layout.get'] = () => ({ current: 'c1' });
     const { fixture, el, texts } = await render(bridge);
     const undoes = () => [...el.querySelectorAll<HTMLButtonElement>('.you .by button')].filter((b) => b.textContent!.trim() === 'Undo');
     expect(undoes().map((b) => b.getAttribute('aria-disabled'))).toEqual([null, null]);
+    expect(texts('.you')).toHaveLength(2);
 
     undoes()[1]!.click();
     await fixture.whenStable();
@@ -609,11 +612,53 @@ describe('App', () => {
     emit('agents.withdrawn', { chatId: 'c1', withdrawn: ['u2'] });
     await fixture.whenStable();
     expect(texts('.note .detail')).toEqual(['+1 −1', 'withdrawn']);
-    expect(undoes().map((b) => b.getAttribute('aria-disabled'))).toEqual([null, 'true']);
+    // Only the first entry's edit is left to undo.
+    expect(undoes().map((b) => b.getAttribute('aria-disabled'))).toEqual([null]);
 
     emit('agents.status', { chatId: 'c1', status: 'thinking' });
     await fixture.whenStable();
-    expect(undoes().map((b) => b.getAttribute('aria-disabled'))).toEqual(['true', 'true']);
+    expect(undoes().map((b) => b.getAttribute('aria-disabled'))).toEqual(['true']);
+  });
+
+  it('offers Undo only where it can restore files, and not on entries a fork copied', async () => {
+    const { bridge, answers } = fakeBridge();
+    const edit = (id: string) => ({
+      kind: 'tool' as const,
+      id,
+      tool: 'Write',
+      input: { file_path: 'C:/work/grimoire/a.ts', content: 'a' },
+      result: { text: 'ok', isError: false },
+    });
+    const reply = (id: string, text: string) => ({ kind: 'agent' as const, id, blocks: [{ kind: 'text' as const, text }] });
+    answers['agents.openChats'] = (): OpenChat[] => [
+      {
+        id: 'c1',
+        agent: 'claude-code',
+        title: 'Context meter (a)',
+        settings: { cwd: 'C:/work/grimoire' },
+        status: 'idle',
+        entries: [
+          { kind: 'user', id: 'u1', text: 'Copied, with an edit' },
+          { kind: 'agent', id: 'a1', blocks: [edit('t1'), { kind: 'text', text: 'Wrote it.' }] },
+          { kind: 'user', id: 'u2', text: 'Mine, with an edit' },
+          { kind: 'agent', id: 'a2', blocks: [edit('t2'), { kind: 'text', text: 'Wrote it again.' }] },
+          { kind: 'user', id: 'u3', text: 'Mine, only talk' },
+          reply('a3', 'Just talk.'),
+        ],
+        approvals: [],
+        queued: [],
+        plan: [],
+        withdrawn: [],
+        dogEars: [],
+        copied: ['u1'],
+      },
+    ];
+    answers['layout.get'] = () => ({ current: 'c1' });
+    const { el } = await render(bridge);
+    const undoable = [...el.querySelectorAll('.you')].map((you) =>
+      [...you.querySelectorAll('.by button')].some((b) => b.textContent!.trim() === 'Undo'),
+    );
+    expect(undoable).toEqual([false, true, false]);
   });
 
   it('forks a chapter into a variant and turns to it', async () => {
@@ -630,6 +675,7 @@ describe('App', () => {
       plan: [],
       withdrawn: [],
       dogEars: [],
+      copied: [],
     });
     answers['agents.openChats'] = () => [chat('c1', 'Context meter')];
     answers['layout.get'] = () => ({ current: 'c1' });
@@ -662,6 +708,7 @@ describe('App', () => {
         plan: [],
         withdrawn: [],
         dogEars: ['star'],
+        copied: [],
       },
     ];
     answers['layout.get'] = () => ({ current: 'c1' });
@@ -696,12 +743,28 @@ describe('App', () => {
         title: '',
         settings: { cwd: 'C:/work/grimoire' },
         status: 'idle',
-        entries: [{ kind: 'user', id: 'u1', text: 'Add a meter' }],
+        entries: [
+          { kind: 'user', id: 'u1', text: 'Add a meter' },
+          {
+            kind: 'agent',
+            id: 'a1',
+            blocks: [
+              {
+                kind: 'tool',
+                id: 't1',
+                tool: 'Write',
+                input: { file_path: 'C:/work/grimoire/meter.ts', content: 'meter' },
+                result: { text: 'ok', isError: false },
+              },
+            ],
+          },
+        ],
         approvals: [],
         queued: [],
         plan: [],
         withdrawn: [],
         dogEars: [],
+        copied: [],
       },
     ];
     answers['layout.get'] = () => ({ current: 'c1' });
@@ -726,6 +789,7 @@ describe('App', () => {
       plan: [],
       withdrawn: [],
       dogEars: [],
+      copied: [],
     });
     answers['agents.openChats'] = () => [
       chat('c1', 'Fix flaky login test', 'Why does login fail?'),
@@ -763,6 +827,7 @@ describe('App', () => {
       plan: [],
       withdrawn: [],
       dogEars: [],
+      copied: [],
     });
     answers['agents.openChats'] = () => [chat('c1', 'One'), chat('c2', 'Two'), chat('c3', 'Three')];
     answers['layout.get'] = () => ({ current: 'c2' });
@@ -815,6 +880,7 @@ describe('App', () => {
       plan: [],
       withdrawn: [],
       dogEars: [],
+      copied: [],
     });
     answers['agents.openChats'] = () => [
       chat('c1', 'Fix flaky login test', 'npm test', 200),
@@ -889,6 +955,7 @@ describe('App', () => {
         plan: [],
         withdrawn: [],
         dogEars: [],
+        copied: [],
       },
     ];
     const { fixture, el, texts } = await render(bridge);

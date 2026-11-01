@@ -1,13 +1,10 @@
 import { homedir } from 'node:os';
 import type { AgentEntry, EventName, EventPayload } from '@grimoire/contract';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Chapters } from '../storage/chapters';
 import { openDatabase } from '../storage/database';
-import { DogEars } from '../storage/dog-ears';
-import { Withdrawn } from '../storage/withdrawn';
 import type { ChatEvents, LiveChat } from './adapter';
 import { FakeAdapter } from './fake-adapter';
-import { AgentHub } from './hub';
+import { AgentHub, hubStore } from './hub';
 
 type Sent = { [K in EventName]: { event: K; payload: EventPayload<K> } }[EventName];
 
@@ -241,8 +238,9 @@ describe('AgentHub', () => {
   });
 
   it('remembers the open chats, and reopens them after a restart', async () => {
-    const chapters = new Chapters(openDatabase(':memory:'));
-    hub = new AgentHub(() => {}, 50, chapters);
+    const store = hubStore(openDatabase(':memory:'));
+    const { chapters } = store;
+    hub = new AgentHub(() => {}, 50, store);
     hub.addAdapter(fake);
     fake.transcripts.set('saved', [{ kind: 'user', id: 'u1', text: 'Earlier' }]);
     const started = await hub.start('fake', settings, 'Hello');
@@ -252,7 +250,7 @@ describe('AgentHub', () => {
     hub.closeAll();
     expect(fake.runOf(started.id).closed).toBe(true);
 
-    const restarted = new AgentHub(() => {}, 50, chapters);
+    const restarted = new AgentHub(() => {}, 50, store);
     restarted.addAdapter(fake);
     fake.transcripts.set(started.id, [{ kind: 'user', id: 'u2', text: 'Hello' }]);
     chapters.add({ chatId: 'gone', agent: 'unknown-agent', settings });
@@ -297,8 +295,9 @@ describe('AgentHub', () => {
   });
 
   it('changes a chat\'s model and permission, live and for after a restart', async () => {
-    const chapters = new Chapters(openDatabase(':memory:'));
-    hub = new AgentHub((event, payload) => sent.push({ event, payload } as Sent), 50, chapters);
+    const store = hubStore(openDatabase(':memory:'));
+    const { chapters } = store;
+    hub = new AgentHub((event, payload) => sent.push({ event, payload } as Sent), 50, store);
     hub.addAdapter(fake);
     const { id } = await hub.start('fake', settings, 'Hello');
     sent = [];
@@ -336,8 +335,8 @@ describe('AgentHub', () => {
   });
 
   it('undoes an entry\'s edits and those after it, and remembers them after a restart', async () => {
-    const withdrawn = new Withdrawn(openDatabase(':memory:'));
-    hub = new AgentHub((event, payload) => sent.push({ event, payload } as Sent), 50, undefined, withdrawn);
+    const store = hubStore(openDatabase(':memory:'));
+    hub = new AgentHub((event, payload) => sent.push({ event, payload } as Sent), 50, store);
     hub.addAdapter(fake);
     const { id } = await hub.start('fake', settings, 'First');
     const run = fake.runOf(id);
@@ -357,7 +356,7 @@ describe('AgentHub', () => {
     await expect(hub.undo(id, run.sentIds[2]!)).rejects.toThrow('already undone');
 
     // After a restart the chat has no process: undo starts one, resumed.
-    const restarted = new AgentHub(() => {}, 50, undefined, withdrawn);
+    const restarted = new AgentHub(() => {}, 50, store);
     restarted.addAdapter(fake);
     fake.transcripts.set(id, run.sentIds.map((entryId, i) => ({ kind: 'user', id: entryId, text: `${i}` })));
     expect((await restarted.open('fake', id, settings)).withdrawn).toEqual(later);
@@ -399,9 +398,30 @@ describe('AgentHub', () => {
     expect((await hub.fork('fork-3', 'u1')).title).toBe('Context meter (c)');
   });
 
+  it('marks a fork\'s entries as copied, which can\'t be undone', async () => {
+    const store = hubStore(openDatabase(':memory:'));
+    hub = new AgentHub(() => {}, 50, store);
+    hub.addAdapter(fake);
+    fake.transcripts.set('c1', [
+      { kind: 'user', id: 'u1', text: 'Add a meter' },
+      reply('r1', 'Added.'),
+      { kind: 'user', id: 'u2', text: 'Colour it' },
+    ]);
+    await hub.open('fake', 'c1', settings);
+
+    const variant = await hub.fork('c1', 'u2');
+    expect(variant.copied).toEqual(['u1', 'u2']);
+    expect((await hub.open('fake', 'c1', settings)).copied).toEqual([]);
+    await expect(hub.undo(variant.id, 'u1')).rejects.toThrow("can't be undone");
+
+    const restarted = new AgentHub(() => {}, 50, store);
+    restarted.addAdapter(fake);
+    expect((await restarted.open('fake', variant.id, settings)).copied).toEqual(['u1', 'u2']);
+  });
+
   it('pins and stars chats with dog-ears, kept across restarts', async () => {
-    const dogEars = new DogEars(openDatabase(':memory:'));
-    hub = new AgentHub((event, payload) => sent.push({ event, payload } as Sent), 50, undefined, undefined, dogEars);
+    const store = hubStore(openDatabase(':memory:'));
+    hub = new AgentHub((event, payload) => sent.push({ event, payload } as Sent), 50, store);
     hub.addAdapter(fake);
     const { id } = await hub.start('fake', settings, 'Hello');
     sent = [];
@@ -416,7 +436,7 @@ describe('AgentHub', () => {
     ]);
     expect((await hub.open('fake', id, settings)).dogEars).toEqual(['pin']);
 
-    const restarted = new AgentHub(() => {}, 50, undefined, undefined, dogEars);
+    const restarted = new AgentHub(() => {}, 50, store);
     restarted.addAdapter(fake);
     expect((await restarted.open('fake', id, settings)).dogEars).toEqual(['pin']);
   });
