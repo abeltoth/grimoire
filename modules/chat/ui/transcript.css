@@ -5,8 +5,30 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  padding: 0 var(--page-inset-end) var(--gr-transcript-pad-bottom) var(--page-inset-start);
+  /* The scrollbar sits in the inner margin, so the text lines up with the running head. */
+  padding: 0 calc(var(--page-inset-end) - var(--gr-scrollbar-width))
+    var(--gr-transcript-pad-bottom) var(--page-inset-start);
+  scrollbar-gutter: stable;
   mask-image: linear-gradient(transparent, black var(--gr-transcript-fade));
+}
+
+/* A thin ink scrollbar; its room is always kept, so nothing shifts when it appears. */
+:host::-webkit-scrollbar {
+  width: var(--gr-scrollbar-width);
+}
+
+:host::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+:host::-webkit-scrollbar-thumb {
+  background: var(--gr-scrollbar-thumb) padding-box;
+  border: var(--gr-scrollbar-inset) solid transparent;
+  border-radius: var(--gr-radius-scrollbar);
+}
+
+:host::-webkit-scrollbar-thumb:hover {
+  background-color: var(--gr-scrollbar-thumb-hover);
 }
 
 :host > :first-child {
