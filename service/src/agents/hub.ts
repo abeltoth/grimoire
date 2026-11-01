@@ -18,6 +18,8 @@ import type {
   OpenChat,
   QueuedEntry,
 } from '@grimoire/contract';
+import { Chapters } from '../storage/chapters';
+import { openDatabase } from '../storage/database';
 import type { AgentAdapter, ChatEvents, LiveChat, Verdict } from './adapter';
 
 export type Emit = <K extends EventName>(event: K, payload: EventPayload<K>) => void;
@@ -47,9 +49,10 @@ interface PendingApproval {
 
 /**
  * The agent hub (ADR-007): the open chats, their transcripts and pending
- * approvals, kept in memory (ADR-009). Windows are views of it: they get
- * a chat's state when they open it and its changes as events. Streamed
- * text is batched, at most one event per chat every `textBatchMs`.
+ * approvals, kept in memory (ADR-009). Which chats are open is kept in
+ * `chapters`, so they reopen after a restart. Windows are views of it:
+ * they get a chat's state when they open it and its changes as events.
+ * Streamed text is batched, at most one event per chat every `textBatchMs`.
  */
 export class AgentHub {
   private readonly adapters = new Map<AgentId, AgentAdapter>();
@@ -59,6 +62,7 @@ export class AgentHub {
   constructor(
     private readonly emit: Emit,
     private readonly textBatchMs = 50,
+    private readonly chapters = new Chapters(openDatabase(':memory:')),
   ) {}
 
   addAdapter(adapter: AgentAdapter): void {
@@ -73,6 +77,19 @@ export class AgentHub {
     return this.adapter(agent).listChats(cwd);
   }
 
+  /** The chats open as chapters, in ribbon order. Those that no longer open are forgotten. */
+  async openChats(): Promise<OpenChat[]> {
+    const chats = await Promise.all(
+      this.chapters.list().map(({ agent, chatId, settings }) =>
+        this.open(agent, chatId, settings).catch(() => {
+          this.chapters.remove(chatId);
+          return undefined;
+        }),
+      ),
+    );
+    return chats.filter((chat) => chat !== undefined);
+  }
+
   async open(agent: AgentId, chatId: ChatId, settings: ChatSettings): Promise<OpenChat> {
     let chat = this.chats.get(chatId);
     if (!chat) {
@@ -84,12 +101,14 @@ export class AgentHub {
       // Another window may have opened it meanwhile.
       chat = this.chats.get(chatId) ?? this.track(chatId, adapter, settings, entries, title);
     }
+    this.chapters.add({ chatId, agent, settings: chat.settings });
     return this.snapshot(chat);
   }
 
   start(agent: AgentId, settings: NewChatSettings, text: string): OpenChat {
     const resolved: ChatSettings = { ...settings, cwd: settings.cwd ?? homedir() };
     const chat = this.track(randomUUID(), this.adapter(agent), resolved, [], '');
+    this.chapters.add({ chatId: chat.id, agent, settings: resolved });
     this.sendTo(chat, text, false);
     return this.snapshot(chat);
   }
@@ -137,18 +156,24 @@ export class AgentHub {
     this.settle(pending, { answers });
   }
 
+  /** Closes a chat's chapter: it's no longer open after a restart. */
   close(chatId: ChatId): void {
+    this.chapters.remove(chatId);
+    this.release(chatId);
+  }
+
+  /** Stops every chat, for when the service stops; they reopen when it starts again. */
+  closeAll(): void {
+    for (const id of [...this.chats.keys()]) this.release(id);
+  }
+
+  private release(chatId: ChatId): void {
     const chat = this.chats.get(chatId);
     if (!chat) return;
     this.chats.delete(chatId);
     this.settleAll(chat);
     chat.live?.close();
     clearTimeout(chat.flushTimer);
-  }
-
-  /** Closes every chat, for when the service stops. */
-  closeAll(): void {
-    for (const id of [...this.chats.keys()]) this.close(id);
   }
 
   private track(

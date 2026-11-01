@@ -39,6 +39,8 @@ function fakeBridge(overrides: Partial<GrimoireBridge> = {}) {
     }),
     'agents.unqueue': () => true,
     'agents.interrupt': () => [],
+    'agents.openChats': () => [],
+    'layout.get': () => ({ current: null }),
   };
   const bridge: GrimoireBridge = {
     platform: 'windows',
@@ -428,6 +430,89 @@ describe('App', () => {
     [...el.querySelectorAll<HTMLButtonElement>('.left-half gr-ribbon button')][1]!.click();
     await fixture.whenStable();
     expect(texts('.you p')).toEqual(['Fix the flaky login test']);
+  });
+
+  it('reopens the chapters the hub has open, on the one you were on', async () => {
+    const { bridge, calls, answers } = fakeBridge();
+    const chat = (id: string, title: string, text: string): OpenChat => ({
+      id,
+      agent: 'claude-code',
+      title,
+      settings: { cwd: 'C:/work/grimoire' },
+      status: 'idle',
+      entries: [{ kind: 'user', id: `${id}-u`, text }],
+      approvals: [],
+      queued: [],
+    });
+    answers['agents.openChats'] = () => [
+      chat('c1', 'Fix flaky login test', 'Why does login fail?'),
+      chat('c2', 'Context meter', 'Add a context meter'),
+    ];
+    answers['layout.get'] = () => ({ current: 'c2' });
+    const { fixture, el, texts } = await render(bridge);
+
+    expect(texts('gr-running-head h1')).toEqual(['Context meter']);
+    expect(texts('.you p')).toEqual(['Add a context meter']);
+    expect(texts('gr-ribbon b')).toEqual([
+      'Context meter',
+      'Fix flaky login test',
+      'New chapter',
+    ]);
+
+    el.querySelectorAll<HTMLButtonElement>('.right-half gr-ribbon button')[0]!.click();
+    await fixture.whenStable();
+    expect(calls.filter((c) => c.command === 'layout.set').map((c) => c.request)).toEqual([
+      { current: 'c1' },
+    ]);
+  });
+
+  it('closes a chapter from the running head, with Ctrl+W, or by middle-clicking its ribbon', async () => {
+    const { bridge, calls, answers } = fakeBridge();
+    const chat = (id: string, title: string): OpenChat => ({
+      id,
+      agent: 'claude-code',
+      title,
+      settings: { cwd: 'C:/work' },
+      status: 'idle',
+      entries: [],
+      approvals: [],
+      queued: [],
+    });
+    answers['agents.openChats'] = () => [chat('c1', 'One'), chat('c2', 'Two'), chat('c3', 'Three')];
+    answers['layout.get'] = () => ({ current: 'c2' });
+    const { fixture, el, texts } = await render(bridge);
+    const closed = () =>
+      calls.filter((c) => c.command === 'agents.close').map((c) => (c.request as { chatId: string }).chatId);
+
+    [...el.querySelectorAll<HTMLButtonElement>('gr-running-head .gr-link')]
+      .find((b) => b.textContent!.trim() === 'Close')!
+      .click();
+    await fixture.whenStable();
+    expect(closed()).toEqual(['c2']);
+    expect(texts('gr-running-head h1')).toEqual(['Three']);
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'w', ctrlKey: true }));
+    await fixture.whenStable();
+    expect(closed()).toEqual(['c2', 'c3']);
+    expect(texts('gr-running-head h1')).toEqual(['One']);
+
+    el.querySelector<HTMLButtonElement>('[aria-current="page"]')!.dispatchEvent(
+      new MouseEvent('auxclick', { button: 1, bubbles: true }),
+    );
+    await fixture.whenStable();
+    expect(closed()).toEqual(['c2', 'c3', 'c1']);
+    expect(texts('[aria-current="page"] i')).toEqual(['Claude Code · blank page']);
+  });
+
+  it('opens a new chapter with Ctrl+N', async () => {
+    const { bridge } = fakeBridge();
+    const { fixture, el, texts } = await render(bridge);
+    await write(fixture, el, 'Fix the flaky login test');
+    const event = new KeyboardEvent('keydown', { key: 'n', ctrlKey: true, cancelable: true });
+    document.dispatchEvent(event);
+    await fixture.whenStable();
+    expect(event.defaultPrevented).toBe(true);
+    expect(texts('[aria-current="page"] i')).toEqual(['Claude Code · blank page']);
   });
 
   it('tucks an approval into the page and seals it', async () => {

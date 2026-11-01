@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, PendingTasks, computed, inject, signal } from '@angular/core';
 import type {
   AgentId,
   AgentInfo,
@@ -39,8 +39,9 @@ const DEFAULT_AGENT = 'claude-code';
 
 /**
  * The open chapters, as the window sees them: a mirror of the agent hub's
- * open chats (ADR-007), kept current by its events. Open chapters aren't
- * remembered across restarts yet (phase 6).
+ * open chats (ADR-007), kept current by its events. The hub remembers
+ * which chats are open, and the layout which one you were on, so the book
+ * opens where you left it.
  */
 @Injectable({ providedIn: 'root' })
 export class Chats {
@@ -87,7 +88,7 @@ export class Chats {
       (agents) => this.agents.set(agents),
       () => {},
     );
-    this.newChapter();
+    inject(PendingTasks).run(() => this.restore());
   }
 
   agentName(agent: AgentId): string {
@@ -107,11 +108,30 @@ export class Chats {
       queued: [],
     };
     this.all.update((all) => [...all, blank]);
-    this.currentId.set(blank.id);
+    this.turnTo(blank.id);
   }
 
   open(id: string): void {
-    this.currentId.set(id);
+    this.turnTo(id);
+  }
+
+  /**
+   * Closes a chapter and turns to the next one, or to a blank page. The
+   * chat itself stays with the agent.
+   */
+  async close(id: string): Promise<void> {
+    const all = this.all();
+    const index = all.findIndex((chapter) => chapter.id === id);
+    if (index === -1) return;
+    const rest = all.filter((chapter) => chapter.id !== id);
+    this.all.set(rest);
+    if (this.currentId() === id) {
+      const next = rest[Math.min(index, rest.length - 1)];
+      if (next) this.turnTo(next.id);
+      else this.newChapter();
+    }
+    if (all[index]!.status !== 'blank')
+      await this.bridge.invoke('agents.close', { chatId: id }).catch(() => {});
   }
 
   /** Sends a message; a blank chapter's first one starts the chat. */
@@ -128,7 +148,7 @@ export class Chats {
         text,
       });
       this.all.update((all) => all.map((c) => (c.id === id ? fromOpenChat(chat) : c)));
-      if (this.currentId() === id) this.currentId.set(chat.id);
+      if (this.currentId() === id) this.turnTo(chat.id);
     } catch (error) {
       this.fail(id, error);
     }
@@ -178,6 +198,31 @@ export class Chats {
       ...c,
       error: error instanceof Error ? error.message : String(error),
     }));
+  }
+
+  /** Opens the chapters the hub has open, on the one you were on; else a blank page. */
+  private async restore(): Promise<void> {
+    try {
+      const [chats, layout] = await Promise.all([
+        this.bridge.invoke('agents.openChats', {}),
+        this.bridge.invoke('layout.get', {}),
+      ]);
+      this.all.set((chats ?? []).map(fromOpenChat));
+      const current = layout?.current;
+      if (current && this.find(current)) return this.currentId.set(current);
+    } catch {
+      // The service is unreachable: start on a blank page.
+    }
+    this.newChapter();
+  }
+
+  /** Turns to a chapter and remembers it, so the book opens there next time. */
+  private turnTo(id: string): void {
+    this.currentId.set(id);
+    const chapter = this.find(id);
+    this.bridge
+      .invoke('layout.set', { current: chapter && chapter.status !== 'blank' ? id : null })
+      .catch(() => {});
   }
 
   private find(id: string): Chapter | undefined {

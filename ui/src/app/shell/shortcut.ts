@@ -34,6 +34,24 @@ export function formatShortcut(
   return keys.map((key) => OTHER[key] ?? key).join(style === 'keys' ? ' ' : '+');
 }
 
+/** Whether a key press is the shortcut, with exactly its modifier keys. */
+export function matchesShortcut(
+  event: KeyboardEvent,
+  shortcut: Shortcut,
+  platform: Platform,
+): boolean {
+  const keys = shortcut.split('+');
+  const modifiers = new Set(keys.slice(0, -1));
+  const mac = platform === 'mac';
+  return (
+    event.key.toLowerCase() === keys.at(-1)!.toLowerCase() &&
+    (mac ? event.metaKey : event.ctrlKey) === modifiers.has('Mod') &&
+    !(mac ? event.ctrlKey : event.metaKey) &&
+    event.shiftKey === modifiers.has('Shift') &&
+    event.altKey === modifiers.has('Alt')
+  );
+}
+
 /** `{{ 'Mod+K' | shortcut: 'keys' }}`, for the platform the app runs on. */
 @Pipe({ name: 'shortcut' })
 export class ShortcutPipe implements PipeTransform {

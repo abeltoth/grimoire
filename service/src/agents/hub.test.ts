@@ -1,6 +1,8 @@
 import { homedir } from 'node:os';
 import type { AgentEntry, EventName, EventPayload } from '@grimoire/contract';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Chapters } from '../storage/chapters';
+import { openDatabase } from '../storage/database';
 import { FakeAdapter } from './fake-adapter';
 import { AgentHub } from './hub';
 
@@ -199,6 +201,30 @@ describe('AgentHub', () => {
 
   it('starts new chats in your home folder unless told otherwise', () => {
     expect(hub.start('fake', {}, 'Hi').settings.cwd).toBe(homedir());
+  });
+
+  it('remembers the open chats, and reopens them after a restart', async () => {
+    const chapters = new Chapters(openDatabase(':memory:'));
+    hub = new AgentHub(() => {}, 50, chapters);
+    hub.addAdapter(fake);
+    fake.transcripts.set('saved', [{ kind: 'user', id: 'u1', text: 'Earlier' }]);
+    const started = hub.start('fake', settings, 'Hello');
+    await hub.open('fake', 'saved', settings);
+    const closed = hub.start('fake', settings, 'Bye');
+    hub.close(closed.id);
+    hub.closeAll();
+    expect(fake.runOf(started.id).closed).toBe(true);
+
+    const restarted = new AgentHub(() => {}, 50, chapters);
+    restarted.addAdapter(fake);
+    fake.transcripts.set(started.id, [{ kind: 'user', id: 'u2', text: 'Hello' }]);
+    chapters.add({ chatId: 'gone', agent: 'unknown-agent', settings });
+    const chats = await restarted.openChats();
+    expect(chats).toMatchObject([
+      { id: started.id, status: 'idle', entries: [{ text: 'Hello' }] },
+      { id: 'saved', status: 'idle', entries: [{ text: 'Earlier' }] },
+    ]);
+    expect(chapters.list().map((c) => c.chatId)).toEqual([started.id, 'saved']);
   });
 
   it('passes interrupts to the agent', async () => {

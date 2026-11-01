@@ -5,6 +5,7 @@ import type { AgentHub } from './hub';
 export function registerAgentCommands(registry: CommandRegistry, hub: AgentHub): void {
   registry.register('agents.list', () => hub.agents());
   registry.register('agents.chats', ({ agent, cwd }) => hub.listChats(agent, cwd));
+  registry.register('agents.openChats', () => hub.openChats());
   registry.register('agents.open', ({ agent, chatId, settings }) =>
     hub.open(agent, chatId, settings),
   );

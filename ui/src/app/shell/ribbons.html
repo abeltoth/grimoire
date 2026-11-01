@@ -7,6 +7,7 @@
       [heading]="title(chapter)"
       [meta]="meta(chapter)"
       (picked)="chapters.open(chapter.id)"
+      (dismissed)="chapters.close(chapter.id)"
     >
       <gr-icon [name]="icon(chapter)" [class]="motion(chapter)" />
     </gr-ribbon>
@@ -21,6 +22,7 @@
       [heading]="title(chapter)"
       [meta]="meta(chapter)"
       (picked)="chapters.open(chapter.id)"
+      (dismissed)="chapters.close(chapter.id)"
     >
       <gr-icon [name]="icon(chapter)" [class]="motion(chapter)" />
     </gr-ribbon>

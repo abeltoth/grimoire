@@ -44,6 +44,7 @@ function getService(): Promise<ServiceClient> {
     dataDir: app.getPath('userData'),
     serviceEntry: paths.service,
     nodePath: process.execPath,
+    ephemeral: headless,
     log: (message) => console.log(`[service] ${message}`),
   }).then(
     (client) => {

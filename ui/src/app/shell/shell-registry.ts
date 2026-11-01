@@ -9,6 +9,7 @@ import {
   untracked,
 } from '@angular/core';
 import type { IconName } from '../../design-system/icon';
+import { Chats } from '../core/chats';
 import type { Shortcut } from './shortcut';
 
 interface Entry {
@@ -98,6 +99,21 @@ export function provideShellEntries(
 export function provideShell(): EnvironmentProviders {
   return provideShellEntries((shell) => {
     shell.commands.add({ id: 'shell.index', label: 'Index', shortcut: 'Mod+K' });
-    shell.commands.add({ id: 'chapters.new', label: 'New chapter', shortcut: 'Mod+N' });
+    const chats = inject(Chats);
+    shell.commands.add({
+      id: 'chapters.new',
+      label: 'New chapter',
+      shortcut: 'Mod+N',
+      run: () => chats.newChapter(),
+    });
+    shell.commands.add({
+      id: 'chapters.close',
+      label: 'Close chapter',
+      shortcut: 'Mod+W',
+      run: () => {
+        const id = chats.currentId();
+        if (id) void chats.close(id);
+      },
+    });
   });
 }
