@@ -193,11 +193,11 @@ describe('App', () => {
     await fixture.whenStable();
 
     expect(texts('.reply .who')).toEqual(['Claude Code']);
-    expect(texts('.reply .text')).toEqual(['The test races the timer.']);
+    expect(texts('.reply gr-markdown p')).toEqual(['The test races the timer. Stop Esc']);
     expect(texts('.note .note-head')).toEqual(['*Read']);
     expect(texts('.note .target')).toEqual(['src/login.spec.ts']);
     expect(texts('.note .detail')).toEqual(['running…']);
-    expect(el.querySelector('.reply .quill')).not.toBeNull();
+    expect(el.querySelector('.reply gr-markdown p .quill')).not.toBeNull();
     expect(texts('gr-running-head h1')).toEqual(['Fix flaky login test']);
     expect(texts('[aria-current="page"] b')).toEqual(['Fix flaky login test']);
     expect(texts('[aria-current="page"] i')).toEqual(['Claude Code · writing']);
@@ -222,6 +222,48 @@ describe('App', () => {
     expect(calls.filter((c) => c.command === 'agents.interrupt').map((c) => c.request)).toEqual([
       { chatId: 'chat-1' },
     ]);
+  });
+
+  it('sets replies as markdown and numbers listings through the chapter', async () => {
+    const { bridge, emit } = fakeBridge();
+    const { fixture, el, texts } = await render(bridge);
+    await write(fixture, el, 'Add the meter');
+    emit('agents.entry', {
+      chatId: 'chat-1',
+      entry: {
+        kind: 'agent',
+        id: 'a1',
+        blocks: [
+          { kind: 'text', text: 'The meter reads `usage`:\n\n- shows a share\n- warns at **80%**' },
+        ],
+      },
+    });
+    emit('agents.entry', {
+      chatId: 'chat-1',
+      entry: {
+        kind: 'agent',
+        id: 'a2',
+        blocks: [
+          {
+            kind: 'text',
+            text: "```ts\nconst used = 1;\n```\n\nAnd the spec:\n\n```ts\nit('shows",
+          },
+        ],
+      },
+    });
+    emit('agents.status', { chatId: 'chat-1', status: 'writing' });
+    await fixture.whenStable();
+
+    expect(texts('.reply gr-markdown > p')).toEqual(['The meter reads usage:', 'And the spec:']);
+    expect(texts('.reply gr-markdown code')).toEqual(['usage']);
+    expect(texts('.reply gr-markdown li')).toEqual(['shows a share', 'warns at 80%']);
+    expect(texts('.reply gr-markdown li strong')).toEqual(['80%']);
+    expect(texts('gr-listing figcaption')).toEqual(['Listing 1 · ts', 'Listing 2 · ts']);
+    expect(texts('gr-listing .line')).toEqual(['const used = 1;', "it('shows Stop Esc"]);
+    // The listing still being written stays open, with the quill on its last line.
+    const listings = el.querySelectorAll('gr-listing .code');
+    expect([...listings].map((l) => l.classList.contains('open'))).toEqual([false, true]);
+    expect(el.querySelector('gr-listing:last-of-type .line .quill')).not.toBeNull();
   });
 
   it('says why a chapter could not start', async () => {

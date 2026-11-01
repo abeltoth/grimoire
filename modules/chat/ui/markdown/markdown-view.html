@@ -1,0 +1,102 @@
+<ng-container *ngTemplateOutlet="blockList; context: { $implicit: markdown().blocks }" />
+
+<ng-template #blockList let-blocks>
+  @for (block of blocks; track $index) {
+    @switch (block.kind) {
+      @case ('paragraph') {
+        <p>
+          <ng-container
+            *ngTemplateOutlet="inlineList; context: { $implicit: block.inline }"
+          /><ng-container *ngTemplateOutlet="end; context: { $implicit: block }" />
+        </p>
+      }
+      @case ('plain') {
+        <ng-container
+          *ngTemplateOutlet="inlineList; context: { $implicit: block.inline }"
+        /><ng-container *ngTemplateOutlet="end; context: { $implicit: block }" />
+      }
+      @case ('heading') {
+        <p class="heading" role="heading" [attr.aria-level]="block.level">
+          <ng-container
+            *ngTemplateOutlet="inlineList; context: { $implicit: block.inline }"
+          /><ng-container *ngTemplateOutlet="end; context: { $implicit: block }" />
+        </p>
+      }
+      @case ('list') {
+        @if (block.ordered) {
+          <ol [start]="block.start">
+            @for (item of block.items; track $index) {
+              <li><ng-container *ngTemplateOutlet="blockList; context: { $implicit: item }" /></li>
+            }
+          </ol>
+        } @else {
+          <ul>
+            @for (item of block.items; track $index) {
+              <li><ng-container *ngTemplateOutlet="blockList; context: { $implicit: item }" /></li>
+            }
+          </ul>
+        }
+      }
+      @case ('code') {
+        <gr-listing
+          [code]="block.code"
+          [lang]="block.lang"
+          [number]="firstListing() + block.listing"
+          [open]="writing() && block.open"
+          [tail]="block.end ? tail() : null"
+        />
+      }
+      @case ('quote') {
+        <blockquote>
+          <ng-container *ngTemplateOutlet="blockList; context: { $implicit: block.blocks }" />
+        </blockquote>
+      }
+      @case ('table') {
+        <div class="table">
+          <table>
+            <thead>
+              <tr>
+                @for (cell of block.head; track $index) {
+                  <th>
+                    <ng-container *ngTemplateOutlet="inlineList; context: { $implicit: cell }" />
+                  </th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of block.rows; track $index) {
+                <tr>
+                  @for (cell of row; track $index) {
+                    <td>
+                      <ng-container *ngTemplateOutlet="inlineList; context: { $implicit: cell }" />
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <ng-container *ngTemplateOutlet="end; context: { $implicit: block }" />
+      }
+      @case ('rule') {
+        <hr />
+        <ng-container *ngTemplateOutlet="end; context: { $implicit: block }" />
+      }
+      @case ('raw') {
+        <p class="raw">
+          {{ block.text }}<ng-container *ngTemplateOutlet="end; context: { $implicit: block }" />
+        </p>
+      }
+    }
+  }
+</ng-template>
+
+<!-- Inline runs sit side by side: no whitespace between them. -->
+<!-- prettier-ignore -->
+<ng-template #inlineList let-items>@for (item of items; track $index) {@switch (item.kind) {@case ('text') {<ng-container>{{ item.text }}</ng-container>}@case ('strong') {<strong><ng-container *ngTemplateOutlet="inlineList; context: { $implicit: item.inline }" /></strong>}@case ('em') {<em><ng-container *ngTemplateOutlet="inlineList; context: { $implicit: item.inline }" /></em>}@case ('del') {<del><ng-container *ngTemplateOutlet="inlineList; context: { $implicit: item.inline }" /></del>}@case ('code') {<code>{{ item.text }}</code>}@case ('link') {<a [attr.href]="item.href" [attr.title]="item.href" rel="noopener noreferrer"><ng-container *ngTemplateOutlet="inlineList; context: { $implicit: item.inline }" /></a>}@case ('break') {<br />}}}</ng-template>
+
+<ng-template #end let-block>
+  @if (block.end && tail()) {
+    <ng-container *ngTemplateOutlet="tail()!" />
+  }
+</ng-template>

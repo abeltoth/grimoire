@@ -1,0 +1,21 @@
+<figure>
+  <figcaption>
+    <b>Listing {{ number() }}</b>
+    @if (lang()) {
+      · {{ lang() }}
+    }
+  </figcaption>
+  <div class="code" [class.open]="open()">
+    @for (line of lines(); track $index; let i = $index, last = $last) {
+      <span class="number" aria-hidden="true">{{ i + 1 }}</span>
+      <span class="line">
+        @for (token of line; track $index) {
+          <span [style.color]="token.color" [class.italic]="token.italic">{{ token.text }}</span>
+        }
+        @if (last && tail()) {
+          <ng-container *ngTemplateOutlet="tail()!" />
+        }
+      </span>
+    }
+  </div>
+</figure>
