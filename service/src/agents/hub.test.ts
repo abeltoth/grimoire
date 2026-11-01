@@ -309,6 +309,19 @@ describe('AgentHub', () => {
     expect((await hub.models('fake')).default).toBe('big');
   });
 
+  it('passes on the agent\'s plan, and reopens a chat with it', async () => {
+    const { id } = await hub.start('fake', settings, 'Hello');
+    const plan = [{ text: 'Read the code', status: 'active' as const }];
+    fake.runOf(id).events.plan(plan);
+    expect(sent.at(-1)).toEqual({ event: 'agents.plan', payload: { chatId: id, plan } });
+    expect((await hub.open('fake', id, settings)).plan).toEqual(plan);
+
+    fake.plans.set('saved', [{ text: 'Earlier step', status: 'done' }]);
+    expect((await hub.open('fake', 'saved', settings)).plan).toEqual([
+      { text: 'Earlier step', status: 'done' },
+    ]);
+  });
+
   it('passes interrupts to the agent', async () => {
     const { id } = await hub.start('fake', settings, 'Hello');
     expect(await hub.interrupt(id)).toEqual([]);

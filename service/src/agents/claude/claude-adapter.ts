@@ -16,13 +16,16 @@ import type {
   ChatSummary,
   Entry,
 } from '@grimoire/contract';
-import type { AgentAdapter, ChatEvents, LiveChat } from '../adapter';
+import type { AgentAdapter, ChatEvents, ChatHistory, LiveChat } from '../adapter';
 import { MessageQueue } from './message-queue';
 import { ASK_TOOL, alwaysAllowOf, toClaudeAnswers, toQuestions } from './permissions';
 import { ClaudeTranscript } from './transcript';
 
 // Loaded on first use: it's large, and the service starts without it.
 const sdk = () => import('@anthropic-ai/claude-agent-sdk');
+
+// Claude Code keeps its plan with its task tools only when asked to; the Outline shows it.
+const ENV = { ...process.env, CLAUDE_CODE_ENABLE_TODO_TOOLS: '1' };
 
 const MODES: Record<ApprovalMode, PermissionMode> = {
   ask: 'default',
@@ -66,11 +69,11 @@ export class ClaudeAdapter implements AgentAdapter {
       .sort((a, b) => b.updatedAt - a.updatedAt);
   }
 
-  async transcript(chatId: ChatId, cwd: string): Promise<Entry[]> {
+  async history(chatId: ChatId, cwd: string): Promise<ChatHistory> {
     const { getSessionMessages } = await sdk();
     const transcript = new ClaudeTranscript(false);
     for (const message of await getSessionMessages(chatId, { dir: cwd })) transcript.apply(message);
-    return transcript.entries;
+    return { entries: transcript.entries, plan: transcript.plan };
   }
 
   async title(chatId: ChatId, cwd: string): Promise<string> {
@@ -100,6 +103,7 @@ export class ClaudeAdapter implements AgentAdapter {
           // Lets you pick Full access, now or later; it doesn't skip any asking by itself.
           allowDangerouslySkipPermissions: true,
           includePartialMessages: true,
+          env: ENV,
           ...(resume ? { resume: chatId } : { sessionId: chatId }),
           canUseTool: approvalsTo(async () => events),
         },
@@ -143,6 +147,7 @@ export class ClaudeAdapter implements AgentAdapter {
             includePartialMessages: true,
             permissionMode: MODES.ask,
             allowDangerouslySkipPermissions: true,
+            env: ENV,
             canUseTool: approvalsTo(() => claimedBy.promise),
           },
         }),

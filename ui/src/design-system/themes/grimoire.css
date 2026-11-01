@@ -325,6 +325,20 @@
   --gr-tracking-stub-head: 0.07em;
   --gr-size-stub-code: 13px;
 
+  /* Chat: the Outline on the facing page */
+  --gr-outline-sub-gap: 18px;
+  --gr-outline-gap: 13px;
+  --gr-outline-width: 640px;
+  --gr-outline-number-col: 34px;
+  --gr-outline-col-gap: 10px;
+  --gr-size-outline: 17px;
+  --gr-leading-outline: 1.35;
+  --gr-outline-leader-min: 20px;
+  --gr-outline-leader-gap: 6px;
+  --gr-outline-leader-lift: -4px;
+  --gr-outline-status-gap: 6px;
+  --gr-size-outline-status: 14.5px;
+
   /* Chat: composer */
   --gr-composer-margin: 0 24px 0 30px;
   --gr-composer-pad: 10px 16px 9px;

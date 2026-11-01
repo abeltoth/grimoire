@@ -1,0 +1,28 @@
+<h2>The outline of this chapter</h2>
+<p class="sub">{{ agent() }}’s plan, kept up to date as it works</p>
+
+@if (plan().length) {
+  <ol>
+    @for (step of plan(); track $index) {
+      <li [class.now]="step.status === 'active'" [class.todo]="step.status === 'pending'">
+        <span class="number" aria-hidden="true">{{ roman($index + 1) }}</span>
+        <span class="text">{{ step.text }}<span class="leader" aria-hidden="true"></span></span>
+        @switch (step.status) {
+          @case ('done') {
+            <span class="status done"><gr-icon name="check" />done</span>
+          }
+          @case ('active') {
+            <span class="status now" [attr.title]="step.activeText ?? null">
+              <gr-icon name="quill" />{{ underWay() }}
+            </span>
+          }
+          @default {
+            <span class="status">to do</span>
+          }
+        }
+      </li>
+    }
+  </ol>
+} @else {
+  <p class="none">No plan yet. {{ agent() }} writes one here when a task takes several steps.</p>
+}

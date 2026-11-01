@@ -1,0 +1,90 @@
+:host {
+  display: block;
+}
+
+h2 {
+  margin: 0;
+  font-family: var(--gr-font-display-sc);
+  font-weight: 400;
+  font-size: var(--gr-size-section-head);
+  letter-spacing: var(--gr-tracking-section-head);
+  color: var(--gr-rubric);
+}
+
+.sub,
+.none {
+  margin: var(--gr-aside-gap) 0 var(--gr-outline-sub-gap);
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-outline-gap);
+  max-width: var(--gr-outline-width);
+}
+
+li {
+  display: grid;
+  grid-template-columns: var(--gr-outline-number-col) minmax(0, 1fr) auto;
+  column-gap: var(--gr-outline-col-gap);
+  align-items: baseline;
+  font-size: var(--gr-size-outline);
+  line-height: var(--gr-leading-outline);
+}
+
+.number {
+  font-family: var(--gr-font-display);
+  color: var(--gr-ink-soft);
+  text-align: right;
+}
+
+.text {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+}
+
+/* Dotted leaders run from the step to its status. */
+.leader {
+  flex: 1;
+  min-width: var(--gr-outline-leader-min);
+  margin: 0 var(--gr-outline-leader-gap);
+  border-bottom: var(--gr-leader);
+  transform: translateY(var(--gr-outline-leader-lift));
+}
+
+.status {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--gr-outline-status-gap);
+  font-style: italic;
+  font-size: var(--gr-size-outline-status);
+  color: var(--gr-ink-soft);
+}
+
+.status gr-icon {
+  align-self: center;
+}
+
+.status.done {
+  color: var(--gr-verdigris);
+}
+
+.status.now {
+  color: var(--gr-gilt-ink);
+  font-weight: 500;
+}
+
+.now .text {
+  font-weight: 500;
+}
+
+.todo .text {
+  color: var(--gr-ink-soft);
+}

@@ -35,6 +35,9 @@
   </div>
 
   <gr-drawing class="sigil" name="empty-page" />
-  <gr-running-foot />
+  <gr-running-foot>
+    <span class="spacer"></span>
+    <span>{{ page?.foot?.() }}</span>
+  </gr-running-foot>
 </gr-page>
 }
