@@ -261,6 +261,18 @@ describe('App', () => {
     expect(document.activeElement).toBe(entry);
   });
 
+  it('shows how much of the page allowance the chapter uses', async () => {
+    const { bridge, emit } = fakeBridge();
+    const { fixture, el, texts } = await render(bridge);
+    expect(el.querySelector('.allowance')).toBeNull();
+    await write(fixture, el, 'Add the meter');
+    emit('agents.context', { chatId: 'chat-1', context: { used: 124_000, limit: 200_000 } });
+    await fixture.whenStable();
+    expect(texts('.allowance > *')).toEqual(['', '62%', 'of the chapter’s page allowance']);
+    expect(el.querySelector('.allowance')!.getAttribute('aria-valuenow')).toBe('62');
+    expect(el.querySelector<HTMLElement>('.allowance .used')!.style.width).toBe('62%');
+  });
+
   it('puts the queued entries back on the page when you stop the turn', async () => {
     const { bridge, emit, answers } = fakeBridge();
     answers['agents.interrupt'] = () => [{ id: 'q1', text: 'Also add a tooltip.' }];

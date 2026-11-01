@@ -139,6 +139,12 @@ export interface Answer {
 
 export type ApprovalDecision = 'allow-once' | 'allow-always' | 'deny';
 
+/** How much of the agent's context window a chat fills, in tokens. */
+export interface ContextUsage {
+  used: number;
+  limit: number;
+}
+
 /** A message you sent while a turn ran: it waits until the turn ends. */
 export interface QueuedEntry {
   id: string;
@@ -157,6 +163,8 @@ export interface OpenChat {
   approvals: Approval[];
   /** Messages waiting for the turn to end, in the order they go. */
   queued: QueuedEntry[];
+  /** Missing until the agent reports it. */
+  context?: ContextUsage;
 }
 
 declare module './commands' {
@@ -208,5 +216,7 @@ declare module './events' {
     'agents.title': { chatId: ChatId; title: string };
     /** The queue changed: the messages now waiting for the turn to end. */
     'agents.queued': { chatId: ChatId; queued: QueuedEntry[] };
+    /** How much of the context window the chat now fills. */
+    'agents.context': { chatId: ChatId; context: ContextUsage };
   }
 }

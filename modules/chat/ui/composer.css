@@ -81,6 +81,34 @@
   flex: 1;
 }
 
+/* The context meter: how much of the chapter's page allowance is written. */
+.allowance {
+  display: flex;
+  align-items: center;
+  gap: var(--gr-allowance-gap);
+  font-size: var(--gr-size-control);
+  color: var(--gr-ink-soft);
+}
+
+.allowance b {
+  font-weight: 500;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink);
+}
+
+.ticks {
+  position: relative;
+  width: var(--gr-allowance-width);
+  height: var(--gr-allowance-height);
+  background: var(--gr-allowance-ticks);
+}
+
+.used {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--gr-allowance-ticks-used);
+}
+
 .control {
   display: inline-flex;
   align-items: center;

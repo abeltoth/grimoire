@@ -232,6 +232,16 @@ describe('AgentHub', () => {
     });
   });
 
+  it('passes on how full the context window is', async () => {
+    const { id } = hub.start('fake', settings, 'Hello');
+    fake.runOf(id).events.context({ used: 62_000, limit: 100_000 });
+    expect(sent.at(-1)).toEqual({
+      event: 'agents.context',
+      payload: { chatId: id, context: { used: 62_000, limit: 100_000 } },
+    });
+    expect((await hub.open('fake', id, settings)).context).toEqual({ used: 62_000, limit: 100_000 });
+  });
+
   it('takes a message out of the queue, and Stop withdraws the rest', async () => {
     const { id } = hub.start('fake', settings, 'Hello');
     const run = fake.runOf(id);

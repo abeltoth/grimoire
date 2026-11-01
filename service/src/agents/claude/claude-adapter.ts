@@ -116,10 +116,15 @@ export class ClaudeAdapter implements AgentAdapter {
 
     void (async () => {
       try {
-        for await (const message of await started) {
+        const live = await started;
+        for await (const message of live) {
           transcript.apply(message);
           if (message.type !== 'result') continue;
           events.turnEnded(resultError(message));
+          live.getContextUsage({ detail: 'summary' }).then(
+            (usage) => events.context({ used: usage.totalTokens, limit: usage.rawMaxTokens }),
+            () => {},
+          );
           // Claude Code names the chat after its first turns.
           this.title(chatId, settings.cwd).then(events.title, () => {});
         }
