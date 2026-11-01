@@ -1,5 +1,6 @@
 import type {
   AgentInfo,
+  AgentModels,
   Answer,
   Approval,
   ApprovalDecision,
@@ -9,6 +10,7 @@ import type {
   ChatSummary,
   ContextUsage,
   Entry,
+  SettingsChange,
 } from '@grimoire/contract';
 
 /** One agent, such as Claude Code. The hub reaches agents only through this (ADR-006). */
@@ -19,6 +21,7 @@ export interface AgentAdapter {
   transcript(chatId: ChatId, cwd: string): Promise<Entry[]>;
   /** The chat's title; empty until the agent names it. */
   title(chatId: ChatId, cwd: string): Promise<string>;
+  models(): Promise<AgentModels>;
   /**
    * Starts the agent's process for a chat: a new chat under the given ID,
    * or, with `resume`, an existing one. Messages go in through send().
@@ -41,6 +44,8 @@ export interface LiveChat {
   send(text: string): void;
   /** Stops the running turn; the chat stays live. */
   interrupt(): Promise<void>;
+  /** Changes the model or permission; the agent takes it from its next request. */
+  configure(change: SettingsChange): Promise<void>;
   /** Stops the agent process. */
   close(): void;
 }

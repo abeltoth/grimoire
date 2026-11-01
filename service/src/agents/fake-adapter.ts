@@ -1,4 +1,12 @@
-import type { AgentInfo, ChatId, ChatSettings, ChatSummary, Entry } from '@grimoire/contract';
+import type {
+  AgentInfo,
+  AgentModels,
+  ChatId,
+  ChatSettings,
+  ChatSummary,
+  Entry,
+  SettingsChange,
+} from '@grimoire/contract';
 import type { AgentAdapter, ChatEvents, LiveChat } from './adapter';
 
 /** A run of the fake agent, which a test drives through `events`. */
@@ -9,6 +17,7 @@ export interface FakeRun {
   events: ChatEvents;
   sent: string[];
   interrupts: number;
+  configured: SettingsChange[];
   closed: boolean;
 }
 
@@ -33,6 +42,16 @@ export class FakeAdapter implements AgentAdapter {
     return this.chats.find((chat) => chat.id === chatId)?.title ?? '';
   }
 
+  async models(): Promise<AgentModels> {
+    return {
+      models: [
+        { id: 'big', name: 'Big model' },
+        { id: 'small', name: 'Small model' },
+      ],
+      default: 'big',
+    };
+  }
+
   run(chatId: ChatId, settings: ChatSettings, resume: boolean, events: ChatEvents): LiveChat {
     const run: FakeRun = {
       chatId,
@@ -41,12 +60,14 @@ export class FakeAdapter implements AgentAdapter {
       events,
       sent: [],
       interrupts: 0,
+      configured: [],
       closed: false,
     };
     this.runs.push(run);
     return {
       send: (text) => void run.sent.push(text),
       interrupt: async () => void run.interrupts++,
+      configure: async (change) => void run.configured.push(change),
       close: () => void (run.closed = true),
     };
   }

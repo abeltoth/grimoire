@@ -31,6 +31,29 @@ export interface ChatSettings {
 /** Settings for a new chat; the folder defaults to your home folder. */
 export type NewChatSettings = Omit<ChatSettings, 'cwd'> & { cwd?: string };
 
+/** The settings you can change once a chat has begun. */
+export type SettingsChange = Pick<ChatSettings, 'model' | 'mode'>;
+
+/** A model an agent offers. */
+export interface AgentModel {
+  /** What ChatSettings.model takes. */
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface AgentModels {
+  models: AgentModel[];
+  /** The model a chat gets when its settings name none. */
+  default?: string;
+}
+
+/** The folders your chats ran in, most recent first, and your home folder. */
+export interface RecentFolders {
+  home: string;
+  recent: string[];
+}
+
 /** A chat as the agent lists it, open or not. */
 export interface ChatSummary {
   id: ChatId;
@@ -170,6 +193,9 @@ export interface OpenChat {
 declare module './commands' {
   interface CommandMap {
     'agents.list': { request: Record<string, never>; response: AgentInfo[] };
+    'agents.models': { request: { agent: AgentId }; response: AgentModels };
+    /** The folders your chats with any agent ran in. */
+    'agents.folders': { request: Record<string, never>; response: RecentFolders };
     /** The agent's chats, most recent first, optionally only those in one folder. */
     'agents.chats': { request: { agent: AgentId; cwd?: string }; response: ChatSummary[] };
     /** The chats open as chapters, in ribbon order, remembered across restarts. */
@@ -186,6 +212,8 @@ declare module './commands' {
     };
     /** Sends a message; while a turn runs, it's queued and goes when the turn ends. */
     'agents.send': { request: { chatId: ChatId; text: string }; response: void };
+    /** Changes a chat's model or permission; a running chat takes it from its next request. */
+    'agents.configure': { request: { chatId: ChatId; change: SettingsChange }; response: void };
     /** Takes a message out of the queue; false when it had already gone. */
     'agents.unqueue': { request: { chatId: ChatId; id: string }; response: boolean };
     /**
@@ -223,5 +251,7 @@ declare module './events' {
     'agents.queued': { chatId: ChatId; queued: QueuedEntry[] };
     /** How much of the context window the chat now fills. */
     'agents.context': { chatId: ChatId; context: ContextUsage };
+    /** The chat's settings changed. */
+    'agents.settings': { chatId: ChatId; settings: ChatSettings };
   }
 }

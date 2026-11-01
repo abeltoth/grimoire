@@ -19,6 +19,7 @@ const bridge: GrimoireBridge = {
     ipcRenderer.on('grimoire:event', handler);
     return () => ipcRenderer.removeListener('grimoire:event', handler);
   },
+  chooseFolder: () => ipcRenderer.invoke('grimoire:chooseFolder'),
   window: {
     minimize: () => ipcRenderer.send('grimoire:window', 'minimize'),
     toggleMaximize: () => ipcRenderer.send('grimoire:window', 'toggleMaximize'),

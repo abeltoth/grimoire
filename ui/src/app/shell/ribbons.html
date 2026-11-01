@@ -8,6 +8,7 @@
       [meta]="meta(chapter)"
       (picked)="chapters.open(chapter.id)"
       (dismissed)="chapters.close(chapter.id)"
+      (settings)="chapters.openSettings(chapter.id, 'agent')"
     >
       <gr-icon [name]="icon(chapter)" [class]="motion(chapter)" />
     </gr-ribbon>
@@ -23,6 +24,7 @@
       [meta]="meta(chapter)"
       (picked)="chapters.open(chapter.id)"
       (dismissed)="chapters.close(chapter.id)"
+      (settings)="chapters.openSettings(chapter.id, 'agent')"
     >
       <gr-icon [name]="icon(chapter)" [class]="motion(chapter)" />
     </gr-ribbon>

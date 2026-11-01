@@ -1,26 +1,21 @@
-import { Component, computed, inject, viewChild } from '@angular/core';
-import type { ApprovalMode } from '@grimoire/contract';
+import { Component, ElementRef, computed, inject, viewChild, viewChildren } from '@angular/core';
 import { Icon } from '@ui/design-system/icon';
-import { Chats } from '@ui/app/core/chats';
+import { Chats, type Setting } from '@ui/app/core/chats';
 import { RunningFoot } from '@ui/app/shell/running-foot';
 import { RunningHead } from '@ui/app/shell/running-head';
 import { StatusIndicators } from '@ui/app/shell/status-indicators';
 import { ChapterOpening } from './chapter-opening';
 import { Composer } from './composer';
+import { MODES, SettingsCard } from './settings-card';
 import { Transcript } from './transcript';
-
-const MODE_LABELS: Record<ApprovalMode, string> = {
-  ask: 'Ask first',
-  'accept-edits': 'Accept edits',
-  plan: 'Plan only',
-  'allow-all': 'Allow all',
-};
 
 /**
  * The open chapter on the left page: its running head with the chat's
  * settings, the transcript (or a blank chapter's opening page), the next
- * page to write on, and the running foot. Esc denies the approval awaiting your seal, or else stops the
- * running turn and puts the queued messages back on the next page.
+ * page to write on, and the running foot. The settings in the running head
+ * open the chapter's settings card. Esc closes the card, or else denies the
+ * approval awaiting your seal, or else stops the running turn and puts the
+ * queued messages back on the next page.
  */
 @Component({
   selector: 'gr-chapter-page',
@@ -30,6 +25,7 @@ const MODE_LABELS: Record<ApprovalMode, string> = {
     Icon,
     RunningFoot,
     RunningHead,
+    SettingsCard,
     StatusIndicators,
     Transcript,
   ],
@@ -44,14 +40,50 @@ export class ChapterPage {
   private readonly running = computed(() =>
     ['thinking', 'writing', 'waiting'].includes(this.chapter()?.status ?? ''),
   );
+  private readonly settingButtons = viewChildren('setting', { read: ElementRef });
 
-  protected modeLabel(mode: ApprovalMode | undefined): string {
-    return MODE_LABELS[mode ?? 'ask'];
+  /** The chapter's settings, as the running head lists them. */
+  protected readonly settings = computed(() => {
+    const chapter = this.chapter();
+    if (!chapter) return [];
+    const { agent, settings } = chapter;
+    const mode = settings.mode ?? 'ask';
+    return [
+      { key: 'agent', label: this.chats.agentName(agent) },
+      { key: 'model', label: this.chats.modelName(agent, settings.model) },
+      { key: 'mode', label: MODES.find((m) => m.mode === mode)?.label ?? mode },
+      { key: 'folder', label: this.chats.folderName(settings.cwd) },
+      { key: 'preset', label: 'No preset' },
+    ] satisfies { key: Setting; label: string }[];
+  });
+
+  /** The settings card, while it's open on this chapter. */
+  protected readonly card = computed(() => {
+    const card = this.chats.settingsCard();
+    return card && card.id === this.chapter()?.id ? card : null;
+  });
+
+  protected anchorFor(setting: Setting): HTMLElement | undefined {
+    return this.settingButtons()
+      .map((button) => button.nativeElement as HTMLElement)
+      .find((button) => button.dataset['setting'] === setting);
+  }
+
+  protected toggle(setting: Setting): void {
+    const chapter = this.chapter();
+    if (!chapter) return;
+    if (this.card()?.on === setting) this.chats.closeSettings();
+    else this.chats.openSettings(chapter.id, setting);
   }
 
   protected stop(): void {
     const chapter = this.chapter();
     if (!chapter) return;
+    const card = this.card();
+    if (card) {
+      this.chats.closeSettings();
+      return this.anchorFor(card.on)?.focus();
+    }
     const seal = chapter.approvals.find((approval) => !approval.questions);
     if (seal) void this.chats.decide(chapter.id, seal.id, 'deny');
     else if (this.running())

@@ -41,7 +41,13 @@ class PickingAdapter extends FakeAdapter {
 
   async start(chatSettings: typeof settings, text: string, bind: (id: string) => ChatEvents) {
     await Promise.resolve();
-    const live = { closed: false, send() {}, interrupt: async () => {}, close: () => void (live.closed = true) };
+    const live = {
+      closed: false,
+      send() {},
+      interrupt: async () => {},
+      configure: async () => {},
+      close: () => void (live.closed = true),
+    };
     this.started = { text, events: bind('picked'), live };
     return live;
   }
@@ -274,6 +280,32 @@ describe('AgentHub', () => {
 
     await hub.start('fake', settings, 'Hello');
     expect(picking.started?.live.closed).toBe(true);
+  });
+
+  it('changes a chat\'s model and permission, live and for after a restart', async () => {
+    const chapters = new Chapters(openDatabase(':memory:'));
+    hub = new AgentHub((event, payload) => sent.push({ event, payload } as Sent), 50, chapters);
+    hub.addAdapter(fake);
+    const { id } = await hub.start('fake', settings, 'Hello');
+    sent = [];
+
+    await hub.configure(id, { model: 'small', mode: 'plan' });
+    expect(fake.runOf(id).configured).toEqual([{ model: 'small', mode: 'plan' }]);
+    expect(sent).toEqual([
+      { event: 'agents.settings', payload: { chatId: id, settings: { ...settings, model: 'small', mode: 'plan' } } },
+    ]);
+    expect(chapters.list()[0]?.settings).toEqual({ ...settings, model: 'small', mode: 'plan' });
+  });
+
+  it('lists the folders chats ran in, most recent first', async () => {
+    fake.chats = [
+      { id: 'a', agent: 'fake', title: '', cwd: '/old', updatedAt: 1 },
+      { id: 'b', agent: 'fake', title: '', cwd: '/new', updatedAt: 3 },
+      { id: 'c', agent: 'fake', title: '', updatedAt: 4 },
+      { id: 'd', agent: 'fake', title: '', cwd: '/new', updatedAt: 2 },
+    ];
+    expect(await hub.folders()).toEqual({ home: homedir(), recent: ['/new', '/old'] });
+    expect((await hub.models('fake')).default).toBe('big');
   });
 
   it('passes interrupts to the agent', async () => {
