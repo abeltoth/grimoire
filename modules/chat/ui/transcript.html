@@ -32,7 +32,14 @@
             >
               Undo
             </button>
-            <button type="button" class="gr-link" aria-disabled="true">Fork</button>
+            <button
+              type="button"
+              class="gr-link"
+              [attr.aria-disabled]="canFork() ? null : true"
+              (click)="fork(row)"
+            >
+              Fork
+            </button>
           </header>
           <p>
             <span class="text">{{ row.text }}</span>

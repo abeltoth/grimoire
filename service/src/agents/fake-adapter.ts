@@ -48,6 +48,17 @@ export class FakeAdapter implements AgentAdapter {
     });
   }
 
+  /** Copies the chat up to and with your entry, as the new chat `fork-n`. */
+  async fork(chatId: ChatId, cwd: string, entryId: string, title: string): Promise<ChatId> {
+    const entries = this.transcripts.get(chatId) ?? [];
+    const at = entries.findIndex((entry) => entry.id === entryId);
+    const next = entries.findIndex((entry, i) => i > at && entry.kind === 'user');
+    const id = `fork-${this.chats.length + 1}`;
+    this.transcripts.set(id, entries.slice(0, next === -1 ? undefined : next));
+    this.chats.push({ id, agent: this.info.id, title, cwd, updatedAt: Date.now() });
+    return id;
+  }
+
   async title(chatId: ChatId): Promise<string> {
     return this.chats.find((chat) => chat.id === chatId)?.title ?? '';
   }

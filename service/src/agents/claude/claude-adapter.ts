@@ -19,7 +19,7 @@ import type {
 import type { AgentAdapter, ChatEvents, ChatHistory, LiveChat } from '../adapter';
 import { MessageQueue } from './message-queue';
 import { ASK_TOOL, alwaysAllowOf, toClaudeAnswers, toQuestions } from './permissions';
-import { ClaudeTranscript } from './transcript';
+import { ClaudeTranscript, turnEnd } from './transcript';
 
 // Loaded on first use: it's large, and the service starts without it.
 const sdk = () => import('@anthropic-ai/claude-agent-sdk');
@@ -74,6 +74,17 @@ export class ClaudeAdapter implements AgentAdapter {
     const transcript = new ClaudeTranscript(false);
     for (const message of await getSessionMessages(chatId, { dir: cwd })) transcript.apply(message);
     return { entries: transcript.entries, plan: transcript.plan };
+  }
+
+  async fork(chatId: ChatId, cwd: string, entryId: string, title: string): Promise<ChatId> {
+    const { forkSession, getSessionMessages } = await sdk();
+    const upToMessageId = turnEnd(await getSessionMessages(chatId, { dir: cwd }), entryId);
+    const { sessionId } = await forkSession(chatId, {
+      dir: cwd,
+      title,
+      ...(upToMessageId ? { upToMessageId } : {}),
+    });
+    return sessionId;
   }
 
   async title(chatId: ChatId, cwd: string): Promise<string> {

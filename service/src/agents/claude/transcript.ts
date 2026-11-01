@@ -17,6 +17,25 @@ export interface ClaudeMessage {
   event?: unknown;
 }
 
+/**
+ * The ID of the last message in the turn your entry `entryId` began: the one
+ * just before your next entry. Undefined when that turn is the chat's last.
+ */
+export function turnEnd(messages: readonly ClaudeMessage[], entryId: string): string | undefined {
+  const at = messages.findIndex((message) => message.uuid === entryId);
+  if (at === -1) throw new Error('This entry is not in the chat');
+  const next = messages.findIndex((message, i) => i > at && isYourEntry(message));
+  return next === -1 ? undefined : messages[next - 1]!.uuid;
+}
+
+/** Whether a message is one you wrote, rather than a tool's result. */
+function isYourEntry(message: ClaudeMessage): boolean {
+  if (message.type !== 'user' || message.parent_tool_use_id) return false;
+  const content = (message.message as ApiMessage | undefined)?.content;
+  if (typeof content === 'string') return true;
+  return Array.isArray(content) && content.some((block) => block.type === 'text' && block.text);
+}
+
 interface ApiMessage {
   id?: string;
   content?: string | ApiBlock[];

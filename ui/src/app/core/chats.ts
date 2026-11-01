@@ -283,6 +283,18 @@ export class Chats {
     return this.settle(id, this.bridge.invoke('agents.undo', { chatId: id, entryId }));
   }
 
+  /** Forks the chapter after the turn one of your entries began, and turns to the variant. */
+  async fork(id: string, entryId: string): Promise<void> {
+    this.update(id, ({ error: _, ...c }) => c);
+    try {
+      const chat = await this.bridge.invoke('agents.fork', { chatId: id, entryId });
+      this.all.update((all) => [...all.filter((c) => c.id !== chat.id), fromOpenChat(chat)]);
+      this.turnTo(chat.id);
+    } catch (error) {
+      this.fail(id, error);
+    }
+  }
+
   /** Takes a message out of the queue; false when it had already gone. */
   async unqueue(id: string, entryId: string): Promise<boolean> {
     try {

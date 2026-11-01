@@ -614,6 +614,36 @@ describe('App', () => {
     expect(undoes().map((b) => b.getAttribute('aria-disabled'))).toEqual(['true', 'true']);
   });
 
+  it('forks a chapter into a variant and turns to it', async () => {
+    const { bridge, calls, answers } = fakeBridge();
+    const chat = (id: string, title: string, status: OpenChat['status'] = 'idle'): OpenChat => ({
+      id,
+      agent: 'claude-code',
+      title,
+      settings: { cwd: 'C:/work/grimoire' },
+      status,
+      entries: [{ kind: 'user', id: 'u1', text: 'Add a meter' }],
+      approvals: [],
+      queued: [],
+      plan: [],
+      withdrawn: [],
+    });
+    answers['agents.openChats'] = () => [chat('c1', 'Context meter')];
+    answers['layout.get'] = () => ({ current: 'c1' });
+    answers['agents.fork'] = () => chat('c2', 'Context meter (a)');
+    const { fixture, el, texts } = await render(bridge);
+    const forkButton = () =>
+      [...el.querySelectorAll<HTMLButtonElement>('.you .by button')].find((b) => b.textContent!.trim() === 'Fork')!;
+
+    forkButton().click();
+    await fixture.whenStable();
+    expect(calls.filter((c) => c.command === 'agents.fork').map((c) => c.request)).toEqual([
+      { chatId: 'c1', entryId: 'u1' },
+    ]);
+    expect(texts('gr-running-head h1')).toEqual(['Context meter (a)']);
+    expect(texts('gr-ribbon b')).toEqual(['Context meter (a)', 'Context meter', 'New chapter']);
+  });
+
   it('shows why an undo failed', async () => {
     const { bridge, answers } = fakeBridge();
     answers['agents.openChats'] = (): OpenChat[] => [

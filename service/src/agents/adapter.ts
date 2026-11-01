@@ -21,6 +21,12 @@ export interface AgentAdapter {
   listChats(cwd?: string): Promise<ChatSummary[]>;
   /** A saved chat: its transcript, and the plan as the agent last left it. */
   history(chatId: ChatId, cwd: string): Promise<ChatHistory>;
+  /**
+   * Copies a chat, up to the end of the turn your entry `entryId` began,
+   * into a new chat with this title; returns the new chat's ID.
+   * Agents that can't fork leave it out.
+   */
+  fork?(chatId: ChatId, cwd: string, entryId: string, title: string): Promise<ChatId>;
   /** The chat's title; empty until the agent names it. */
   title(chatId: ChatId, cwd: string): Promise<string>;
   models(): Promise<AgentModels>;
