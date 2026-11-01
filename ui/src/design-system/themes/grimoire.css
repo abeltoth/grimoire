@@ -31,6 +31,9 @@
   --gr-fore-edge-b: #c7b89b;
   --gr-page-edge: #d6c8ac;
   --gr-dogear-flap: #d5c5a5;
+  --gr-dogear-hint: rgba(74, 48, 22, 0.12);
+  --gr-dogear-size: 30px;
+  --gr-shadow-dogear: 2px 2px 2px rgba(60, 35, 10, 0.3);
   --gr-gutter-shade: rgba(74, 48, 22, 0.17);
   --gr-hairline: rgba(74, 48, 22, 0.14);
   --gr-rule-ruled: rgba(44, 74, 122, 0.13);

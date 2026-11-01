@@ -3,6 +3,7 @@ import type { AgentEntry, EventName, EventPayload } from '@grimoire/contract';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Chapters } from '../storage/chapters';
 import { openDatabase } from '../storage/database';
+import { DogEars } from '../storage/dog-ears';
 import { Withdrawn } from '../storage/withdrawn';
 import type { ChatEvents, LiveChat } from './adapter';
 import { FakeAdapter } from './fake-adapter';
@@ -396,6 +397,28 @@ describe('AgentHub', () => {
     });
     expect((await hub.openChats()).map((chat) => chat.id)).toEqual(['c1', 'fork-3']);
     expect((await hub.fork('fork-3', 'u1')).title).toBe('Context meter (c)');
+  });
+
+  it('pins and stars chats with dog-ears, kept across restarts', async () => {
+    const dogEars = new DogEars(openDatabase(':memory:'));
+    hub = new AgentHub((event, payload) => sent.push({ event, payload } as Sent), 50, undefined, undefined, dogEars);
+    hub.addAdapter(fake);
+    const { id } = await hub.start('fake', settings, 'Hello');
+    sent = [];
+
+    hub.dogEar(id, 'star', true);
+    hub.dogEar(id, 'pin', true);
+    hub.dogEar(id, 'star', false);
+    expect(sent.map((s) => s.payload)).toEqual([
+      { chatId: id, dogEars: ['star'] },
+      { chatId: id, dogEars: ['pin', 'star'] },
+      { chatId: id, dogEars: ['pin'] },
+    ]);
+    expect((await hub.open('fake', id, settings)).dogEars).toEqual(['pin']);
+
+    const restarted = new AgentHub(() => {}, 50, undefined, undefined, dogEars);
+    restarted.addAdapter(fake);
+    expect((await restarted.open('fake', id, settings)).dogEars).toEqual(['pin']);
   });
 
   it('passes interrupts to the agent', async () => {

@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { LayoutStore } from '../core/layout';
 import { Chapters } from './chapters';
 import { openDatabase } from './database';
+import { DogEars } from './dog-ears';
 import { Withdrawn } from './withdrawn';
 
 const dirs: string[] = [];
@@ -42,6 +43,17 @@ describe('storage', () => {
     withdrawn.add('a', ['u3', 'u1']);
     expect(withdrawn.list('a')).toEqual(['u2', 'u3', 'u1']);
     expect(withdrawn.list('c')).toEqual([]);
+  });
+
+  it('keeps each chat\'s dog-ears', () => {
+    const dogEars = new DogEars(openDatabase(':memory:'));
+    dogEars.set('a', 'star', true);
+    dogEars.set('a', 'pin', true);
+    dogEars.set('a', 'pin', true);
+    dogEars.set('b', 'pin', true);
+    dogEars.set('b', 'pin', false);
+    expect(dogEars.of('a')).toEqual(['pin', 'star']);
+    expect(dogEars.of('b')).toEqual([]);
   });
 
   it('remembers the layout, and only what it knows', () => {
