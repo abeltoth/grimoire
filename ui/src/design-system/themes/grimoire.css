@@ -328,6 +328,37 @@
   --gr-tracking-stub-head: 0.07em;
   --gr-size-stub-code: 13px;
 
+  /* Shell: the Index on the facing page */
+  --gr-index-pad-top: 26px;
+  --gr-index-pad-bottom: 24px;
+  --gr-index-width: 760px;
+  --gr-index-caps-gap: 5px;
+  --gr-index-look-up-gap: 14px;
+  --gr-index-look-up-pad: 3px;
+  --gr-index-look-up-rule: 1.5px dotted var(--gr-ink-soft);
+  --gr-size-index-label: 13.5px;
+  --gr-tracking-index-label: 0.07em;
+  --gr-size-index-look-up: 26px;
+  --gr-index-section-gap: 20px;
+  --gr-index-head-gap: 4px;
+  --gr-size-index-head: 13px;
+  --gr-tracking-index-head: 0.12em;
+  --gr-index-cursor-w: 30px;
+  --gr-index-entry-pad-y: 6px;
+  --gr-index-entry-pad-end: 12px;
+  --gr-size-index-entry: 18.5px;
+  --gr-index-label-max: 60%;
+  --gr-index-gloss-gap: 12px;
+  --gr-size-index-gloss: 14.5px;
+  --gr-index-leader-gap: 14px;
+  --gr-index-leader-lift: -5px;
+  --gr-size-index-where: 14px;
+  --gr-tracking-index-where: 0.05em;
+  --gr-index-note-gap: 26px;
+  --gr-index-note-width: 560px;
+  --gr-thumb-open-shift: -10px;
+  --gr-shadow-thumb-open: inset 5px 0 7px -3px rgba(0, 0, 0, 0.45);
+
   /* Chat: the Outline on the facing page */
   --gr-outline-sub-gap: 18px;
   --gr-outline-gap: 13px;

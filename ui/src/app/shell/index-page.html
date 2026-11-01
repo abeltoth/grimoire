@@ -1,0 +1,99 @@
+<gr-running-head>
+  <div class="row">
+    <h2 class="title">Index</h2>
+    <span class="hint">
+      <span>turned to with</span>
+      @for (cap of indexCaps(); track $index) {
+        <span class="gr-kbd">{{ cap }}</span>
+      }
+      <span>or its thumb notch</span>
+    </span>
+    <span class="spacer"></span>
+    <button type="button" class="gr-link" (click)="facing.closeIndex()">
+      Back to the {{ backTo() }} <span class="gr-kbd">Esc</span>
+    </button>
+  </div>
+</gr-running-head>
+
+<div class="index">
+  <div class="look-up">
+    <label for="gr-index-look-up">Look up</label>
+    <input
+      #field
+      id="gr-index-look-up"
+      type="text"
+      role="combobox"
+      autocomplete="off"
+      spellcheck="false"
+      aria-expanded="true"
+      aria-controls="gr-index-entries"
+      aria-autocomplete="list"
+      [attr.aria-activedescendant]="selected() ? 'gr-index-' + selected() : null"
+      [value]="lookUp()"
+      (input)="lookUp.set(field.value)"
+      (keydown)="key($event)"
+    />
+    <span class="count">{{ count() }}</span>
+  </div>
+
+  <div
+    class="entries"
+    id="gr-index-entries"
+    role="listbox"
+    [attr.aria-label]="lookUp() ? 'Index entries for ' + lookUp() : 'Index entries'"
+  >
+    @for (section of sections(); track section.title) {
+      <div class="section" role="group" [attr.aria-label]="section.title">
+        <h3>{{ section.title }}</h3>
+        @for (entry of section.entries; track entry.id) {
+          <button
+            type="button"
+            class="entry"
+            role="option"
+            tabindex="-1"
+            [id]="'gr-index-' + entry.id"
+            [attr.aria-selected]="entry.id === selected()"
+            (click)="open(entry)"
+          >
+            <span class="cursor" aria-hidden="true"><gr-icon name="quill" /></span>
+            <span class="label"
+              >{{ entry.parts[0] }}<b>{{ entry.parts[1] }}</b>{{ entry.parts[2] }}</span
+            >
+            @if (entry.hint) {
+              <span class="gloss"
+                >{{ entry.hint }}
+                @if (entry.folder) {
+                  <code>{{ entry.folder }}</code>
+                }
+              </span>
+            }
+            <span class="leader" aria-hidden="true"></span>
+            <span class="where">
+              @if (entry.shortcut) {
+                @for (cap of caps(entry.shortcut); track $index) {
+                  <span class="gr-kbd">{{ cap }}</span>
+                }
+              } @else {
+                {{ entry.where }}
+              }
+            </span>
+          </button>
+        }
+      </div>
+    } @empty {
+      <p class="note">Nothing in the index matches “{{ lookUp() }}”.</p>
+    }
+  </div>
+
+  <p class="note">
+    Every action in Grimoire is listed in this index, with its shortcut. Entries that live on
+    another page say where to find it.
+  </p>
+</div>
+
+<gr-running-foot>
+  <span class="spacer"></span>
+  <span class="caps"><span class="gr-kbd">↑</span><span class="gr-kbd">↓</span> move</span>
+  <span class="caps"><span class="gr-kbd">⏎</span> open</span>
+  <span class="caps"><span class="gr-kbd">Esc</span> back</span>
+</gr-running-foot>

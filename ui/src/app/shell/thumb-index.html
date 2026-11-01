@@ -16,7 +16,8 @@
   [attr.aria-label]="
     'Index, the command palette' + (shortcut ? '. ' + (shortcut | shortcut: 'spoken') : '')
   "
-  aria-disabled="true"
+  [attr.aria-current]="facing.index() !== null ? 'page' : null"
+  (click)="index()?.run?.()"
 >
   <span>
     Index
