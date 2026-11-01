@@ -2,7 +2,9 @@ import { Injectable, PendingTasks, computed, inject, signal } from '@angular/cor
 import type {
   AgentId,
   AgentInfo,
+  AgentModels,
   Answer,
+  ApprovalMode,
   Approval,
   ApprovalDecision,
   ChatStatus,
@@ -13,6 +15,7 @@ import type {
   NewChatSettings,
   OpenChat,
   QueuedEntry,
+  RecentFolders,
 } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from './bridge';
 
@@ -39,6 +42,23 @@ export interface Chapter {
 
 const DEFAULT_AGENT = 'claude-code';
 
+/** The settings a chapter's settings card changes. */
+export type Setting = 'agent' | 'model' | 'mode' | 'folder' | 'preset';
+
+/** A pick on the settings card. The agent and folder change only on a blank chapter. */
+export interface SettingsPick {
+  agent?: AgentId;
+  model?: string;
+  mode?: ApprovalMode;
+  cwd?: string;
+}
+
+/** The settings a new chapter takes: the ones last picked or begun with. */
+interface LastUsed {
+  agent: AgentId;
+  settings: NewChatSettings;
+}
+
 /**
  * The open chapters, as the window sees them: a mirror of the agent hub's
  * open chats (ADR-007), kept current by its events. The hub remembers
@@ -51,6 +71,12 @@ export class Chats {
   private nextBlank = 1;
 
   readonly agents = signal<readonly AgentInfo[]>([]);
+  /** Each agent's models, once it has listed them. */
+  readonly models = signal<Readonly<Record<AgentId, AgentModels>>>({});
+  readonly folders = signal<RecentFolders>({ home: '', recent: [] });
+  /** The chapter whose settings card is open, and the setting it opened on. */
+  readonly settingsCard = signal<{ id: string; on: Setting } | null>(null);
+  private lastUsed: LastUsed | null = null;
   readonly all = signal<readonly Chapter[]>([]);
   readonly currentId = signal<string | undefined>(undefined);
   readonly current = computed(() => this.all().find((chapter) => chapter.id === this.currentId()));
@@ -86,10 +112,17 @@ export class Chats {
     this.listen('agents.turnEnded', ({ chatId, error }) =>
       this.update(chatId, (c) => ({ ...c, ...(error ? { error } : {}) })),
     );
+    this.listen('agents.settings', ({ chatId, settings }) =>
+      this.update(chatId, (c) => ({ ...c, settings })),
+    );
     this.bridge.invoke('agents.list', {}).then(
-      (agents) => this.agents.set(agents),
+      (agents) => {
+        this.agents.set(agents ?? []);
+        for (const { id } of agents ?? []) void this.loadModels(id);
+      },
       () => {},
     );
+    void this.loadFolders();
     inject(PendingTasks).run(() => this.restore());
   }
 
@@ -97,13 +130,78 @@ export class Chats {
     return this.agents().find((info) => info.id === agent)?.name ?? agent;
   }
 
-  /** Opens a blank chapter and turns to it. */
-  newChapter(settings: NewChatSettings = this.current()?.settings ?? {}): void {
+  /** The model's name, or the agent's default model's when it names none. */
+  modelName(agent: AgentId, model: string | undefined): string {
+    const listed = this.models()[agent];
+    const id = model ?? listed?.default;
+    return listed?.models.find((m) => m.id === id)?.name ?? model ?? 'Default model';
+  }
+
+  /** A folder as you'd write it, with your home folder as ~. */
+  folderName(cwd: string | undefined): string {
+    const { home } = this.folders();
+    if (!cwd) return '~';
+    const rest = home && cwd.startsWith(home) ? cwd.slice(home.length) : undefined;
+    return rest === '' || (rest !== undefined && /^[\\/]/.test(rest)) ? `~${rest}` : cwd;
+  }
+
+  /** Lists the recent folders again, for the settings card. */
+  async loadFolders(): Promise<void> {
+    try {
+      const folders = await this.bridge.invoke('agents.folders', {});
+      if (folders) this.folders.set(folders);
+    } catch {
+      // Keep the folders listed before.
+    }
+  }
+
+  openSettings(id: string, on: Setting): void {
+    if (this.currentId() !== id) this.turnTo(id);
+    this.settingsCard.set({ id, on });
+    void this.loadFolders();
+  }
+
+  closeSettings(): void {
+    this.settingsCard.set(null);
+  }
+
+  /**
+   * Changes a chapter's settings. A blank chapter takes any of them; a
+   * chapter that has begun only a new model or permission. A new chapter
+   * takes the settings picked last.
+   */
+  async configure(id: string, pick: SettingsPick): Promise<void> {
+    const chapter = this.find(id);
+    if (!chapter) return;
+    if (chapter.status === 'blank') {
+      const agent = pick.agent ?? chapter.agent;
+      // Another agent has other models: it starts on its default.
+      const { model: _, ...kept } = chapter.settings;
+      const base = agent === chapter.agent ? chapter.settings : kept;
+      const { agent: __, ...change } = pick;
+      const settings: NewChatSettings = { ...base, ...change };
+      this.update(id, (c) => ({ ...c, agent, settings }));
+      return this.remember({ agent, settings });
+    }
+    const change = {
+      ...(pick.model ? { model: pick.model } : {}),
+      ...(pick.mode ? { mode: pick.mode } : {}),
+    };
+    try {
+      await this.bridge.invoke('agents.configure', { chatId: id, change });
+      this.remember({ agent: chapter.agent, settings: { ...chapter.settings, ...change } });
+    } catch (error) {
+      this.fail(id, error);
+    }
+  }
+
+  /** Opens a blank chapter, with the settings used last, and turns to it. */
+  newChapter(): void {
     const blank: Chapter = {
       id: `blank-${this.nextBlank++}`,
-      agent: DEFAULT_AGENT,
+      agent: this.lastUsed?.agent ?? DEFAULT_AGENT,
       title: '',
-      settings,
+      settings: this.lastUsed?.settings ?? {},
       status: 'blank',
       entries: [],
       approvals: [],
@@ -152,6 +250,7 @@ export class Chats {
       });
       this.all.update((all) => all.map((c) => (c.id === id ? fromOpenChat(chat) : c)));
       if (this.currentId() === id) this.turnTo(chat.id);
+      this.remember({ agent: chapter.agent, settings: chapter.settings });
     } catch (error) {
       this.fail(id, error);
     }
@@ -211,6 +310,7 @@ export class Chats {
         this.bridge.invoke('layout.get', {}),
       ]);
       this.all.set((chats ?? []).map(fromOpenChat));
+      this.lastUsed = layout?.lastUsed ?? null;
       const current = layout?.current;
       if (current && this.find(current)) return this.currentId.set(current);
     } catch {
@@ -221,11 +321,26 @@ export class Chats {
 
   /** Turns to a chapter and remembers it, so the book opens there next time. */
   private turnTo(id: string): void {
+    if (this.settingsCard()?.id !== id) this.closeSettings();
     this.currentId.set(id);
     const chapter = this.find(id);
     this.bridge
       .invoke('layout.set', { current: chapter && chapter.status !== 'blank' ? id : null })
       .catch(() => {});
+  }
+
+  private remember(lastUsed: LastUsed): void {
+    this.lastUsed = lastUsed;
+    this.bridge.invoke('layout.set', { lastUsed }).catch(() => {});
+  }
+
+  private async loadModels(agent: AgentId): Promise<void> {
+    try {
+      const models = await this.bridge.invoke('agents.models', { agent });
+      if (models) this.models.update((all) => ({ ...all, [agent]: models }));
+    } catch {
+      // The agent couldn't list its models: settings show the model's ID.
+    }
   }
 
   private find(id: string): Chapter | undefined {

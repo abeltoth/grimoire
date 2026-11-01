@@ -3,6 +3,7 @@ import { homedir } from 'node:os';
 import type {
   AgentId,
   AgentInfo,
+  AgentModels,
   Answer,
   Approval,
   ApprovalDecision,
@@ -17,6 +18,8 @@ import type {
   NewChatSettings,
   OpenChat,
   QueuedEntry,
+  RecentFolders,
+  SettingsChange,
 } from '@grimoire/contract';
 import { Chapters } from '../storage/chapters';
 import { openDatabase } from '../storage/database';
@@ -75,6 +78,22 @@ export class AgentHub {
 
   listChats(agent: AgentId, cwd?: string): Promise<ChatSummary[]> {
     return this.adapter(agent).listChats(cwd);
+  }
+
+  models(agent: AgentId): Promise<AgentModels> {
+    return this.adapter(agent).models();
+  }
+
+  /** The folders chats with any agent ran in, most recent first. */
+  async folders(): Promise<RecentFolders> {
+    const lists = await Promise.all(
+      [...this.adapters.values()].map((adapter) => adapter.listChats().catch(() => [])),
+    );
+    const recent = lists
+      .flat()
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .flatMap((chat) => (chat.cwd ? [chat.cwd] : []));
+    return { home: homedir(), recent: [...new Set(recent)] };
   }
 
   /** The chats open as chapters, in ribbon order. Those that no longer open are forgotten. */
@@ -136,6 +155,15 @@ export class AgentHub {
     if (chat.status === 'idle') return this.sendTo(chat, text, true);
     chat.queued.push({ id: randomUUID(), text });
     this.emitQueued(chat);
+  }
+
+  /** Changes a chat's model or permission, for its running process too. */
+  async configure(chatId: ChatId, change: SettingsChange): Promise<void> {
+    const chat = this.chat(chatId);
+    await chat.live?.configure(change);
+    chat.settings = { ...chat.settings, ...change };
+    this.chapters.add({ chatId, agent: chat.agent.info.id, settings: chat.settings });
+    this.emit('agents.settings', { chatId, settings: chat.settings });
   }
 
   /** Takes a message out of the queue; false when it had already gone. */

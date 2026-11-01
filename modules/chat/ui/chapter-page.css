@@ -53,6 +53,12 @@
   color: var(--gr-ink);
 }
 
+/* The setting whose card is open. */
+.meta button.on {
+  color: var(--gr-ink);
+  border-bottom: var(--gr-card-anchor-rule) solid var(--gr-rubric);
+}
+
 .edition {
   display: flex;
   align-items: center;

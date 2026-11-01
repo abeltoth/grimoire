@@ -20,6 +20,7 @@ export type IconName =
   | 'hourglass'
   | 'seal'
   | 'tick'
+  | 'check'
   | 'ornament';
 
 /** The theme's icons, drawn in the current text colour at their design size. */

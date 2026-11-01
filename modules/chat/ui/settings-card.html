@@ -1,0 +1,137 @@
+@let c = chapter();
+<header class="card-head">
+  <h2 id="gr-settings-card-heading">Settings for this chapter</h2>
+  <span>
+    @if (begun()) {
+      Its agent and folder stay as it began. Pick to change the rest.
+    } @else {
+      Your last-used settings, carried over. Pick to change.
+    }
+  </span>
+</header>
+
+<div class="columns">
+  <div
+    class="column"
+    [class.on]="on() === 'agent'"
+    data-setting="agent"
+    role="radiogroup"
+    aria-label="Agent"
+  >
+    <h3>Agent</h3>
+    @for (agent of chats.agents(); track agent.id) {
+      <button
+        type="button"
+        class="choice"
+        role="radio"
+        [attr.aria-checked]="agent.id === c.agent"
+        [attr.aria-disabled]="(begun() && agent.id !== c.agent) || null"
+        (click)="begun() || pick({ agent: agent.id })"
+      >
+        <gr-icon name="check" />
+        <span>{{ agent.name }}</span>
+      </button>
+    }
+  </div>
+
+  <div
+    class="column"
+    [class.on]="on() === 'model'"
+    data-setting="model"
+    role="radiogroup"
+    [attr.aria-label]="'Model for ' + agentName()"
+  >
+    <h3>
+      Model <i>for {{ agentName() }}</i>
+    </h3>
+    @for (model of models()?.models ?? []; track model.id) {
+      <button
+        type="button"
+        class="choice"
+        role="radio"
+        [attr.aria-checked]="model.id === selectedModel()"
+        [attr.title]="model.description ?? null"
+        (click)="pick({ model: model.id })"
+      >
+        <gr-icon name="check" />
+        <span>{{ model.name }}</span>
+      </button>
+    } @empty {
+      <p class="none">{{ agentName() }} hasn't listed its models</p>
+    }
+  </div>
+
+  <div
+    class="column"
+    [class.on]="on() === 'folder'"
+    data-setting="folder"
+    role="radiogroup"
+    aria-label="Folder"
+  >
+    <h3>Folder <i>recent</i></h3>
+    @for (cwd of folders(); track cwd) {
+      <button
+        type="button"
+        class="choice"
+        role="radio"
+        [attr.aria-checked]="cwd === folder()"
+        [attr.aria-disabled]="(begun() && cwd !== folder()) || null"
+        (click)="begun() || pick({ cwd })"
+      >
+        <gr-icon name="check" />
+        <span><code>{{ chats.folderName(cwd) }}</code></span>
+      </button>
+    }
+    @if (!begun()) {
+      <button type="button" class="choice action" (click)="chooseFolder()">
+        Choose another folder…
+      </button>
+    }
+  </div>
+
+  <div
+    class="column"
+    [class.on]="on() === 'mode'"
+    data-setting="mode"
+    role="radiogroup"
+    aria-label="Permission"
+  >
+    <h3>Permission</h3>
+    @for (m of modes; track m.mode) {
+      <button
+        type="button"
+        class="choice"
+        role="radio"
+        [attr.aria-checked]="m.mode === (c.settings.mode ?? 'ask')"
+        (click)="pick({ mode: m.mode })"
+      >
+        <gr-icon name="check" />
+        <span>{{ m.label }} <small>{{ m.detail }}</small></span>
+      </button>
+    }
+  </div>
+
+  <div
+    class="column"
+    [class.on]="on() === 'preset'"
+    data-setting="preset"
+    role="radiogroup"
+    aria-label="Preset"
+  >
+    <h3>Preset</h3>
+    <button type="button" class="choice" role="radio" aria-checked="true">
+      <gr-icon name="check" />
+      <span>No preset</span>
+    </button>
+    <p class="none">No saved presets yet</p>
+    <button type="button" class="choice action" aria-disabled="true">
+      Save these settings as a preset…
+    </button>
+  </div>
+</div>
+
+<footer class="card-foot">
+  <span>Right-click any ribbon to open these for its chapter.</span>
+  <span class="spacer"></span>
+  <span>Esc closes</span>
+</footer>

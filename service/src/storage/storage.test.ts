@@ -36,11 +36,12 @@ describe('storage', () => {
 
   it('remembers the layout, and only what it knows', () => {
     const layout = new LayoutStore(openDatabase(':memory:'));
-    expect(layout.get()).toEqual({ current: null });
-    layout.set({ current: 'a' });
+    expect(layout.get()).toEqual({ current: null, lastUsed: null });
+    const lastUsed = { agent: 'claude-code', settings: { cwd: '/work', mode: 'plan' as const } };
+    layout.set({ current: 'a', lastUsed });
     layout.set({ unknown: 1 } as never);
-    expect(layout.get()).toEqual({ current: 'a' });
+    expect(layout.get()).toEqual({ current: 'a', lastUsed });
     layout.set({ current: null });
-    expect(layout.get()).toEqual({ current: null });
+    expect(layout.get()).toEqual({ current: null, lastUsed });
   });
 });

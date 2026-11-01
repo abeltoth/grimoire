@@ -1,0 +1,170 @@
+/* One card for all of a chapter's settings, under the running head. */
+:host {
+  position: absolute;
+  z-index: var(--gr-z-card);
+  left: var(--page-inset-start);
+  top: calc(var(--gr-head-h) + var(--gr-card-offset));
+  width: var(--gr-card-width);
+  max-width: var(--gr-card-max-width);
+  padding: var(--gr-card-pad);
+  background: var(--gr-card-paper);
+  box-shadow: var(--gr-shadow-card);
+}
+
+/* The caret, under the setting it opened from. */
+:host::before {
+  content: '';
+  position: absolute;
+  top: calc(var(--gr-card-caret) / -2);
+  left: calc(var(--caret, var(--gr-card-caret-default)) - var(--gr-card-caret) / 2);
+  width: var(--gr-card-caret);
+  height: var(--gr-card-caret);
+  background: var(--gr-slip);
+  transform: rotate(45deg);
+  box-shadow: var(--gr-card-caret-shadow);
+}
+
+.card-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-card-head-gap);
+  padding-bottom: var(--gr-card-head-pad);
+  border-bottom: var(--gr-rule-double) double var(--gr-form-rule);
+}
+
+.card-head h2 {
+  margin: 0;
+  font-family: var(--gr-font-display-sc);
+  font-weight: 400;
+  font-size: var(--gr-size-card-head);
+  letter-spacing: var(--gr-tracking-card-head);
+  color: var(--gr-ink);
+}
+
+.card-head span,
+.card-foot {
+  font-style: italic;
+  font-size: var(--gr-size-card-aside);
+  color: var(--gr-ink-soft);
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: var(--gr-card-columns);
+  column-gap: var(--gr-card-column-gap);
+  padding-top: var(--gr-card-columns-pad);
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-card-choice-gap);
+  min-width: 0;
+}
+
+.column + .column {
+  border-left: 1px solid var(--gr-hairline);
+  padding-left: var(--gr-card-column-pad);
+  margin-left: calc(var(--gr-card-choice-inset) * -1);
+}
+
+h3 {
+  margin: 0 0 var(--gr-card-column-head-gap);
+  font-family: var(--gr-font-sc);
+  font-weight: 500;
+  font-size: var(--gr-size-card-column-head);
+  letter-spacing: var(--gr-tracking-card-column-head);
+  color: var(--gr-ink-soft);
+}
+
+h3 i {
+  font-family: var(--gr-font-text);
+  font-weight: 400;
+  letter-spacing: 0;
+  font-size: var(--gr-size-card-column-note);
+}
+
+.column.on h3 {
+  color: var(--gr-rubric);
+}
+
+.choice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gr-card-choice-tick-gap);
+  padding: var(--gr-card-choice-pad);
+  margin-left: calc(var(--gr-card-choice-inset) * -1);
+  border-radius: var(--gr-radius-card-choice);
+  font-size: var(--gr-size-card-choice);
+  color: var(--gr-ink);
+  text-align: left;
+  line-height: var(--gr-leading-meta);
+}
+
+.choice:hover:not([aria-disabled]) {
+  background: var(--gr-card-choice-hover);
+}
+
+.choice gr-icon {
+  margin-top: var(--gr-card-tick-drop);
+  opacity: 0;
+  color: var(--gr-rubric);
+}
+
+.choice[aria-checked='true'] {
+  font-weight: 500;
+}
+
+.choice[aria-checked='true'] gr-icon {
+  opacity: 1;
+}
+
+/* A setting that stays as the chapter began. */
+.choice[aria-disabled] {
+  color: var(--gr-ink-faint);
+  cursor: default;
+}
+
+.choice small {
+  display: block;
+  font-style: italic;
+  font-weight: 400;
+  font-size: var(--gr-size-card-detail);
+  color: var(--gr-ink-soft);
+  margin-top: var(--gr-card-detail-gap);
+}
+
+.choice code {
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-card-code);
+}
+
+.choice.action {
+  color: var(--gr-lapis);
+  font-style: italic;
+  font-size: var(--gr-size-card-action);
+}
+
+.choice.action[aria-disabled] {
+  color: var(--gr-ink-faint);
+}
+
+.none {
+  margin: 0;
+  font-style: italic;
+  font-size: var(--gr-size-card-aside);
+  color: var(--gr-ink-soft);
+  padding: var(--gr-card-none-pad);
+}
+
+.card-foot {
+  display: flex;
+  gap: var(--gr-card-foot-gap);
+  margin-top: var(--gr-card-foot-margin);
+  padding-top: var(--gr-card-foot-pad);
+  border-top: 1px solid var(--gr-hairline);
+}
+
+.spacer {
+  flex: 1;
+}

@@ -40,7 +40,19 @@ function fakeBridge(overrides: Partial<GrimoireBridge> = {}) {
     'agents.unqueue': () => true,
     'agents.interrupt': () => [],
     'agents.openChats': () => [],
-    'layout.get': () => ({ current: null }),
+    'agents.models': () => ({
+      models: [
+        { id: 'opus', name: 'Opus 5.5' },
+        { id: 'sonnet', name: 'Sonnet 5.5' },
+        { id: 'haiku', name: 'Haiku 5.5' },
+      ],
+      default: 'opus',
+    }),
+    'agents.folders': () => ({
+      home: 'C:/Users/me',
+      recent: ['C:/Users/me/git/grimoire', 'C:/Users/me', 'C:/Users/me/git/breeder', 'D:/old'],
+    }),
+    'layout.get': () => ({ current: null, lastUsed: null }),
   };
   const bridge: GrimoireBridge = {
     platform: 'windows',
@@ -55,6 +67,7 @@ function fakeBridge(overrides: Partial<GrimoireBridge> = {}) {
       return () => set.delete(listener as (payload: unknown) => void);
     },
     window: { minimize: vi.fn(), toggleMaximize: vi.fn(), close: vi.fn() },
+    chooseFolder: vi.fn(async () => 'C:/Users/me/git/new'),
     ...overrides,
   };
   const emit = <K extends EventName>(event: K, payload: EventPayload<K>) =>
@@ -72,6 +85,14 @@ async function render(bridge: GrimoireBridge) {
   const texts = (selector: string) =>
     [...el.querySelectorAll(selector)].map((node) => node.textContent!.replace(/\s+/g, ' ').trim());
   return { fixture, el, texts };
+}
+
+/** Clicks the settings card's choice with this text. */
+function pick(el: HTMLElement, text: string) {
+  const choices = [...el.querySelectorAll<HTMLButtonElement>('gr-settings-card .choice')];
+  const choice = choices.find((c) => c.textContent!.replace(/\s+/g, ' ').trim().startsWith(text));
+  if (!choice) throw new Error(`No choice ${text}`);
+  choice.click();
 }
 
 async function write(fixture: { whenStable(): Promise<unknown> }, el: HTMLElement, text: string) {
@@ -148,9 +169,10 @@ describe('App', () => {
     expect(texts('gr-running-head h1')).toEqual(['Untitled chapter']);
     expect(texts('.meta button')).toEqual([
       'Claude Code',
-      'Default model',
+      'Opus 5.5',
       'Ask first',
-      'Home folder',
+      '~',
+      'No preset',
     ]);
     expect(texts('.left-half gr-ribbon b')).toEqual(['Untitled chapter']);
     expect(texts('.left-half gr-ribbon i')).toEqual(['Claude Code · blank page']);
@@ -422,6 +444,9 @@ describe('App', () => {
   it('opens a new blank chapter from the New chapter ribbon', async () => {
     const { bridge } = fakeBridge();
     const { fixture, el, texts } = await render(bridge);
+    el.querySelector<HTMLButtonElement>('.meta [data-setting="folder"]')!.click();
+    await fixture.whenStable();
+    pick(el, '~/git/grimoire');
     await write(fixture, el, 'Fix the flaky login test');
 
     el.querySelector<HTMLButtonElement>('gr-ribbon.new button')!.click();
@@ -432,12 +457,103 @@ describe('App', () => {
       'Claude Code · blank page',
       'Claude Code · thinking',
     ]);
-    // The new chapter starts with the last chapter's settings.
-    expect(texts('.meta button')[3]).toBe('C:/work/grimoire');
+    // The new chapter takes the settings last used.
+    expect(texts('.meta button')[3]).toBe('~/git/grimoire');
 
     [...el.querySelectorAll<HTMLButtonElement>('.left-half gr-ribbon button')][1]!.click();
     await fixture.whenStable();
     expect(texts('.you p')).toEqual(['Fix the flaky login test']);
+  });
+
+  it('changes a blank chapter\'s settings on its settings card', async () => {
+    const { bridge, calls } = fakeBridge();
+    const { fixture, el, texts } = await render(bridge);
+    const model = el.querySelector<HTMLButtonElement>('.meta [data-setting="model"]')!;
+    model.click();
+    await fixture.whenStable();
+
+    expect(model.getAttribute('aria-expanded')).toBe('true');
+    expect(texts('gr-settings-card .column.on h3')).toEqual(['Model for Claude Code']);
+    expect(texts('gr-settings-card [aria-checked="true"]')).toEqual([
+      'Claude Code',
+      'Opus 5.5',
+      '~',
+      'Ask first Asks before edits and commands',
+      'No preset',
+    ]);
+    expect(texts('gr-settings-card [data-setting="folder"] code')).toEqual([
+      '~',
+      '~/git/grimoire',
+      '~/git/breeder',
+    ]);
+    expect(document.activeElement?.textContent?.trim()).toBe('Opus 5.5');
+
+    pick(el, 'Sonnet 5.5');
+    pick(el, 'Full access');
+    pick(el, 'Choose another folder');
+    await fixture.whenStable();
+    expect(texts('.meta button')).toEqual([
+      'Claude Code',
+      'Sonnet 5.5',
+      'Full access',
+      '~/git/new',
+      'No preset',
+    ]);
+    expect(calls.filter((c) => c.command === 'layout.set').at(-1)?.request).toEqual({
+      lastUsed: {
+        agent: 'claude-code',
+        settings: { model: 'sonnet', mode: 'allow-all', cwd: 'C:/Users/me/git/new' },
+      },
+    });
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await fixture.whenStable();
+    expect(el.querySelector('gr-settings-card')).toBeNull();
+    expect(document.activeElement).toBe(model);
+
+    await write(fixture, el, 'Hello');
+    expect(calls.find((c) => c.command === 'agents.start')?.request).toMatchObject({
+      settings: { model: 'sonnet', mode: 'allow-all', cwd: 'C:/Users/me/git/new' },
+    });
+  });
+
+  it('changes only the model and permission once the chapter has begun', async () => {
+    const { bridge, calls, emit } = fakeBridge();
+    const { fixture, el, texts } = await render(bridge);
+    await write(fixture, el, 'Hello');
+    el.querySelector<HTMLButtonElement>('.meta [data-setting="mode"]')!.click();
+    await fixture.whenStable();
+
+    expect(texts('gr-settings-card .card-head span')).toEqual([
+      'Its agent and folder stay as it began. Pick to change the rest.',
+    ]);
+    expect(
+      texts('gr-settings-card [data-setting="folder"] .choice[aria-disabled]'),
+    ).toEqual(['~/git/grimoire', '~']);
+    expect(texts('gr-settings-card .action')).toEqual(['Save these settings as a preset…']);
+
+    pick(el, 'Plan only');
+    await fixture.whenStable();
+    expect(calls.find((c) => c.command === 'agents.configure')?.request).toEqual({
+      chatId: 'chat-1',
+      change: { mode: 'plan' },
+    });
+    emit('agents.settings', { chatId: 'chat-1', settings: { cwd: 'C:/work/grimoire', mode: 'plan' } });
+    await fixture.whenStable();
+    expect(texts('.meta button')[2]).toBe('Plan only');
+
+    document.body.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    await fixture.whenStable();
+    expect(el.querySelector('gr-settings-card')).toBeNull();
+  });
+
+  it('opens a chapter\'s settings from a right-click on its ribbon', async () => {
+    const { fixture, el, texts } = await render(fakeBridge().bridge);
+    el.querySelector('.left-half gr-ribbon button')!.dispatchEvent(
+      new MouseEvent('contextmenu', { bubbles: true, cancelable: true }),
+    );
+    await fixture.whenStable();
+    expect(texts('gr-settings-card .column.on h3')).toEqual(['Agent']);
   });
 
   it('reopens the chapters the hub has open, on the one you were on', async () => {

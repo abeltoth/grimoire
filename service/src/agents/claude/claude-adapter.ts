@@ -9,6 +9,7 @@ import type {
 } from '@anthropic-ai/claude-agent-sdk';
 import type {
   AgentInfo,
+  AgentModels,
   ApprovalMode,
   ChatId,
   ChatSettings,
@@ -43,6 +44,7 @@ interface Spare {
  */
 export class ClaudeAdapter implements AgentAdapter {
   private spare: Spare | undefined;
+  private modelList: Promise<AgentModels> | undefined;
 
   readonly info: AgentInfo = {
     id: 'claude-code',
@@ -77,6 +79,15 @@ export class ClaudeAdapter implements AgentAdapter {
     return info?.customTitle ?? info?.summary ?? '';
   }
 
+  /** Claude Code's model aliases, such as Opus 5.5; the dated model IDs are left out. */
+  models(): Promise<AgentModels> {
+    this.modelList ??= listModels().catch((error: unknown) => {
+      this.modelList = undefined;
+      throw error;
+    });
+    return this.modelList;
+  }
+
   run(chatId: ChatId, settings: ChatSettings, resume: boolean, events: ChatEvents): LiveChat {
     const input = new MessageQueue<SDKUserMessage>();
     const started: Promise<Query> = sdk().then(({ query }) =>
@@ -86,6 +97,8 @@ export class ClaudeAdapter implements AgentAdapter {
           cwd: settings.cwd,
           ...(settings.model ? { model: settings.model } : {}),
           permissionMode: MODES[settings.mode ?? 'ask'],
+          // Lets you pick Full access, now or later; it doesn't skip any asking by itself.
+          allowDangerouslySkipPermissions: true,
           includePartialMessages: true,
           ...(resume ? { resume: chatId } : { sessionId: chatId }),
           canUseTool: approvalsTo(async () => events),
@@ -105,8 +118,7 @@ export class ClaudeAdapter implements AgentAdapter {
     text: string,
     bind: (chatId: ChatId) => ChatEvents,
   ): Promise<LiveChat> {
-    // Full access needs a spare parked with that permission, which isn't kept.
-    const spare = settings.mode === 'allow-all' ? undefined : this.takeSpare();
+    const spare = this.takeSpare();
     try {
       if (spare) return await this.claim(spare, settings, text, bind);
     } catch {
@@ -130,6 +142,7 @@ export class ClaudeAdapter implements AgentAdapter {
           options: {
             includePartialMessages: true,
             permissionMode: MODES.ask,
+            allowDangerouslySkipPermissions: true,
             canUseTool: approvalsTo(() => claimedBy.promise),
           },
         }),
@@ -222,11 +235,40 @@ export class ClaudeAdapter implements AgentAdapter {
       interrupt: async () => {
         await (await started).interrupt();
       },
+      configure: async ({ model, mode }) => {
+        const live = await started;
+        if (model) await live.setModel(model);
+        if (mode) await live.setPermissionMode(MODES[mode]);
+      },
       close: () => {
         input.end();
         void started.then((live) => live.close());
       },
     };
+  }
+}
+
+/** Asks a Claude Code process that never gets a message for the models it offers. */
+async function listModels(): Promise<AgentModels> {
+  const { query } = await sdk();
+  const input = new MessageQueue<SDKUserMessage>();
+  const probe = query({ prompt: input, options: { permissionMode: MODES.ask } });
+  try {
+    const all = await probe.supportedModels();
+    const aliases = all.filter(({ value }) => value !== 'default' && !value.startsWith('claude-'));
+    const fallback = all.find(({ value }) => value === 'default')?.resolvedModel;
+    const byDefault = aliases.find(({ resolvedModel }) => resolvedModel === fallback);
+    return {
+      models: aliases.map(({ value, displayName, description }) => ({
+        id: value,
+        name: displayName,
+        description,
+      })),
+      ...(byDefault ? { default: byDefault.value } : {}),
+    };
+  } finally {
+    input.end();
+    probe.close();
   }
 }
 

@@ -2,7 +2,7 @@
  * The Electron app: windows only (ADR-010). All state lives in the
  * background service, which this process starts and relays to.
  */
-import { app, BrowserWindow, ipcMain, net, protocol, type WebFrameMain } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, net, protocol, type WebFrameMain } from 'electron';
 import { existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -91,6 +91,14 @@ ipcMain.handle('grimoire:invoke', async (event, command: unknown, request: unkno
   if (!isTrusted(event.senderFrame)) throw new Error('Untrusted sender');
   if (typeof command !== 'string') throw new Error('The command name must be a string');
   return (await getService()).request(command, request);
+});
+
+ipcMain.handle('grimoire:chooseFolder', async (event) => {
+  if (!isTrusted(event.senderFrame)) throw new Error('Untrusted sender');
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const options = { properties: ['openDirectory' as const] };
+  const result = win ? await dialog.showOpenDialog(win, options) : await dialog.showOpenDialog(options);
+  return result.canceled ? null : (result.filePaths[0] ?? null);
 });
 
 ipcMain.on('grimoire:window', (event, action: unknown) => {

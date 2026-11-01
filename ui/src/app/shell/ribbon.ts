@@ -43,6 +43,8 @@ export class Ribbon {
   readonly picked = output<void>();
   /** Middle-clicked, to close what it marks. */
   readonly dismissed = output<void>();
+  /** Right-clicked, to open the settings of what it marks. */
+  readonly settings = output<void>();
 
   protected readonly motes = computed(() => this.tone() === 'waiting');
 
@@ -52,5 +54,10 @@ export class Ribbon {
 
   protected auxClick(event: MouseEvent): void {
     if (event.button === 1 && !this.unavailable()) this.dismissed.emit();
+  }
+
+  protected contextMenu(event: MouseEvent): void {
+    event.preventDefault();
+    if (!this.unavailable()) this.settings.emit();
   }
 }

@@ -22,6 +22,7 @@ function outsideTheApp(): GrimoireBridge {
     platform: /Mac/.test(navigator.userAgent) ? 'mac' : 'windows',
     invoke: () => Promise.reject(new Error('Not running inside the Grimoire app')),
     on: () => () => {},
+    chooseFolder: () => Promise.resolve(null),
     window: { minimize() {}, toggleMaximize() {}, close() {} },
   };
 }

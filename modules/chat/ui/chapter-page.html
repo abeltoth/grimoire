@@ -9,15 +9,22 @@
     </div>
     <div class="row">
       <div class="meta" role="group" aria-label="Chapter settings">
-        <button type="button" aria-disabled="true">{{ chats.agentName(c.agent) }}</button>
-        <span aria-hidden="true">·</span>
-        <button type="button" aria-disabled="true">
-          {{ c.settings.model ?? 'Default model' }}
-        </button>
-        <span aria-hidden="true">·</span>
-        <button type="button" aria-disabled="true">{{ modeLabel(c.settings.mode) }}</button>
-        <span aria-hidden="true">·</span>
-        <button type="button" aria-disabled="true">{{ c.settings.cwd ?? 'Home folder' }}</button>
+        @for (setting of settings(); track setting.key; let first = $first) {
+          @if (!first) {
+            <span aria-hidden="true">·</span>
+          }
+          <button
+            #setting
+            type="button"
+            [attr.data-setting]="setting.key"
+            [class.on]="card()?.on === setting.key"
+            aria-haspopup="dialog"
+            [attr.aria-expanded]="card()?.on === setting.key"
+            (click)="toggle(setting.key)"
+          >
+            {{ setting.label }}
+          </button>
+        }
       </div>
       <span class="spacer"></span>
       <button type="button" class="gr-link" aria-disabled="true">
@@ -26,6 +33,10 @@
       <button type="button" class="gr-link" (click)="chats.close(c.id)">Close</button>
     </div>
   </gr-running-head>
+
+  @if (card(); as open) {
+    <gr-settings-card [chapter]="c" [on]="open.on" [anchor]="anchorFor(open.on)" />
+  }
 
   @if (c.status === 'blank') {
     <gr-chapter-opening

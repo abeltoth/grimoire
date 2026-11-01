@@ -263,6 +263,47 @@
   --gr-leading-opening-note: 1.5;
   --gr-size-opening-code: 0.8em;
 
+  /* Chat: the settings card under the running head */
+  --gr-z-card: 6;
+  --gr-card-width: 1250px;
+  --gr-card-max-width: calc(100vw - 2 * var(--gr-page-margin-outer));
+  --gr-card-offset: 4px;
+  --gr-card-anchor-rule: 1.5px;
+  --gr-card-pad: 16px 24px 14px;
+  --gr-card-paper: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0) 0 26px, var(--gr-slip-laid) 26px 27px), var(--gr-slip);
+  --gr-card-caret: 16px;
+  --gr-card-caret-default: 44px;
+  --gr-card-caret-shadow: -1px -1px 0 rgba(74, 48, 22, 0.12);
+  --gr-card-head-gap: 14px;
+  --gr-card-head-pad: 10px;
+  --gr-size-card-head: 16px;
+  --gr-tracking-card-head: 0.14em;
+  --gr-size-card-aside: 13.5px;
+  --gr-card-columns: 136px 140px 272px 300px minmax(0, 1fr);
+  --gr-card-column-gap: 26px;
+  --gr-card-columns-pad: 12px;
+  --gr-card-column-pad: 22px;
+  --gr-card-column-head-gap: 6px;
+  --gr-size-card-column-head: 13px;
+  --gr-tracking-card-column-head: 0.08em;
+  --gr-size-card-column-note: 12.5px;
+  --gr-card-choice-gap: 2px;
+  --gr-card-choice-inset: 4px;
+  --gr-card-choice-pad: 5px 6px 5px 4px;
+  --gr-card-choice-tick-gap: 8px;
+  --gr-card-tick-drop: 2px;
+  --gr-radius-card-choice: 2px;
+  --gr-size-card-choice: 15.5px;
+  --gr-card-choice-hover: rgba(74, 48, 22, 0.06);
+  --gr-size-card-detail: 13px;
+  --gr-card-detail-gap: 1px;
+  --gr-size-card-code: 12.5px;
+  --gr-size-card-action: 14.5px;
+  --gr-card-none-pad: 5px 0;
+  --gr-card-foot-gap: 18px;
+  --gr-card-foot-margin: 10px;
+  --gr-card-foot-pad: 9px;
+
   /* Chat: composer */
   --gr-composer-margin: 0 24px 0 30px;
   --gr-composer-pad: 10px 16px 9px;
