@@ -3,6 +3,7 @@ import type { AgentEntry, EventName, EventPayload } from '@grimoire/contract';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Chapters } from '../storage/chapters';
 import { openDatabase } from '../storage/database';
+import { Withdrawn } from '../storage/withdrawn';
 import type { ChatEvents, LiveChat } from './adapter';
 import { FakeAdapter } from './fake-adapter';
 import { AgentHub } from './hub';
@@ -36,10 +37,20 @@ const events = () => sent.map((s) => s.event);
 
 /** An agent that picks a new chat's ID itself, as Claude Code does on a spare process. */
 class PickingAdapter extends FakeAdapter {
-  started?: { text: string; events: ChatEvents; live: LiveChat & { closed: boolean } };
+  started?: {
+    text: string;
+    id: string;
+    events: ChatEvents;
+    live: LiveChat & { closed: boolean };
+  };
   disposed = false;
 
-  async start(chatSettings: typeof settings, text: string, bind: (id: string) => ChatEvents) {
+  async start(
+    chatSettings: typeof settings,
+    text: string,
+    id: string,
+    bind: (chatId: string) => ChatEvents,
+  ) {
     await Promise.resolve();
     const live = {
       closed: false,
@@ -48,7 +59,7 @@ class PickingAdapter extends FakeAdapter {
       configure: async () => {},
       close: () => void (live.closed = true),
     };
-    this.started = { text, events: bind('picked'), live };
+    this.started = { text, id, events: bind('picked'), live };
     return live;
   }
 
@@ -259,6 +270,7 @@ describe('AgentHub', () => {
 
     expect(chat).toMatchObject({ id: 'picked', status: 'thinking', entries: [{ text: 'Hello' }] });
     expect(picking.started?.text).toBe('Hello');
+    expect(picking.started?.id).toBe(chat.entries[0]?.id);
     expect(events()).toEqual(['agents.entry', 'agents.status']);
     picking.started?.events.turnEnded();
     expect((await hub.open('fake', 'picked', settings)).status).toBe('idle');
@@ -272,8 +284,8 @@ describe('AgentHub', () => {
     const picking = new PickingAdapter();
     hub.addAdapter(picking);
     const original = picking.start.bind(picking);
-    picking.start = async (chatSettings, text, bind) =>
-      original(chatSettings, text, (id) => {
+    picking.start = async (chatSettings, text, entryId, bind) =>
+      original(chatSettings, text, entryId, (id) => {
         const events = bind(id);
         hub.close(id);
         return events;
@@ -320,6 +332,45 @@ describe('AgentHub', () => {
     expect((await hub.open('fake', 'saved', settings)).plan).toEqual([
       { text: 'Earlier step', status: 'done' },
     ]);
+  });
+
+  it('undoes an entry\'s edits and those after it, and remembers them after a restart', async () => {
+    const withdrawn = new Withdrawn(openDatabase(':memory:'));
+    hub = new AgentHub((event, payload) => sent.push({ event, payload } as Sent), 50, undefined, withdrawn);
+    hub.addAdapter(fake);
+    const { id } = await hub.start('fake', settings, 'First');
+    const run = fake.runOf(id);
+    run.events.turnEnded();
+    hub.send(id, 'Second');
+    await expect(hub.undo(id, run.sentIds[0]!)).rejects.toThrow('Stop the turn before undoing');
+    run.events.turnEnded();
+    hub.send(id, 'Third');
+    run.events.turnEnded();
+    sent = [];
+
+    await hub.undo(id, run.sentIds[1]!);
+    expect(run.undone).toEqual([run.sentIds[1]]);
+    const later = run.sentIds.slice(1);
+    expect(sent).toEqual([{ event: 'agents.withdrawn', payload: { chatId: id, withdrawn: later } }]);
+    expect((await hub.open('fake', id, settings)).withdrawn).toEqual(later);
+    await expect(hub.undo(id, run.sentIds[2]!)).rejects.toThrow('already undone');
+
+    // After a restart the chat has no process: undo starts one, resumed.
+    const restarted = new AgentHub(() => {}, 50, undefined, withdrawn);
+    restarted.addAdapter(fake);
+    fake.transcripts.set(id, run.sentIds.map((entryId, i) => ({ kind: 'user', id: entryId, text: `${i}` })));
+    expect((await restarted.open('fake', id, settings)).withdrawn).toEqual(later);
+    await restarted.undo(id, run.sentIds[0]!);
+    expect(fake.runOf(id)).toMatchObject({ resume: true, undone: [run.sentIds[0]] });
+    expect((await restarted.open('fake', id, settings)).withdrawn).toEqual([...later, run.sentIds[0]]);
+  });
+
+  it('withdraws nothing when the agent can\'t undo', async () => {
+    const { id } = await hub.start('fake', settings, 'First');
+    fake.runOf(id).events.turnEnded();
+    fake.undoError = 'No checkpoint for this entry';
+    await expect(hub.undo(id, fake.runOf(id).sentIds[0]!)).rejects.toThrow('No checkpoint');
+    expect((await hub.open('fake', id, settings)).withdrawn).toEqual([]);
   });
 
   it('passes interrupts to the agent', async () => {

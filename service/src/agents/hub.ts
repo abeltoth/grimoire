@@ -24,6 +24,7 @@ import type {
 } from '@grimoire/contract';
 import { Chapters } from '../storage/chapters';
 import { openDatabase } from '../storage/database';
+import { Withdrawn } from '../storage/withdrawn';
 import type { AgentAdapter, ChatEvents, LiveChat, Verdict } from './adapter';
 
 export type Emit = <K extends EventName>(event: K, payload: EventPayload<K>) => void;
@@ -40,6 +41,8 @@ interface ChatState {
   /** How full the context window is, once the agent reports it. */
   context?: ContextUsage;
   plan: PlanStep[];
+  /** Your entries whose file changes were undone. */
+  withdrawn: string[];
   /** While the agent process runs. */
   live?: LiveChat;
   /** Streamed text not sent to windows yet, per entry and block. */
@@ -55,7 +58,8 @@ interface PendingApproval {
 /**
  * The agent hub (ADR-007): the open chats, their transcripts and pending
  * approvals, kept in memory (ADR-009). Which chats are open is kept in
- * `chapters`, so they reopen after a restart. Windows are views of it:
+ * `chapters`, so they reopen after a restart, and which entries were undone
+ * in `withdrawn`. Windows are views of it:
  * they get a chat's state when they open it and its changes as events.
  * Streamed text is batched, at most one event per chat every `textBatchMs`.
  */
@@ -68,6 +72,7 @@ export class AgentHub {
     private readonly emit: Emit,
     private readonly textBatchMs = 50,
     private readonly chapters = new Chapters(openDatabase(':memory:')),
+    private readonly withdrawn = new Withdrawn(openDatabase(':memory:')),
   ) {}
 
   addAdapter(adapter: AgentAdapter): void {
@@ -122,6 +127,7 @@ export class AgentHub {
       // Another window may have opened it meanwhile.
       chat = this.chats.get(chatId) ?? this.track(chatId, adapter, settings, history.entries, title);
       chat.plan = history.plan;
+      chat.withdrawn = this.withdrawn.list(chatId);
     }
     this.chapters.add({ chatId, agent, settings: chat.settings });
     return this.snapshot(chat);
@@ -138,10 +144,11 @@ export class AgentHub {
     }
     // The agent picks the chat's ID, on a spare process when it has one.
     let chat: ChatState | undefined;
-    const live = await adapter.start(resolved, text, (chatId) => {
+    const id = randomUUID();
+    const live = await adapter.start(resolved, text, id, (chatId) => {
       chat = this.track(chatId, adapter, resolved, [], '');
       this.chapters.add({ chatId, agent, settings: resolved });
-      this.upsert(chat, { kind: 'user', id: randomUUID(), text });
+      this.upsert(chat, { kind: 'user', id, text });
       this.setStatus(chat, 'thinking');
       return this.eventsFor(chat);
     });
@@ -167,6 +174,30 @@ export class AgentHub {
     chat.settings = { ...chat.settings, ...change };
     this.chapters.add({ chatId, agent: chat.agent.info.id, settings: chat.settings });
     this.emit('agents.settings', { chatId, settings: chat.settings });
+  }
+
+  /**
+   * Restores the files to how they were before one of your entries, starting
+   * the agent's process when the chat has none. That entry's edits, and those
+   * of every entry after it, are withdrawn.
+   */
+  async undo(chatId: ChatId, entryId: string): Promise<void> {
+    const chat = this.chat(chatId);
+    if (chat.status !== 'idle') throw new Error('Stop the turn before undoing');
+    const from = chat.entries.findIndex((entry) => entry.kind === 'user' && entry.id === entryId);
+    if (from === -1) throw new Error('This entry is not in the chat');
+    if (chat.withdrawn.includes(entryId)) throw new Error('This entry is already undone');
+    chat.live ??= chat.agent.run(chat.id, chat.settings, true, this.eventsFor(chat));
+    if (!chat.live.undo) throw new Error(`${chat.agent.info.name} can't undo`);
+    await chat.live.undo(entryId);
+
+    const undone = chat.entries
+      .slice(from)
+      .filter((entry) => entry.kind === 'user' && !chat.withdrawn.includes(entry.id))
+      .map((entry) => entry.id);
+    this.withdrawn.add(chatId, undone);
+    chat.withdrawn.push(...undone);
+    this.emit('agents.withdrawn', { chatId, withdrawn: [...chat.withdrawn] });
   }
 
   /** Takes a message out of the queue; false when it had already gone. */
@@ -241,6 +272,7 @@ export class AgentHub {
       entries,
       queued: [],
       plan: [],
+      withdrawn: [],
       pendingText: new Map(),
     };
     this.chats.set(id, chat);
@@ -249,9 +281,10 @@ export class AgentHub {
 
   private sendTo(chat: ChatState, text: string, resume: boolean): void {
     chat.live ??= chat.agent.run(chat.id, chat.settings, resume, this.eventsFor(chat));
-    this.upsert(chat, { kind: 'user', id: randomUUID(), text });
+    const id = randomUUID();
+    this.upsert(chat, { kind: 'user', id, text });
     if (chat.status === 'idle') this.setStatus(chat, 'thinking');
-    chat.live.send(text);
+    chat.live.send(text, id);
   }
 
   /** A turn ended: the next queued message goes. */
@@ -407,6 +440,7 @@ export class AgentHub {
       queued: [...chat.queued],
       ...(chat.context ? { context: chat.context } : {}),
       plan: chat.plan,
+      withdrawn: [...chat.withdrawn],
     };
   }
 

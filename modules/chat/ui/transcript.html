@@ -24,7 +24,14 @@
               <span class="time">{{ time(row.at) }}</span>
             }
             <span class="spacer"></span>
-            <button type="button" class="gr-link" aria-disabled="true">Undo</button>
+            <button
+              type="button"
+              class="gr-link"
+              [attr.aria-disabled]="canUndo(row) ? null : true"
+              (click)="undo(row)"
+            >
+              Undo
+            </button>
             <button type="button" class="gr-link" aria-disabled="true">Fork</button>
           </header>
           <p>
@@ -148,6 +155,8 @@
       <span class="detail failed">failed</span>
     } @else if (note.running) {
       <span class="detail">running…</span>
+    } @else if (note.withdrawn) {
+      <span class="detail">withdrawn</span>
     } @else if (note.counts) {
       <span class="detail">{{ note.counts }}</span>
     }

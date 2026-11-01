@@ -22,6 +22,7 @@ import { CommandRegistry } from './registry';
 import { AlreadyRunningError, startServer, type ServiceServer } from './server';
 import { Chapters } from './storage/chapters';
 import { openDatabase } from './storage/database';
+import { Withdrawn } from './storage/withdrawn';
 
 const { values } = parseArgs({
   options: {
@@ -56,7 +57,12 @@ let server: ServiceServer | undefined;
 const db = openDatabase(values.ephemeral ? ':memory:' : path.join(dataDir, 'grimoire.db'));
 registerLayout(registry, new LayoutStore(db));
 
-const hub = new AgentHub((event, payload) => server?.broadcast(event, payload), 50, new Chapters(db));
+const hub = new AgentHub(
+  (event, payload) => server?.broadcast(event, payload),
+  50,
+  new Chapters(db),
+  new Withdrawn(db),
+);
 const claude = new ClaudeAdapter();
 hub.addAdapter(claude);
 claude.warm();

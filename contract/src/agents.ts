@@ -200,6 +200,8 @@ export interface OpenChat {
   context?: ContextUsage;
   /** The agent's plan; empty until it makes one. */
   plan: PlanStep[];
+  /** Your entries whose file changes were undone; their edits show as withdrawn. */
+  withdrawn: string[];
 }
 
 declare module './commands' {
@@ -226,6 +228,11 @@ declare module './commands' {
     'agents.send': { request: { chatId: ChatId; text: string }; response: void };
     /** Changes a chat's model or permission; a running chat takes it from its next request. */
     'agents.configure': { request: { chatId: ChatId; change: SettingsChange }; response: void };
+    /**
+     * Restores the files to how they were before one of your entries, while
+     * the chat is idle. The edits of that entry and those after it are withdrawn.
+     */
+    'agents.undo': { request: { chatId: ChatId; entryId: string }; response: void };
     /** Takes a message out of the queue; false when it had already gone. */
     'agents.unqueue': { request: { chatId: ChatId; id: string }; response: boolean };
     /**
@@ -267,5 +274,7 @@ declare module './events' {
     'agents.settings': { chatId: ChatId; settings: ChatSettings };
     /** The agent changed its plan. */
     'agents.plan': { chatId: ChatId; plan: PlanStep[] };
+    /** Edits were undone: your entries whose file changes are now withdrawn. */
+    'agents.withdrawn': { chatId: ChatId; withdrawn: string[] };
   }
 }

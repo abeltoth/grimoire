@@ -37,6 +37,8 @@ export interface Chapter {
   context?: ContextUsage;
   /** The agent's plan, kept up to date as it works. */
   plan: readonly PlanStep[];
+  /** Your entries whose file changes were undone. */
+  withdrawn: readonly string[];
   /** Why the last turn failed, until the next message. */
   error?: string;
   /** When a blank chapter was opened, in ms since the epoch. */
@@ -119,6 +121,9 @@ export class Chats {
       this.update(chatId, (c) => ({ ...c, settings })),
     );
     this.listen('agents.plan', ({ chatId, plan }) => this.update(chatId, (c) => ({ ...c, plan })));
+    this.listen('agents.withdrawn', ({ chatId, withdrawn }) =>
+      this.update(chatId, (c) => ({ ...c, withdrawn })),
+    );
     this.bridge.invoke('agents.list', {}).then(
       (agents) => {
         this.agents.set(agents ?? []);
@@ -211,6 +216,7 @@ export class Chats {
       approvals: [],
       queued: [],
       plan: [],
+      withdrawn: [],
       begunAt: Date.now(),
     };
     this.all.update((all) => [...all, blank]);
@@ -269,6 +275,12 @@ export class Chats {
       this.fail(id, error);
       return [];
     }
+  }
+
+  /** Restores the files to how they were before one of your entries. */
+  async undo(id: string, entryId: string): Promise<void> {
+    this.update(id, ({ error: _, ...c }) => c);
+    return this.settle(id, this.bridge.invoke('agents.undo', { chatId: id, entryId }));
   }
 
   /** Takes a message out of the queue; false when it had already gone. */
@@ -372,6 +384,7 @@ function fromOpenChat(chat: OpenChat): Chapter {
     approvals: chat.approvals,
     queued: chat.queued,
     plan: chat.plan ?? [],
+    withdrawn: chat.withdrawn ?? [],
     ...(chat.context ? { context: chat.context } : {}),
   };
 }

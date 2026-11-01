@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { LayoutStore } from '../core/layout';
 import { Chapters } from './chapters';
 import { openDatabase } from './database';
+import { Withdrawn } from './withdrawn';
 
 const dirs: string[] = [];
 afterEach(() => {
@@ -32,6 +33,15 @@ describe('storage', () => {
       { chatId: 'c', agent: 'claude-code', settings: { cwd: '/three' } },
     ]);
     again.close();
+  });
+
+  it('keeps undone entries per chat, in the order they were undone', () => {
+    const withdrawn = new Withdrawn(openDatabase(':memory:'));
+    withdrawn.add('a', ['u2', 'u3']);
+    withdrawn.add('b', ['u9']);
+    withdrawn.add('a', ['u3', 'u1']);
+    expect(withdrawn.list('a')).toEqual(['u2', 'u3', 'u1']);
+    expect(withdrawn.list('c')).toEqual([]);
   });
 
   it('remembers the layout, and only what it knows', () => {

@@ -16,6 +16,8 @@ export interface Note {
   failed: boolean;
   /** Lines added and removed, such as "+24 −3", when the tool changed a file. */
   counts?: string;
+  /** The change was undone. */
+  withdrawn?: boolean;
   /** The details, folded out only when you ask. */
   fold?: Fold;
 }
@@ -25,14 +27,13 @@ export interface Note {
  * the margin, the notes for the tools the agent used before writing it.
  */
 export type Row =
-  | { kind: 'you'; key: string; text: string; at?: number }
+  | { kind: 'you'; key: string; text: string; at?: number; withdrawn: boolean }
   | { kind: 'thinking'; key: string; text: string }
   | { kind: 'reply'; key: string; text: string; byline: boolean; at?: number; notes: Note[] }
   | { kind: 'notes'; key: string; notes: Note[] };
 
 const MARKS = ['*', '†', '‡', '§', '‖', '¶'];
 
-/** Lays out a transcript: your entries, the agent's replies, and its tools as margin notes. */
 // The plan shows in the Outline; ToolSearch only loads other tools.
 const UNNOTED_TOOLS = new Set([
   'TaskCreate',
@@ -43,11 +44,20 @@ const UNNOTED_TOOLS = new Set([
   'ToolSearch',
 ]);
 
-export function toRows(entries: readonly Entry[], cwd?: string): Row[] {
+/**
+ * Lays out a transcript: your entries, the agent's replies, and its tools as
+ * margin notes. The file changes made after a `withdrawn` entry are marked so.
+ */
+export function toRows(
+  entries: readonly Entry[],
+  cwd?: string,
+  withdrawn: ReadonlySet<string> = new Set(),
+): Row[] {
   const rows: Row[] = [];
   let pending: Note[] = [];
   let marks = 0;
   let bylined = false;
+  let undone = false;
 
   const flushNotes = () => {
     if (pending.length)
@@ -63,7 +73,9 @@ export function toRows(entries: readonly Entry[], cwd?: string): Row[] {
         key: entry.id,
         text: entry.text,
         ...(entry.at ? { at: entry.at } : {}),
+        withdrawn: withdrawn.has(entry.id),
       });
+      undone = withdrawn.has(entry.id);
       marks = 0;
       bylined = false;
       continue;
@@ -72,14 +84,13 @@ export function toRows(entries: readonly Entry[], cwd?: string): Row[] {
       const key = `${entry.id}/${i}`;
       if (block.kind === 'tool') {
         if (UNNOTED_TOOLS.has(block.tool)) return;
-        pending.push(
-          toNote(
-            key,
-            block,
-            MARKS[marks % MARKS.length]!.repeat(1 + Math.floor(marks / MARKS.length)),
-            cwd,
-          ),
+        const note = toNote(
+          key,
+          block,
+          MARKS[marks % MARKS.length]!.repeat(1 + Math.floor(marks / MARKS.length)),
+          cwd,
         );
+        pending.push(undone && note.counts ? { ...note, withdrawn: true } : note);
         marks++;
       } else if (block.kind === 'thinking') {
         rows.push({ kind: 'thinking', key, text: block.text });

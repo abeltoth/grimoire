@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { randomUUID, type UUID } from 'node:crypto';
 import type {
   CanUseTool,
   PermissionMode,
@@ -103,6 +103,8 @@ export class ClaudeAdapter implements AgentAdapter {
           // Lets you pick Full access, now or later; it doesn't skip any asking by itself.
           allowDangerouslySkipPermissions: true,
           includePartialMessages: true,
+          // Undo restores files from these checkpoints.
+          enableFileCheckpointing: true,
           env: ENV,
           ...(resume ? { resume: chatId } : { sessionId: chatId }),
           canUseTool: approvalsTo(async () => events),
@@ -120,11 +122,12 @@ export class ClaudeAdapter implements AgentAdapter {
   async start(
     settings: ChatSettings,
     text: string,
+    id: string,
     bind: (chatId: ChatId) => ChatEvents,
   ): Promise<LiveChat> {
     const spare = this.takeSpare();
     try {
-      if (spare) return await this.claim(spare, settings, text, bind);
+      if (spare) return await this.claim(spare, settings, text, id, bind);
     } catch {
       // Refused, or the spare died: start the usual way.
     } finally {
@@ -132,7 +135,7 @@ export class ClaudeAdapter implements AgentAdapter {
     }
     const chatId = randomUUID();
     const live = this.run(chatId, settings, false, bind(chatId));
-    live.send(text);
+    live.send(text, id);
     return live;
   }
 
@@ -147,6 +150,7 @@ export class ClaudeAdapter implements AgentAdapter {
             includePartialMessages: true,
             permissionMode: MODES.ask,
             allowDangerouslySkipPermissions: true,
+            enableFileCheckpointing: true,
             env: ENV,
             canUseTool: approvalsTo(() => claimedBy.promise),
           },
@@ -176,11 +180,12 @@ export class ClaudeAdapter implements AgentAdapter {
     spare: Spare,
     settings: ChatSettings,
     text: string,
+    id: string,
     bind: (chatId: ChatId) => ChatEvents,
   ): Promise<LiveChat> {
     const process = await spare.process;
     const input = new MessageQueue<SDKUserMessage>();
-    input.push(userMessage(text));
+    input.push(userMessage(text, id));
     const query = process.claim({
       prompt: input,
       options: {
@@ -236,7 +241,7 @@ export class ClaudeAdapter implements AgentAdapter {
     })();
 
     return {
-      send: (text) => input.push(userMessage(text)),
+      send: (text, id) => input.push(userMessage(text, id)),
       interrupt: async () => {
         await (await started).interrupt();
       },
@@ -244,6 +249,10 @@ export class ClaudeAdapter implements AgentAdapter {
         const live = await started;
         if (model) await live.setModel(model);
         if (mode) await live.setPermissionMode(MODES[mode]);
+      },
+      undo: async (entryId) => {
+        const result = await (await started).rewindFiles(entryId);
+        if (!result.canRewind) throw new Error(result.error ?? "Claude Code can't undo this entry");
       },
       close: () => {
         input.end();
@@ -283,8 +292,15 @@ class Deferred<T> {
   readonly promise = new Promise<T>((resolve) => (this.resolve = resolve));
 }
 
-function userMessage(text: string): SDKUserMessage {
-  return { type: 'user', message: { role: 'user', content: text }, parent_tool_use_id: null };
+/** Your message, under its entry's ID: Claude Code keeps it, and undoes by it. */
+function userMessage(text: string, uuid: string): SDKUserMessage {
+  // The hub makes entry IDs with randomUUID().
+  return {
+    type: 'user',
+    uuid: uuid as UUID,
+    message: { role: 'user', content: text },
+    parent_tool_use_id: null,
+  };
 }
 
 /** Asks the chat's events for each approval, and answers Claude Code the way it expects. */
