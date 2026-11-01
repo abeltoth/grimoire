@@ -33,6 +33,16 @@ export type Row =
 const MARKS = ['*', '†', '‡', '§', '‖', '¶'];
 
 /** Lays out a transcript: your entries, the agent's replies, and its tools as margin notes. */
+// The plan shows in the Outline; ToolSearch only loads other tools.
+const UNNOTED_TOOLS = new Set([
+  'TaskCreate',
+  'TaskUpdate',
+  'TaskGet',
+  'TaskList',
+  'TodoWrite',
+  'ToolSearch',
+]);
+
 export function toRows(entries: readonly Entry[], cwd?: string): Row[] {
   const rows: Row[] = [];
   let pending: Note[] = [];
@@ -61,6 +71,7 @@ export function toRows(entries: readonly Entry[], cwd?: string): Row[] {
     entry.blocks.forEach((block, i) => {
       const key = `${entry.id}/${i}`;
       if (block.kind === 'tool') {
+        if (UNNOTED_TOOLS.has(block.tool)) return;
         pending.push(
           toNote(
             key,
@@ -152,8 +163,6 @@ function describe(
     case 'Task':
     case 'Agent':
       return ['Asked a helper', text('description')];
-    case 'TodoWrite':
-      return ['Updated the plan', ''];
     case 'AskUserQuestion':
       return ['Asked you', ''];
     default:

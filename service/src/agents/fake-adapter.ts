@@ -5,9 +5,10 @@ import type {
   ChatSettings,
   ChatSummary,
   Entry,
+  PlanStep,
   SettingsChange,
 } from '@grimoire/contract';
-import type { AgentAdapter, ChatEvents, LiveChat } from './adapter';
+import type { AgentAdapter, ChatEvents, ChatHistory, LiveChat } from './adapter';
 
 /** A run of the fake agent, which a test drives through `events`. */
 export interface FakeRun {
@@ -27,15 +28,19 @@ export class FakeAdapter implements AgentAdapter {
   readonly runs: FakeRun[] = [];
   chats: ChatSummary[] = [];
   transcripts = new Map<ChatId, Entry[]>();
+  plans = new Map<ChatId, PlanStep[]>();
   transcriptLoads = 0;
 
   async listChats(cwd?: string): Promise<ChatSummary[]> {
     return this.chats.filter((chat) => !cwd || chat.cwd === cwd);
   }
 
-  async transcript(chatId: ChatId): Promise<Entry[]> {
+  async history(chatId: ChatId): Promise<ChatHistory> {
     this.transcriptLoads++;
-    return structuredClone(this.transcripts.get(chatId) ?? []);
+    return structuredClone({
+      entries: this.transcripts.get(chatId) ?? [],
+      plan: this.plans.get(chatId) ?? [],
+    });
   }
 
   async title(chatId: ChatId): Promise<string> {

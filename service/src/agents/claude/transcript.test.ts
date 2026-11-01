@@ -110,6 +110,7 @@ describe('ClaudeTranscript', () => {
       entry: () => {},
       text: (entryId, block, text) => texts.push(`${entryId}/${block}: ${text}`),
       status: (status) => statuses.push(status),
+      plan: () => {},
     });
     for (const message of live) transcript.apply(message);
 
@@ -133,6 +134,41 @@ describe('ClaudeTranscript', () => {
       { kind: 'user', id: 'u1', text: 'Run echo hi' },
       ...expected,
     ]);
+  });
+
+  it('keeps the plan from Claude Code\'s task tools, once they succeed', () => {
+    const plans: string[][] = [];
+    const transcript = new ClaudeTranscript(false, {
+      entry: () => {},
+      text: () => {},
+      status: () => {},
+      plan: (plan) => plans.push(plan.map((step) => `${step.text}: ${step.status}`)),
+    });
+    let n = 0;
+    const call = (name: string, input: object, result: string, isError = false) => {
+      const id = `toolu_t${++n}`;
+      transcript.apply(assistant(`msg_t${n}`, { type: 'tool_use', id, name, input }));
+      transcript.apply({
+        type: 'user',
+        parent_tool_use_id: null,
+        message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: id, content: result, is_error: isError }] },
+      });
+    };
+    call('TaskCreate', { subject: 'Read the composer', activeForm: 'Reading the composer' }, 'Task #1 created successfully: Read the composer');
+    call('TaskCreate', { subject: 'Run the tests' }, 'Task #2 created successfully: Run the tests');
+    call('TaskCreate', { subject: 'Refused' }, 'Error', true);
+    call('TaskUpdate', { taskId: '1', status: 'in_progress' }, 'Updated task #1 status');
+    call('TaskUpdate', { taskId: '1', status: 'completed' }, 'Updated task #1 status');
+    call('TaskUpdate', { taskId: '2', subject: 'Run the composer tests' }, 'Updated task #2');
+    call('PowerShell', { command: 'echo hi' }, 'hi');
+
+    expect(plans.at(-1)).toEqual(['Read the composer: done', 'Run the composer tests: pending']);
+    expect(plans).toHaveLength(5);
+    expect(transcript.plan[0]).toEqual({ text: 'Read the composer', status: 'done', activeText: 'Reading the composer' });
+
+    call('TaskUpdate', { taskId: '1', status: 'deleted' }, 'Updated task #1 deleted');
+    call('TodoWrite', { todos: [{ content: 'Only step', status: 'in_progress', activeForm: 'Doing it' }] }, 'ok');
+    expect(transcript.plan).toEqual([{ text: 'Only step', status: 'active', activeText: 'Doing it' }]);
   });
 
   it('leaves out what a subagent does inside a tool call', () => {

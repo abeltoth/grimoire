@@ -1,4 +1,12 @@
-import type { AgentEntry, Block, ChatStatus, Entry, ToolResult } from '@grimoire/contract';
+import type {
+  AgentEntry,
+  Block,
+  ChatStatus,
+  Entry,
+  PlanStep,
+  ToolBlock,
+  ToolResult,
+} from '@grimoire/contract';
 
 /** The parts of Claude Code's messages the transcript reads; live and saved messages share them. */
 export interface ClaudeMessage {
@@ -38,7 +46,14 @@ export interface TranscriptListener {
   entry(entry: Entry): void;
   text(entryId: string, block: number, text: string): void;
   status(status: Exclude<ChatStatus, 'idle' | 'waiting'>): void;
+  plan(plan: PlanStep[]): void;
 }
+
+const PLAN_STATUS: Record<string, PlanStep['status']> = {
+  pending: 'pending',
+  in_progress: 'active',
+  completed: 'done',
+};
 
 /**
  * Builds the agent-neutral transcript from Claude Code's messages: those
@@ -46,13 +61,16 @@ export interface TranscriptListener {
  *
  * Claude Code sends each content block of a reply as its own assistant
  * message, sharing the API message ID, after the block's streamed deltas.
- * Tool results come back as user messages.
+ * Tool results come back as user messages. Its task tools (TaskCreate,
+ * TaskUpdate, or the older TodoWrite) keep the plan, once they succeed.
  */
 export class ClaudeTranscript {
   readonly entries: Entry[] = [];
   /** Per API message ID: where each streamed block index landed in the entry's blocks. */
   private readonly positions = new Map<string, Map<number, number>>();
   private streamingIndex: number | undefined;
+  /** The plan's steps by Claude Code's task ID, in the order it made them. */
+  private readonly tasks = new Map<string, PlanStep>();
 
   /**
    * @param live Your own messages aren't echoed back live; the hub adds them as you send.
@@ -61,6 +79,10 @@ export class ClaudeTranscript {
     private readonly live: boolean,
     private readonly listener?: TranscriptListener,
   ) {}
+
+  get plan(): PlanStep[] {
+    return [...this.tasks.values()].map((step) => ({ ...step }));
+  }
 
   apply(message: ClaudeMessage): void {
     // Messages inside a subagent's run belong to its tool call, not the chat.
@@ -146,7 +168,51 @@ export class ClaudeTranscript {
       if (tool?.kind !== 'tool') continue;
       tool.result = toolResult(block);
       this.listener?.entry(entry);
+      if (!tool.result.isError && this.applyPlan(tool)) this.listener?.plan(this.plan);
       return;
+    }
+  }
+
+  /** Applies a task tool's change to the plan; false for other tools. */
+  private applyPlan(tool: ToolBlock): boolean {
+    const input = (tool.input ?? {}) as Record<string, unknown>;
+    const text = (key: string) => (typeof input[key] === 'string' ? input[key] : undefined);
+    switch (tool.tool) {
+      case 'TaskCreate': {
+        const id = /#(\d+)/.exec(tool.result?.text ?? '')?.[1];
+        const subject = text('subject');
+        if (!id || !subject) return false;
+        const activeText = text('activeForm');
+        this.tasks.set(id, { text: subject, status: 'pending', ...(activeText ? { activeText } : {}) });
+        return true;
+      }
+      case 'TaskUpdate': {
+        const id = text('taskId');
+        const step = id && this.tasks.get(id);
+        if (!step) return false;
+        if (input['status'] === 'deleted') return this.tasks.delete(id);
+        const status = PLAN_STATUS[text('status') ?? ''];
+        if (status) step.status = status;
+        step.text = text('subject') ?? step.text;
+        const activeText = text('activeForm');
+        if (activeText) step.activeText = activeText;
+        return true;
+      }
+      case 'TodoWrite': {
+        const todos = Array.isArray(input['todos']) ? (input['todos'] as Record<string, unknown>[]) : [];
+        this.tasks.clear();
+        todos.forEach((todo, i) => {
+          if (typeof todo['content'] !== 'string') return;
+          this.tasks.set(String(i), {
+            text: todo['content'],
+            status: PLAN_STATUS[String(todo['status'])] ?? 'pending',
+            ...(typeof todo['activeForm'] === 'string' ? { activeText: todo['activeForm'] } : {}),
+          });
+        });
+        return true;
+      }
+      default:
+        return false;
     }
   }
 

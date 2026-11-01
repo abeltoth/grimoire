@@ -170,6 +170,14 @@ export interface ContextUsage {
   limit: number;
 }
 
+/** One step of the agent's plan for the chat, which it keeps up to date as it works. */
+export interface PlanStep {
+  text: string;
+  status: 'pending' | 'active' | 'done';
+  /** What the agent says while it works on it, such as "Running the tests". */
+  activeText?: string;
+}
+
 /** A message you sent while a turn ran: it waits until the turn ends. */
 export interface QueuedEntry {
   id: string;
@@ -190,6 +198,8 @@ export interface OpenChat {
   queued: QueuedEntry[];
   /** Missing until the agent reports it. */
   context?: ContextUsage;
+  /** The agent's plan; empty until it makes one. */
+  plan: PlanStep[];
 }
 
 declare module './commands' {
@@ -255,5 +265,7 @@ declare module './events' {
     'agents.context': { chatId: ChatId; context: ContextUsage };
     /** The chat's settings changed. */
     'agents.settings': { chatId: ChatId; settings: ChatSettings };
+    /** The agent changed its plan. */
+    'agents.plan': { chatId: ChatId; plan: PlanStep[] };
   }
 }

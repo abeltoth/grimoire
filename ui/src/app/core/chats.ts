@@ -14,6 +14,7 @@ import type {
   EventPayload,
   NewChatSettings,
   OpenChat,
+  PlanStep,
   QueuedEntry,
   RecentFolders,
 } from '@grimoire/contract';
@@ -34,6 +35,8 @@ export interface Chapter {
   queued: readonly QueuedEntry[];
   /** How full the context window is, once the agent reports it. */
   context?: ContextUsage;
+  /** The agent's plan, kept up to date as it works. */
+  plan: readonly PlanStep[];
   /** Why the last turn failed, until the next message. */
   error?: string;
   /** When a blank chapter was opened, in ms since the epoch. */
@@ -115,6 +118,7 @@ export class Chats {
     this.listen('agents.settings', ({ chatId, settings }) =>
       this.update(chatId, (c) => ({ ...c, settings })),
     );
+    this.listen('agents.plan', ({ chatId, plan }) => this.update(chatId, (c) => ({ ...c, plan })));
     this.bridge.invoke('agents.list', {}).then(
       (agents) => {
         this.agents.set(agents ?? []);
@@ -206,6 +210,7 @@ export class Chats {
       entries: [],
       approvals: [],
       queued: [],
+      plan: [],
       begunAt: Date.now(),
     };
     this.all.update((all) => [...all, blank]);
@@ -366,6 +371,7 @@ function fromOpenChat(chat: OpenChat): Chapter {
     entries: chat.entries,
     approvals: chat.approvals,
     queued: chat.queued,
+    plan: chat.plan ?? [],
     ...(chat.context ? { context: chat.context } : {}),
   };
 }

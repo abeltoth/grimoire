@@ -17,6 +17,7 @@ import type {
   EventPayload,
   NewChatSettings,
   OpenChat,
+  PlanStep,
   QueuedEntry,
   RecentFolders,
   SettingsChange,
@@ -38,6 +39,7 @@ interface ChatState {
   queued: QueuedEntry[];
   /** How full the context window is, once the agent reports it. */
   context?: ContextUsage;
+  plan: PlanStep[];
   /** While the agent process runs. */
   live?: LiveChat;
   /** Streamed text not sent to windows yet, per entry and block. */
@@ -113,12 +115,13 @@ export class AgentHub {
     let chat = this.chats.get(chatId);
     if (!chat) {
       const adapter = this.adapter(agent);
-      const [entries, title] = await Promise.all([
-        adapter.transcript(chatId, settings.cwd),
+      const [history, title] = await Promise.all([
+        adapter.history(chatId, settings.cwd),
         adapter.title(chatId, settings.cwd),
       ]);
       // Another window may have opened it meanwhile.
-      chat = this.chats.get(chatId) ?? this.track(chatId, adapter, settings, entries, title);
+      chat = this.chats.get(chatId) ?? this.track(chatId, adapter, settings, history.entries, title);
+      chat.plan = history.plan;
     }
     this.chapters.add({ chatId, agent, settings: chat.settings });
     return this.snapshot(chat);
@@ -237,6 +240,7 @@ export class AgentHub {
       status: 'idle',
       entries,
       queued: [],
+      plan: [],
       pendingText: new Map(),
     };
     this.chats.set(id, chat);
@@ -290,6 +294,11 @@ export class AgentHub {
         if (!current()) return;
         chat.context = context;
         this.emit('agents.context', { chatId: chat.id, context });
+      },
+      plan: (plan) => {
+        if (!current()) return;
+        chat.plan = plan;
+        this.emit('agents.plan', { chatId: chat.id, plan });
       },
       title: (title) => {
         if (!current() || title === chat.title) return;
@@ -397,6 +406,7 @@ export class AgentHub {
         .map((pending) => pending.approval),
       queued: [...chat.queued],
       ...(chat.context ? { context: chat.context } : {}),
+      plan: chat.plan,
     };
   }
 

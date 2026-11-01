@@ -10,6 +10,7 @@ import type {
   ChatSummary,
   ContextUsage,
   Entry,
+  PlanStep,
   SettingsChange,
 } from '@grimoire/contract';
 
@@ -18,7 +19,8 @@ export interface AgentAdapter {
   readonly info: AgentInfo;
   /** The agent's chats, most recent first. */
   listChats(cwd?: string): Promise<ChatSummary[]>;
-  transcript(chatId: ChatId, cwd: string): Promise<Entry[]>;
+  /** A saved chat: its transcript, and the plan as the agent last left it. */
+  history(chatId: ChatId, cwd: string): Promise<ChatHistory>;
   /** The chat's title; empty until the agent names it. */
   title(chatId: ChatId, cwd: string): Promise<string>;
   models(): Promise<AgentModels>;
@@ -37,6 +39,11 @@ export interface AgentAdapter {
   warm?(): void;
   /** Stops any spare process, for when the service stops. */
   dispose?(): void;
+}
+
+export interface ChatHistory {
+  entries: Entry[];
+  plan: PlanStep[];
 }
 
 /** A chat whose agent process is running. */
@@ -63,6 +70,8 @@ export interface ChatEvents {
   title(title: string): void;
   /** How much of the context window the chat now fills. */
   context(usage: ContextUsage): void;
+  /** The agent changed its plan. */
+  plan(plan: PlanStep[]): void;
   turnEnded(error?: string): void;
   /** The agent process ended, on close() or by itself. */
   closed(error?: string): void;

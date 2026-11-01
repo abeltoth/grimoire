@@ -30,6 +30,8 @@ export interface FacingPageEntry extends Entry {
   label: string;
   /** Without it the tab shows but can't be picked yet. */
   component?: Type<unknown>;
+  /** A line for the running foot while it shows, such as "3 of 5 done". */
+  foot?: () => string;
 }
 
 /** A status in the chapter's running foot, such as the git branch. */

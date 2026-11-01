@@ -1,6 +1,5 @@
 import type { EnvironmentProviders } from '@angular/core';
 import { provideShellEntries } from '../shell/shell-registry';
-import { OutlinePlaceholder } from './outline-placeholder';
 
 /**
  * Entries for features that aren't built yet, as screen 1 shows them. Each
@@ -22,12 +21,6 @@ export function providePlaceholders(): EnvironmentProviders {
       shell.thumbs.add({ id: label.toLowerCase().replaceAll(' ', '-'), label, order: i * 10 }),
     );
 
-    shell.facingPages.add({
-      id: 'outline',
-      label: 'Outline',
-      order: 10,
-      component: OutlinePlaceholder,
-    });
     shell.facingPages.add({ id: 'files', label: 'Files', order: 20 });
     shell.facingPages.add({ id: 'git', label: 'Git', order: 30 });
     shell.facingPages.add({ id: 'second-chapter', label: 'Second chapter', order: 40 });
