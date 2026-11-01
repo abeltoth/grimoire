@@ -1,0 +1,261 @@
+import { randomUUID } from 'node:crypto';
+import type {
+  AgentId,
+  AgentInfo,
+  Approval,
+  ApprovalDecision,
+  ChatId,
+  ChatSettings,
+  ChatStatus,
+  ChatSummary,
+  Entry,
+  EventName,
+  EventPayload,
+  OpenChat,
+} from '@grimoire/contract';
+import type { AgentAdapter, ChatEvents, LiveChat } from './adapter';
+
+export type Emit = <K extends EventName>(event: K, payload: EventPayload<K>) => void;
+
+interface ChatState {
+  id: ChatId;
+  agent: AgentAdapter;
+  settings: ChatSettings;
+  status: ChatStatus;
+  entries: Entry[];
+  /** While the agent process runs. */
+  live?: LiveChat;
+  /** Streamed text not sent to windows yet, per entry and block. */
+  pendingText: Map<string, { entryId: string; block: number; text: string }>;
+  flushTimer?: NodeJS.Timeout;
+}
+
+interface PendingApproval {
+  approval: Approval;
+  resolve: (decision: ApprovalDecision) => void;
+}
+
+/**
+ * The agent hub (ADR-007): the open chats, their transcripts and pending
+ * approvals, kept in memory (ADR-009). Windows are views of it: they get
+ * a chat's state when they open it and its changes as events. Streamed
+ * text is batched, at most one event per chat every `textBatchMs`.
+ */
+export class AgentHub {
+  private readonly adapters = new Map<AgentId, AgentAdapter>();
+  private readonly chats = new Map<ChatId, ChatState>();
+  private readonly approvals = new Map<string, PendingApproval>();
+
+  constructor(
+    private readonly emit: Emit,
+    private readonly textBatchMs = 50,
+  ) {}
+
+  addAdapter(adapter: AgentAdapter): void {
+    this.adapters.set(adapter.info.id, adapter);
+  }
+
+  agents(): AgentInfo[] {
+    return [...this.adapters.values()].map((adapter) => adapter.info);
+  }
+
+  listChats(agent: AgentId, cwd?: string): Promise<ChatSummary[]> {
+    return this.adapter(agent).listChats(cwd);
+  }
+
+  async open(agent: AgentId, chatId: ChatId, settings: ChatSettings): Promise<OpenChat> {
+    let chat = this.chats.get(chatId);
+    if (!chat) {
+      const adapter = this.adapter(agent);
+      const entries = await adapter.transcript(chatId, settings.cwd);
+      // Another window may have opened it meanwhile.
+      chat = this.chats.get(chatId) ?? this.track(chatId, adapter, settings, entries);
+    }
+    return this.snapshot(chat);
+  }
+
+  start(agent: AgentId, settings: ChatSettings, text: string): OpenChat {
+    const chat = this.track(randomUUID(), this.adapter(agent), settings, []);
+    this.sendTo(chat, text, false);
+    return this.snapshot(chat);
+  }
+
+  send(chatId: ChatId, text: string): void {
+    this.sendTo(this.chat(chatId), text, true);
+  }
+
+  async interrupt(chatId: ChatId): Promise<void> {
+    await this.chat(chatId).live?.interrupt();
+  }
+
+  decide(approvalId: string, decision: ApprovalDecision): void {
+    const pending = this.approvals.get(approvalId);
+    if (!pending) throw new Error('This approval is no longer pending');
+    this.settle(pending, decision);
+  }
+
+  close(chatId: ChatId): void {
+    const chat = this.chats.get(chatId);
+    if (!chat) return;
+    this.chats.delete(chatId);
+    this.settleAll(chat);
+    chat.live?.close();
+    clearTimeout(chat.flushTimer);
+  }
+
+  /** Closes every chat, for when the service stops. */
+  closeAll(): void {
+    for (const id of [...this.chats.keys()]) this.close(id);
+  }
+
+  private track(
+    id: ChatId,
+    agent: AgentAdapter,
+    settings: ChatSettings,
+    entries: Entry[],
+  ): ChatState {
+    const chat: ChatState = {
+      id,
+      agent,
+      settings,
+      status: 'idle',
+      entries,
+      pendingText: new Map(),
+    };
+    this.chats.set(id, chat);
+    return chat;
+  }
+
+  private sendTo(chat: ChatState, text: string, resume: boolean): void {
+    chat.live ??= chat.agent.run(chat.id, chat.settings, resume, this.eventsFor(chat));
+    this.upsert(chat, { kind: 'user', id: randomUUID(), text });
+    if (chat.status === 'idle') this.setStatus(chat, 'thinking');
+    chat.live.send(text);
+  }
+
+  private eventsFor(chat: ChatState): ChatEvents {
+    // Events from a process that was closed, or replaced, are dropped.
+    const current = () => this.chats.get(chat.id) === chat;
+    return {
+      status: (status) => {
+        if (current() && !this.hasApprovals(chat)) this.setStatus(chat, status);
+      },
+      entry: (entry) => {
+        if (current()) this.upsert(chat, entry);
+      },
+      text: (entryId, block, text) => {
+        if (current()) this.appendText(chat, entryId, block, text);
+      },
+      approval: (request, signal) =>
+        new Promise<ApprovalDecision>((resolve) => {
+          if (!current() || signal.aborted) return resolve('deny');
+          const approval: Approval = { ...request, chatId: chat.id };
+          const pending: PendingApproval = { approval, resolve };
+          this.approvals.set(approval.id, pending);
+          signal.addEventListener('abort', () => this.settle(pending, 'deny'), { once: true });
+          this.flush(chat);
+          this.emit('agents.approval', { approval });
+          this.setStatus(chat, 'waiting');
+        }),
+      turnEnded: (error) => {
+        if (!current()) return;
+        this.settleAll(chat);
+        this.setStatus(chat, 'idle');
+        this.emit('agents.turnEnded', { chatId: chat.id, ...(error ? { error } : {}) });
+      },
+      closed: (error) => {
+        if (!current()) return;
+        chat.live = undefined;
+        this.settleAll(chat);
+        if (chat.status !== 'idle') {
+          this.setStatus(chat, 'idle');
+          this.emit('agents.turnEnded', { chatId: chat.id, error: error ?? 'The agent stopped' });
+        }
+      },
+    };
+  }
+
+  private upsert(chat: ChatState, update: Entry): void {
+    this.flush(chat);
+    // A copy: the hub appends streamed text to its own entries.
+    const entry = structuredClone(update);
+    const index = chat.entries.findIndex((existing) => existing.id === entry.id);
+    if (index === -1) chat.entries.push(entry);
+    else chat.entries[index] = entry;
+    this.emit('agents.entry', { chatId: chat.id, entry });
+  }
+
+  private appendText(chat: ChatState, entryId: string, block: number, text: string): void {
+    const entry = chat.entries.find((existing) => existing.id === entryId);
+    const target = entry?.kind === 'agent' ? entry.blocks[block] : undefined;
+    if (!target || target.kind === 'tool') return;
+    target.text += text;
+
+    const key = `${entryId}/${block}`;
+    const pending = chat.pendingText.get(key);
+    if (pending) pending.text += text;
+    else chat.pendingText.set(key, { entryId, block, text });
+    chat.flushTimer ??= setTimeout(() => this.flush(chat), this.textBatchMs);
+  }
+
+  /** Sends the batched text now, so it arrives before the next event. */
+  private flush(chat: ChatState): void {
+    clearTimeout(chat.flushTimer);
+    chat.flushTimer = undefined;
+    for (const pending of chat.pendingText.values())
+      this.emit('agents.text', { chatId: chat.id, ...pending });
+    chat.pendingText.clear();
+  }
+
+  private setStatus(chat: ChatState, status: ChatStatus): void {
+    if (chat.status === status) return;
+    this.flush(chat);
+    chat.status = status;
+    this.emit('agents.status', { chatId: chat.id, status });
+  }
+
+  private settle(pending: PendingApproval, decision: ApprovalDecision): void {
+    const { approval } = pending;
+    if (!this.approvals.delete(approval.id)) return;
+    pending.resolve(decision);
+    this.emit('agents.approvalSettled', { chatId: approval.chatId, approvalId: approval.id });
+    const chat = this.chats.get(approval.chatId);
+    if (chat && chat.status === 'waiting' && !this.hasApprovals(chat))
+      this.setStatus(chat, 'thinking');
+  }
+
+  private settleAll(chat: ChatState): void {
+    for (const pending of [...this.approvals.values()]) {
+      if (pending.approval.chatId === chat.id) this.settle(pending, 'deny');
+    }
+  }
+
+  private hasApprovals(chat: ChatState): boolean {
+    return [...this.approvals.values()].some((pending) => pending.approval.chatId === chat.id);
+  }
+
+  private snapshot(chat: ChatState): OpenChat {
+    this.flush(chat);
+    return {
+      id: chat.id,
+      agent: chat.agent.info.id,
+      status: chat.status,
+      entries: structuredClone(chat.entries),
+      approvals: [...this.approvals.values()]
+        .filter((pending) => pending.approval.chatId === chat.id)
+        .map((pending) => pending.approval),
+    };
+  }
+
+  private adapter(agent: AgentId): AgentAdapter {
+    const adapter = this.adapters.get(agent);
+    if (!adapter) throw new Error(`Unknown agent: ${agent}`);
+    return adapter;
+  }
+
+  private chat(chatId: ChatId): ChatState {
+    const chat = this.chats.get(chatId);
+    if (!chat) throw new Error('This chat is not open');
+    return chat;
+  }
+}
