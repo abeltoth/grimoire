@@ -10,6 +10,7 @@ import type {
   ChatSettings,
   ChatStatus,
   ChatSummary,
+  ContextUsage,
   Entry,
   EventName,
   EventPayload,
@@ -30,6 +31,8 @@ interface ChatState {
   entries: Entry[];
   /** Messages you sent while a turn ran; the next goes when it ends. */
   queued: QueuedEntry[];
+  /** How full the context window is, once the agent reports it. */
+  context?: ContextUsage;
   /** While the agent process runs. */
   live?: LiveChat;
   /** Streamed text not sent to windows yet, per entry and block. */
@@ -212,6 +215,11 @@ export class AgentHub {
           this.emit('agents.approval', { approval });
           this.setStatus(chat, 'waiting');
         }),
+      context: (context) => {
+        if (!current()) return;
+        chat.context = context;
+        this.emit('agents.context', { chatId: chat.id, context });
+      },
       title: (title) => {
         if (!current() || title === chat.title) return;
         chat.title = title;
@@ -317,6 +325,7 @@ export class AgentHub {
         .filter((pending) => pending.approval.chatId === chat.id)
         .map((pending) => pending.approval),
       queued: [...chat.queued],
+      ...(chat.context ? { context: chat.context } : {}),
     };
   }
 

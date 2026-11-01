@@ -7,6 +7,7 @@ import type {
   ChatSettings,
   ChatStatus,
   ChatSummary,
+  ContextUsage,
   Entry,
 } from '@grimoire/contract';
 
@@ -45,6 +46,8 @@ export interface ChatEvents {
   approval(request: ApprovalRequest, signal: AbortSignal): Promise<Verdict>;
   /** The agent named or renamed the chat. */
   title(title: string): void;
+  /** How much of the context window the chat now fills. */
+  context(usage: ContextUsage): void;
   turnEnded(error?: string): void;
   /** The agent process ended, on close() or by itself. */
   closed(error?: string): void;

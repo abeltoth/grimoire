@@ -1,5 +1,13 @@
-import { Component, ElementRef, inject, input, linkedSignal, viewChild } from '@angular/core';
-import type { QueuedEntry } from '@grimoire/contract';
+import {
+  Component,
+  ElementRef,
+  computed,
+  inject,
+  input,
+  linkedSignal,
+  viewChild,
+} from '@angular/core';
+import type { ContextUsage, QueuedEntry } from '@grimoire/contract';
 import { Icon } from '@ui/design-system/icon';
 import { Chats } from '@ui/app/core/chats';
 
@@ -20,6 +28,14 @@ export class Composer {
 
   readonly chapterId = input.required<string>();
   readonly queued = input<readonly QueuedEntry[]>([]);
+  /** How full the context window is: the chapter's page allowance. */
+  readonly context = input<ContextUsage>();
+
+  /** The share of the allowance used, in percent; missing until the agent reports it. */
+  protected readonly used = computed(() => {
+    const context = this.context();
+    return context?.limit ? Math.round((context.used / context.limit) * 100) : undefined;
+  });
 
   private readonly entry = viewChild.required<ElementRef<HTMLTextAreaElement>>('entry');
 

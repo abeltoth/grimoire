@@ -6,6 +6,7 @@ import type {
   Approval,
   ApprovalDecision,
   ChatStatus,
+  ContextUsage,
   Entry,
   EventName,
   EventPayload,
@@ -28,6 +29,8 @@ export interface Chapter {
   approvals: readonly Approval[];
   /** Messages you sent while a turn ran, waiting for it to end. */
   queued: readonly QueuedEntry[];
+  /** How full the context window is, once the agent reports it. */
+  context?: ContextUsage;
   /** Why the last turn failed, until the next message. */
   error?: string;
 }
@@ -73,6 +76,9 @@ export class Chats {
     );
     this.listen('agents.queued', ({ chatId, queued }) =>
       this.update(chatId, (c) => ({ ...c, queued })),
+    );
+    this.listen('agents.context', ({ chatId, context }) =>
+      this.update(chatId, (c) => ({ ...c, context })),
     );
     this.listen('agents.turnEnded', ({ chatId, error }) =>
       this.update(chatId, (c) => ({ ...c, ...(error ? { error } : {}) })),
@@ -197,6 +203,7 @@ function fromOpenChat(chat: OpenChat): Chapter {
     entries: chat.entries,
     approvals: chat.approvals,
     queued: chat.queued,
+    ...(chat.context ? { context: chat.context } : {}),
   };
 }
 

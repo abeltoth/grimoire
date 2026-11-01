@@ -259,6 +259,11 @@
   --gr-queued-label-gap: 5px;
   --gr-tracking-queued: 0.08em;
   --gr-size-queued: 16px;
+  --gr-allowance-gap: 9px;
+  --gr-allowance-width: 128px;
+  --gr-allowance-height: 14px;
+  --gr-allowance-ticks: repeating-linear-gradient(90deg, rgba(74, 48, 22, 0.3) 0 1px, transparent 1px 4px);
+  --gr-allowance-ticks-used: repeating-linear-gradient(90deg, var(--gr-ink) 0 1.5px, transparent 1.5px 4px);
   --gr-send-gap: 9px;
   --gr-send-pad: 7px 14px;
   --gr-tracking-send: 0.06em;
