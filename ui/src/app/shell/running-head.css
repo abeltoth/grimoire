@@ -1,0 +1,11 @@
+:host {
+  flex: none;
+  height: var(--gr-head-h);
+  margin: 0 var(--page-inset-end) 0 var(--page-inset-start);
+  padding-bottom: var(--gr-head-pad-bottom);
+  border-bottom: var(--gr-rule-double) double var(--gr-ink-faint);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: var(--gr-head-gap);
+}

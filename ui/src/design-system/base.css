@@ -49,6 +49,39 @@ body {
   white-space: nowrap;
 }
 
+/* A keyboard shortcut, as a key cap. */
+.gr-kbd {
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-key);
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: 0;
+  padding: var(--gr-key-pad);
+  border: 1px solid currentColor;
+  border-radius: var(--gr-radius-key);
+}
+
+/* A plain-text control, such as Undo, Fork or Pop out. */
+.gr-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gr-control-gap);
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-control);
+  letter-spacing: var(--gr-tracking-control);
+  color: var(--gr-ink-soft);
+  padding: var(--gr-control-pad-y) 0;
+}
+
+.gr-link:hover {
+  color: var(--gr-ink);
+}
+
+/* Entry points whose feature isn't built yet look the same but do nothing. */
+[aria-disabled='true'] {
+  cursor: default;
+}
+
 /* Drawings can be turned off; essential ones, such as the thought mark, stay. */
 [data-drawings='off'] gr-drawing:not(.essential) {
   display: none;

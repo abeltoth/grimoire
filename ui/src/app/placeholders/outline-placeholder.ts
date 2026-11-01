@@ -1,0 +1,16 @@
+import { Component, computed, inject } from '@angular/core';
+import { OpenChapters } from '../shell/open-chapters';
+
+/** The Outline's heading, until the Outline itself is built (phase 7). */
+@Component({
+  selector: 'gr-outline-placeholder',
+  template: `
+    <h2>The outline of this chapter</h2>
+    <p>{{ agent() }}’s plan, kept up to date as it works</p>
+  `,
+  styleUrl: './outline-placeholder.css',
+})
+export class OutlinePlaceholder {
+  private readonly chapters = inject(OpenChapters);
+  protected readonly agent = computed(() => this.chapters.current()?.agent ?? 'The agent');
+}

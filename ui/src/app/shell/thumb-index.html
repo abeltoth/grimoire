@@ -1,0 +1,29 @@
+@for (tab of registry.thumbs.all(); track tab.id) {
+  <button
+    type="button"
+    class="thumb"
+    [attr.aria-disabled]="tab.open ? null : true"
+    (click)="tab.open?.()"
+  >
+    <span>{{ tab.label }}</span>
+  </button>
+}
+
+@let shortcut = index()?.shortcut;
+<button
+  type="button"
+  class="thumb index"
+  [attr.aria-label]="
+    'Index, the command palette' + (shortcut ? '. ' + (shortcut | shortcut: 'spoken') : '')
+  "
+  aria-disabled="true"
+>
+  <span>
+    Index
+    @if (shortcut) {
+      <span class="gr-kbd" [class.words]="platform !== 'mac'">{{
+        shortcut | shortcut: 'keys'
+      }}</span>
+    }
+  </span>
+</button>

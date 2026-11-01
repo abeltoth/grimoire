@@ -1,0 +1,52 @@
+:host {
+  flex: none;
+  height: var(--gr-titlebar-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+  -webkit-app-region: drag;
+}
+
+.side {
+  width: var(--gr-titlebar-side-w);
+  height: var(--gr-titlebar-h);
+  display: flex;
+  align-items: center;
+}
+
+.end {
+  justify-content: flex-end;
+  align-items: flex-start;
+}
+
+button {
+  -webkit-app-region: no-drag;
+}
+
+.book-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gr-space-2);
+  font-family: var(--gr-font-display-sc);
+  font-size: var(--gr-size-book-title);
+  letter-spacing: var(--gr-tracking-book-title);
+  color: var(--gr-gilt);
+  padding: var(--gr-book-title-pad);
+}
+
+.window-controls {
+  display: flex;
+}
+
+.window-controls button {
+  width: var(--gr-window-control-w);
+  height: var(--gr-window-control-h);
+  display: grid;
+  place-items: center;
+  color: var(--gr-chrome);
+}
+
+.window-controls button:hover {
+  background: var(--gr-window-control-hover);
+}

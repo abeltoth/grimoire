@@ -1,0 +1,15 @@
+h2 {
+  margin: 0;
+  font-family: var(--gr-font-display-sc);
+  font-weight: 400;
+  font-size: var(--gr-size-section-head);
+  letter-spacing: var(--gr-tracking-section-head);
+  color: var(--gr-rubric);
+}
+
+p {
+  margin: var(--gr-aside-gap) 0 0;
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}

@@ -1,0 +1,48 @@
+/* The ribbons come out of the book's foot and lie on the desk below it. */
+:host {
+  flex: none;
+  height: var(--gr-ribbons-h);
+  margin-top: calc((var(--gr-cover-rim) + var(--gr-page-block-foot)) * -1);
+  display: flex;
+  position: relative;
+  z-index: 2;
+}
+
+.half {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gr-ribbons-gap);
+}
+
+/* The open chapter comes first, nearest the spine. */
+.left-half {
+  flex-direction: row-reverse;
+  margin-right: calc(var(--gr-ribbons-spine-overlap) * -1);
+}
+
+.right-half {
+  padding-left: var(--gr-ribbons-right-inset);
+}
+
+.new {
+  margin-left: var(--gr-ribbon-new-gap);
+}
+
+/* The quill at work. */
+.quill {
+  margin-left: 1px;
+  color: var(--gr-gilt-ink);
+  transform-origin: 20% 90%;
+  animation: gr-bob var(--gr-dur-quill) ease-in-out infinite;
+}
+
+.breathe {
+  animation: gr-breathe var(--gr-dur-breathe) ease-in-out infinite;
+}
+
+.spin {
+  transform-origin: 50% 50%;
+  animation: gr-spin var(--gr-dur-sigil) linear infinite;
+}

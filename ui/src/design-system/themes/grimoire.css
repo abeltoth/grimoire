@@ -130,6 +130,93 @@
   --gr-ribbon-h: 36px;
   --gr-ribbon-drop: 30px;
 
+  /* Shell: title strip and book */
+  --gr-tracking-book-title: 0.32em;
+  --gr-book-title-pad: 4px 12px;
+  --gr-stage-pad-x: 24px;
+  --gr-stage-pad-bottom: 6px;
+  --gr-gilt-line-inset: 3px;
+  --gr-radius-gilt-line: 5px;
+  --gr-fore-edge-leaf: 1px;
+  --gr-spine-line: rgba(74, 48, 22, 0.25);
+  --gr-gutter-shade-w: 44px;
+
+  /* Shell: thumb index */
+  --gr-thumbs-top: 112px;
+  --gr-thumbs-bottom: 30px;
+  --gr-thumbs-gap: 9px;
+  --gr-thumb-pad-y: 11px;
+  --gr-thumb-pad-spine: 3px;
+  --gr-shadow-notch: inset 5px 0 7px -3px rgba(0, 0, 0, 0.6);
+  --gr-tracking-label: 0.06em;
+  --gr-thumb-index-gap: 7px;
+  --gr-thumb-key-pad: 4px 2px;
+  --gr-thumb-key-tracking-symbols: 2px;
+  --gr-thumb-key-tracking-words: 0.02em;
+
+  /* Shell: ribbons */
+  --gr-ribbons-h: 66px;
+  --gr-ribbons-gap: 16px;
+  --gr-ribbons-spine-overlap: 18px;
+  --gr-ribbons-right-inset: 76px;
+  --gr-ribbon-new-gap: 24px;
+  --gr-ribbon-icon-gap: 8px;
+  --gr-ribbon-pad-near: 12px;
+  --gr-ribbon-pad-far: 26px;
+  --gr-ribbon-notch: 14px;
+  --gr-ribbon-seal-pad: 44px;
+  --gr-size-ribbon-meta: 11.5px;
+  --gr-leading-ribbon: 1.16;
+  --gr-ribbon-highlight: rgba(255, 255, 255, 0.16);
+  --gr-ribbon-lowlight: rgba(0, 0, 0, 0.12);
+  --gr-ribbon-sheen: rgba(255, 244, 214, 0.38);
+  --gr-shadow-ribbon-drop: inset 0 4px 4px -2px rgba(0, 0, 0, 0.5);
+  --gr-seal-size: 38px;
+  --gr-seal-overhang: 14px;
+  --gr-seal-top: 15px;
+  --gr-size-seal: 17px;
+  --gr-shadow-seal: 0 0 0 3px rgba(90, 22, 14, 0.55), 0 3px 6px rgba(0, 0, 0, 0.5);
+  --gr-mote-size: 3px;
+  --gr-mote-blur: 6px;
+  --gr-mote-delay: 1.1s;
+  --gr-mote-1-x: 6px;
+  --gr-mote-1-y: 24px;
+  --gr-mote-2-x: 26px;
+  --gr-mote-2-y: 44px;
+  --gr-mote-3-x: 14px;
+  --gr-mote-3-y: 36px;
+
+  /* Running heads, feet and controls */
+  --gr-head-gap: 7px;
+  --gr-head-row-gap: 10px;
+  --gr-head-pad-bottom: 10px;
+  --gr-rule-double: 3px;
+  --gr-facing-margin-outer: 64px;
+  --gr-facing-pad-top: 26px;
+  --gr-facing-tabs-gap: 22px;
+  --gr-size-facing-tab: 22px;
+  --gr-leading-facing-tab: 1.1;
+  --gr-underline-active: 2px;
+  --gr-size-section-head: 15px;
+  --gr-tracking-section-head: 0.14em;
+  --gr-size-aside: 14px;
+  --gr-aside-gap: 2px;
+  --gr-foot-h: 38px;
+  --gr-foot-gap: 8px;
+  --gr-foot-pad-bottom: 2px;
+  --gr-size-foot: 12.5px;
+  --gr-size-control: 13px;
+  --gr-tracking-control: 0.05em;
+  --gr-control-gap: 5px;
+  --gr-control-pad-y: 2px;
+  --gr-size-key: 10.5px;
+  --gr-key-pad: 2px 4px;
+
+  /* Drawings placed by the shell */
+  --gr-sigil-size: 400px;
+  --gr-sigil-bleed: 150px;
+  --gr-sigil-left: 46%;
+
   /* Radii */
   --gr-radius-page: 3px;
   --gr-radius-cover: 7px;
