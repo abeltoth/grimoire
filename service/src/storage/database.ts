@@ -22,6 +22,11 @@ const MIGRATIONS = [
      dog_ear TEXT NOT NULL,
      PRIMARY KEY (chat_id, dog_ear)
    );`,
+  `CREATE TABLE copied (
+     chat_id TEXT NOT NULL,
+     entry_id TEXT NOT NULL,
+     PRIMARY KEY (chat_id, entry_id)
+   );`,
 ];
 
 /**

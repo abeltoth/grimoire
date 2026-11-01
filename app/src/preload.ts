@@ -9,9 +9,17 @@ import type { GrimoireBridge, Platform } from '@grimoire/contract';
 const platform: Platform =
   process.platform === 'darwin' ? 'mac' : process.platform === 'win32' ? 'windows' : 'linux';
 
+/** Electron starts each failure's message with "Error invoking remote method '…': Error: "; this keeps only the reason. */
+function withoutIpcPrefix<T>(request: Promise<T>): Promise<T> {
+  return request.catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(message.replace(/^Error invoking remote method '[^']*': (\w*Error: )?/, ''));
+  });
+}
+
 const bridge: GrimoireBridge = {
   platform,
-  invoke: (command, request) => ipcRenderer.invoke('grimoire:invoke', command, request),
+  invoke: (command, request) => withoutIpcPrefix(ipcRenderer.invoke('grimoire:invoke', command, request)),
   on: (event, listener) => {
     const handler = (_: IpcRendererEvent, name: string, payload: unknown) => {
       if (name === event) listener(payload as never);
@@ -19,7 +27,7 @@ const bridge: GrimoireBridge = {
     ipcRenderer.on('grimoire:event', handler);
     return () => ipcRenderer.removeListener('grimoire:event', handler);
   },
-  chooseFolder: () => ipcRenderer.invoke('grimoire:chooseFolder'),
+  chooseFolder: () => withoutIpcPrefix(ipcRenderer.invoke('grimoire:chooseFolder')),
   window: {
     minimize: () => ipcRenderer.send('grimoire:window', 'minimize'),
     toggleMaximize: () => ipcRenderer.send('grimoire:window', 'toggleMaximize'),

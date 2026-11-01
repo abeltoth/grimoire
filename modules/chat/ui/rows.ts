@@ -27,7 +27,15 @@ export interface Note {
  * the margin, the notes for the tools the agent used before writing it.
  */
 export type Row =
-  | { kind: 'you'; key: string; text: string; at?: number; withdrawn: boolean }
+  | {
+      kind: 'you';
+      key: string;
+      text: string;
+      at?: number;
+      withdrawn: boolean;
+      /** Undo would restore something: this turn or a later one changed files, not yet undone. */
+      undoable: boolean;
+    }
   | { kind: 'thinking'; key: string; text: string }
   | { kind: 'reply'; key: string; text: string; byline: boolean; at?: number; notes: Note[] }
   | { kind: 'notes'; key: string; notes: Note[] };
@@ -44,14 +52,20 @@ const UNNOTED_TOOLS = new Set([
   'ToolSearch',
 ]);
 
+/** Your entries whose edits were undone, and those a fork copied, which can't be. */
+export interface UndoMarks {
+  withdrawn?: ReadonlySet<string>;
+  copied?: ReadonlySet<string>;
+}
+
 /**
  * Lays out a transcript: your entries, the agent's replies, and its tools as
- * margin notes. The file changes made after a `withdrawn` entry are marked so.
+ * margin notes. The file changes made after a withdrawn entry are marked so.
  */
 export function toRows(
   entries: readonly Entry[],
   cwd?: string,
-  withdrawn: ReadonlySet<string> = new Set(),
+  { withdrawn = new Set(), copied = new Set() }: UndoMarks = {},
 ): Row[] {
   const rows: Row[] = [];
   let pending: Note[] = [];
@@ -74,6 +88,7 @@ export function toRows(
         text: entry.text,
         ...(entry.at ? { at: entry.at } : {}),
         withdrawn: withdrawn.has(entry.id),
+        undoable: false,
       });
       undone = withdrawn.has(entry.id);
       marks = 0;
@@ -109,7 +124,21 @@ export function toRows(
     });
   }
   flushNotes();
+  markUndoable(rows, copied);
   return rows;
+}
+
+/** Undo goes on your entries from which files were changed and not undone yet. */
+function markUndoable(rows: Row[], copied: ReadonlySet<string>): void {
+  let changesAfter = false;
+  for (let i = rows.length - 1; i >= 0; i--) {
+    const row = rows[i]!;
+    if (row.kind === 'you') {
+      rows[i] = { ...row, undoable: changesAfter && !row.withdrawn && !copied.has(row.key) };
+    } else if (row.kind !== 'thinking') {
+      changesAfter ||= row.notes.some((note) => note.counts && !note.withdrawn);
+    }
+  }
 }
 
 function toNote(key: string, block: ToolBlock, mark: string, cwd?: string): Note {

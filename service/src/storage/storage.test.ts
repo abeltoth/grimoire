@@ -6,7 +6,7 @@ import { LayoutStore } from '../core/layout';
 import { Chapters } from './chapters';
 import { openDatabase } from './database';
 import { DogEars } from './dog-ears';
-import { Withdrawn } from './withdrawn';
+import { EntryIds } from './entry-ids';
 
 const dirs: string[] = [];
 afterEach(() => {
@@ -37,7 +37,9 @@ describe('storage', () => {
   });
 
   it('keeps undone entries per chat, in the order they were undone', () => {
-    const withdrawn = new Withdrawn(openDatabase(':memory:'));
+    const db = openDatabase(':memory:');
+    const withdrawn = new EntryIds(db, 'withdrawn');
+    new EntryIds(db, 'copied').add('a', ['u7']);
     withdrawn.add('a', ['u2', 'u3']);
     withdrawn.add('b', ['u9']);
     withdrawn.add('a', ['u3', 'u1']);

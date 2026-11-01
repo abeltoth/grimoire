@@ -54,11 +54,10 @@ export class Transcript {
   readonly stop = output<void>();
 
   protected readonly rows = computed(() =>
-    toRows(
-      this.chapter().entries,
-      this.chapter().settings.cwd,
-      new Set(this.chapter().withdrawn),
-    ),
+    toRows(this.chapter().entries, this.chapter().settings.cwd, {
+      withdrawn: new Set(this.chapter().withdrawn),
+      copied: new Set(this.chapter().copied),
+    }),
   );
   protected readonly agentName = computed(() => this.chats.agentName(this.chapter().agent));
   protected readonly running = computed(() =>
@@ -124,13 +123,13 @@ export class Transcript {
     }
   }
 
-  /** Undo works on an entry not yet undone, while the chapter is idle. */
-  protected canUndo(row: { key: string; withdrawn: boolean }): boolean {
-    return !row.withdrawn && this.chapter().status === 'idle' && this.undoing() === null;
+  /** Undo shows on entries it can restore files for, and works while the chapter is idle. */
+  protected canUndo(): boolean {
+    return this.chapter().status === 'idle' && this.undoing() === null;
   }
 
-  protected async undo(row: { key: string; withdrawn: boolean }): Promise<void> {
-    if (!this.canUndo(row)) return;
+  protected async undo(row: { key: string }): Promise<void> {
+    if (!this.canUndo()) return;
     this.undoing.set(row.key);
     try {
       await this.chats.undo(this.chapter().id, row.key);
