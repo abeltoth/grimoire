@@ -27,7 +27,7 @@
   </gr-running-head>
 
   <gr-transcript [chapter]="c" (stop)="stop()" />
-  <gr-composer [chapterId]="c.id" />
+  <gr-composer [chapterId]="c.id" [queued]="c.queued" />
 
   <gr-running-foot>
     <gr-status-indicators />

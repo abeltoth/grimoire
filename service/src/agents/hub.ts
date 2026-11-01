@@ -15,6 +15,7 @@ import type {
   EventPayload,
   NewChatSettings,
   OpenChat,
+  QueuedEntry,
 } from '@grimoire/contract';
 import type { AgentAdapter, ChatEvents, LiveChat, Verdict } from './adapter';
 
@@ -27,6 +28,8 @@ interface ChatState {
   settings: ChatSettings;
   status: ChatStatus;
   entries: Entry[];
+  /** Messages you sent while a turn ran; the next goes when it ends. */
+  queued: QueuedEntry[];
   /** While the agent process runs. */
   live?: LiveChat;
   /** Streamed text not sent to windows yet, per entry and block. */
@@ -88,12 +91,31 @@ export class AgentHub {
     return this.snapshot(chat);
   }
 
+  /** Sends a message, or queues it while a turn runs. */
   send(chatId: ChatId, text: string): void {
-    this.sendTo(this.chat(chatId), text, true);
+    const chat = this.chat(chatId);
+    if (chat.status === 'idle') return this.sendTo(chat, text, true);
+    chat.queued.push({ id: randomUUID(), text });
+    this.emitQueued(chat);
   }
 
-  async interrupt(chatId: ChatId): Promise<void> {
-    await this.chat(chatId).live?.interrupt();
+  /** Takes a message out of the queue; false when it had already gone. */
+  unqueue(chatId: ChatId, id: string): boolean {
+    const chat = this.chat(chatId);
+    const index = chat.queued.findIndex((queued) => queued.id === id);
+    if (index === -1) return false;
+    chat.queued.splice(index, 1);
+    this.emitQueued(chat);
+    return true;
+  }
+
+  /** Stops the running turn, and withdraws the queued messages so they aren't sent. */
+  async interrupt(chatId: ChatId): Promise<QueuedEntry[]> {
+    const chat = this.chat(chatId);
+    const withdrawn = chat.queued.splice(0);
+    if (withdrawn.length) this.emitQueued(chat);
+    await chat.live?.interrupt();
+    return withdrawn;
   }
 
   decide(approvalId: string, decision: ApprovalDecision): void {
@@ -140,6 +162,7 @@ export class AgentHub {
       settings,
       status: 'idle',
       entries,
+      queued: [],
       pendingText: new Map(),
     };
     this.chats.set(id, chat);
@@ -151,6 +174,18 @@ export class AgentHub {
     this.upsert(chat, { kind: 'user', id: randomUUID(), text });
     if (chat.status === 'idle') this.setStatus(chat, 'thinking');
     chat.live.send(text);
+  }
+
+  /** A turn ended: the next queued message goes. */
+  private sendQueued(chat: ChatState): void {
+    const next = chat.queued.shift();
+    if (!next) return;
+    this.emitQueued(chat);
+    this.sendTo(chat, next.text, true);
+  }
+
+  private emitQueued(chat: ChatState): void {
+    this.emit('agents.queued', { chatId: chat.id, queued: [...chat.queued] });
   }
 
   private eventsFor(chat: ChatState): ChatEvents {
@@ -187,6 +222,7 @@ export class AgentHub {
         this.settleAll(chat);
         this.setStatus(chat, 'idle');
         this.emit('agents.turnEnded', { chatId: chat.id, ...(error ? { error } : {}) });
+        this.sendQueued(chat);
       },
       closed: (error) => {
         if (!current()) return;
@@ -195,6 +231,7 @@ export class AgentHub {
         if (chat.status !== 'idle') {
           this.setStatus(chat, 'idle');
           this.emit('agents.turnEnded', { chatId: chat.id, error: error ?? 'The agent stopped' });
+          this.sendQueued(chat);
         }
       },
     };
@@ -279,6 +316,7 @@ export class AgentHub {
       approvals: [...this.approvals.values()]
         .filter((pending) => pending.approval.chatId === chat.id)
         .map((pending) => pending.approval),
+      queued: [...chat.queued],
     };
   }
 

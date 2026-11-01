@@ -1,3 +1,13 @@
+@for (waiting of queued(); track waiting.id) {
+  <div class="queued">
+    <span class="queued-label"><gr-icon name="hourglass" />Queued</span>
+    <p class="queued-text">{{ waiting.text }}</p>
+    <span class="queued-when">sends when this turn ends</span>
+    <button type="button" class="gr-link" (click)="edit(waiting)">Edit</button>
+    <button type="button" class="gr-link" (click)="remove(waiting)">Remove</button>
+  </div>
+}
+
 <label class="sr-only" for="gr-next-entry">Next entry</label>
 <textarea
   #entry
