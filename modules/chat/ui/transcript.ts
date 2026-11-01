@@ -86,6 +86,7 @@ export class Transcript {
   private readonly open = signal<ReadonlySet<string>>(new Set());
   /** The entry being undone, until the agent is done. */
   private readonly undoing = signal<string | null>(null);
+  private readonly forking = signal(false);
 
   /** Whether the view follows new text: true unless you scrolled away from the end. */
   private following = true;
@@ -106,6 +107,21 @@ export class Transcript {
 
   protected answer(approvalId: string, answers: Answer[]): void {
     void this.chats.answer(this.chapter().id, approvalId, answers);
+  }
+
+  /** Fork works while the chapter is idle. */
+  protected canFork(): boolean {
+    return this.chapter().status === 'idle' && !this.forking();
+  }
+
+  protected async fork(row: { key: string }): Promise<void> {
+    if (!this.canFork()) return;
+    this.forking.set(true);
+    try {
+      await this.chats.fork(this.chapter().id, row.key);
+    } finally {
+      this.forking.set(false);
+    }
   }
 
   /** Undo works on an entry not yet undone, while the chapter is idle. */

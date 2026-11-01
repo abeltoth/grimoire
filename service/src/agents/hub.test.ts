@@ -373,6 +373,31 @@ describe('AgentHub', () => {
     expect((await hub.open('fake', id, settings)).withdrawn).toEqual([]);
   });
 
+  it('forks a chat after an entry\'s turn into the next free variant, and opens it', async () => {
+    fake.transcripts.set('c1', [
+      { kind: 'user', id: 'u1', text: 'Add a meter' },
+      reply('r1', 'Added.'),
+      { kind: 'user', id: 'u2', text: 'Colour it' },
+      reply('r2', 'Coloured.'),
+    ]);
+    fake.chats = [
+      { id: 'c1', agent: 'fake', title: 'Context meter', cwd: '/work', updatedAt: 1 },
+      { id: 'old', agent: 'fake', title: 'Context meter (a)', cwd: '/work', updatedAt: 2 },
+    ];
+    await hub.open('fake', 'c1', settings);
+
+    const variant = await hub.fork('c1', 'u1');
+    expect(variant).toMatchObject({
+      id: 'fork-3',
+      title: 'Context meter (b)',
+      settings,
+      status: 'idle',
+      entries: [{ id: 'u1' }, { id: 'r1' }],
+    });
+    expect((await hub.openChats()).map((chat) => chat.id)).toEqual(['c1', 'fork-3']);
+    expect((await hub.fork('fork-3', 'u1')).title).toBe('Context meter (c)');
+  });
+
   it('passes interrupts to the agent', async () => {
     const { id } = await hub.start('fake', settings, 'Hello');
     expect(await hub.interrupt(id)).toEqual([]);

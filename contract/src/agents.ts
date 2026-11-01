@@ -233,6 +233,12 @@ declare module './commands' {
      * the chat is idle. The edits of that entry and those after it are withdrawn.
      */
     'agents.undo': { request: { chatId: ChatId; entryId: string }; response: void };
+    /**
+     * Copies a chat, up to the end of the turn one of your entries began,
+     * into a new chat: a variant, such as "Context meter (a)". It opens as a
+     * chapter, and the original stays as it was.
+     */
+    'agents.fork': { request: { chatId: ChatId; entryId: string }; response: OpenChat };
     /** Takes a message out of the queue; false when it had already gone. */
     'agents.unqueue': { request: { chatId: ChatId; id: string }; response: boolean };
     /**

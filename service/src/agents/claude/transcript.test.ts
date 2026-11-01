@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { type ClaudeMessage, ClaudeTranscript } from './transcript';
+import { type ClaudeMessage, ClaudeTranscript, turnEnd } from './transcript';
 
 // Shaped after real Claude Code output: a tool call, its result, then a reply
 // with a thinking block and a text block.
@@ -169,6 +169,26 @@ describe('ClaudeTranscript', () => {
     call('TaskUpdate', { taskId: '1', status: 'deleted' }, 'Updated task #1 deleted');
     call('TodoWrite', { todos: [{ content: 'Only step', status: 'in_progress', activeForm: 'Doing it' }] }, 'ok');
     expect(transcript.plan).toEqual([{ text: 'Only step', status: 'active', activeText: 'Doing it' }]);
+  });
+
+  it('finds where the turn one of your entries began ends', () => {
+    const you = (uuid: string, content: unknown): ClaudeMessage => ({
+      type: 'user',
+      uuid,
+      parent_tool_use_id: null,
+      message: { role: 'user', content },
+    });
+    const messages: ClaudeMessage[] = [
+      you('u1', 'Run echo hi'),
+      { ...assistant('msg_1', toolUse), uuid: 'a1' },
+      { ...toolResult, uuid: 'r1' },
+      { ...assistant('msg_2', { type: 'text', text: 'Done.' }), uuid: 'a2' },
+      you('u2', [{ type: 'text', text: 'Again' }]),
+      { ...assistant('msg_3', { type: 'text', text: 'Done again.' }), uuid: 'a3' },
+    ];
+    expect(turnEnd(messages, 'u1')).toBe('a2');
+    expect(turnEnd(messages, 'u2')).toBeUndefined();
+    expect(() => turnEnd(messages, 'gone')).toThrow('not in the chat');
   });
 
   it('leaves out what a subagent does inside a tool call', () => {

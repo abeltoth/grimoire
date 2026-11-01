@@ -200,6 +200,27 @@ export class AgentHub {
     this.emit('agents.withdrawn', { chatId, withdrawn: [...chat.withdrawn] });
   }
 
+  /**
+   * Forks a chat after the turn one of your entries began into a variant,
+   * such as "Context meter (a)", and opens it as a chapter.
+   */
+  async fork(chatId: ChatId, entryId: string): Promise<OpenChat> {
+    const chat = this.chat(chatId);
+    if (!chat.agent.fork) throw new Error(`${chat.agent.info.name} can't fork`);
+    if (chat.status !== 'idle') throw new Error('Stop the turn before forking');
+    const title = await this.variantTitle(chat);
+    const forkId = await chat.agent.fork(chat.id, chat.settings.cwd, entryId, title);
+    return this.open(chat.agent.info.id, forkId, chat.settings);
+  }
+
+  /** The chat's title with the first free variant letter: "Context meter (a)", then "(b)". */
+  private async variantTitle(chat: ChatState): Promise<string> {
+    const base = chat.title.replace(/ \([a-z]\)$/, '') || 'Untitled chapter';
+    const taken = new Set((await chat.agent.listChats(chat.settings.cwd)).map((c) => c.title));
+    const letter = [...'abcdefghijklmnopqrstuvwxyz'].find((l) => !taken.has(`${base} (${l})`));
+    return `${base} (${letter ?? 'z'})`;
+  }
+
   /** Takes a message out of the queue; false when it had already gone. */
   unqueue(chatId: ChatId, id: string): boolean {
     const chat = this.chat(chatId);
