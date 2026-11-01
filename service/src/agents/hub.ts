@@ -278,7 +278,7 @@ export class AgentHub {
       approval: (request, signal) =>
         new Promise<Verdict>((resolve) => {
           if (!current() || signal.aborted) return resolve('deny');
-          const approval: Approval = { ...request, chatId: chat.id };
+          const approval: Approval = { ...request, chatId: chat.id, at: Date.now() };
           const pending: PendingApproval = { approval, resolve };
           this.approvals.set(approval.id, pending);
           signal.addEventListener('abort', () => this.settle(pending, 'deny'), { once: true });

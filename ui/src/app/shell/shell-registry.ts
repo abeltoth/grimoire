@@ -86,6 +86,12 @@ export class ShellRegistry {
   readonly commands = new Slot<Command>();
   /** What the left page shows for the open chapter: the chat module's page. */
   readonly chapterPage = signal<Type<unknown> | undefined>(undefined);
+  /**
+   * What the facing page shows when it's turned to the slips awaiting your
+   * seal: the chat module's page. It takes a `backTo` input, the label of
+   * the page it turns back to.
+   */
+  readonly sealsPage = signal<Type<unknown> | undefined>(undefined);
 }
 
 /** How a feature adds its entries to the shell, from its providers. */

@@ -109,6 +109,8 @@
         [agentName]="agentName()"
         (answered)="answer(approval.id, $event)"
       />
+    } @else if (facing.seals()) {
+      <gr-seal-stub class="wide" [approval]="approval" [cwd]="chapter().settings.cwd" />
     } @else {
       <gr-approval-slip
         class="wide"

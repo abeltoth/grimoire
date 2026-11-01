@@ -1,0 +1,34 @@
+<gr-running-head>
+  <div class="row">
+    <h2 class="title">Awaiting your seal</h2>
+    <span class="hint">{{ summary() }}</span>
+    <span class="spacer"></span>
+    <button type="button" class="gr-link" (click)="facing.closeSeals()">
+      Back to the {{ backTo() }} <span class="gr-kbd">Esc</span>
+    </button>
+  </div>
+</gr-running-head>
+
+<div class="seals">
+  @for (slip of slips(); track slip.approval.id) {
+    <gr-approval-slip
+      [approval]="slip.approval"
+      [agentName]="chats.agentName(slip.chapter.agent)"
+      [cwd]="slip.chapter.settings.cwd"
+      [from]="slip.chapter.title || 'Untitled chapter'"
+      [autofocus]="slip.approval.id === first()"
+      (decided)="decide(slip, $event)"
+      (opened)="open(slip)"
+    />
+  }
+  <p class="note">
+    Sealing a slip here answers it in its chapter, too. Each chapter carries on as soon as its slip
+    is sealed.
+  </p>
+</div>
+
+<gr-running-foot>
+  <span class="spacer"></span>
+  <span><span class="gr-kbd">↑</span> <span class="gr-kbd">↓</span> move between slips</span>
+  <span><span class="gr-kbd">Esc</span> back</span>
+</gr-running-foot>

@@ -1,4 +1,11 @@
 @let page = shown();
+@let seals = facing.seals() ? registry.sealsPage() : undefined;
+@if (seals) {
+  <gr-page side="right" aria-label="Facing page: Awaiting your seal">
+    <ng-container *ngComponentOutlet="seals; inputs: { backTo: page?.label ?? 'facing page' }" />
+    <gr-drawing class="sigil" name="empty-page" />
+  </gr-page>
+} @else {
 <gr-page side="right" [attr.aria-label]="page ? 'Facing page: ' + page.label : 'Facing page'">
   <gr-running-head>
     <div class="row">
@@ -30,3 +37,4 @@
   <gr-drawing class="sigil" name="empty-page" />
   <gr-running-foot />
 </gr-page>
+}

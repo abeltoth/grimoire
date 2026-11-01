@@ -1,6 +1,7 @@
 import { Component, computed, inject } from '@angular/core';
 import { Icon, type IconName } from '../../design-system/icon';
 import { type Chapter, Chats } from '../core/chats';
+import { Facing } from './facing';
 import { Ribbon, type RibbonTone } from './ribbon';
 import { ShellRegistry } from './shell-registry';
 import { ShortcutPipe } from './shortcut';
@@ -50,6 +51,7 @@ const MOTION: Partial<Record<Chapter['status'], string>> = {
 })
 export class Ribbons {
   protected readonly chapters = inject(Chats);
+  protected readonly facing = inject(Facing);
   private readonly registry = inject(ShellRegistry);
 
   protected readonly left = computed(() => {
