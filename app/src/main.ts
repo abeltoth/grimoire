@@ -8,14 +8,21 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { ServiceClient } from './service-client';
 import { ensureService } from './service-launcher';
-import { runSmokeTest } from './smoke';
+import { runCapture, runSmokeTest } from './smoke';
 
 const devUrl = process.env['GRIMOIRE_DEV_URL'];
 const smoke = process.argv.includes('--smoke');
+const captureAt = process.argv.indexOf('--capture');
+const capturePath = captureAt === -1 ? undefined : process.argv[captureAt + 1];
+/** Smoke tests and captures run hidden, with their own data. */
+const headless = smoke || captureAt !== -1;
 const APP_ORIGIN = 'app://grimoire';
 
-// Dev and smoke runs keep their own data, and so their own service.
-const profile = smoke ? 'Grimoire Smoke' : devUrl ? 'Grimoire Dev' : 'Grimoire';
+// Captures are pixel-for-pixel 1920×1080, whatever the screen's scaling.
+if (captureAt !== -1) app.commandLine.appendSwitch('force-device-scale-factor', '1');
+
+// Dev and headless runs keep their own data, and so their own service.
+const profile = headless ? 'Grimoire Smoke' : devUrl ? 'Grimoire Dev' : 'Grimoire';
 app.setName('Grimoire');
 app.setPath('userData', path.join(app.getPath('appData'), profile));
 
@@ -106,8 +113,8 @@ function serveUi(request: Request): Promise<Response> {
 function createWindow(): BrowserWindow {
   const isMac = process.platform === 'darwin';
   const win = new BrowserWindow({
-    width: 1600,
-    height: 960,
+    // Captures use the design's 1920×1080 frame.
+    ...(capturePath ? { width: 1920, height: 1080, useContentSize: true, enableLargerThanScreen: true } : { width: 1600, height: 960 }),
     minWidth: 960,
     minHeight: 600,
     show: false,
@@ -129,7 +136,7 @@ function createWindow(): BrowserWindow {
     if (originOf(event.url) !== uiOrigin()) event.preventDefault();
   });
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
-  if (!smoke) win.once('ready-to-show', () => win.show());
+  if (!headless) win.once('ready-to-show', () => win.show());
   void win.loadURL(devUrl ?? `${APP_ORIGIN}/index.html`);
   return win;
 }
@@ -160,5 +167,6 @@ if (!app.requestSingleInstanceLock()) {
     getService().catch((error: unknown) => console.error(error));
     const win = createWindow();
     if (smoke) void runSmokeTest(win, stopService);
+    else if (captureAt !== -1) void runCapture(win, capturePath, stopService);
   });
 }

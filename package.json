@@ -15,7 +15,9 @@
     "smoke": "npm run build && electron app --smoke",
     "test": "vitest run && npm test -w @grimoire/ui -- --watch=false",
     "typecheck": "tsc -p contract && tsc -p service && tsc -p app",
-    "service:stop": "node scripts/stop-service.mjs"
+    "service:stop": "node scripts/stop-service.mjs",
+    "capture": "npm run build && electron app --capture",
+    "capture:design": "electron scripts/capture-design.cjs"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",
