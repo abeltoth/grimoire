@@ -1,14 +1,4 @@
-import {
-  Component,
-  DestroyRef,
-  ElementRef,
-  afterNextRender,
-  afterRenderEffect,
-  computed,
-  inject,
-  signal,
-  viewChild,
-} from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { Icon, type IconName } from '../../design-system/icon';
 import { type Chapter, Chats } from '../core/chats';
 import { Facing } from './facing';
@@ -48,10 +38,11 @@ const MOTION: Partial<Record<Chapter['status'], string>> = {
 };
 
 /**
- * The open chapters as ribbons on the desk, in the order they were opened:
- * left of the spine as many as fit there, then on right of it, followed by
- * the approvals awaiting your seal and New chapter. Turning to a chapter
- * only lights its ribbon; none of them move.
+ * The open chapters as ribbons hanging from the book's foot, in the order
+ * they were opened, like pages. The book lies open at the current chapter:
+ * its ribbon hangs in the spine, the chapters before it on the left, those
+ * after it on the right, followed by the approvals awaiting your seal and
+ * New chapter. A ribbon shows its title when you point at it.
  */
 @Component({
   selector: 'gr-ribbons',
@@ -64,44 +55,16 @@ export class Ribbons {
   protected readonly chapters = inject(Chats);
   protected readonly facing = inject(Facing);
   private readonly registry = inject(ShellRegistry);
-  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
-  private readonly leftHalf = viewChild.required<ElementRef<HTMLElement>>('leftHalf');
 
-  /** How many ribbons fit left of the spine; all of them until measured. */
-  private readonly leftRoom = signal(Number.POSITIVE_INFINITY);
-  /** The width left of the spine, kept up to date as the window changes. */
-  private readonly leftWidth = signal(0);
+  /** Where the book lies open: the current chapter's place, or past the last one. */
+  private readonly openAt = computed(() => {
+    const all = this.chapters.all();
+    const at = all.findIndex((c) => c.id === this.chapters.currentId());
+    return at === -1 ? all.length : at + 1;
+  });
 
-  protected readonly left = computed(() => this.chapters.all().slice(0, this.leftRoom()));
-  protected readonly right = computed(() => this.chapters.all().slice(this.leftRoom()));
-
-  constructor() {
-    const destroyRef = inject(DestroyRef);
-    afterNextRender(() => {
-      if (typeof ResizeObserver === 'undefined') return;
-      const half = this.leftHalf().nativeElement;
-      const observer = new ResizeObserver(() => this.leftWidth.set(half.clientWidth));
-      observer.observe(half);
-      destroyRef.onDestroy(() => observer.disconnect());
-    });
-    // Ribbons are as wide as their titles, so what fits is measured once they're drawn.
-    afterRenderEffect(() => {
-      this.chapters.all();
-      const width = this.leftWidth();
-      if (!width) return;
-      const half = this.leftHalf().nativeElement;
-      const gap = parseFloat(getComputedStyle(half).columnGap) || 0;
-      const ribbons = [...this.host.nativeElement.querySelectorAll<HTMLElement>('gr-ribbon.chapter')];
-      let used = 0;
-      let fit = 0;
-      for (const ribbon of ribbons) {
-        used += (fit ? gap : 0) + ribbon.getBoundingClientRect().width;
-        if (used > width) break;
-        fit++;
-      }
-      this.leftRoom.set(fit === ribbons.length ? Number.POSITIVE_INFINITY : fit);
-    });
-  }
+  protected readonly left = computed(() => this.chapters.all().slice(0, this.openAt()));
+  protected readonly right = computed(() => this.chapters.all().slice(this.openAt()));
 
   // Questions wait for answers, not for a seal.
   private readonly sealsOf = (chapter: Chapter) =>

@@ -1,6 +1,6 @@
 <button
   type="button"
-  class="flat"
+  class="tail"
   [attr.aria-current]="current() ? 'page' : null"
   [attr.aria-expanded]="expanded() ?? null"
   [attr.aria-label]="label() ?? null"
@@ -10,15 +10,12 @@
   (contextmenu)="contextMenu($event)"
 >
   <ng-content />
-  <span class="text">
+  <!-- Read out always; shown on a slip when you point at the ribbon or tab to it. -->
+  <span class="slip">
     <b>{{ heading() }}</b>
     <i>{{ meta() }}</i>
   </span>
 </button>
-<span class="root" aria-hidden="true">
-  <span class="drop"></span>
-  <span class="crease"></span>
-</span>
 @if (motes()) {
   <span class="mote mote-1" aria-hidden="true"></span>
   <span class="mote mote-2" aria-hidden="true"></span>
