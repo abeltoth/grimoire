@@ -441,6 +441,11 @@ describe('AgentHub', () => {
       { chatId: id, dogEars: ['pin'] },
     ]);
     expect((await hub.open('fake', id, settings)).dogEars).toEqual(['pin']);
+    fake.chats = [
+      { id, agent: 'fake', title: 'Pinned', updatedAt: 0 },
+      { id: 'other', agent: 'fake', title: 'Plain', updatedAt: 1 },
+    ];
+    expect((await hub.listChats('fake')).map((chat) => chat.dogEars)).toEqual([['pin'], []]);
 
     const restarted = new AgentHub(() => {}, 50, store);
     restarted.addAdapter(fake);

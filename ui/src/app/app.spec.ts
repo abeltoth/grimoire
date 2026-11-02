@@ -738,8 +738,9 @@ describe('App', () => {
   it('looks up actions and chapters in the Index, turned to with Ctrl+K', async () => {
     const { bridge, calls, answers } = fakeBridge();
     answers['agents.chats'] = () => [
-      { id: 'c8', agent: 'claude-code', title: 'Fix flaky login test', cwd: 'C:/Users/me/git/grimoire', updatedAt: 1 },
-      { id: 'c9', agent: 'claude-code', title: 'New onboarding flow', cwd: 'C:/Users/me/git/breeder', updatedAt: 2 },
+      { id: 'c7', agent: 'claude-code', title: 'Old notes', cwd: 'C:/Users/me', updatedAt: 0, dogEars: ['pin', 'star'] },
+      { id: 'c8', agent: 'claude-code', title: 'Fix flaky login test', cwd: 'C:/Users/me/git/grimoire', updatedAt: 1, dogEars: ['star'] },
+      { id: 'c9', agent: 'claude-code', title: 'New onboarding flow', cwd: 'C:/Users/me/git/breeder', updatedAt: 2, dogEars: [] },
     ];
     answers['agents.open'] = (request: CommandRequest<'agents.open'>): OpenChat => ({
       id: request.chatId,
@@ -764,9 +765,11 @@ describe('App', () => {
 
     expect(texts('gr-index-page h2')).toEqual(['Index']);
     expect(texts('gr-index-page h3')).toEqual(['Actions', 'Chapters']);
+    // A pinned chapter stays at the top, however old.
     expect(texts('gr-index-page .entry .label')).toEqual([
       'New chapter',
       'Close chapter',
+      'Old notes',
       'New onboarding flow',
       'Fix flaky login test',
     ]);

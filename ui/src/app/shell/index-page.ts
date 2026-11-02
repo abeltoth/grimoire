@@ -87,7 +87,9 @@ export class IndexPage {
           run: command.run!,
         }),
       );
-    const chapters = this.pastChats().map(
+    // Pinned chapters stay at the top; the rest are newest first.
+    const pinned = (chat: ChatSummary) => Number(chat.dogEars.includes('pin'));
+    const chapters = [...this.pastChats()].sort((a, b) => pinned(b) - pinned(a)).map(
       (chat): IndexEntry => ({
         id: `chapter-${chat.id}`,
         label: chat.title || 'Untitled chapter',

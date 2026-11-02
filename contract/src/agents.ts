@@ -62,6 +62,8 @@ export interface ChatSummary {
   cwd?: string;
   /** ms since the epoch. */
   updatedAt: number;
+  /** Which of its dog-ears are folded. */
+  dogEars: DogEar[];
 }
 
 /** What a live chat is doing. Idle chats aren't running a turn. */

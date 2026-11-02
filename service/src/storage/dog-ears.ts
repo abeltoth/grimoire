@@ -12,6 +12,16 @@ export class DogEars {
     return rows.map((row) => row.dog_ear);
   }
 
+  /** Every chat's dog-ears, by chat. */
+  all(): Map<ChatId, DogEar[]> {
+    const rows = this.db
+      .prepare('SELECT chat_id, dog_ear FROM dog_ears ORDER BY dog_ear')
+      .all() as { chat_id: ChatId; dog_ear: DogEar }[];
+    const all = new Map<ChatId, DogEar[]>();
+    for (const row of rows) all.set(row.chat_id, [...(all.get(row.chat_id) ?? []), row.dog_ear]);
+    return all;
+  }
+
   set(chatId: ChatId, dogEar: DogEar, folded: boolean): void {
     this.db
       .prepare(
