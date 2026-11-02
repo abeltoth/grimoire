@@ -93,24 +93,14 @@
           />
         </div>
         @if (row.notes.length) {
-          <div class="notes">
-            @for (note of row.notes; track note.key) {
-              <ng-container *ngTemplateOutlet="noteTemplate; context: { $implicit: note }" />
-            }
-          </div>
-          <ng-container *ngTemplateOutlet="foldsTemplate; context: { $implicit: row.notes }" />
+          <ng-container *ngTemplateOutlet="marginTemplate; context: { $implicit: row }" />
         }
       </div>
     }
     @case ('notes') {
       <div class="row">
         <div></div>
-        <div class="notes">
-          @for (note of row.notes; track note.key) {
-            <ng-container *ngTemplateOutlet="noteTemplate; context: { $implicit: note }" />
-          }
-        </div>
-        <ng-container *ngTemplateOutlet="foldsTemplate; context: { $implicit: row.notes }" />
+        <ng-container *ngTemplateOutlet="marginTemplate; context: { $implicit: row }" />
       </div>
     }
   }
@@ -150,10 +140,57 @@
   </div>
 }
 
+<!--
+  The notes beside a row. A run of them is summed up on one line, which folds
+  out to the notes; what you fold out of them spans the text and the margin.
+-->
+<ng-template #marginTemplate let-row>
+  <div class="notes">
+    @if (row.summary; as summary) {
+      <button
+        type="button"
+        class="note summary"
+        [attr.aria-expanded]="isOpen(summary.key)"
+        (click)="toggle(summary.key)"
+      >
+        <span class="note-head">{{ summary.text }}</span>
+        @if (summary.running) {
+          <span class="detail">running…</span>
+        } @else {
+          @if (summary.counts) {
+            <span class="detail">{{ summary.counts }}</span>
+          } @else if (summary.withdrawn) {
+            <span class="detail">withdrawn</span>
+          }
+          @if (summary.failed) {
+            <span class="detail failed">{{ summary.failed }} failed</span>
+          }
+        }
+      </button>
+      @if (isOpen(summary.key)) {
+        <div class="run">
+          @for (note of row.notes; track note.key) {
+            <ng-container *ngTemplateOutlet="noteTemplate; context: { $implicit: note }" />
+          }
+        </div>
+      }
+    } @else {
+      @for (note of row.notes; track note.key) {
+        <ng-container *ngTemplateOutlet="noteTemplate; context: { $implicit: note }" />
+      }
+    }
+  </div>
+  @if (!row.summary || isOpen(row.summary.key)) {
+    <ng-container *ngTemplateOutlet="foldsTemplate; context: { $implicit: row.notes }" />
+  }
+</ng-template>
+
+<!-- One line: the file's name or the command, cut short; you see it in full when you point at it. -->
 <ng-template #noteTemplate let-note>
   <button
     type="button"
     class="note"
+    [attr.title]="note.target || null"
     [attr.aria-disabled]="note.fold ? null : true"
     [attr.aria-expanded]="note.fold ? isOpen(note.key) : null"
     (click)="note.fold && toggle(note.key)"
@@ -162,8 +199,8 @@
       ><span class="mark">{{ note.mark }}</span
       >{{ note.verb }}</span
     >
-    @if (note.target) {
-      <span class="target">{{ note.target }}</span>
+    @if (note.label) {
+      <span class="target">{{ note.label }}</span>
     }
     @if (note.failed) {
       <span class="detail failed">failed</span>
@@ -173,9 +210,6 @@
       <span class="detail">withdrawn</span>
     } @else if (note.counts) {
       <span class="detail">{{ note.counts }}</span>
-    }
-    @if (note.fold) {
-      <span class="fold">{{ isOpen(note.key) ? 'Fold away' : 'Fold out' }}</span>
     }
   </button>
 </ng-template>

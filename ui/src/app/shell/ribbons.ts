@@ -60,11 +60,12 @@ export class Ribbons {
   private readonly openAt = computed(() => {
     const all = this.chapters.all();
     const at = all.findIndex((c) => c.id === this.chapters.currentId());
-    return at === -1 ? all.length : at + 1;
+    return at === -1 ? all.length : at;
   });
 
   protected readonly left = computed(() => this.chapters.all().slice(0, this.openAt()));
-  protected readonly right = computed(() => this.chapters.all().slice(this.openAt()));
+  protected readonly current = computed(() => this.chapters.all().at(this.openAt()));
+  protected readonly right = computed(() => this.chapters.all().slice(this.openAt() + 1));
 
   // Questions wait for answers, not for a seal.
   private readonly sealsOf = (chapter: Chapter) =>
