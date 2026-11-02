@@ -31,6 +31,8 @@ export interface AgentAdapter {
    * Agents that can't fork leave it out.
    */
   fork?(chatId: ChatId, cwd: string, entryId: string, title: string): Promise<ChatId>;
+  /** Gives a saved chat a new title. Agents that can't rename chats leave it out. */
+  rename?(chatId: ChatId, cwd: string, title: string): Promise<void>;
   /** The chat's title; empty until the agent names it. */
   title(chatId: ChatId, cwd: string): Promise<string>;
   models(): Promise<AgentModels>;
@@ -39,8 +41,15 @@ export interface AgentAdapter {
   /**
    * Starts the agent's process for a chat: a new chat under the given ID,
    * or, with `resume`, an existing one. Messages go in through send().
+   * A new chat can be given its title; a resumed one keeps its own.
    */
-  run(chatId: ChatId, settings: ChatSettings, resume: boolean, events: ChatEvents): LiveChat;
+  run(
+    chatId: ChatId,
+    settings: ChatSettings,
+    resume: boolean,
+    events: ChatEvents,
+    title?: string,
+  ): LiveChat;
   /**
    * Starts a new chat with its first message, when the agent picks the
    * chat's ID itself, as it does on a spare process (ADR-010). `bind` gets
@@ -51,6 +60,7 @@ export interface AgentAdapter {
     text: string,
     id: string,
     bind: (chatId: ChatId) => ChatEvents,
+    title?: string,
   ): Promise<LiveChat>;
   /** Keeps a spare process started, so the next new chat opens at once (ADR-010). */
   warm?(): void;

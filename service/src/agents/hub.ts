@@ -168,25 +168,38 @@ export class AgentHub {
     return this.snapshot(chat);
   }
 
-  async start(agent: AgentId, settings: NewChatSettings, text: string): Promise<OpenChat> {
+  async start(
+    agent: AgentId,
+    settings: NewChatSettings,
+    text: string,
+    title?: string,
+  ): Promise<OpenChat> {
     const resolved: ChatSettings = { ...settings, cwd: settings.cwd ?? homedir() };
     const adapter = this.adapter(agent);
+    const named = title?.trim() || undefined;
     if (!adapter.start) {
-      const chat = this.track(randomUUID(), adapter, resolved, [], '');
+      const chat = this.track(randomUUID(), adapter, resolved, [], named ?? '');
       this.store.chapters.add({ chatId: chat.id, agent, settings: resolved });
+      chat.live = adapter.run(chat.id, resolved, false, this.eventsFor(chat), named);
       this.sendTo(chat, text, false);
       return this.snapshot(chat);
     }
     // The agent picks the chat's ID, on a spare process when it has one.
     let chat: ChatState | undefined;
     const id = randomUUID();
-    const live = await adapter.start(resolved, text, id, (chatId) => {
-      chat = this.track(chatId, adapter, resolved, [], '');
-      this.store.chapters.add({ chatId, agent, settings: resolved });
-      this.upsert(chat, { kind: 'user', id, text });
-      this.setStatus(chat, 'thinking');
-      return this.eventsFor(chat);
-    });
+    const live = await adapter.start(
+      resolved,
+      text,
+      id,
+      (chatId) => {
+        chat = this.track(chatId, adapter, resolved, [], named ?? '');
+        this.store.chapters.add({ chatId, agent, settings: resolved });
+        this.upsert(chat, { kind: 'user', id, text });
+        this.setStatus(chat, 'thinking');
+        return this.eventsFor(chat);
+      },
+      named,
+    );
     if (!chat) throw new Error(`${agent} started a chat without naming it`);
     // Closed while it started.
     if (this.chats.get(chat.id) !== chat) live.close();
@@ -268,6 +281,17 @@ export class AgentHub {
   }
 
   /** Folds a chat's dog-ear down, or unfolds it. */
+  /** Renames a chat with its agent. */
+  async rename(chatId: ChatId, title: string): Promise<void> {
+    const chat = this.chat(chatId);
+    const named = title.trim();
+    if (!named) throw new Error('A chapter needs a title');
+    if (!chat.agent.rename) throw new Error(`${chat.agent.info.name} can't rename chats`);
+    await chat.agent.rename(chatId, chat.settings.cwd, named);
+    chat.title = named;
+    this.emit('agents.title', { chatId, title: named });
+  }
+
   dogEar(chatId: ChatId, dogEar: DogEar, folded: boolean): void {
     this.store.dogEars.set(chatId, dogEar, folded);
     const dogEars = this.store.dogEars.of(chatId);

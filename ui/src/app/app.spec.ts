@@ -938,6 +938,48 @@ describe('App', () => {
     ]);
   });
 
+  it('renames a chapter in place with the pen beside its title', async () => {
+    const { bridge, calls, answers } = fakeBridge();
+    answers['agents.list'] = () => [{ id: 'claude-code', name: 'Claude Code', capabilities: ['rename'] }];
+    const { fixture, el, texts } = await render(bridge);
+    await fixture.whenStable();
+    const pen = () => el.querySelector<HTMLButtonElement>('[aria-label="Rename chapter"]');
+    const field = () => el.querySelector<HTMLInputElement>('gr-running-head input.rename');
+    const rename = async (title: string, key: string) => {
+      pen()!.click();
+      await fixture.whenStable();
+      expect(document.activeElement).toBe(field());
+      field()!.value = title;
+      field()!.dispatchEvent(new KeyboardEvent('keydown', { key, cancelable: true }));
+      await fixture.whenStable();
+    };
+
+    // A blank chapter's chat starts with the title you gave it.
+    await rename('Login bug', 'Enter');
+    expect(texts('gr-running-head h1')).toEqual(['Login bug']);
+    await write(fixture, el, 'First');
+    expect(calls.find((c) => c.command === 'agents.start')!.request).toMatchObject({ title: 'Login bug' });
+
+    await rename('  Flaky login test ', 'Enter');
+    expect(calls.filter((c) => c.command === 'agents.rename').map((c) => c.request)).toEqual([
+      { chatId: 'chat-1', title: 'Flaky login test' },
+    ]);
+    expect(texts('gr-running-head h1')).toEqual(['Flaky login test']);
+    expect(document.activeElement).toBe(pen());
+
+    // Esc puts the title back, and leaves the turn running.
+    await rename('Something else', 'Escape');
+    expect(texts('gr-running-head h1')).toEqual(['Flaky login test']);
+    expect(calls.filter((c) => c.command === 'agents.rename')).toHaveLength(1);
+    expect(calls.filter((c) => c.command === 'agents.interrupt')).toEqual([]);
+  });
+
+  it('leaves the pen out for agents that can\'t rename their chats', async () => {
+    const { bridge } = fakeBridge();
+    const { el } = await render(bridge);
+    expect(el.querySelector('[aria-label="Rename chapter"]')).toBeNull();
+  });
+
   it('shows why an undo failed', async () => {
     const { bridge, answers } = fakeBridge();
     answers['agents.openChats'] = (): OpenChat[] => [

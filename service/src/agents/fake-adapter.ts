@@ -15,6 +15,8 @@ export interface FakeRun {
   chatId: ChatId;
   settings: ChatSettings;
   resume: boolean;
+  /** The title a new chat was started with. */
+  title?: string;
   events: ChatEvents;
   sent: string[];
   /** The entry IDs of the messages sent, in the same order. */
@@ -84,11 +86,25 @@ export class FakeAdapter implements AgentAdapter {
     ];
   }
 
-  run(chatId: ChatId, settings: ChatSettings, resume: boolean, events: ChatEvents): LiveChat {
+  /** The titles chats were renamed to, by chat. */
+  readonly renamed = new Map<ChatId, string>();
+
+  async rename(chatId: ChatId, _cwd: string, title: string): Promise<void> {
+    this.renamed.set(chatId, title);
+  }
+
+  run(
+    chatId: ChatId,
+    settings: ChatSettings,
+    resume: boolean,
+    events: ChatEvents,
+    title?: string,
+  ): LiveChat {
     const run: FakeRun = {
       chatId,
       settings,
       resume,
+      ...(title ? { title } : {}),
       events,
       sent: [],
       sentIds: [],

@@ -1,5 +1,6 @@
 import { Injectable, PendingTasks, computed, inject, signal } from '@angular/core';
 import type {
+  AgentCapability,
   AgentId,
   AgentInfo,
   AgentModels,
@@ -144,6 +145,11 @@ export class Chats {
     inject(PendingTasks).run(() => this.restore());
   }
 
+  /** Whether the agent does this, such as renaming its chats. */
+  can(agent: AgentId | undefined, capability: AgentCapability): boolean {
+    return !!this.agents().find((info) => info.id === agent)?.capabilities.includes(capability);
+  }
+
   agentName(agent: AgentId): string {
     return this.agents().find((info) => info.id === agent)?.name ?? agent;
   }
@@ -269,6 +275,7 @@ export class Chats {
         agent: chapter.agent,
         settings: chapter.settings,
         text,
+        ...(chapter.title ? { title: chapter.title } : {}),
       });
       this.all.update((all) => all.map((c) => (c.id === id ? fromOpenChat(chat) : c)));
       if (this.currentId() === id) this.turnTo(chat.id);
@@ -329,6 +336,21 @@ export class Chats {
       this.all.update((all) => [...all.filter((c) => c.id !== chat.id), fromOpenChat(chat)]);
       this.turnTo(chat.id);
     } catch (error) {
+      this.fail(id, error);
+    }
+  }
+
+  /** Gives a chapter a new title; a blank chapter's chat starts with it. */
+  async rename(id: string, title: string): Promise<void> {
+    const chapter = this.find(id);
+    const named = title.trim();
+    if (!chapter || !named || named === chapter.title) return;
+    this.update(id, ({ error: _, ...c }) => ({ ...c, title: named }));
+    if (chapter.status === 'blank') return;
+    try {
+      await this.bridge.invoke('agents.rename', { chatId: id, title: named });
+    } catch (error) {
+      this.update(id, (c) => ({ ...c, title: chapter.title }));
       this.fail(id, error);
     }
   }

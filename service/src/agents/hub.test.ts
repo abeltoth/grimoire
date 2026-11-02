@@ -425,6 +425,20 @@ describe('AgentHub', () => {
     expect((await restarted.open('fake', variant.id, settings)).copied).toEqual(['u1', 'u2']);
   });
 
+  it('renames chats with the agent, and starts them with a title', async () => {
+    const { id } = await hub.start('fake', settings, 'Hello', '  Login bug ');
+    expect(fake.runOf(id).title).toBe('Login bug');
+    expect((await hub.open('fake', id, settings)).title).toBe('Login bug');
+    sent = [];
+
+    await hub.rename(id, ' Flaky login test ');
+    expect(fake.renamed.get(id)).toBe('Flaky login test');
+    expect(sent).toEqual([{ event: 'agents.title', payload: { chatId: id, title: 'Flaky login test' } }]);
+    expect((await hub.open('fake', id, settings)).title).toBe('Flaky login test');
+    await expect(hub.rename(id, '  ')).rejects.toThrow('A chapter needs a title');
+    await expect(hub.rename('missing', 'x')).rejects.toThrow('This chat is not open');
+  });
+
   it('pins and stars chats with dog-ears, kept across restarts', async () => {
     const store = hubStore(openDatabase(':memory:'));
     hub = new AgentHub((event, payload) => sent.push({ event, payload } as Sent), 50, store);

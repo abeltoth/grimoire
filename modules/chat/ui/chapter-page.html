@@ -2,10 +2,31 @@
   <gr-dog-ears [chapter]="c" />
   <gr-running-head>
     <div class="row">
-      <h1 class="title" [class.untitled]="!c.title">{{ c.title || 'Untitled chapter' }}</h1>
-      <button type="button" class="icon-button" aria-label="Rename chapter" aria-disabled="true">
-        <gr-icon name="pen" />
-      </button>
+      @if (renaming()) {
+        <input
+          #titleField
+          class="title rename"
+          aria-label="Chapter title"
+          placeholder="Untitled chapter"
+          [value]="c.title"
+          (keydown.enter)="finishRenaming(titleField, true, true)"
+          (keydown.escape)="$event.preventDefault(); finishRenaming(titleField, false, true)"
+          (blur)="finishRenaming(titleField, true, false)"
+        />
+      } @else {
+        <h1 class="title" [class.untitled]="!c.title">{{ c.title || 'Untitled chapter' }}</h1>
+        @if (canRename()) {
+          <button
+            #renameButton
+            type="button"
+            class="icon-button"
+            aria-label="Rename chapter"
+            (click)="renaming.set(true)"
+          >
+            <gr-icon name="pen" />
+          </button>
+        }
+      }
       <button type="button" class="gr-link" aria-disabled="true">+ Tag</button>
     </div>
     <div class="row">
