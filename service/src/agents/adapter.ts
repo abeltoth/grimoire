@@ -15,11 +15,14 @@ import type {
   SettingsChange,
 } from '@grimoire/contract';
 
+/** A chat as the agent lists it; its dog-ears are Grimoire's (ADR-009). */
+export type SavedChat = Omit<ChatSummary, 'dogEars'>;
+
 /** One agent, such as Claude Code. The hub reaches agents only through this (ADR-006). */
 export interface AgentAdapter {
   readonly info: AgentInfo;
   /** The agent's chats, most recent first. */
-  listChats(cwd?: string): Promise<ChatSummary[]>;
+  listChats(cwd?: string): Promise<SavedChat[]>;
   /** A saved chat: its transcript, and the plan as the agent last left it. */
   history(chatId: ChatId, cwd: string): Promise<ChatHistory>;
   /**

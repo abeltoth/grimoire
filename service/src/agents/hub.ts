@@ -109,8 +109,10 @@ export class AgentHub {
     return [...this.adapters.values()].map((adapter) => adapter.info);
   }
 
-  listChats(agent: AgentId, cwd?: string): Promise<ChatSummary[]> {
-    return this.adapter(agent).listChats(cwd);
+  async listChats(agent: AgentId, cwd?: string): Promise<ChatSummary[]> {
+    const chats = await this.adapter(agent).listChats(cwd);
+    const dogEars = this.store.dogEars.all();
+    return chats.map((chat) => ({ ...chat, dogEars: dogEars.get(chat.id) ?? [] }));
   }
 
   models(agent: AgentId): Promise<AgentModels> {
