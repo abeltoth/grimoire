@@ -1,5 +1,5 @@
 import type { AgentEntry, Entry, ToolBlock } from '@grimoire/contract';
-import { toRows } from './rows';
+import { type Note, summarize, toRows } from './rows';
 
 const you = (id: string, text: string): Entry => ({ kind: 'user', id, text });
 const agent = (id: string, ...blocks: AgentEntry['blocks']): Entry => ({
@@ -121,6 +121,74 @@ describe('toRows', () => {
       { counts: undefined, fold: undefined },
       { counts: undefined, fold: undefined },
     ]);
+  });
+
+  it('shows a file by its name and anything else in full', () => {
+    const rows = toRows(
+      [agent('a1', tool('Edit', { file_path: '/repo/src/app/a.ts' }), tool('Bash', { command: 'npm test -- --watch=false' }))],
+      '/repo',
+    );
+    const notes = rows[0]!.kind === 'notes' ? rows[0]!.notes : [];
+    expect(notes.map(({ target, label }) => ({ target, label }))).toEqual([
+      { target: 'src/app/a.ts', label: 'a.ts' },
+      { target: 'npm test -- --watch=false', label: 'npm test -- --watch=false' },
+    ]);
+  });
+
+  it('sums up a run of notes, but not a note on its own', () => {
+    const done = { text: 'ok', isError: false };
+    const rows = toRows(
+      [
+        agent('a1', tool('Read', { file_path: '/repo/a.ts' }, done), text('One.')),
+        agent(
+          'a2',
+          tool('Read', { file_path: '/repo/a.ts' }, done),
+          tool('Edit', { file_path: '/repo/a.ts', old_string: 'x', new_string: 'y\nz' }, done),
+          tool('Read', { file_path: '/repo/b.ts' }, done),
+          tool('Write', { file_path: '/repo/a.ts', content: 'w\n' }, done),
+          tool('Bash', { command: 'npm test' }, { text: 'boom', isError: true }),
+          tool('Grep', { pattern: 'x' }, done),
+          tool('Grep', { pattern: 'y' }),
+          text('Two.'),
+        ),
+      ],
+      '/repo',
+    );
+    expect(rows[0]).not.toHaveProperty('summary');
+    expect(rows[1]).toMatchObject({
+      summary: {
+        key: 'a2/0/all',
+        text: 'Read 2 files, changed 1 file, ran 1 command, searched twice',
+        counts: '+3 −1',
+        running: true,
+        failed: 1,
+        withdrawn: false,
+      },
+    });
+  });
+
+  it('sums up a run whose changes were all undone as withdrawn', () => {
+    const changed = (target: string): Note => ({
+      key: target,
+      mark: '*',
+      verb: 'Edited',
+      target,
+      label: target,
+      did: 'changed',
+      running: false,
+      failed: false,
+      counts: '+1 −1',
+      added: 1,
+      removed: 1,
+      withdrawn: true,
+    });
+    expect(summarize([changed('a.ts'), changed('b.ts')])).toEqual({
+      key: 'a.ts/all',
+      text: 'Changed 2 files',
+      running: false,
+      failed: 0,
+      withdrawn: true,
+    });
   });
 
   it('keeps thinking as its own row and doubles the marks after six notes', () => {

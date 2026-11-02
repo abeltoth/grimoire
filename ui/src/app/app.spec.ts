@@ -197,8 +197,8 @@ describe('App', () => {
       '~',
       'No preset',
     ]);
-    expect(texts('.left-half gr-ribbon b')).toEqual(['Untitled chapter']);
-    expect(texts('.left-half gr-ribbon i')).toEqual(['Claude Code · blank page']);
+    expect(texts('.spine gr-ribbon b')).toEqual(['Untitled chapter']);
+    expect(texts('.spine gr-ribbon i')).toEqual(['Claude Code · blank page']);
     expect(texts('.right-half gr-ribbon b')).toEqual(['New chapter']);
     expect(texts('gr-chapter-opening p')).toEqual([
       'A new chapter',
@@ -253,7 +253,8 @@ describe('App', () => {
     expect(texts('.reply .who')).toEqual(['Claude Code']);
     expect(texts('.reply gr-markdown p')).toEqual(['The test races the timer. Stop Esc']);
     expect(texts('.note .note-head')).toEqual(['*Read']);
-    expect(texts('.note .target')).toEqual(['src/login.spec.ts']);
+    expect(texts('.note .target')).toEqual(['login.spec.ts']);
+    expect(el.querySelector('.note')!.getAttribute('title')).toBe('src/login.spec.ts');
     expect(texts('.note .detail')).toEqual(['running…']);
     expect(el.querySelector('.reply gr-markdown p .quill')).not.toBeNull();
     expect(texts('gr-running-head h1')).toEqual(['Fix flaky login test']);
@@ -386,7 +387,7 @@ describe('App', () => {
     expect(el.querySelector('gr-listing:last-of-type .line .quill')).not.toBeNull();
   });
 
-  it('folds a margin note out to the corrections or the output', async () => {
+  it('sums up a run of margin notes, and folds them out to the corrections or the output', async () => {
     const { bridge, emit } = fakeBridge();
     const { fixture, el, texts } = await render(bridge);
     await write(fixture, el, 'Add the meter');
@@ -420,16 +421,21 @@ describe('App', () => {
     });
     await fixture.whenStable();
 
-    expect(texts('.note .detail')).toEqual(['+2 −1', 'failed']);
-    expect(texts('.note .fold')).toEqual(['Fold out', 'Fold out']);
+    expect(texts('.note.summary > *')).toEqual(['Changed 1 file, ran 1 command', '+2 −1', '1 failed']);
+    const run = el.querySelector<HTMLButtonElement>('.note.summary')!;
+    expect(run.getAttribute('aria-expanded')).toBe('false');
+
+    run.click();
+    await fixture.whenStable();
+    expect(run.getAttribute('aria-expanded')).toBe('true');
+    expect(texts('.run .note > *')).toEqual(['*Edited', 'meter.ts', '+2 −1', '†Ran', 'npm test', 'failed']);
     expect(el.querySelector('gr-corrections, gr-output')).toBeNull();
 
-    const notes = el.querySelectorAll<HTMLButtonElement>('.note');
+    const notes = el.querySelectorAll<HTMLButtonElement>('.run .note');
     notes[0]!.click();
     notes[1]!.click();
     await fixture.whenStable();
     expect(notes[0]!.getAttribute('aria-expanded')).toBe('true');
-    expect(texts('.note .fold')).toEqual(['Fold away', 'Fold away']);
     expect(texts('gr-corrections .head b')).toEqual(['src/meter.ts']);
     expect(texts('gr-corrections .head .detail')[0]).toBe('corrections, as marked by Claude Code');
     expect(texts('gr-output .head > *')).toEqual(['npm test', 'output']);
@@ -477,18 +483,20 @@ describe('App', () => {
     expect(texts('gr-running-head h1')).toEqual(['Untitled chapter']);
     expect(texts('[aria-current="page"] i')).toEqual(['Claude Code · blank page']);
     // The ribbons keep the order the chapters were opened in.
-    expect(texts('.left-half gr-ribbon i')).toEqual([
+    expect(texts('gr-ribbon.chapter i')).toEqual([
       'Claude Code · thinking',
       'Claude Code · blank page',
     ]);
+    expect(texts('.spine gr-ribbon i')).toEqual(['Claude Code · blank page']);
     // The new chapter takes the settings last used.
     expect(texts('.meta button')[3]).toBe('~/git/grimoire');
 
     // The book opens at the first chapter: the one after it moves right of the spine.
-    [...el.querySelectorAll<HTMLButtonElement>('.left-half gr-ribbon button')][0]!.click();
+    [...el.querySelectorAll<HTMLButtonElement>('gr-ribbon.chapter button')][0]!.click();
     await fixture.whenStable();
     expect(texts('.you p')).toEqual(['Fix the flaky login test']);
-    expect(texts('.left-half gr-ribbon i')).toEqual(['Claude Code · thinking']);
+    expect(texts('.left-half gr-ribbon')).toEqual([]);
+    expect(texts('.spine gr-ribbon i')).toEqual(['Claude Code · thinking']);
     expect(texts('.right-half gr-ribbon.chapter i')).toEqual(['Claude Code · blank page']);
     expect(texts('[aria-current="page"] i')).toEqual(['Claude Code · thinking']);
   });
@@ -510,7 +518,7 @@ describe('App', () => {
     expect(entry().value).toBe('');
     expect(el.querySelector('gr-composer gr-enclosures')).toBeNull();
 
-    [...el.querySelectorAll<HTMLButtonElement>('.left-half gr-ribbon button')][0]!.click();
+    [...el.querySelectorAll<HTMLButtonElement>('gr-ribbon.chapter button')][0]!.click();
     await fixture.whenStable();
     expect(entry().value).toBe('Half a thought');
     expect(texts('gr-composer .ref code')).toEqual(['notes.txt']);
@@ -601,7 +609,7 @@ describe('App', () => {
 
   it('opens a chapter\'s settings from a right-click on its ribbon', async () => {
     const { fixture, el, texts } = await render(fakeBridge().bridge);
-    el.querySelector('.left-half gr-ribbon button')!.dispatchEvent(
+    el.querySelector('gr-ribbon.chapter button')!.dispatchEvent(
       new MouseEvent('contextmenu', { bubbles: true, cancelable: true }),
     );
     await fixture.whenStable();
@@ -1344,7 +1352,7 @@ describe('App', () => {
       'New chapter',
     ]);
 
-    el.querySelectorAll<HTMLButtonElement>('.left-half gr-ribbon button')[0]!.click();
+    el.querySelectorAll<HTMLButtonElement>('gr-ribbon.chapter button')[0]!.click();
     await fixture.whenStable();
     expect(calls.filter((c) => c.command === 'layout.set').map((c) => c.request)).toEqual([
       { current: 'c1' },

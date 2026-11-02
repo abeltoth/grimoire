@@ -4,7 +4,24 @@
       class="chapter"
       side="left"
       [tone]="tone(chapter)"
-      [current]="chapter.id === chapters.currentId()"
+      [heading]="title(chapter)"
+      [meta]="meta(chapter)"
+      (picked)="chapters.open(chapter.id)"
+      (dismissed)="chapters.close(chapter.id)"
+      (settings)="chapters.openSettings(chapter.id, 'agent')"
+    >
+      <gr-icon [name]="icon(chapter)" [class]="motion(chapter)" />
+    </gr-ribbon>
+  }
+</div>
+
+<div class="spine">
+  @if (current(); as chapter) {
+    <gr-ribbon
+      class="chapter"
+      side="left"
+      current
+      [tone]="tone(chapter)"
       [heading]="title(chapter)"
       [meta]="meta(chapter)"
       (picked)="chapters.open(chapter.id)"

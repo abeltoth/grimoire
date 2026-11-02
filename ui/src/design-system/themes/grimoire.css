@@ -155,12 +155,11 @@
 
   /* Shell: ribbons */
   --gr-ribbons-h: 66px;
-  --gr-ribbons-spine-overlap: 18px;
   --gr-ribbons-edge-inset: 24px;
   --gr-ribbon-w: 26px;
   --gr-ribbon-len: 48px;
   --gr-ribbon-len-long: 60px;
-  --gr-ribbon-slot: 18px;
+  --gr-ribbon-gap: 4px;
   --gr-ribbon-slot-min: 6px;
   --gr-ribbon-current-gap: 10px;
   --gr-ribbon-new-gap: 18px;
@@ -262,7 +261,7 @@
   --gr-size-mark: 0.78em;
   --gr-size-note-mark: 15px;
   --gr-size-note-detail: 11.5px;
-  --gr-note-target-lines: 2;
+  --gr-note-run-indent: 10px;
   --gr-leading-note: 1.3;
   --gr-note-pad: 2px 4px 3px 10px;
   --gr-radius-note: 2px;

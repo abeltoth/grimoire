@@ -149,18 +149,19 @@ p {
   color: var(--gr-rubric);
 }
 
-/* Margin notes */
+/* Margin notes, a line each */
 .notes {
   display: flex;
   flex-direction: column;
-  gap: var(--gr-space-2);
+  gap: var(--gr-aside-gap);
   align-self: start;
+  min-width: 0;
 }
 
 .note {
   display: flex;
-  flex-direction: column;
-  gap: var(--gr-aside-gap);
+  align-items: baseline;
+  gap: var(--gr-control-gap);
   width: 100%;
   font-size: var(--gr-size-note);
   line-height: var(--gr-leading-note);
@@ -168,6 +169,7 @@ p {
   padding: var(--gr-note-pad);
   border-radius: var(--gr-radius-note);
   text-align: left;
+  white-space: nowrap;
 }
 
 .note:hover {
@@ -175,6 +177,7 @@ p {
 }
 
 .note-head {
+  flex: none;
   display: flex;
   align-items: baseline;
   gap: var(--gr-control-gap);
@@ -184,26 +187,46 @@ p {
   color: var(--gr-ink);
 }
 
+/* A run of notes summed up, its counts running on after it onto a second line if need be. */
+.summary {
+  display: block;
+  white-space: normal;
+}
+
+.summary .note-head {
+  display: inline;
+}
+
+.summary .detail {
+  margin-left: var(--gr-control-gap);
+}
+
+/* The notes of a run, folded out beneath it. */
+.run {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-aside-gap);
+  padding-left: var(--gr-note-run-indent);
+}
+
 .mark {
   color: var(--gr-rubric);
   font-weight: 700;
   font-size: var(--gr-size-note-mark);
 }
 
-/* A long command or path is cut short; folded out, it heads the output in full. */
+/* A long command or path is cut short; you see it in full when you point at it. */
 .target {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: var(--gr-note-target-lines);
-  line-clamp: var(--gr-note-target-lines);
+  min-width: 0;
   overflow: hidden;
+  text-overflow: ellipsis;
   font-family: var(--gr-font-mono);
   font-size: var(--gr-size-note-detail);
   color: var(--gr-ink);
-  overflow-wrap: anywhere;
 }
 
 .detail {
+  flex: none;
   font-style: italic;
 }
 
@@ -211,12 +234,4 @@ p {
   color: var(--gr-rubric);
   font-style: normal;
   font-weight: 500;
-}
-
-.fold {
-  font-family: var(--gr-font-sc);
-  font-size: var(--gr-size-note-detail);
-  letter-spacing: var(--gr-tracking-label);
-  color: var(--gr-link);
-  margin-top: 1px;
 }
