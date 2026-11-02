@@ -488,6 +488,30 @@ describe('App', () => {
     expect(texts('.you p')).toEqual(['Fix the flaky login test']);
   });
 
+  it('keeps what you wrote on a chapter, unsent, while you turn to another', async () => {
+    const { bridge, calls } = fakeBridge({
+      chooseFiles: vi.fn(async () => ['C:/work/grimoire/notes.txt']),
+    });
+    const { fixture, el, texts } = await render(bridge);
+    await write(fixture, el, 'Fix the flaky login test');
+    const entry = () => el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!;
+    entry().value = 'Half a thought';
+    entry().dispatchEvent(new Event('input'));
+    el.querySelector<HTMLButtonElement>('[aria-label="Attach files or a screenshot"]')!.click();
+    await fixture.whenStable();
+
+    el.querySelector<HTMLButtonElement>('gr-ribbon.new button')!.click();
+    await fixture.whenStable();
+    expect(entry().value).toBe('');
+    expect(el.querySelector('gr-composer gr-enclosures')).toBeNull();
+
+    [...el.querySelectorAll<HTMLButtonElement>('.left-half gr-ribbon button')][1]!.click();
+    await fixture.whenStable();
+    expect(entry().value).toBe('Half a thought');
+    expect(texts('gr-composer .ref code')).toEqual(['notes.txt']);
+    expect(calls.filter((c) => c.command === 'agents.send')).toEqual([]);
+  });
+
   it('changes a blank chapter\'s settings on its settings card', async () => {
     const { bridge, calls } = fakeBridge();
     const { fixture, el, texts } = await render(bridge);

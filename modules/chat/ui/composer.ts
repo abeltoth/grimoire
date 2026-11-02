@@ -22,6 +22,7 @@ import { Icon } from '@ui/design-system/icon';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { Chats } from '@ui/app/core/chats';
 import { AgentCommands } from '@ui/app/shell/agent-commands';
+import { Drafts } from './drafts';
 import { Enclosures } from './enclosures';
 import { readPicture } from './pictures';
 
@@ -45,6 +46,7 @@ export class Composer {
   private readonly commands = inject(AgentCommands);
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
   private readonly pending = inject(PendingTasks);
+  private readonly drafts = inject(Drafts);
 
   readonly chapterId = input.required<string>();
   readonly agent = input.required<AgentId>();
@@ -64,12 +66,15 @@ export class Composer {
 
   private readonly entry = viewChild.required<ElementRef<HTMLTextAreaElement>>('entry');
 
-  /** What you're writing; a fresh page for each chapter. */
-  protected readonly draft = linkedSignal({ source: this.chapterId, computation: () => '' });
+  /** What you're writing; each chapter keeps its own until it's sent. */
+  protected readonly draft = linkedSignal({
+    source: this.chapterId,
+    computation: (id) => this.drafts.of(id).text,
+  });
   /** The pictures and files to send with it. */
   protected readonly enclosures = linkedSignal<string, readonly Enclosure[]>({
     source: this.chapterId,
-    computation: () => [],
+    computation: (id) => this.drafts.of(id).enclosures,
   });
 
   /** Whether the facing page lists the agent's commands for this entry. */
@@ -82,6 +87,10 @@ export class Composer {
   );
 
   constructor() {
+    // What you write stays with its chapter while you turn to another.
+    effect(() =>
+      this.drafts.keep(this.chapterId(), { text: this.draft(), enclosures: this.enclosures() }),
+    );
     // A fresh page for another chapter; the commands were looked up for the last one.
     effect(() => {
       const chapterId = this.chapterId();
