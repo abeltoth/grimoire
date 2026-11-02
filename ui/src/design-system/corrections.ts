@@ -1,5 +1,5 @@
 import { Component, ElementRef, computed, input, viewChild } from '@angular/core';
-import type { DiffLine } from './diff';
+import type { DiffLine } from '@grimoire/contract';
 import { linesShown } from './fold-out';
 
 interface Line extends DiffLine {

@@ -12,7 +12,7 @@ import { Chats } from '@ui/app/core/chats';
 import type { Approval, ApprovalDecision } from '@grimoire/contract';
 import { Icon } from '@ui/design-system/icon';
 import { askOf, scopeText } from './asks';
-import { Corrections } from './corrections';
+import { Corrections } from '@ui/design-system/corrections';
 
 /**
  * An approval as a slip tucked into the page, waiting for your seal: it

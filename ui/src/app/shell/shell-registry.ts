@@ -47,6 +47,16 @@ export interface Indicator extends Entry {
   open?: () => void;
 }
 
+/** A stamp in the chapter's running head, such as its pull request's review. */
+export interface Stamp extends Entry {
+  label: string;
+  /** An alert is stamped in rubric, a quiet one in plain ink. */
+  tone?: 'alert' | 'quiet';
+  /** More about it, shown on hover. */
+  detail?: string;
+  open?: () => void;
+}
+
 /** Something you can do from the Index or with a shortcut. */
 export interface Command extends Entry {
   label: string;
@@ -80,7 +90,7 @@ export class Slot<T extends Entry> {
 
 /**
  * The places in the shell that features fill (ADR-008): thumb tabs, facing
- * pages, running-foot indicators and commands. The shell draws whatever is
+ * pages, running-foot indicators, running-head stamps and commands. The shell draws whatever is
  * registered here and knows nothing about the features themselves.
  */
 @Injectable({ providedIn: 'root' })
@@ -88,6 +98,7 @@ export class ShellRegistry {
   readonly thumbs = new Slot<ThumbTab>();
   readonly facingPages = new Slot<FacingPageEntry>();
   readonly indicators = new Slot<Indicator>();
+  readonly stamps = new Slot<Stamp>();
   readonly commands = new Slot<Command>();
   /** What the left page shows for the open chapter: the chat module's page. */
   readonly chapterPage = signal<Type<unknown> | undefined>(undefined);

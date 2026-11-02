@@ -1,0 +1,204 @@
+/* The page scrolls on its own; the running head and foot stay put. */
+:host {
+  display: block;
+  height: 100%;
+  overflow: auto;
+  padding-bottom: var(--gr-git-section-gap);
+}
+
+h2 {
+  margin: 0;
+  font-family: var(--gr-font-display-sc);
+  font-weight: 400;
+  font-size: var(--gr-size-section-head);
+  letter-spacing: var(--gr-tracking-section-head);
+  color: var(--gr-rubric);
+  overflow-wrap: anywhere;
+}
+
+h3 {
+  margin: var(--gr-git-section-gap) 0 var(--gr-git-head-gap);
+  font-family: var(--gr-font-display);
+  font-weight: 400;
+  font-size: var(--gr-size-git-head);
+  color: var(--gr-ink);
+}
+
+.sub,
+.none {
+  margin: var(--gr-aside-gap) 0 0;
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.sub .branch {
+  font-style: normal;
+  font-weight: 500;
+  color: var(--gr-ink);
+}
+
+code {
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-code);
+  font-style: normal;
+}
+
+.dot {
+  margin: 0 var(--gr-space-1);
+}
+
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.changes,
+.tree {
+  max-width: var(--gr-git-width);
+}
+
+.changes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-git-gap);
+}
+
+/* A change: its file, then dotted leaders to what happened to it. */
+.change {
+  display: flex;
+  align-items: baseline;
+  width: 100%;
+  text-align: left;
+}
+
+.path {
+  min-width: 0;
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-git-file);
+  color: var(--gr-ink);
+  overflow-wrap: anywhere;
+}
+
+.folder {
+  color: var(--gr-ink-soft);
+}
+
+.change:hover .path,
+.change[aria-expanded='true'] .path {
+  color: var(--gr-link);
+}
+
+.leader {
+  flex: 1;
+  min-width: var(--gr-outline-leader-min);
+  margin: 0 var(--gr-outline-leader-gap);
+  border-bottom: var(--gr-leader);
+  transform: translateY(var(--gr-outline-leader-lift));
+}
+
+.kind {
+  font-style: italic;
+  font-size: var(--gr-size-outline-status);
+  color: var(--gr-ink-soft);
+  white-space: nowrap;
+}
+
+.kind.alert {
+  color: var(--gr-rubric);
+}
+
+/* The branch tree: the trunk, and the branches grown from it hung under it. */
+.tree {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-git-gap);
+}
+
+.grown {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-git-gap);
+  margin-left: var(--gr-git-tree-indent);
+  padding-left: var(--gr-git-tree-tick);
+  border-left: 1px solid var(--gr-git-tree-rule);
+}
+
+.grown > li {
+  position: relative;
+}
+
+.grown > li::before {
+  content: '';
+  position: absolute;
+  top: var(--gr-git-tree-tick-top);
+  left: calc(var(--gr-git-tree-tick) * -1);
+  width: var(--gr-git-tree-tick-w);
+  border-top: 1px solid var(--gr-git-tree-rule);
+}
+
+.branch-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--gr-git-row-gap);
+}
+
+.name {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--gr-git-row-gap);
+  min-width: 0;
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-git-file);
+  color: var(--gr-ink);
+  overflow-wrap: anywhere;
+}
+
+.name gr-icon {
+  align-self: center;
+  color: var(--gr-ink-soft);
+}
+
+.current .name {
+  font-weight: 600;
+}
+
+.current .name gr-icon {
+  color: var(--gr-gilt-ink);
+}
+
+.here {
+  font-style: italic;
+  font-size: var(--gr-size-outline-status);
+  font-weight: 500;
+  color: var(--gr-gilt-ink);
+}
+
+.branch-row .leader {
+  margin: 0;
+}
+
+.distance {
+  font-style: italic;
+  font-size: var(--gr-size-outline-status);
+  color: var(--gr-ink-soft);
+  white-space: nowrap;
+}
+
+/* Its latest commit, on a line of its own. */
+.last {
+  flex-basis: 100%;
+  margin-top: var(--gr-aside-gap);
+  padding-left: var(--gr-git-last-indent);
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+  overflow-wrap: anywhere;
+}
+
+gr-corrections,
+li > .none {
+  margin-top: var(--gr-git-fold-gap);
+}

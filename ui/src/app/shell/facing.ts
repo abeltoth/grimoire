@@ -28,6 +28,8 @@ export class Facing {
   readonly index = signal<string | null>(null);
   /** The agent's commands the facing page lists; null when it doesn't. */
   readonly commands = signal<CommandLookUp | null>(null);
+  /** Which of its own pages the facing page shows, by ID; the first that can be picked when unset. */
+  readonly page = signal<string | undefined>(undefined);
   /** The thumb tab whose page the facing page shows; null when it shows none. */
   readonly thumb = signal<string | null>(null);
   /** Whether the facing page is turned away from its own pages. */
@@ -56,6 +58,15 @@ export class Facing {
     this.index.set(null);
     this.thumb.set(null);
     this.commands.set(lookUp);
+  }
+
+  /** Turns the facing page back to its own pages, at this one. */
+  showPage(id: string): void {
+    this.seals.set(false);
+    this.index.set(null);
+    this.commands.set(null);
+    this.thumb.set(null);
+    this.page.set(id);
   }
 
   openThumb(id: string): void {

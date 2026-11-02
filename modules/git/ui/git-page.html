@@ -1,0 +1,116 @@
+@let status = git.status();
+@if (status === undefined) {
+  <p class="none">Reading the repository…</p>
+} @else if (status === null) {
+  <h2>Git</h2>
+  <p class="none">{{ chats.folderName(git.cwd()) }} isn’t in a git repository.</p>
+} @else {
+  <h2>{{ chats.folderName(status.root) }}</h2>
+  <p class="sub">
+    On <b class="branch">{{ branchLabel() }}</b>
+    @if (status.head) {
+      at <code>{{ status.head }}</code>
+    }
+    @if (status.upstream; as upstream) {
+      <span class="dot" aria-hidden="true">·</span>
+      {{ upstreamDistance(upstream) }}
+    }
+  </p>
+  @if (git.pullRequest(); as pr) {
+    <p class="sub">Pull request #{{ pr.number }}: <i>{{ pr.title }}</i></p>
+  }
+
+  <section aria-labelledby="git-branches">
+    <h3 id="git-branches">Branches</h3>
+    @if (branches(); as list) {
+      <ul class="tree">
+        @if (trunk(); as trunk) {
+          <li class="trunk">
+            <ng-container *ngTemplateOutlet="row; context: { $implicit: trunk, isTrunk: true }" />
+          </li>
+        }
+        @if (grown().length) {
+          <li class="grown-from">
+            <ul [class.grown]="!!trunk()">
+              @for (branch of grown(); track branch.name) {
+                <li>
+                  <ng-container *ngTemplateOutlet="row; context: { $implicit: branch, isTrunk: false }" />
+                </li>
+              }
+            </ul>
+          </li>
+        }
+      </ul>
+      @if (!list.branches.length) {
+        <p class="none">No branches yet: nothing has been committed.</p>
+      }
+    } @else {
+      <p class="none">Reading the branches…</p>
+    }
+  </section>
+
+  <section aria-labelledby="git-changes">
+    <h3 id="git-changes">Not committed yet</h3>
+    @if (status.changes.length) {
+      <ul class="changes">
+        @for (change of status.changes; track change.path) {
+          <li>
+            <button
+              type="button"
+              class="change"
+              [attr.aria-expanded]="open() === change.path"
+              (click)="toggle(change)"
+            >
+              <span class="path"
+                ><span class="folder">{{ folderOf(change.path) }}</span>{{ nameOf(change.path) }}</span
+              >
+              <span class="leader" aria-hidden="true"></span>
+              <span class="kind" [class.alert]="change.kind === 'conflicted'">
+                {{ kind(change) }}
+                @if (change.from) {
+                  from {{ change.from }}
+                }
+                @if (change.staged) {
+                  <span class="staged">· staged</span>
+                }
+              </span>
+            </button>
+            @if (open() === change.path) {
+              @if (diff(); as lines) {
+                @if (lines.length) {
+                  <gr-corrections [file]="change.path" [lines]="lines" caption="not committed yet" />
+                } @else {
+                  <p class="none">No lines to show: it isn’t text, or it’s too long.</p>
+                }
+              } @else {
+                <p class="none">Reading the change…</p>
+              }
+            }
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="none">Nothing: the folder matches the last commit.</p>
+    }
+  </section>
+}
+
+<ng-template #row let-branch let-isTrunk="isTrunk">
+  <div class="branch-row" [class.current]="branch.current">
+    <span class="name"><gr-icon name="branch" />{{ branch.name }}</span>
+    @if (branch.current) {
+      <span class="here">checked out</span>
+    }
+    <span class="leader" aria-hidden="true"></span>
+    <span class="distance">{{ isTrunk ? 'the trunk' : distance(branch) }}</span>
+    <span class="last">
+      {{ branch.subject }}
+      <span class="dot" aria-hidden="true">·</span>
+      {{ when(branch.at) }}
+      @if (branch.worktree) {
+        <span class="dot" aria-hidden="true">·</span>
+        in the worktree at {{ chats.folderName(branch.worktree) }}
+      }
+    </span>
+  </div>
+</ng-template>
