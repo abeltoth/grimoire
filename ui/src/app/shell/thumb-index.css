@@ -7,14 +7,19 @@
   width: var(--gr-notch-w);
   display: flex;
   flex-direction: column;
-  gap: var(--gr-thumbs-gap);
+  gap: calc(var(--gr-thumbs-gap) * var(--thumbs-space, 1));
   z-index: 3;
 }
 
+/* Drawn closer and smaller when the book is short; cut off only when it's shorter still. */
 .thumb {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow: hidden;
   display: flex;
   justify-content: center;
-  padding: var(--gr-thumb-pad-y) 0 var(--gr-thumb-pad-y) var(--gr-thumb-pad-spine);
+  padding: calc(var(--gr-thumb-pad-y) * var(--thumbs-space, 1)) 0
+    calc(var(--gr-thumb-pad-y) * var(--thumbs-space, 1)) var(--gr-thumb-pad-spine);
   background: var(--gr-thumb-tab);
   color: var(--gr-thumb-ink);
   border-radius: var(--gr-radius-notch);
@@ -27,16 +32,29 @@
   background: var(--gr-thumb-hover);
 }
 
+/* Open: the facing page is turned to the tab's page. */
+.thumb[aria-current='page'] {
+  margin-left: var(--gr-thumb-open-shift);
+  background: var(--gr-thumb-hover);
+  box-shadow:
+    var(--gr-shadow-thumb-open),
+    -1px 0 0 var(--gr-page-edge);
+}
+
 .thumb span {
   writing-mode: vertical-rl;
   font-family: var(--gr-font-sc);
-  font-size: var(--gr-size-label);
+  font-size: calc(var(--gr-size-label) * var(--thumbs-type, 1));
+  overflow: hidden;
+  text-overflow: ellipsis;
   letter-spacing: var(--gr-tracking-label);
   line-height: 1;
   white-space: nowrap;
 }
 
+/* The Index is never cut off. */
 .index {
+  flex-shrink: 0;
   margin-top: auto;
   background: var(--gr-thumb-index);
   color: var(--gr-thumb-index-ink);

@@ -21,6 +21,7 @@ import type {
   NewChatSettings,
   OpenChat,
   PlanStep,
+  PlanUsage,
   QueuedEntry,
   RecentFolders,
   SettingsChange,
@@ -31,6 +32,7 @@ import { openDatabase } from '../storage/database';
 import { DogEars } from '../storage/dog-ears';
 import { EntryIds } from '../storage/entry-ids';
 import { Tags } from '../storage/tags';
+import { UsageReadings } from '../storage/usage-readings';
 import type { AgentAdapter, ChatEvents, LiveChat, Verdict } from './adapter';
 
 export type Emit = <K extends EventName>(event: K, payload: EventPayload<K>) => void;
@@ -77,6 +79,8 @@ export interface HubStore {
   dogEars: DogEars;
   /** Your tags for chats. */
   tags: Tags;
+  /** Each reading of the agents' plan limits. */
+  usage: UsageReadings;
 }
 
 export function hubStore(db: DatabaseSync): HubStore {
@@ -86,6 +90,7 @@ export function hubStore(db: DatabaseSync): HubStore {
     copied: new EntryIds(db, 'copied'),
     dogEars: new DogEars(db),
     tags: new Tags(db),
+    usage: new UsageReadings(db),
   };
 }
 
@@ -128,6 +133,31 @@ export class AgentHub {
   /** The agent's commands and skills in a folder; none when it has no such thing. */
   async commands(agent: AgentId, cwd?: string): Promise<AgentCommand[]> {
     return (await this.adapter(agent).commands?.(cwd ?? homedir())) ?? [];
+  }
+
+  /** The agent's plan limits, read now and kept; null when it has no plan. */
+  async usage(agent: AgentId): Promise<PlanUsage | null> {
+    const adapter = this.adapter(agent);
+    if (!adapter.usage) return null;
+    const usage = await adapter.usage();
+    this.store.usage.record(agent, usage);
+    return usage;
+  }
+
+  /**
+   * Reads every agent's plan limits now and then every `ms`, so their
+   * history is kept even while no one looks. Returns a function that stops it.
+   */
+  readUsageEvery(ms: number): () => void {
+    const read = () => {
+      for (const adapter of this.adapters.values()) {
+        if (adapter.usage) this.usage(adapter.info.id).catch(() => {});
+      }
+    };
+    read();
+    const timer = setInterval(read, ms);
+    timer.unref();
+    return () => clearInterval(timer);
   }
 
   /** The folders chats with any agent ran in, most recent first. */

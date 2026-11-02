@@ -39,6 +39,15 @@ const MIGRATIONS = [
      settings TEXT NOT NULL,
      position INTEGER NOT NULL
    );`,
+  `CREATE TABLE usage_readings (
+     agent TEXT NOT NULL,
+     at INTEGER NOT NULL,
+     span TEXT NOT NULL,
+     model TEXT NOT NULL,
+     used REAL,
+     resets_at INTEGER,
+     PRIMARY KEY (agent, at, span, model)
+   );`,
 ];
 
 /**

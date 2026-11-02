@@ -10,6 +10,11 @@
     <gr-command-index [backTo]="page?.label ?? 'facing page'" />
     <gr-drawing class="sigil" name="empty-page" />
   </gr-page>
+} @else if (thumb(); as tab) {
+  <gr-page side="right" [attr.aria-label]="'Facing page: ' + tab.label">
+    <gr-thumb-page [tab]="tab" [backTo]="page?.label ?? 'facing page'" />
+    <gr-drawing class="sigil" name="empty-page" />
+  </gr-page>
 } @else if (seals) {
   <gr-page side="right" aria-label="Facing page: Awaiting your seal">
     <ng-container *ngComponentOutlet="seals; inputs: { backTo: page?.label ?? 'facing page' }" />

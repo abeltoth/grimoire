@@ -1,0 +1,86 @@
+:host {
+  display: block;
+}
+
+section + section {
+  margin-top: var(--gr-ledger-section-gap);
+}
+
+h2 {
+  margin: 0;
+  font-family: var(--gr-font-display-sc);
+  font-weight: 400;
+  font-size: var(--gr-size-section-head);
+  letter-spacing: var(--gr-tracking-section-head);
+  color: var(--gr-rubric);
+}
+
+.sub,
+.none {
+  margin: var(--gr-aside-gap) 0 var(--gr-outline-sub-gap);
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.dot {
+  margin: 0 var(--gr-space-1);
+}
+
+.limits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-ledger-gap);
+  max-width: var(--gr-ledger-width);
+}
+
+/* A limit: its name and when it resets, over the drawn meter and the share used. */
+li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--gr-ledger-percent-col);
+  column-gap: var(--gr-allowance-gap);
+  row-gap: var(--gr-aside-gap);
+  align-items: center;
+}
+
+.head {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  column-gap: var(--gr-allowance-gap);
+}
+
+.name {
+  font-size: var(--gr-size-outline);
+  color: var(--gr-ink);
+}
+
+.resets {
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.ticks {
+  position: relative;
+  height: var(--gr-allowance-height);
+  background: var(--gr-allowance-ticks);
+}
+
+.used {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--gr-allowance-ticks-used);
+}
+
+b {
+  font-weight: 500;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink);
+  text-align: right;
+}

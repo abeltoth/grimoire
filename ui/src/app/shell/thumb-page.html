@@ -1,0 +1,17 @@
+<gr-running-head>
+  <div class="row">
+    <h2 class="title">{{ tab().label }}</h2>
+    <span class="spacer"></span>
+    <button type="button" class="gr-link" (click)="facing.closeThumb()">
+      Back to the {{ backTo() }} <span class="gr-kbd">Esc</span>
+    </button>
+  </div>
+</gr-running-head>
+
+<div class="body">
+  @if (tab().component; as component) {
+    <ng-container *ngComponentOutlet="component" />
+  } @else {
+    <p class="blank">Not written yet.</p>
+  }
+</div>

@@ -14,8 +14,8 @@ export interface CommandLookUp {
 }
 
 /**
- * Turns the facing page to the slips awaiting your seal, to the Index, or
- * to an agent's commands, and back. While it's turned to the slips, each chapter shows its slip as
+ * Turns the facing page to the slips awaiting your seal, to the Index, to
+ * an agent's commands, or to a thumb tab's page, and back. While it's turned to the slips, each chapter shows its slip as
  * a stub that points to it.
  */
 @Injectable({ providedIn: 'root' })
@@ -28,14 +28,18 @@ export class Facing {
   readonly index = signal<string | null>(null);
   /** The agent's commands the facing page lists; null when it doesn't. */
   readonly commands = signal<CommandLookUp | null>(null);
+  /** The thumb tab whose page the facing page shows; null when it shows none. */
+  readonly thumb = signal<string | null>(null);
   /** Whether the facing page is turned away from its own pages. */
   readonly turned = computed(
-    () => this.seals() || this.index() !== null || this.commands() !== null,
+    () =>
+      this.seals() || this.index() !== null || this.commands() !== null || this.thumb() !== null,
   );
 
   openSeals(approvalId?: string): void {
     this.index.set(null);
     this.commands.set(null);
+    this.thumb.set(null);
     this.sealFirst.set(approvalId);
     this.seals.set(true);
   }
@@ -43,13 +47,26 @@ export class Facing {
   openIndex(lookUp = ''): void {
     this.seals.set(false);
     this.commands.set(null);
+    this.thumb.set(null);
     this.index.set(lookUp);
   }
 
   openCommands(lookUp: CommandLookUp): void {
     this.seals.set(false);
     this.index.set(null);
+    this.thumb.set(null);
     this.commands.set(lookUp);
+  }
+
+  openThumb(id: string): void {
+    this.seals.set(false);
+    this.index.set(null);
+    this.commands.set(null);
+    this.thumb.set(id);
+  }
+
+  closeThumb(): void {
+    this.thumb.set(null);
   }
 
   closeCommands(): void {

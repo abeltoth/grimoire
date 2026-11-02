@@ -1,5 +1,5 @@
 import { NgComponentOutlet } from '@angular/common';
-import { Component, inject, linkedSignal } from '@angular/core';
+import { Component, computed, inject, linkedSignal } from '@angular/core';
 import { Drawing } from '../../design-system/drawing';
 import { Icon } from '../../design-system/icon';
 import { CommandIndex } from './command-index';
@@ -8,18 +8,29 @@ import { Page } from './page';
 import { RunningFoot } from './running-foot';
 import { RunningHead } from './running-head';
 import { Facing } from './facing';
+import { ThumbPage } from './thumb-page';
 import { type FacingPageEntry, ShellRegistry } from './shell-registry';
 
 /**
  * The right-hand page. Its running head lists what it can show, as
  * registered by features; the first one that can be picked shows first.
  * The seal ribbon turns it to the slips awaiting your seal for a while,
- * the Index's thumb notch or shortcut to the Index, and "/" at the start
- * of an entry to the agent's commands.
+ * the Index's thumb notch or shortcut to the Index, "/" at the start of
+ * an entry to the agent's commands, and the other thumb tabs to their pages.
  */
 @Component({
   selector: 'gr-facing-page',
-  imports: [CommandIndex, Drawing, Icon, IndexPage, NgComponentOutlet, Page, RunningFoot, RunningHead],
+  imports: [
+    CommandIndex,
+    Drawing,
+    Icon,
+    IndexPage,
+    NgComponentOutlet,
+    Page,
+    RunningFoot,
+    RunningHead,
+    ThumbPage,
+  ],
   templateUrl: './facing-page.html',
   styleUrl: './facing-page.css',
 })
@@ -30,6 +41,12 @@ export class FacingPage {
   protected readonly shown = linkedSignal<FacingPageEntry | undefined>(() =>
     this.registry.facingPages.all().find((page) => page.component),
   );
+
+  /** The thumb tab whose page shows, if any. */
+  protected readonly thumb = computed(() => {
+    const id = this.facing.thumb();
+    return id === null ? undefined : this.registry.thumbs.get(id);
+  });
 
   protected show(page: FacingPageEntry): void {
     if (page.component) this.shown.set(page);

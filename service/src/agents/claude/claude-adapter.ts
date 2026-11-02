@@ -16,12 +16,14 @@ import type {
   ChatSettings,
   Enclosure,
   Entry,
+  PlanUsage,
 } from '@grimoire/contract';
 import type { AgentAdapter, ChatEvents, ChatHistory, LiveChat, SavedChat } from '../adapter';
 import { MessageQueue } from './message-queue';
 import { ASK_TOOL, alwaysAllowOf, toClaudeAnswers, toQuestions } from './permissions';
 import { withReferences } from './references';
 import { ClaudeTranscript, turnEnd } from './transcript';
+import { toPlanUsage } from './usage';
 
 // Loaded on first use: it's large, and the service starts without it.
 const sdk = () => import('@anthropic-ai/claude-agent-sdk');
@@ -126,6 +128,10 @@ export class ClaudeAdapter implements AgentAdapter {
     });
     this.commandLists.set(cwd, { at: Date.now(), list });
     return list;
+  }
+
+  usage(): Promise<PlanUsage> {
+    return readUsage();
   }
 
   run(
@@ -331,6 +337,23 @@ async function listModels(): Promise<AgentModels> {
       })),
       ...(byDefault ? { default: byDefault.value } : {}),
     };
+  } finally {
+    input.end();
+    probe.close();
+  }
+}
+
+/** Asks a Claude Code process that never gets a message what /usage shows of the plan's limits. */
+async function readUsage(): Promise<PlanUsage> {
+  const { query } = await sdk();
+  const input = new MessageQueue<SDKUserMessage>();
+  const probe = query({ prompt: input, options: { permissionMode: MODES.ask } });
+  try {
+    // Experimental in the SDK: its name and answer may change in any release.
+    const usage = await probe.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET({
+      skipBehaviors: true,
+    });
+    return toPlanUsage(usage, Date.now());
   } finally {
     input.end();
     probe.close();
