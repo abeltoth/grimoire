@@ -2,6 +2,7 @@ import {
   Component,
   DestroyRef,
   ElementRef,
+  PendingTasks,
   computed,
   effect,
   inject,
@@ -10,21 +11,31 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
-import type { AgentCommand, AgentId, ContextUsage, QueuedEntry } from '@grimoire/contract';
+import type {
+  AgentCommand,
+  AgentId,
+  ContextUsage,
+  Enclosure,
+  QueuedEntry,
+} from '@grimoire/contract';
 import { Icon } from '@ui/design-system/icon';
+import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { Chats } from '@ui/app/core/chats';
 import { AgentCommands } from '@ui/app/shell/agent-commands';
+import { Enclosures } from './enclosures';
+import { readPicture } from './pictures';
 
 /**
  * The next page, tucked under the transcript: where you write the next
  * entry. Enter sends it; Shift+Enter starts a new line. What you send
  * while a turn runs waits above it until the turn ends. A "/" at the start
  * turns the facing page to the agent's commands, which the entry's keys
- * move through and use.
+ * move through and use. Files and pictures come in through Attach, or by
+ * dropping or pasting them, and go with the entry.
  */
 @Component({
   selector: 'gr-composer',
-  imports: [Icon],
+  imports: [Enclosures, Icon],
   templateUrl: './composer.html',
   styleUrl: './composer.css',
   host: { role: 'region', 'aria-label': 'Next page' },
@@ -32,6 +43,8 @@ import { AgentCommands } from '@ui/app/shell/agent-commands';
 export class Composer {
   protected readonly chats = inject(Chats);
   private readonly commands = inject(AgentCommands);
+  private readonly bridge = inject(GRIMOIRE_BRIDGE);
+  private readonly pending = inject(PendingTasks);
 
   readonly chapterId = input.required<string>();
   readonly agent = input.required<AgentId>();
@@ -53,6 +66,11 @@ export class Composer {
 
   /** What you're writing; a fresh page for each chapter. */
   protected readonly draft = linkedSignal({ source: this.chapterId, computation: () => '' });
+  /** The pictures and files to send with it. */
+  protected readonly enclosures = linkedSignal<string, readonly Enclosure[]>({
+    source: this.chapterId,
+    computation: () => [],
+  });
 
   /** Whether the facing page lists the agent's commands for this entry. */
   protected readonly lookingUp = computed(
@@ -128,17 +146,74 @@ export class Composer {
   protected send(entry: HTMLTextAreaElement): void {
     if (this.lookingUp()) this.commands.close();
     const text = entry.value.trim();
-    if (!text) return;
+    const enclosures = this.enclosures();
+    if (!text && !enclosures.length) return;
     // Cleared on the element too: Enter can come before the last keystroke is rendered.
     entry.value = '';
     this.draft.set('');
-    void this.chats.send(this.chapterId(), text);
+    this.enclosures.set([]);
+    void this.chats.send(this.chapterId(), text, enclosures);
+  }
+
+  /** Asks for files with the system's picker. */
+  protected async attach(): Promise<void> {
+    const paths = await this.bridge.chooseFiles().catch(() => []);
+    this.enclose(paths.map((path): Enclosure => ({ kind: 'file', path })));
+  }
+
+  /** A pasted picture comes in as a plate; anything else pastes as usual. */
+  protected paste(event: ClipboardEvent): void {
+    const pictures = [...(event.clipboardData?.files ?? [])].filter((file) =>
+      file.type.startsWith('image/'),
+    );
+    if (!pictures.length) return;
+    event.preventDefault();
+    for (const picture of pictures) this.addPicture(picture, `Screenshot, pasted at ${now()}`);
+  }
+
+  /** Files dropped on the page come in as references; pictures from elsewhere, as plates. */
+  drop(event: DragEvent): void {
+    const files = [...(event.dataTransfer?.files ?? [])];
+    if (!files.length) return;
+    event.preventDefault();
+    for (const file of files) {
+      const path = this.bridge.pathOf(file);
+      if (path) this.enclose([{ kind: 'file', path }]);
+      else if (file.type.startsWith('image/')) this.addPicture(file, `Picture, dropped at ${now()}`);
+    }
+  }
+
+  protected unenclose(enclosure: Enclosure): void {
+    this.enclosures.update((all) => all.filter((kept) => kept !== enclosure));
+    this.entry().nativeElement.focus();
+  }
+
+  private addPicture(file: Blob, caption: string): void {
+    this.pending.run(async () => {
+      const picture = await readPicture(file);
+      this.enclose([{ kind: 'picture', ...picture, caption }]);
+    });
+  }
+
+  /** Adds to what goes with the entry; a file already there isn't added twice. */
+  private enclose(added: readonly Enclosure[]): void {
+    this.enclosures.update((all) => [
+      ...all,
+      ...added.filter(
+        (enclosure) =>
+          enclosure.kind !== 'file' ||
+          !all.some((kept) => kept.kind === 'file' && kept.path === enclosure.path),
+      ),
+    ]);
   }
 
   /** Puts messages back on the page, after what you're writing, to edit or send again. */
-  takeBack(texts: readonly string[]): void {
-    if (!texts.length) return;
-    this.draft.update((draft) => [draft.trim(), ...texts].filter(Boolean).join('\n\n'));
+  takeBack(entries: readonly QueuedEntry[]): void {
+    if (!entries.length) return;
+    this.draft.update((draft) =>
+      [draft.trim(), ...entries.map((queued) => queued.text)].filter(Boolean).join('\n\n'),
+    );
+    this.enclose(entries.flatMap((queued) => queued.enclosures ?? []));
     const entry = this.entry().nativeElement;
     entry.value = this.draft();
     entry.focus();
@@ -146,10 +221,14 @@ export class Composer {
   }
 
   protected async edit(queued: QueuedEntry): Promise<void> {
-    if (await this.chats.unqueue(this.chapterId(), queued.id)) this.takeBack([queued.text]);
+    if (await this.chats.unqueue(this.chapterId(), queued.id)) this.takeBack([queued]);
   }
 
   protected remove(queued: QueuedEntry): void {
     void this.chats.unqueue(this.chapterId(), queued.id);
   }
+}
+
+function now(): string {
+  return new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }

@@ -4,6 +4,7 @@ import type {
   AgentModels,
   ChatId,
   ChatSettings,
+  Enclosure,
   Entry,
   PlanStep,
   SettingsChange,
@@ -21,6 +22,8 @@ export interface FakeRun {
   sent: string[];
   /** The entry IDs of the messages sent, in the same order. */
   sentIds: string[];
+  /** The pictures and files sent with each message, in the same order. */
+  sentEnclosures: Enclosure[][];
   undone: string[];
   interrupts: number;
   configured: SettingsChange[];
@@ -108,6 +111,7 @@ export class FakeAdapter implements AgentAdapter {
       events,
       sent: [],
       sentIds: [],
+      sentEnclosures: [],
       undone: [],
       interrupts: 0,
       configured: [],
@@ -115,9 +119,10 @@ export class FakeAdapter implements AgentAdapter {
     };
     this.runs.push(run);
     return {
-      send: (text, id) => {
+      send: (text, id, enclosures = []) => {
         run.sent.push(text);
         run.sentIds.push(id);
+        run.sentEnclosures.push(enclosures);
       },
       interrupt: async () => void run.interrupts++,
       configure: async (change) => void run.configured.push(change),

@@ -2,11 +2,14 @@ import type {
   AgentEntry,
   Block,
   ChatStatus,
+  Enclosure,
   Entry,
+  PictureEnclosure,
   PlanStep,
   ToolBlock,
   ToolResult,
 } from '@grimoire/contract';
+import { splitReferences } from './references';
 
 /** The parts of Claude Code's messages the transcript reads; live and saved messages share them. */
 export interface ClaudeMessage {
@@ -33,7 +36,10 @@ function isYourEntry(message: ClaudeMessage): boolean {
   if (message.type !== 'user' || message.parent_tool_use_id) return false;
   const content = (message.message as ApiMessage | undefined)?.content;
   if (typeof content === 'string') return true;
-  return Array.isArray(content) && content.some((block) => block.type === 'text' && block.text);
+  return (
+    Array.isArray(content) &&
+    content.some((block) => (block.type === 'text' && block.text) || block.type === 'image')
+  );
 }
 
 interface ApiMessage {
@@ -42,6 +48,8 @@ interface ApiMessage {
 }
 
 interface ApiBlock {
+  /** An image block's picture. */
+  source?: { type: string; media_type?: string; data?: string };
   type: string;
   text?: string;
   thinking?: string;
@@ -162,21 +170,36 @@ export class ClaudeTranscript {
 
   private applyUser(uuid: string | undefined, message: ApiMessage): void {
     const content = message.content;
-    if (typeof content === 'string') return this.addUserText(uuid, content);
+    if (typeof content === 'string') return this.addUserText(uuid, content, []);
     if (!Array.isArray(content)) return;
 
     const texts: string[] = [];
+    const pictures: PictureEnclosure[] = [];
     for (const block of content) {
       if (block.type === 'tool_result' && block.tool_use_id)
         this.attachResult(block.tool_use_id, block);
       else if (block.type === 'text' && block.text) texts.push(block.text);
+      else if (block.type === 'image' && block.source?.type === 'base64' && block.source.data)
+        pictures.push({
+          kind: 'picture',
+          mediaType: block.source.media_type ?? 'image/png',
+          data: block.source.data,
+        });
     }
-    if (texts.length) this.addUserText(uuid, texts.join('\n'));
+    if (texts.length || pictures.length) this.addUserText(uuid, texts.join('\n'), pictures);
   }
 
-  private addUserText(uuid: string | undefined, text: string): void {
+  /** Your entry; the @-references on its last lines are files you attached. */
+  private addUserText(uuid: string | undefined, message: string, pictures: PictureEnclosure[]): void {
     if (this.live) return;
-    this.entries.push({ kind: 'user', id: uuid ?? `user-${this.entries.length}`, text });
+    const { text, files } = splitReferences(message);
+    const enclosures: Enclosure[] = [...pictures, ...files];
+    this.entries.push({
+      kind: 'user',
+      id: uuid ?? `user-${this.entries.length}`,
+      text,
+      ...(enclosures.length ? { enclosures } : {}),
+    });
   }
 
   private attachResult(toolUseId: string, block: ApiBlock): void {

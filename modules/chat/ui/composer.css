@@ -91,6 +91,16 @@
   font-style: italic;
 }
 
+.enclosed {
+  padding: var(--gr-enclosures-pad);
+}
+
+.drop-hint {
+  font-style: italic;
+  font-size: var(--gr-size-drop-hint);
+  color: var(--gr-ink-soft);
+}
+
 .controls {
   display: flex;
   align-items: center;

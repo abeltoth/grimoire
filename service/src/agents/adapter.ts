@@ -10,6 +10,7 @@ import type {
   ChatStatus,
   ChatSummary,
   ContextUsage,
+  Enclosure,
   Entry,
   PlanStep,
   SettingsChange,
@@ -61,6 +62,7 @@ export interface AgentAdapter {
     id: string,
     bind: (chatId: ChatId) => ChatEvents,
     title?: string,
+    enclosures?: Enclosure[],
   ): Promise<LiveChat>;
   /** Keeps a spare process started, so the next new chat opens at once (ADR-010). */
   warm?(): void;
@@ -75,8 +77,11 @@ export interface ChatHistory {
 
 /** A chat whose agent process is running. */
 export interface LiveChat {
-  /** Sends your message; `id` is its entry's ID, which the agent keeps so undo() can find it. */
-  send(text: string, id: string): void;
+  /**
+   * Sends your message, with any pictures and files; `id` is its entry's ID,
+   * which the agent keeps so undo() can find it.
+   */
+  send(text: string, id: string, enclosures?: Enclosure[]): void;
   /** Stops the running turn; the chat stays live. */
   interrupt(): Promise<void>;
   /** Changes the model or permission; the agent takes it from its next request. */

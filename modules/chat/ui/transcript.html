@@ -43,9 +43,14 @@
               Fork
             </button>
           </header>
-          <p>
-            <span class="text">{{ row.text }}</span>
-          </p>
+          @if (row.text) {
+            <p>
+              <span class="text">{{ row.text }}</span>
+            </p>
+          }
+          @if (row.enclosures.length) {
+            <gr-enclosures class="enclosed" [enclosures]="row.enclosures" [cwd]="chapter().settings.cwd" />
+          }
         </article>
       </div>
     }

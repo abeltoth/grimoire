@@ -3,7 +3,7 @@
  * sandbox on. It exposes only the typed bridge; the page can't reach Node,
  * Electron or the file system.
  */
-import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
+import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron';
 import type { GrimoireBridge, Platform } from '@grimoire/contract';
 
 const platform: Platform =
@@ -28,6 +28,8 @@ const bridge: GrimoireBridge = {
     return () => ipcRenderer.removeListener('grimoire:event', handler);
   },
   chooseFolder: () => withoutIpcPrefix(ipcRenderer.invoke('grimoire:chooseFolder')),
+  chooseFiles: () => withoutIpcPrefix(ipcRenderer.invoke('grimoire:chooseFiles')),
+  pathOf: (file) => webUtils.getPathForFile(file),
   window: {
     minimize: () => ipcRenderer.send('grimoire:window', 'minimize'),
     toggleMaximize: () => ipcRenderer.send('grimoire:window', 'toggleMaximize'),

@@ -1,4 +1,4 @@
-import type { Entry, ToolBlock } from '@grimoire/contract';
+import type { Enclosure, Entry, ToolBlock } from '@grimoire/contract';
 import { type DiffLine, type FileChange, fileChange } from './diff';
 
 /** What a margin note folds out: a file's corrections or what a tool printed. */
@@ -31,6 +31,8 @@ export type Row =
       kind: 'you';
       key: string;
       text: string;
+      /** Pictures and files sent with it. */
+      enclosures: readonly Enclosure[];
       at?: number;
       withdrawn: boolean;
       /** Undo would restore something: this turn or a later one changed files, not yet undone. */
@@ -86,6 +88,7 @@ export function toRows(
         kind: 'you',
         key: entry.id,
         text: entry.text,
+        enclosures: entry.enclosures ?? [],
         ...(entry.at ? { at: entry.at } : {}),
         withdrawn: withdrawn.has(entry.id),
         undoable: false,

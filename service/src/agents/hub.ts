@@ -13,6 +13,7 @@ import type {
   ChatStatus,
   ChatSummary,
   ContextUsage,
+  Enclosure,
   DogEar,
   Entry,
   EventName,
@@ -179,6 +180,7 @@ export class AgentHub {
     settings: NewChatSettings,
     text: string,
     title?: string,
+    enclosures: Enclosure[] = [],
   ): Promise<OpenChat> {
     const resolved: ChatSettings = { ...settings, cwd: settings.cwd ?? homedir() };
     const adapter = this.adapter(agent);
@@ -187,7 +189,7 @@ export class AgentHub {
       const chat = this.track(randomUUID(), adapter, resolved, [], named ?? '');
       this.store.chapters.add({ chatId: chat.id, agent, settings: resolved });
       chat.live = adapter.run(chat.id, resolved, false, this.eventsFor(chat), named);
-      this.sendTo(chat, text, false);
+      this.sendTo(chat, text, false, enclosures);
       return this.snapshot(chat);
     }
     // The agent picks the chat's ID, on a spare process when it has one.
@@ -200,11 +202,12 @@ export class AgentHub {
       (chatId) => {
         chat = this.track(chatId, adapter, resolved, [], named ?? '');
         this.store.chapters.add({ chatId, agent, settings: resolved });
-        this.upsert(chat, { kind: 'user', id, text });
+        this.upsert(chat, userEntry(id, text, enclosures));
         this.setStatus(chat, 'thinking');
         return this.eventsFor(chat);
       },
       named,
+      enclosures,
     );
     if (!chat) throw new Error(`${agent} started a chat without naming it`);
     // Closed while it started.
@@ -214,10 +217,11 @@ export class AgentHub {
   }
 
   /** Sends a message, or queues it while a turn runs. */
-  send(chatId: ChatId, text: string): void {
+  send(chatId: ChatId, text: string, enclosures: Enclosure[] = []): void {
     const chat = this.chat(chatId);
-    if (chat.status === 'idle') return this.sendTo(chat, text, true);
-    chat.queued.push({ id: randomUUID(), text });
+    if (!text.trim() && !enclosures.length) throw new Error('Write something, or attach something, to send');
+    if (chat.status === 'idle') return this.sendTo(chat, text, true, enclosures);
+    chat.queued.push({ id: randomUUID(), text, ...(enclosures.length ? { enclosures } : {}) });
     this.emitQueued(chat);
   }
 
@@ -400,12 +404,12 @@ export class AgentHub {
     return chat;
   }
 
-  private sendTo(chat: ChatState, text: string, resume: boolean): void {
+  private sendTo(chat: ChatState, text: string, resume: boolean, enclosures: Enclosure[] = []): void {
     chat.live ??= chat.agent.run(chat.id, chat.settings, resume, this.eventsFor(chat));
     const id = randomUUID();
-    this.upsert(chat, { kind: 'user', id, text });
+    this.upsert(chat, userEntry(id, text, enclosures));
     if (chat.status === 'idle') this.setStatus(chat, 'thinking');
-    chat.live.send(text, id);
+    chat.live.send(text, id, enclosures);
   }
 
   /** A turn ended: the next queued message goes. */
@@ -413,7 +417,7 @@ export class AgentHub {
     const next = chat.queued.shift();
     if (!next) return;
     this.emitQueued(chat);
-    this.sendTo(chat, next.text, true);
+    this.sendTo(chat, next.text, true, next.enclosures);
   }
 
   private emitQueued(chat: ChatState): void {
@@ -579,4 +583,8 @@ export class AgentHub {
     if (!chat) throw new Error('This chat is not open');
     return chat;
   }
+}
+
+function userEntry(id: string, text: string, enclosures: Enclosure[]): Entry {
+  return { kind: 'user', id, text, ...(enclosures.length ? { enclosures } : {}) };
 }
