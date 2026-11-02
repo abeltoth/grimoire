@@ -16,6 +16,7 @@ import { modeName } from '@ui/app/core/modes';
 import { Presets } from '@ui/app/core/presets';
 import { Facing } from '@ui/app/shell/facing';
 import { RunningFoot } from '@ui/app/shell/running-foot';
+import { ReviewStamps } from '@ui/app/shell/review-stamps';
 import { RunningHead } from '@ui/app/shell/running-head';
 import { StatusIndicators } from '@ui/app/shell/status-indicators';
 import { ChapterOpening } from './chapter-opening';
@@ -43,6 +44,7 @@ import { Transcript } from './transcript';
     Composer,
     DogEars,
     Icon,
+    ReviewStamps,
     RunningFoot,
     RunningHead,
     SettingsCard,

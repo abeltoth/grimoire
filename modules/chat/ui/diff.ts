@@ -1,8 +1,6 @@
-/** One line of a file's corrections. */
-export interface DiffLine {
-  kind: 'same' | 'removed' | 'inserted';
-  text: string;
-}
+import type { DiffLine } from '@grimoire/contract';
+
+export type { DiffLine };
 
 // Beyond this many line pairs the diff gives up on matching lines and shows
 // the old text struck and the new text inserted.

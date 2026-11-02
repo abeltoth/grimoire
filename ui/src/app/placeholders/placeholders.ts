@@ -8,7 +8,7 @@ import { provideShellEntries } from '../shell/shell-registry';
  */
 export function providePlaceholders(): EnvironmentProviders {
   return provideShellEntries((shell) => {
-    // The Ledger, at 50, is its own module.
+    // The Ledger, at 50, is its own module, as are the Git page and the branch in the running foot.
     const thumbs: [string, number][] = [
       ['Table of contents', 0],
       ['Front matter', 10],
@@ -22,15 +22,8 @@ export function providePlaceholders(): EnvironmentProviders {
     );
 
     shell.facingPages.add({ id: 'files', label: 'Files', order: 20 });
-    shell.facingPages.add({ id: 'git', label: 'Git', order: 30 });
     shell.facingPages.add({ id: 'second-chapter', label: 'Second chapter', order: 40 });
 
-    shell.indicators.add({
-      id: 'git.branch',
-      label: 'feature/context-meter',
-      icon: 'branch',
-      order: 10,
-    });
     shell.indicators.add({ id: 'schedule.next', label: 'Morning repo summary at 8:00', order: 20 });
   });
 }

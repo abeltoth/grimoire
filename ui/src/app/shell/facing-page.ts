@@ -1,5 +1,5 @@
 import { NgComponentOutlet } from '@angular/common';
-import { Component, computed, inject, linkedSignal } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { Drawing } from '../../design-system/drawing';
 import { Icon } from '../../design-system/icon';
 import { CommandIndex } from './command-index';
@@ -38,9 +38,10 @@ export class FacingPage {
   protected readonly registry = inject(ShellRegistry);
   protected readonly facing = inject(Facing);
 
-  protected readonly shown = linkedSignal<FacingPageEntry | undefined>(() =>
-    this.registry.facingPages.all().find((page) => page.component),
-  );
+  protected readonly shown = computed<FacingPageEntry | undefined>(() => {
+    const pages = this.registry.facingPages.all().filter((page) => page.component);
+    return pages.find((page) => page.id === this.facing.page()) ?? pages[0];
+  });
 
   /** The thumb tab whose page shows, if any. */
   protected readonly thumb = computed(() => {
@@ -49,6 +50,6 @@ export class FacingPage {
   });
 
   protected show(page: FacingPageEntry): void {
-    if (page.component) this.shown.set(page);
+    if (page.component) this.facing.showPage(page.id);
   }
 }

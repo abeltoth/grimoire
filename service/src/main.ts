@@ -19,6 +19,8 @@ import { LayoutStore, registerLayout } from './core/layout';
 import { PresetStore, registerPresets } from './core/presets';
 import { registerPing } from './core/ping';
 import { endpointFor } from './endpoint';
+import { registerGit } from './git/commands';
+import { Git } from './git/git';
 import { CommandRegistry } from './registry';
 import { AlreadyRunningError, startServer, type ServiceServer } from './server';
 import { openDatabase } from './storage/database';
@@ -56,6 +58,7 @@ let server: ServiceServer | undefined;
 const db = openDatabase(values.ephemeral ? ':memory:' : path.join(dataDir, 'grimoire.db'));
 registerLayout(registry, new LayoutStore(db));
 registerPresets(registry, new PresetStore(db));
+registerGit(registry, new Git());
 
 const hub = new AgentHub(
   (event, payload) => server?.broadcast(event, payload),
