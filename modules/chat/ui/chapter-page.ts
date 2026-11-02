@@ -12,6 +12,8 @@ import {
 } from '@angular/core';
 import { Icon } from '@ui/design-system/icon';
 import { Chats, type Setting } from '@ui/app/core/chats';
+import { modeName } from '@ui/app/core/modes';
+import { Presets } from '@ui/app/core/presets';
 import { Facing } from '@ui/app/shell/facing';
 import { RunningFoot } from '@ui/app/shell/running-foot';
 import { RunningHead } from '@ui/app/shell/running-head';
@@ -20,7 +22,7 @@ import { ChapterOpening } from './chapter-opening';
 import { ChapterTags } from './chapter-tags';
 import { Composer } from './composer';
 import { DogEars } from './dog-ears';
-import { MODES, SettingsCard } from './settings-card';
+import { SettingsCard } from './settings-card';
 import { Transcript } from './transcript';
 
 /**
@@ -54,6 +56,7 @@ import { Transcript } from './transcript';
 export class ChapterPage {
   protected readonly chats = inject(Chats);
   private readonly facing = inject(Facing);
+  private readonly presets = inject(Presets);
   protected readonly chapter = this.chats.current;
   private readonly composer = viewChild(Composer);
   private readonly running = computed(() =>
@@ -95,13 +98,12 @@ export class ChapterPage {
     const chapter = this.chapter();
     if (!chapter) return [];
     const { agent, settings } = chapter;
-    const mode = settings.mode ?? 'ask';
     return [
       { key: 'agent', label: this.chats.agentName(agent) },
       { key: 'model', label: this.chats.modelName(agent, settings.model) },
-      { key: 'mode', label: MODES.find((m) => m.mode === mode)?.label ?? mode },
+      { key: 'mode', label: modeName(settings.mode) },
       { key: 'folder', label: this.chats.folderName(settings.cwd) },
-      { key: 'preset', label: 'No preset' },
+      { key: 'preset', label: this.presets.of(chapter)?.name ?? 'No preset' },
     ] satisfies { key: Setting; label: string }[];
   });
 

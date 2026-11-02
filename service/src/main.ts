@@ -16,6 +16,7 @@ import { ClaudeAdapter } from './agents/claude/claude-adapter';
 import { registerAgentCommands } from './agents/commands';
 import { AgentHub, hubStore } from './agents/hub';
 import { LayoutStore, registerLayout } from './core/layout';
+import { PresetStore, registerPresets } from './core/presets';
 import { registerPing } from './core/ping';
 import { endpointFor } from './endpoint';
 import { CommandRegistry } from './registry';
@@ -54,6 +55,7 @@ let server: ServiceServer | undefined;
 
 const db = openDatabase(values.ephemeral ? ':memory:' : path.join(dataDir, 'grimoire.db'));
 registerLayout(registry, new LayoutStore(db));
+registerPresets(registry, new PresetStore(db));
 
 const hub = new AgentHub(
   (event, payload) => server?.broadcast(event, payload),

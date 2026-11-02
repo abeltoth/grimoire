@@ -1,24 +1,22 @@
 import {
   Component,
   ElementRef,
+  Injector,
+  afterNextRender,
   afterRenderEffect,
   computed,
   inject,
   input,
+  linkedSignal,
   signal,
+  viewChild,
 } from '@angular/core';
-import type { ApprovalMode } from '@grimoire/contract';
+import type { Preset } from '@grimoire/contract';
 import { Icon } from '@ui/design-system/icon';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { type Chapter, Chats, type Setting, type SettingsPick } from '@ui/app/core/chats';
-
-/** The permission modes, as the card and the running head name them. */
-export const MODES: readonly { mode: ApprovalMode; label: string; detail: string }[] = [
-  { mode: 'ask', label: 'Ask first', detail: 'Asks before edits and commands' },
-  { mode: 'accept-edits', label: 'Accept edits', detail: 'Edits files, asks before commands' },
-  { mode: 'plan', label: 'Plan only', detail: 'Reads and plans, changes nothing' },
-  { mode: 'allow-all', label: 'Full access', detail: 'Edits and runs without asking' },
-];
+import { MODES } from '@ui/app/core/modes';
+import { Presets } from '@ui/app/core/presets';
 
 const RECENT_FOLDERS = 3;
 
@@ -26,12 +24,14 @@ const RECENT_FOLDERS = 3;
  * One card for all of a chapter's settings, opened from its running head
  * or its ribbon. A blank chapter takes any of them; once the chapter has
  * begun, its agent and folder stay. Esc or a click elsewhere closes it.
+ * Its presets set several at once, and "Save these settings as a preset…"
+ * names the chapter's settings in place.
  */
 @Component({
   selector: 'gr-settings-card',
   imports: [Icon],
   templateUrl: './settings-card.html',
-  styleUrl: './settings-card.css',
+  styleUrls: ['./settings-card.css', './settings-card-presets.css'],
   host: {
     role: 'dialog',
     'aria-labelledby': 'gr-settings-card-heading',
@@ -47,12 +47,23 @@ export class SettingsCard {
   readonly anchor = input<HTMLElement>();
 
   protected readonly chats = inject(Chats);
+  protected readonly presets = inject(Presets);
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
+  private readonly injector = inject(Injector);
+  private readonly nameField = viewChild<ElementRef<HTMLInputElement>>('presetName');
+  private readonly saveButton = viewChild<ElementRef<HTMLButtonElement>>('saveButton');
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   protected readonly modes = MODES;
   protected readonly caret = signal(0);
 
   protected readonly begun = computed(() => this.chapter().status !== 'blank');
+  /** The preset the chapter is on, if any. */
+  protected readonly preset = computed(() => this.presets.of(this.chapter()));
+  /** Whether a preset is being named; never on a chapter you've just opened the card for. */
+  protected readonly naming = linkedSignal({
+    source: () => this.chapter().id,
+    computation: () => false,
+  });
   protected readonly agentName = computed(() => this.chats.agentName(this.chapter().agent));
   protected readonly models = computed(() => this.chats.models()[this.chapter().agent]);
   protected readonly selectedModel = computed(
@@ -69,6 +80,8 @@ export class SettingsCard {
   });
 
   constructor() {
+    void this.presets.load();
+    afterRenderEffect(() => this.nameField()?.nativeElement.focus());
     afterRenderEffect(() => {
       const anchor = this.anchor();
       if (!anchor) return;
@@ -90,6 +103,28 @@ export class SettingsCard {
 
   protected pick(pick: SettingsPick): void {
     void this.chats.configure(this.chapter().id, pick);
+  }
+
+  protected usePreset(preset: Preset): void {
+    if (this.presets.fits(preset, this.chapter())) void this.presets.use(preset, this.chapter());
+  }
+
+  /** Saves the settings under the name written; an empty name saves nothing. */
+  protected savePreset(field: HTMLInputElement): void {
+    this.naming.set(false);
+    void this.presets.save(this.chapter(), field.value);
+    this.focusSave();
+  }
+
+  protected cancelNaming(event: Event): void {
+    // Esc puts the name away; the card stays open.
+    event.preventDefault();
+    this.naming.set(false);
+    this.focusSave();
+  }
+
+  private focusSave(): void {
+    afterNextRender(() => this.saveButton()?.nativeElement.focus(), { injector: this.injector });
   }
 
   protected async chooseFolder(): Promise<void> {

@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { LayoutStore } from '../core/layout';
+import { PresetStore } from '../core/presets';
 import { Chapters } from './chapters';
 import { openDatabase } from './database';
 import { DogEars } from './dog-ears';
@@ -56,6 +57,20 @@ describe('storage', () => {
     dogEars.set('b', 'pin', false);
     expect(dogEars.of('a')).toEqual(['pin', 'star']);
     expect(dogEars.of('b')).toEqual([]);
+  });
+
+  it('keeps presets in the order first saved, one per name', () => {
+    const presets = new PresetStore(openDatabase(':memory:'));
+    expect(presets.list()).toEqual([]);
+    presets.save({ name: ' Bug fix ', agent: 'codex', settings: { mode: 'accept-edits' } });
+    presets.save({ name: 'Plan a feature', agent: 'claude-code', settings: { mode: 'plan' } });
+    expect(presets.save({ name: 'bug FIX', agent: 'claude-code', settings: { cwd: '/w' } })).toEqual([
+      { name: 'bug FIX', agent: 'claude-code', settings: { cwd: '/w' } },
+      { name: 'Plan a feature', agent: 'claude-code', settings: { mode: 'plan' } },
+    ]);
+    expect(() => presets.save({ name: '  ', agent: 'codex', settings: {} })).toThrow(
+      'A preset needs a name',
+    );
   });
 
   it('remembers the layout, and only what it knows', () => {
