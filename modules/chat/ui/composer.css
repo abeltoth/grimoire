@@ -54,7 +54,10 @@
 /* Ruled lines to write on. */
 .entry {
   width: 100%;
-  height: var(--gr-entry-lines);
+  /* Grows with what you write, then scrolls. */
+  field-sizing: content;
+  min-height: var(--gr-entry-lines);
+  max-height: var(--gr-entry-max);
   font: inherit;
   font-size: var(--gr-size-text);
   line-height: var(--gr-rule-line);
@@ -63,6 +66,8 @@
     transparent 0 calc(var(--gr-rule-line) - 1px),
     var(--gr-rule-ruled) calc(var(--gr-rule-line) - 1px) var(--gr-rule-line)
   );
+  /* The rules scroll with the lines they're under. */
+  background-attachment: local;
   border: 0;
   resize: none;
   outline: none;
