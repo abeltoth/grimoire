@@ -7,6 +7,7 @@ import type {
   GrimoireBridge,
   OpenChat,
   PingResult,
+  Preset,
 } from '@grimoire/contract';
 import { App } from './app';
 import { appConfig } from './app.config';
@@ -780,6 +781,7 @@ describe('App', () => {
     // A pinned chapter stays at the top, however old.
     expect(texts('gr-index-page .entry .label')).toEqual([
       'New chapter',
+      'New chapter from preset',
       'Close chapter',
       'Old notes',
       'New onboarding flow',
@@ -791,16 +793,22 @@ describe('App', () => {
     field.value = 'new';
     field.dispatchEvent(new Event('input'));
     await fixture.whenStable();
-    expect(texts('gr-index-page .entry .label')).toEqual(['New chapter', 'New onboarding flow']);
-    expect(texts('gr-index-page .entry b')).toEqual(['New', 'New']);
-    expect(texts('gr-index-page .count')).toEqual(['2 entries']);
+    expect(texts('gr-index-page .entry .label')).toEqual([
+      'New chapter',
+      'New chapter from preset',
+      'New onboarding flow',
+    ]);
+    expect(texts('gr-index-page .entry b')).toEqual(['New', 'New', 'New']);
+    expect(texts('gr-index-page .count')).toEqual(['3 entries']);
     expect(texts('gr-index-page .entry .gloss')).toEqual([
       'with your last settings',
+      'pick a preset first',
       'Claude Code · ~/git/breeder',
     ]);
     expect(texts('gr-index-page .entry .where .gr-kbd')).toEqual(['Ctrl', 'N']);
     expect(texts('gr-index-page .entry[aria-selected="true"] .label')).toEqual(['New chapter']);
 
+    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
     field.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
     field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
     await fixture.whenStable();
@@ -1027,6 +1035,105 @@ describe('App', () => {
     await fixture.whenStable();
     expect(texts('gr-chapter-tags .tag')).toEqual(['bug']);
     expect(tagCalls().at(-1)).toEqual({ chatId: 'chat-1', tags: ['bug'] });
+  });
+
+  it('saves a chapter\'s settings as a preset, and puts chapters on it', async () => {
+    const { bridge, calls, answers } = fakeBridge();
+    let saved: Preset[] = [];
+    answers['presets.list'] = () => saved;
+    answers['presets.save'] = (preset: Preset) => (saved = [...saved, preset]);
+    const { fixture, el, texts } = await render(bridge);
+    const head = () => texts('.meta button');
+    const open = async (setting: string) => {
+      el.querySelector<HTMLButtonElement>(`.meta [data-setting="${setting}"]`)!.click();
+      await fixture.whenStable();
+    };
+    const presetColumn = '.column[data-setting="preset"]';
+
+    await open('preset');
+    expect(texts(`${presetColumn} .none`)).toEqual(['No saved presets yet']);
+    expect(texts(`${presetColumn} [aria-checked="true"]`)).toEqual(['No preset']);
+    el.querySelector<HTMLButtonElement>(`${presetColumn} .action`)!.click();
+    await fixture.whenStable();
+    const name = el.querySelector<HTMLInputElement>('.preset-name')!;
+    expect(document.activeElement).toBe(name);
+    name.value = 'Plan a feature';
+    name.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    await fixture.whenStable();
+
+    // The defaults are written in, so the preset means the same later.
+    expect(calls.find((c) => c.command === 'presets.save')!.request).toEqual({
+      name: 'Plan a feature',
+      agent: 'claude-code',
+      settings: { cwd: 'C:/Users/me', model: 'opus', mode: 'ask' },
+    });
+    expect(texts(`${presetColumn} [aria-checked="true"]`)).toEqual(['Plan a feature Claude Code · Ask first']);
+    expect(head()[4]).toBe('Plan a feature');
+    expect(document.activeElement).toBe(el.querySelector(`${presetColumn} .action`));
+
+    // Another setting takes the chapter off the preset; picking the preset puts it back.
+    pick(el, 'Plan only');
+    await fixture.whenStable();
+    expect(head()[4]).toBe('No preset');
+    pick(el, 'Plan a feature');
+    await fixture.whenStable();
+    expect(head().slice(2)).toEqual(['Ask first', '~', 'Plan a feature']);
+
+    // Once begun in another folder, the chapter can't take it.
+    pick(el, '~/git/breeder');
+    await fixture.whenStable();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }));
+    await write(fixture, el, 'First');
+    await open('preset');
+    const choice = [...el.querySelectorAll(`${presetColumn} .choice`)].find((c) =>
+      c.textContent!.includes('Plan a feature'),
+    )!;
+    expect(choice.getAttribute('aria-disabled')).toBe('true');
+    expect(head()[4]).toBe('No preset');
+  });
+
+  it('begins a chapter from a preset listed in the Index', async () => {
+    const { bridge, answers } = fakeBridge();
+    answers['presets.list'] = (): Preset[] => [
+      {
+        name: 'Bug fix',
+        agent: 'claude-code',
+        settings: { cwd: 'C:/Users/me/git/breeder', model: 'sonnet', mode: 'accept-edits' },
+      },
+    ];
+    const { fixture, el, texts } = await render(bridge);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }));
+    await fixture.whenStable();
+    const field = el.querySelector<HTMLInputElement>('#gr-index-look-up')!;
+    field.value = 'preset';
+    field.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    expect(texts('gr-index-page .entry .where')).toEqual(['opens a list ›']);
+    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    await fixture.whenStable();
+
+    expect(texts('gr-index-page h3')).toEqual(['Presets']);
+    expect(field.value).toBe('');
+    expect(document.activeElement).toBe(field);
+    expect(texts('gr-index-page .entry .gloss')).toEqual(['Claude Code · Accept edits · ~/git/breeder']);
+    // Esc goes back to the whole Index first.
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }));
+    await fixture.whenStable();
+    expect(texts('gr-index-page h3')).toEqual(['Actions']);
+    el.querySelector<HTMLButtonElement>('#gr-index-action-from-preset')!.click();
+    await fixture.whenStable();
+    el.querySelector<HTMLButtonElement>('gr-index-page .entry')!.click();
+    await fixture.whenStable();
+
+    expect(el.querySelector('gr-index-page')).toBeNull();
+    expect(texts('.meta button')).toEqual([
+      'Claude Code',
+      'Sonnet 5.5',
+      'Accept edits',
+      '~/git/breeder',
+      'Bug fix',
+    ]);
+    expect(texts('[aria-current="page"] i')).toEqual(['Claude Code · blank page']);
   });
 
   it('shows why an undo failed', async () => {

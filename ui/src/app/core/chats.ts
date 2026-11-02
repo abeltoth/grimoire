@@ -222,13 +222,21 @@ export class Chats {
     }
   }
 
-  /** Opens a blank chapter, with the settings used last, and turns to it. */
-  newChapter(): void {
+  /** Gives a blank chapter these settings, as a preset holds them. */
+  setUp(id: string, agent: AgentId, settings: NewChatSettings): void {
+    if (this.find(id)?.status !== 'blank') return;
+    this.update(id, (c) => ({ ...c, agent, settings }));
+    this.remember({ agent, settings });
+  }
+
+  /** Opens a blank chapter, with the settings used last or the ones given, and turns to it. */
+  newChapter(from?: { agent: AgentId; settings: NewChatSettings }): void {
+    const start = from ?? this.lastUsed;
     const blank: Chapter = {
       id: `blank-${this.nextBlank++}`,
-      agent: this.lastUsed?.agent ?? DEFAULT_AGENT,
+      agent: start?.agent ?? DEFAULT_AGENT,
       title: '',
-      settings: this.lastUsed?.settings ?? {},
+      settings: start?.settings ?? {},
       status: 'blank',
       entries: [],
       approvals: [],
@@ -415,7 +423,7 @@ export class Chats {
   }
 
   /** Shows why a request failed as the chapter's error. */
-  private fail(id: string, error: unknown): void {
+  fail(id: string, error: unknown): void {
     this.update(id, (c) => ({
       ...c,
       error: error instanceof Error ? error.message : String(error),

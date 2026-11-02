@@ -14,6 +14,7 @@ import type { ChatSummary } from '@grimoire/contract';
 import { Icon } from '../../design-system/icon';
 import { GRIMOIRE_BRIDGE } from '../core/bridge';
 import { Chats } from '../core/chats';
+import { Presets } from '../core/presets';
 import { Facing } from './facing';
 import { RunningFoot } from './running-foot';
 import { RunningHead } from './running-head';
@@ -31,6 +32,8 @@ interface IndexEntry {
   shortcut?: Shortcut;
   /** Where it lives, when that's another page: "in Table of contents". */
   where?: string;
+  /** It turns the Index to a list of its own instead of closing it. */
+  opensList?: true;
   run: () => void;
 }
 
@@ -50,7 +53,8 @@ const MAX_CHAPTERS = 8;
 /**
  * The Index, the book's command palette, on the facing page: every action
  * with its shortcut, and the chats you've had, looked up as you type. ↑ and ↓
- * move, Enter opens, and Esc turns back.
+ * move, Enter opens, and Esc turns back. "New chapter from preset" lists the
+ * presets instead, until Esc.
  */
 @Component({
   selector: 'gr-index-page',
@@ -66,16 +70,32 @@ export class IndexPage {
   protected readonly facing = inject(Facing);
   private readonly registry = inject(ShellRegistry);
   private readonly chats = inject(Chats);
+  private readonly presets = inject(Presets);
   private readonly platform = inject(GRIMOIRE_BRIDGE).platform;
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly field = viewChild.required<ElementRef<HTMLInputElement>>('field');
 
   protected readonly lookUp = linkedSignal(() => this.facing.index() ?? '');
   private readonly pastChats = signal<readonly ChatSummary[]>([]);
+  /** Whether the Index lists the presets, to begin a chapter with one. */
+  protected readonly listingPresets = signal(false);
 
   protected readonly sections = computed<Section[]>(() => {
     const lookUp = this.lookUp().trim();
-    const actions = this.registry.commands
+    if (this.listingPresets()) {
+      const presets = this.presets.all().map(
+        (preset): IndexEntry => ({
+          id: `preset-${preset.name}`,
+          label: preset.name,
+          hint: `${this.presets.describe(preset)} ·`,
+          folder: this.chats.folderName(preset.settings.cwd),
+          where: 'new chapter',
+          run: () => this.chats.newChapter(preset),
+        }),
+      );
+      return [{ title: 'Presets', entries: matching(presets, lookUp) }].filter((s) => s.entries.length);
+    }
+    const commands = this.registry.commands
       .all()
       .filter((command) => command.run && command.id !== 'shell.index')
       .map(
@@ -87,6 +107,19 @@ export class IndexPage {
           run: command.run!,
         }),
       );
+    const fromPreset: IndexEntry = {
+      id: 'action-from-preset',
+      label: 'New chapter from preset',
+      hint: 'pick a preset first',
+      where: 'opens a list ›',
+      opensList: true,
+      run: () => {
+        this.listingPresets.set(true);
+        this.lookUp.set('');
+      },
+    };
+    const after = commands.findIndex((entry) => entry.id === 'action-chapters.new') + 1;
+    const actions = [...commands.slice(0, after), fromPreset, ...commands.slice(after)];
     // Pinned chapters stay at the top; the rest are newest first.
     const pinned = (chat: ChatSummary) => Number(chat.dogEars.includes('pin'));
     const chapters = [...this.pastChats()].sort((a, b) => pinned(b) - pinned(a)).map(
@@ -115,8 +148,16 @@ export class IndexPage {
     return `${count} ${count === 1 ? 'entry' : 'entries'}`;
   });
 
+  /** Why nothing is listed. */
+  protected readonly empty = computed(() =>
+    this.listingPresets() && !this.presets.all().length
+      ? 'No saved presets yet. Save one on a chapter’s settings card.'
+      : `Nothing in the index matches “${this.lookUp()}”.`,
+  );
+
   constructor() {
     void this.chats.pastChats().then((chats) => this.pastChats.set(chats));
+    void this.presets.load();
     afterNextRender(() => this.field().nativeElement.focus());
     afterRenderEffect(() => {
       this.selected();
@@ -147,14 +188,19 @@ export class IndexPage {
   }
 
   protected open(entry: IndexEntry): void {
-    this.facing.closeIndex();
+    if (!entry.opensList) this.facing.closeIndex();
     entry.run();
+    if (entry.opensList) this.field().nativeElement.focus();
   }
 
+  /** Esc turns back from the presets to the whole Index, and from there to the facing page. */
   protected back(event: Event): void {
     if (event.defaultPrevented) return;
     event.preventDefault();
-    this.facing.closeIndex();
+    if (this.listingPresets()) {
+      this.listingPresets.set(false);
+      this.lookUp.set('');
+    } else this.facing.closeIndex();
   }
 
   private move(step: number): void {

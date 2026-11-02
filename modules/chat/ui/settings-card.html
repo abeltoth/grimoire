@@ -119,14 +119,40 @@
     aria-label="Preset"
   >
     <h3>Preset</h3>
-    <button type="button" class="choice" role="radio" aria-checked="true">
+    <button type="button" class="choice" role="radio" [attr.aria-checked]="!preset()">
       <gr-icon name="check" />
       <span>No preset</span>
     </button>
-    <p class="none">No saved presets yet</p>
-    <button type="button" class="choice action" aria-disabled="true">
-      Save these settings as a preset…
-    </button>
+    @for (saved of presets.all(); track saved.name) {
+      <button
+        type="button"
+        class="choice"
+        role="radio"
+        [attr.aria-checked]="saved.name === preset()?.name"
+        [attr.aria-disabled]="!presets.fits(saved, c) || null"
+        (click)="usePreset(saved)"
+      >
+        <gr-icon name="check" />
+        <span>{{ saved.name }} <small>{{ presets.describe(saved) }}</small></span>
+      </button>
+    } @empty {
+      <p class="none">No saved presets yet</p>
+    }
+    @if (naming()) {
+      <input
+        #presetName
+        class="preset-name"
+        aria-label="Preset name"
+        placeholder="Name these settings"
+        autocomplete="off"
+        (keydown.enter)="savePreset(presetName)"
+        (keydown.escape)="cancelNaming($event)"
+      />
+    } @else {
+      <button #saveButton type="button" class="choice action" (click)="naming.set(true)">
+        Save these settings as a preset…
+      </button>
+    }
   </div>
 </div>
 

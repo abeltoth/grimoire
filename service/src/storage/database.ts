@@ -33,6 +33,12 @@ const MIGRATIONS = [
      position INTEGER NOT NULL,
      PRIMARY KEY (chat_id, tag)
    );`,
+  `CREATE TABLE presets (
+     name TEXT PRIMARY KEY COLLATE NOCASE,
+     agent TEXT NOT NULL,
+     settings TEXT NOT NULL,
+     position INTEGER NOT NULL
+   );`,
 ];
 
 /**

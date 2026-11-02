@@ -1,0 +1,19 @@
+/* A new preset's name, written in pen where "Save these settings as a preset…" was. */
+.preset-name {
+  width: 100%;
+  margin: var(--gr-card-none-pad);
+  padding: 0;
+  border: 0;
+  border-bottom: var(--gr-rename-rule);
+  background: transparent;
+  font: inherit;
+  font-size: var(--gr-size-card-action);
+  color: var(--gr-pen);
+  caret-color: var(--gr-pen);
+  outline: none;
+}
+
+.preset-name::placeholder {
+  font-style: italic;
+  color: var(--gr-ink-placeholder);
+}
