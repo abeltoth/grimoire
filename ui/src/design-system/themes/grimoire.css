@@ -218,6 +218,7 @@
   /* Chat: running head */
   --gr-leading-chapter: 1.05;
   --gr-icon-button: 26px;
+  --gr-rename-rule: 1.5px dotted var(--gr-ink-soft);
   --gr-radius-control: 3px;
   --gr-leading-meta: 1.25;
 

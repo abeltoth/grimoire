@@ -1,4 +1,15 @@
-import { Component, ElementRef, computed, inject, viewChild, viewChildren } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  Injector,
+  afterNextRender,
+  afterRenderEffect,
+  computed,
+  inject,
+  linkedSignal,
+  viewChild,
+  viewChildren,
+} from '@angular/core';
 import { Icon } from '@ui/design-system/icon';
 import { Chats, type Setting } from '@ui/app/core/chats';
 import { Facing } from '@ui/app/shell/facing';
@@ -18,7 +29,8 @@ import { Transcript } from './transcript';
  * open the chapter's settings card. Esc closes the card, or else denies the
  * approval awaiting your seal, or else stops the running turn and puts the
  * queued messages back on the next page. While the facing page shows the
- * slips, Esc is theirs.
+ * slips, Esc is theirs. The pen beside the title rewrites it in place, for
+ * agents that can rename their chats.
  */
 @Component({
   selector: 'gr-chapter-page',
@@ -46,6 +58,35 @@ export class ChapterPage {
     ['thinking', 'writing', 'waiting'].includes(this.chapter()?.status ?? ''),
   );
   private readonly settingButtons = viewChildren('setting', { read: ElementRef });
+  private readonly injector = inject(Injector);
+  private readonly titleField = viewChild<ElementRef<HTMLInputElement>>('titleField');
+  private readonly renameButton = viewChild<ElementRef<HTMLButtonElement>>('renameButton');
+
+  /** Whether the title is being rewritten; never on a chapter you've just turned to. */
+  protected readonly renaming = linkedSignal({
+    source: () => this.chapter()?.id,
+    computation: () => false,
+  });
+  protected readonly canRename = computed(() => this.chats.can(this.chapter()?.agent, 'rename'));
+
+  constructor() {
+    afterRenderEffect(() => {
+      const field = this.titleField()?.nativeElement;
+      if (!field) return;
+      field.focus();
+      field.select();
+    });
+  }
+
+  /** Keeps the rewritten title, or not; Enter and Esc hand the focus back to the pen. */
+  protected finishRenaming(field: HTMLInputElement, keep: boolean, refocus: boolean): void {
+    if (!this.renaming()) return;
+    this.renaming.set(false);
+    const chapter = this.chapter();
+    if (keep && chapter) void this.chats.rename(chapter.id, field.value);
+    if (refocus)
+      afterNextRender(() => this.renameButton()?.nativeElement.focus(), { injector: this.injector });
+  }
 
   /** The chapter's settings, as the running head lists them. */
   protected readonly settings = computed(() => {

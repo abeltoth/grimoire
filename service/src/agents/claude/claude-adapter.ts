@@ -91,6 +91,11 @@ export class ClaudeAdapter implements AgentAdapter {
     return sessionId;
   }
 
+  async rename(chatId: ChatId, cwd: string, title: string): Promise<void> {
+    const { renameSession } = await sdk();
+    await renameSession(chatId, title, { dir: cwd });
+  }
+
   async title(chatId: ChatId, cwd: string): Promise<string> {
     const { getSessionInfo } = await sdk();
     const info = await getSessionInfo(chatId, { dir: cwd });
@@ -118,7 +123,13 @@ export class ClaudeAdapter implements AgentAdapter {
     return list;
   }
 
-  run(chatId: ChatId, settings: ChatSettings, resume: boolean, events: ChatEvents): LiveChat {
+  run(
+    chatId: ChatId,
+    settings: ChatSettings,
+    resume: boolean,
+    events: ChatEvents,
+    title?: string,
+  ): LiveChat {
     const input = new MessageQueue<SDKUserMessage>();
     const started: Promise<Query> = sdk().then(({ query }) =>
       query({
@@ -133,7 +144,7 @@ export class ClaudeAdapter implements AgentAdapter {
           // Undo restores files from these checkpoints.
           enableFileCheckpointing: true,
           env: ENV,
-          ...(resume ? { resume: chatId } : { sessionId: chatId }),
+          ...(resume ? { resume: chatId } : { sessionId: chatId, ...(title ? { title } : {}) }),
           canUseTool: approvalsTo(async () => events),
         },
       }),
@@ -151,17 +162,18 @@ export class ClaudeAdapter implements AgentAdapter {
     text: string,
     id: string,
     bind: (chatId: ChatId) => ChatEvents,
+    title?: string,
   ): Promise<LiveChat> {
     const spare = this.takeSpare();
     try {
-      if (spare) return await this.claim(spare, settings, text, id, bind);
+      if (spare) return await this.claim(spare, settings, text, id, bind, title);
     } catch {
       // Refused, or the spare died: start the usual way.
     } finally {
       this.warm();
     }
     const chatId = randomUUID();
-    const live = this.run(chatId, settings, false, bind(chatId));
+    const live = this.run(chatId, settings, false, bind(chatId), title);
     live.send(text, id);
     return live;
   }
@@ -209,6 +221,7 @@ export class ClaudeAdapter implements AgentAdapter {
     text: string,
     id: string,
     bind: (chatId: ChatId) => ChatEvents,
+    title?: string,
   ): Promise<LiveChat> {
     const process = await spare.process;
     const input = new MessageQueue<SDKUserMessage>();
@@ -219,6 +232,7 @@ export class ClaudeAdapter implements AgentAdapter {
         cwd: settings.cwd,
         ...(settings.model ? { model: settings.model } : {}),
         permissionMode: MODES[settings.mode ?? 'ask'],
+        ...(title ? { title } : {}),
       },
     });
     let chatId: ChatId;

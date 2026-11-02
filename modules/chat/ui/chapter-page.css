@@ -16,6 +16,24 @@
   line-height: var(--gr-leading-chapter);
 }
 
+/* The title, rewritten in place, in pen. */
+.title.rename {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-bottom: var(--gr-rename-rule);
+  background: transparent;
+  color: var(--gr-pen);
+  caret-color: var(--gr-pen);
+  outline: none;
+}
+
+.title.rename::placeholder {
+  font-style: italic;
+  color: var(--gr-ink-placeholder);
+}
+
 /* A chapter without a title yet. */
 .title.untitled {
   font-style: italic;

@@ -244,9 +244,11 @@ declare module './commands' {
     };
     /** Starts a new chat with a first message. */
     'agents.start': {
-      request: { agent: AgentId; settings: NewChatSettings; text: string };
+      request: { agent: AgentId; settings: NewChatSettings; text: string; title?: string };
       response: OpenChat;
     };
+    /** Renames a chat, with the agent, so the agent's own tools show the new title too. */
+    'agents.rename': { request: { chatId: ChatId; title: string }; response: void };
     /** Sends a message; while a turn runs, it's queued and goes when the turn ends. */
     'agents.send': { request: { chatId: ChatId; text: string }; response: void };
     /** Changes a chat's model or permission; a running chat takes it from its next request. */
