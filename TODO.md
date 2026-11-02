@@ -59,3 +59,7 @@ A custom UI for Claude Code, built on the Claude Agent SDK.
 - [ ] Auto-archive chats when their pull request is merged
 - [ ] Plugin browser to install and turn plugins on or off from marketplaces
 - [ ] Release notes scraper for new Claude Code features (later, not planned yet)
+
+## Feature ideas
+
+- Show remaining AI tokens (Claude first) in the thumb index menu.
