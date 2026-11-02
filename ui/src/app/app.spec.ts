@@ -893,6 +893,82 @@ describe('App', () => {
     expect(notch.getAttribute('aria-current')).toBeNull();
   });
 
+  it('turns the facing page to a thumb tab\'s page, blank until its feature is written', async () => {
+    const { fixture, el, texts } = await render(fakeBridge().bridge);
+    const kanban = [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')].find(
+      (tab) => tab.textContent!.trim() === 'Kanban',
+    )!;
+    kanban.click();
+    await fixture.whenStable();
+    expect(kanban.getAttribute('aria-current')).toBe('page');
+    expect(texts('gr-thumb-page .title')).toEqual(['Kanban']);
+    expect(texts('gr-thumb-page .blank')).toEqual(['Not written yet.']);
+    expect(texts('gr-thumb-page .row .gr-link')).toEqual(['Back to the Outline Esc']);
+
+    // Its tab again turns back, and so does Esc.
+    kanban.click();
+    await fixture.whenStable();
+    expect(el.querySelector('gr-thumb-page')).toBeNull();
+    kanban.click();
+    await fixture.whenStable();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }));
+    await fixture.whenStable();
+    expect(el.querySelector('gr-thumb-page')).toBeNull();
+    expect(kanban.getAttribute('aria-current')).toBeNull();
+  });
+
+  it('shows how much of the plan\'s limits is used in the Ledger, and reads it again', async () => {
+    const { bridge, answers, calls } = fakeBridge();
+    const tonight = new Date();
+    tonight.setHours(23, 0, 0, 0);
+    let used = 37;
+    answers['agents.usage'] = () => ({
+      plan: 'max',
+      windows: [
+        { span: 'session', used: used++, resetsAt: tonight.getTime() },
+        { span: 'week', used: 70, resetsAt: null },
+        { span: 'week', model: 'Opus', used: 12, resetsAt: null },
+      ],
+      at: tonight.getTime(),
+    });
+    const { fixture, el, texts } = await render(bridge);
+    [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
+      .find((tab) => tab.textContent!.trim() === 'Ledger')!
+      .click();
+    await fixture.whenStable();
+
+    expect(texts('gr-thumb-page .title')).toEqual(['Ledger']);
+    expect(texts('gr-ledger-page h2')).toEqual(['Claude Code’s plan limits']);
+    expect(texts('gr-ledger-page .sub')[0]).toMatch(/^Max plan, read at .+Read again$/);
+    expect(texts('gr-ledger-page .name')).toEqual([
+      'Current session',
+      'This week, all models',
+      'This week, Opus',
+    ]);
+    expect(texts('gr-ledger-page b')).toEqual(['37%', '70%', '12%']);
+    expect(texts('gr-ledger-page .resets')[0]).toMatch(/^resets at \S/);
+    const meter = el.querySelector('gr-ledger-page [role="meter"]')!;
+    expect(meter.getAttribute('aria-valuenow')).toBe('37');
+
+    el.querySelector<HTMLButtonElement>('gr-ledger-page .sub .gr-link')!.click();
+    await fixture.whenStable();
+    expect(texts('gr-ledger-page b')[0]).toBe('38%');
+    expect(calls.filter((call) => call.command === 'agents.usage')).toHaveLength(2);
+  });
+
+  it('says so in the Ledger when the agent has no plan limits', async () => {
+    const { bridge, answers } = fakeBridge();
+    answers['agents.usage'] = () => ({ plan: null, windows: [], at: 0 });
+    const { fixture, el, texts } = await render(bridge);
+    [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
+      .find((tab) => tab.textContent!.trim() === 'Ledger')!
+      .click();
+    await fixture.whenStable();
+    expect(texts('gr-ledger-page .none')).toEqual([
+      'No limits to show: Claude Code isn’t signed in with a Claude subscription.',
+    ]);
+  });
+
   it('turns the facing page to the agent\'s commands at a "/" in the entry', async () => {
     const { bridge, calls, answers, emit } = fakeBridge();
     answers['agents.commands'] = () => [

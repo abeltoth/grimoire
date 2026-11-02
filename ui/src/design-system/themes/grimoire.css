@@ -389,6 +389,12 @@
   --gr-thumb-open-shift: -10px;
   --gr-shadow-thumb-open: inset 5px 0 7px -3px rgba(0, 0, 0, 0.45);
 
+  /* The Ledger: the plan limits */
+  --gr-ledger-width: 520px;
+  --gr-ledger-gap: 18px;
+  --gr-ledger-section-gap: 32px;
+  --gr-ledger-percent-col: 40px;
+
   /* Chat: the Outline on the facing page */
   --gr-outline-sub-gap: 18px;
   --gr-outline-gap: 13px;

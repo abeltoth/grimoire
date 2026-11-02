@@ -13,6 +13,7 @@ import type {
   Enclosure,
   Entry,
   PlanStep,
+  PlanUsage,
   SettingsChange,
 } from '@grimoire/contract';
 
@@ -39,6 +40,8 @@ export interface AgentAdapter {
   models(): Promise<AgentModels>;
   /** The commands and skills you can use in a folder. Agents without them leave it out. */
   commands?(cwd: string): Promise<AgentCommand[]>;
+  /** The subscription's limits and how much of them is used. Agents without a plan leave it out. */
+  usage?(): Promise<PlanUsage>;
   /**
    * Starts the agent's process for a chat: a new chat under the given ID,
    * or, with `resume`, an existing one. Messages go in through send().

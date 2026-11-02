@@ -2,8 +2,9 @@
   <button
     type="button"
     class="thumb"
-    [attr.aria-disabled]="tab.open ? null : true"
-    (click)="tab.open?.()"
+    [attr.title]="tab.label"
+    [attr.aria-current]="facing.thumb() === tab.id ? 'page' : null"
+    (click)="facing.thumb() === tab.id ? facing.closeThumb() : facing.openThumb(tab.id)"
   >
     <span>{{ tab.label }}</span>
   </button>

@@ -48,6 +48,29 @@ export interface AgentModels {
   default?: string;
 }
 
+/** How much of one of a plan's limits is used: its five-hour session or its week. */
+export interface UsageWindow {
+  span: 'session' | 'week';
+  /** For a week kept for one model, the model's name, such as "Opus". */
+  model?: string;
+  /** The share of the limit used, in percent; null when the agent doesn't say. */
+  used: number | null;
+  /** When the limit starts afresh, in ms since the epoch. */
+  resetsAt: number | null;
+}
+
+/** The agent's subscription, and how much of its limits is used. */
+export interface PlanUsage {
+  /** The subscription, such as "pro" or "max"; null when there's none, as with an API key. */
+  plan: string | null;
+  /** Empty when the plan's limits don't apply. */
+  windows: UsageWindow[];
+  /** The share of this month's extra usage spent, in percent, when extra usage is turned on. */
+  extra?: number | null;
+  /** When it was read, in ms since the epoch. */
+  at: number;
+}
+
 /** The folders your chats ran in, most recent first, and your home folder. */
 export interface RecentFolders {
   home: string;
@@ -256,6 +279,8 @@ declare module './commands' {
     'agents.models': { request: { agent: AgentId }; response: AgentModels };
     /** The agent's commands and skills in a folder; your home folder when there's none. */
     'agents.commands': { request: { agent: AgentId; cwd?: string }; response: AgentCommand[] };
+    /** The agent's subscription limits and how much of them is used; null when it has none. */
+    'agents.usage': { request: { agent: AgentId }; response: PlanUsage | null };
     /** The folders your chats with any agent ran in. */
     'agents.folders': { request: Record<string, never>; response: RecentFolders };
     /** The agent's chats, most recent first, optionally only those in one folder. */

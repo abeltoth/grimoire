@@ -19,11 +19,11 @@ interface Entry {
   order?: number;
 }
 
-/** A tab on the fore-edge that opens one of the book's pages. */
+/** A tab on the fore-edge that turns the facing page to one of the book's pages. */
 export interface ThumbTab extends Entry {
   label: string;
-  /** Without it the tab shows but does nothing yet. */
-  open?: () => void;
+  /** What the page shows; without it the page is blank, its feature not written yet. */
+  component?: Type<unknown>;
 }
 
 /** Something the facing page can show, picked from the tabs in its running head. */
