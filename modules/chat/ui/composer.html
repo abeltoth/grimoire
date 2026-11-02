@@ -1,7 +1,12 @@
 @for (waiting of queued(); track waiting.id) {
   <div class="queued">
     <span class="queued-label"><gr-icon name="hourglass" />Queued</span>
-    <p class="queued-text">{{ waiting.text }}</p>
+    <p class="queued-text">
+      {{ waiting.text }}
+      @if (waiting.enclosures?.length) {
+        <i>+ {{ waiting.enclosures!.length }} attached</i>
+      }
+    </p>
     <span class="queued-when">sends when this turn ends</span>
     <button type="button" class="gr-link" (click)="edit(waiting)">Edit</button>
     <button type="button" class="gr-link" (click)="remove(waiting)">Remove</button>
@@ -23,6 +28,7 @@
     [attr.aria-activedescendant]="chosen() ? 'gr-command-' + chosen()!.name : null"
     (input)="write($any($event.target).value)"
     (keydown)="key($event, entry)"
+    (paste)="paste($event)"
   ></textarea>
   @if (lookingUp()) {
     <span class="slash-hint"
@@ -31,15 +37,26 @@
   }
 </div>
 
+@if (enclosures().length) {
+  <gr-enclosures
+    class="enclosed"
+    [enclosures]="enclosures()"
+    [cwd]="cwd()"
+    removable
+    (removed)="unenclose($event)"
+  />
+}
+
 <div class="controls">
   <button
     type="button"
     class="control"
     aria-label="Attach files or a screenshot"
-    aria-disabled="true"
+    (click)="attach()"
   >
     <gr-icon name="attach" />Attach
   </button>
+  <span class="drop-hint">or drop or paste them onto the page</span>
   <span class="spacer"></span>
   @if (used() !== undefined) {
     <div

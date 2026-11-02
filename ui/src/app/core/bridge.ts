@@ -23,6 +23,8 @@ function outsideTheApp(): GrimoireBridge {
     invoke: () => Promise.reject(new Error('Not running inside the Grimoire app')),
     on: () => () => {},
     chooseFolder: () => Promise.resolve(null),
+    chooseFiles: () => Promise.resolve([]),
+    pathOf: () => '',
     window: { minimize() {}, toggleMaximize() {}, close() {} },
   };
 }

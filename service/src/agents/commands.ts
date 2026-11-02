@@ -13,12 +13,14 @@ export function registerAgentCommands(registry: CommandRegistry, hub: AgentHub):
   registry.register('agents.commands', ({ agent, cwd }) => hub.commands(agent, cwd));
   registry.register('agents.folders', () => hub.folders());
   registry.register('agents.configure', ({ chatId, change }) => hub.configure(chatId, change));
-  registry.register('agents.start', ({ agent, settings, text, title }) =>
-    hub.start(agent, settings, text, title),
+  registry.register('agents.start', ({ agent, settings, text, title, enclosures }) =>
+    hub.start(agent, settings, text, title, enclosures),
   );
   registry.register('agents.rename', ({ chatId, title }) => hub.rename(chatId, title));
   registry.register('agents.tag', ({ chatId, tags }) => hub.tag(chatId, tags));
-  registry.register('agents.send', ({ chatId, text }) => hub.send(chatId, text));
+  registry.register('agents.send', ({ chatId, text, enclosures }) =>
+    hub.send(chatId, text, enclosures),
+  );
   registry.register('agents.undo', ({ chatId, entryId }) => hub.undo(chatId, entryId));
   registry.register('agents.fork', ({ chatId, entryId }) => hub.fork(chatId, entryId));
   registry.register('agents.dogEar', ({ chatId, dogEar, folded }) =>

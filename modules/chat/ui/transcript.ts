@@ -16,6 +16,7 @@ import { Facing } from '@ui/app/shell/facing';
 import type { Answer, ApprovalDecision } from '@grimoire/contract';
 import { ApprovalSlip } from './approval-slip';
 import { Corrections } from './corrections';
+import { Enclosures } from './enclosures';
 import { MarkdownView } from './markdown/markdown-view';
 import { parseMarkdown } from './markdown/markdown';
 import { Output } from './output';
@@ -31,6 +32,7 @@ import { toRows } from './rows';
 @Component({
   selector: 'gr-transcript',
   imports: [
+    Enclosures,
     ApprovalSlip,
     Corrections,
     Drawing,

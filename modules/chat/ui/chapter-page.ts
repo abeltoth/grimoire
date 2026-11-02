@@ -51,14 +51,18 @@ import { Transcript } from './transcript';
   ],
   templateUrl: './chapter-page.html',
   styleUrl: './chapter-page.css',
-  host: { '(document:keydown.escape)': 'escape($event)' },
+  host: {
+    '(document:keydown.escape)': 'escape($event)',
+    '(dragover)': 'dragOver($event)',
+    '(drop)': 'composer()?.drop($event)',
+  },
 })
 export class ChapterPage {
   protected readonly chats = inject(Chats);
   private readonly facing = inject(Facing);
   private readonly presets = inject(Presets);
   protected readonly chapter = this.chats.current;
-  private readonly composer = viewChild(Composer);
+  protected readonly composer = viewChild(Composer);
   private readonly running = computed(() =>
     ['thinking', 'writing', 'waiting'].includes(this.chapter()?.status ?? ''),
   );
@@ -126,6 +130,13 @@ export class ChapterPage {
     else this.chats.openSettings(chapter.id, setting);
   }
 
+  /** Files can be dropped anywhere on the page; they go with the next entry. */
+  protected dragOver(event: DragEvent): void {
+    if (!event.dataTransfer?.types.includes('Files')) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+  }
+
   protected escape(event: Event): void {
     if (event.defaultPrevented) return;
     const card = this.card();
@@ -145,7 +156,7 @@ export class ChapterPage {
     else if (this.running())
       void this.chats.interrupt(chapter.id).then((withdrawn) => {
         if (this.chapter()?.id === chapter.id)
-          this.composer()?.takeBack(withdrawn.map((queued) => queued.text));
+          this.composer()?.takeBack(withdrawn);
       });
   }
 }

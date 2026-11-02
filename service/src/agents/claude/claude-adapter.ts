@@ -14,11 +14,13 @@ import type {
   ApprovalMode,
   ChatId,
   ChatSettings,
+  Enclosure,
   Entry,
 } from '@grimoire/contract';
 import type { AgentAdapter, ChatEvents, ChatHistory, LiveChat, SavedChat } from '../adapter';
 import { MessageQueue } from './message-queue';
 import { ASK_TOOL, alwaysAllowOf, toClaudeAnswers, toQuestions } from './permissions';
+import { withReferences } from './references';
 import { ClaudeTranscript, turnEnd } from './transcript';
 
 // Loaded on first use: it's large, and the service starts without it.
@@ -163,10 +165,11 @@ export class ClaudeAdapter implements AgentAdapter {
     id: string,
     bind: (chatId: ChatId) => ChatEvents,
     title?: string,
+    enclosures: Enclosure[] = [],
   ): Promise<LiveChat> {
     const spare = this.takeSpare();
     try {
-      if (spare) return await this.claim(spare, settings, text, id, bind, title);
+      if (spare) return await this.claim(spare, settings, text, id, bind, title, enclosures);
     } catch {
       // Refused, or the spare died: start the usual way.
     } finally {
@@ -174,7 +177,7 @@ export class ClaudeAdapter implements AgentAdapter {
     }
     const chatId = randomUUID();
     const live = this.run(chatId, settings, false, bind(chatId), title);
-    live.send(text, id);
+    live.send(text, id, enclosures);
     return live;
   }
 
@@ -221,11 +224,12 @@ export class ClaudeAdapter implements AgentAdapter {
     text: string,
     id: string,
     bind: (chatId: ChatId) => ChatEvents,
-    title?: string,
+    title: string | undefined,
+    enclosures: Enclosure[],
   ): Promise<LiveChat> {
     const process = await spare.process;
     const input = new MessageQueue<SDKUserMessage>();
-    input.push(userMessage(text, id));
+    input.push(userMessage(text, id, enclosures, settings.cwd));
     const query = process.claim({
       prompt: input,
       options: {
@@ -282,7 +286,8 @@ export class ClaudeAdapter implements AgentAdapter {
     })();
 
     return {
-      send: (text, id) => input.push(userMessage(text, id)),
+      send: (text, id, enclosures = []) =>
+        input.push(userMessage(text, id, enclosures, settings.cwd)),
       interrupt: async () => {
         await (await started).interrupt();
       },
@@ -361,13 +366,42 @@ class Deferred<T> {
   readonly promise = new Promise<T>((resolve) => (this.resolve = resolve));
 }
 
-/** Your message, under its entry's ID: Claude Code keeps it, and undoes by it. */
-function userMessage(text: string, uuid: string): SDKUserMessage {
-  // The hub makes entry IDs with randomUUID().
+/**
+ * Your message, under its entry's ID: Claude Code keeps it, and undoes by it.
+ * Its files go as @-references and its pictures as image blocks, before the
+ * text: Claude Code only reads the references when the text comes last.
+ */
+function userMessage(
+  text: string,
+  uuid: string,
+  enclosures: readonly Enclosure[],
+  cwd: string,
+): SDKUserMessage {
+  const written = withReferences(text, enclosures, cwd);
+  const pictures = enclosures.flatMap((enclosure) =>
+    enclosure.kind === 'picture'
+      ? [
+          {
+            type: 'image' as const,
+            source: {
+              type: 'base64' as const,
+              media_type: enclosure.mediaType as 'image/png',
+              data: enclosure.data,
+            },
+          },
+        ]
+      : [],
+  );
   return {
     type: 'user',
+    // The hub makes entry IDs with randomUUID().
     uuid: uuid as UUID,
-    message: { role: 'user', content: text },
+    message: {
+      role: 'user',
+      content: pictures.length
+        ? [...pictures, ...(written ? [{ type: 'text' as const, text: written }] : [])]
+        : written,
+    },
     parent_tool_use_id: null,
   };
 }

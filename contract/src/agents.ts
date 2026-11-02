@@ -76,8 +76,30 @@ export interface UserEntry {
   kind: 'user';
   id: string;
   text: string;
+  /** Pictures and files sent with it. */
+  enclosures?: Enclosure[];
   /** When it was written, in ms since the epoch, when known. */
   at?: number;
+}
+
+/** Something sent with an entry: a picture, shown as a plate, or a file, as a reference. */
+export type Enclosure = PictureEnclosure | FileEnclosure;
+
+export interface PictureEnclosure {
+  kind: 'picture';
+  /** Such as "image/png". */
+  mediaType: string;
+  /** The picture, base64-encoded. */
+  data: string;
+  /** How it came in, such as "Screenshot, pasted at 22:18"; missing when read back from the agent. */
+  caption?: string;
+}
+
+/** A file the agent reads with the entry. */
+export interface FileEnclosure {
+  kind: 'file';
+  /** Absolute, or relative to the chat's folder. */
+  path: string;
 }
 
 export interface AgentEntry {
@@ -184,6 +206,7 @@ export interface PlanStep {
 export interface QueuedEntry {
   id: string;
   text: string;
+  enclosures?: Enclosure[];
 }
 
 /** One of an agent's commands or skills, used by writing "/name" at the start of an entry. */
@@ -246,13 +269,22 @@ declare module './commands' {
     };
     /** Starts a new chat with a first message. */
     'agents.start': {
-      request: { agent: AgentId; settings: NewChatSettings; text: string; title?: string };
+      request: {
+        agent: AgentId;
+        settings: NewChatSettings;
+        text: string;
+        enclosures?: Enclosure[];
+        title?: string;
+      };
       response: OpenChat;
     };
     /** Renames a chat, with the agent, so the agent's own tools show the new title too. */
     'agents.rename': { request: { chatId: ChatId; title: string }; response: void };
     /** Sends a message; while a turn runs, it's queued and goes when the turn ends. */
-    'agents.send': { request: { chatId: ChatId; text: string }; response: void };
+    'agents.send': {
+      request: { chatId: ChatId; text: string; enclosures?: Enclosure[] };
+      response: void;
+    };
     /** Changes a chat's model or permission; a running chat takes it from its next request. */
     'agents.configure': { request: { chatId: ChatId; change: SettingsChange }; response: void };
     /**

@@ -12,6 +12,7 @@ import type {
   ChatSummary,
   ContextUsage,
   DogEar,
+  Enclosure,
   Entry,
   EventName,
   EventPayload,
@@ -275,18 +276,20 @@ export class Chats {
       await this.bridge.invoke('agents.close', { chatId: id }).catch(() => {});
   }
 
-  /** Sends a message; a blank chapter's first one starts the chat. */
-  async send(id: string, text: string): Promise<void> {
+  /** Sends a message, with any pictures and files; a blank chapter's first one starts the chat. */
+  async send(id: string, text: string, enclosures: readonly Enclosure[] = []): Promise<void> {
+    const enclosed = enclosures.length ? { enclosures: [...enclosures] } : {};
     const chapter = this.find(id);
     if (!chapter) return;
     this.update(id, ({ error: _, ...c }) => c);
     try {
       if (chapter.status !== 'blank')
-        return await this.bridge.invoke('agents.send', { chatId: id, text });
+        return await this.bridge.invoke('agents.send', { chatId: id, text, ...enclosed });
       const chat = await this.bridge.invoke('agents.start', {
         agent: chapter.agent,
         settings: chapter.settings,
         text,
+        ...enclosed,
         ...(chapter.title ? { title: chapter.title } : {}),
       });
       // Tags given to the blank page go to its chat.

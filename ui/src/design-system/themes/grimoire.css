@@ -222,6 +222,24 @@
   --gr-tags-gap: 12px;
   --gr-untag-gap: 3px;
   --gr-tag-field-min: 48px;
+
+  /* Chat: pictures and files sent with an entry */
+  --gr-enclosures-gap: 26px;
+  --gr-enclosures-pad: 6px 0 10px 4px;
+  --gr-enclosure-gap: 7px;
+  --gr-enclosure-caption-gap: 8px;
+  --gr-size-enclosure-caption: 13px;
+  --gr-tracking-enclosure: 0.05em;
+  --gr-enclosure-x: 22px;
+  --gr-plate-width: 236px;
+  --gr-plate-height: 128px;
+  --gr-plate-frame: 6px;
+  --gr-shadow-plate: 0 0 0 5px var(--gr-plate), 0 0 0 6px var(--gr-plate-mark);
+  --gr-ref-gap: 10px;
+  --gr-ref-pad: 10px 16px 10px 12px;
+  --gr-ref-rule-top: 3px double var(--gr-form-rule);
+  --gr-ref-rule: 1px solid var(--gr-form-rule);
+  --gr-size-drop-hint: 13.5px;
   --gr-radius-control: 3px;
   --gr-leading-meta: 1.25;
 

@@ -489,6 +489,24 @@ describe('AgentHub', () => {
     expect(fake.runOf(id).interrupts).toBe(1);
   });
 
+  it('sends pictures and files with an entry, queued or not', async () => {
+    const picture = { kind: 'picture', mediaType: 'image/png', data: 'AAAA' } as const;
+    const file = { kind: 'file', path: '/work/ribbon.ts' } as const;
+    const { id, entries } = await hub.start('fake', settings, 'Look', undefined, [picture]);
+    const run = fake.runOf(id);
+    expect(entries[0]).toMatchObject({ kind: 'user', text: 'Look', enclosures: [picture] });
+    expect(run.sentEnclosures).toEqual([[picture]]);
+
+    hub.send(id, '', [file]);
+    expect(sent.filter((s) => s.event === 'agents.queued').at(-1)!.payload).toEqual({
+      chatId: id,
+      queued: [{ id: expect.any(String), text: '', enclosures: [file] }],
+    });
+    run.events.turnEnded();
+    expect(run.sentEnclosures).toEqual([[picture], [file]]);
+    expect(() => hub.send(id, '  ')).toThrow('Write something, or attach something, to send');
+  });
+
   it('queues messages sent during a turn and sends the next when it ends', async () => {
     const { id } = await hub.start('fake', settings, 'Hello');
     const run = fake.runOf(id);

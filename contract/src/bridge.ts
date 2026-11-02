@@ -14,6 +14,10 @@ export interface GrimoireBridge {
   on<K extends EventName>(event: K, listener: (payload: EventPayload<K>) => void): () => void;
   /** Asks for a folder with the system's folder picker; null when you cancel. */
   chooseFolder(): Promise<string | null>;
+  /** Asks for files with the system's file picker; none when you cancel. */
+  chooseFiles(): Promise<string[]>;
+  /** Where a dropped file is on disk; empty when it isn't a file on disk, such as a picture dragged from a web page. */
+  pathOf(file: File): string;
   readonly window: WindowControls;
 }
 

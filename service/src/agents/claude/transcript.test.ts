@@ -171,6 +171,33 @@ describe('ClaudeTranscript', () => {
     expect(transcript.plan).toEqual([{ text: 'Only step', status: 'active', activeText: 'Doing it' }]);
   });
 
+  it('reads your pictures and attached files back off a saved message', () => {
+    const transcript = new ClaudeTranscript(false);
+    transcript.apply({
+      type: 'user',
+      uuid: 'u1',
+      parent_tool_use_id: null,
+      message: {
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'AAAA' } },
+          { type: 'text', text: 'Why is this blurry?\n\n@"src/app/ribbon.ts"' },
+        ],
+      },
+    });
+    expect(transcript.entries).toEqual([
+      {
+        kind: 'user',
+        id: 'u1',
+        text: 'Why is this blurry?',
+        enclosures: [
+          { kind: 'picture', mediaType: 'image/png', data: 'AAAA' },
+          { kind: 'file', path: 'src/app/ribbon.ts' },
+        ],
+      },
+    ]);
+  });
+
   it('finds where the turn one of your entries began ends', () => {
     const you = (uuid: string, content: unknown): ClaudeMessage => ({
       type: 'user',

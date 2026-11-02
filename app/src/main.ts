@@ -101,6 +101,14 @@ ipcMain.handle('grimoire:chooseFolder', async (event) => {
   return result.canceled ? null : (result.filePaths[0] ?? null);
 });
 
+ipcMain.handle('grimoire:chooseFiles', async (event) => {
+  if (!isTrusted(event.senderFrame)) throw new Error('Untrusted sender');
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const options = { properties: ['openFile' as const, 'multiSelections' as const] };
+  const result = win ? await dialog.showOpenDialog(win, options) : await dialog.showOpenDialog(options);
+  return result.canceled ? [] : result.filePaths;
+});
+
 ipcMain.on('grimoire:window', (event, action: unknown) => {
   if (!isTrusted(event.senderFrame)) return;
   const win = BrowserWindow.fromWebContents(event.sender);
