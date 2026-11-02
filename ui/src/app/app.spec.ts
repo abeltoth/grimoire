@@ -476,16 +476,22 @@ describe('App', () => {
     await fixture.whenStable();
     expect(texts('gr-running-head h1')).toEqual(['Untitled chapter']);
     expect(texts('[aria-current="page"] i')).toEqual(['Claude Code · blank page']);
+    // The ribbons keep the order the chapters were opened in.
     expect(texts('.left-half gr-ribbon i')).toEqual([
-      'Claude Code · blank page',
       'Claude Code · thinking',
+      'Claude Code · blank page',
     ]);
     // The new chapter takes the settings last used.
     expect(texts('.meta button')[3]).toBe('~/git/grimoire');
 
-    [...el.querySelectorAll<HTMLButtonElement>('.left-half gr-ribbon button')][1]!.click();
+    [...el.querySelectorAll<HTMLButtonElement>('.left-half gr-ribbon button')][0]!.click();
     await fixture.whenStable();
     expect(texts('.you p')).toEqual(['Fix the flaky login test']);
+    expect(texts('.left-half gr-ribbon i')).toEqual([
+      'Claude Code · thinking',
+      'Claude Code · blank page',
+    ]);
+    expect(texts('[aria-current="page"] i')).toEqual(['Claude Code · thinking']);
   });
 
   it('keeps what you wrote on a chapter, unsent, while you turn to another', async () => {
@@ -505,7 +511,7 @@ describe('App', () => {
     expect(entry().value).toBe('');
     expect(el.querySelector('gr-composer gr-enclosures')).toBeNull();
 
-    [...el.querySelectorAll<HTMLButtonElement>('.left-half gr-ribbon button')][1]!.click();
+    [...el.querySelectorAll<HTMLButtonElement>('.left-half gr-ribbon button')][0]!.click();
     await fixture.whenStable();
     expect(entry().value).toBe('Half a thought');
     expect(texts('gr-composer .ref code')).toEqual(['notes.txt']);
@@ -739,7 +745,7 @@ describe('App', () => {
       { chatId: 'c1', entryId: 'u1' },
     ]);
     expect(texts('gr-running-head h1')).toEqual(['Context meter (a)']);
-    expect(texts('gr-ribbon b')).toEqual(['Context meter (a)', 'Context meter', 'New chapter']);
+    expect(texts('gr-ribbon b')).toEqual(['Context meter', 'Context meter (a)', 'New chapter']);
   });
 
   it('pins and stars a chapter with its dog-ears, but not a blank one', async () => {
@@ -1334,12 +1340,12 @@ describe('App', () => {
     expect(texts('gr-running-head h1')).toEqual(['Context meter']);
     expect(texts('.you p')).toEqual(['Add a context meter']);
     expect(texts('gr-ribbon b')).toEqual([
-      'Context meter',
       'Fix flaky login test',
+      'Context meter',
       'New chapter',
     ]);
 
-    el.querySelectorAll<HTMLButtonElement>('.right-half gr-ribbon button')[0]!.click();
+    el.querySelectorAll<HTMLButtonElement>('.left-half gr-ribbon button')[0]!.click();
     await fixture.whenStable();
     expect(calls.filter((c) => c.command === 'layout.set').map((c) => c.request)).toEqual([
       { current: 'c1' },
