@@ -257,6 +257,7 @@
   --gr-size-mark: 0.78em;
   --gr-size-note-mark: 15px;
   --gr-size-note-detail: 11.5px;
+  --gr-note-target-lines: 2;
   --gr-leading-note: 1.3;
   --gr-note-pad: 2px 4px 3px 10px;
   --gr-radius-note: 2px;
