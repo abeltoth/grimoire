@@ -1,15 +1,10 @@
 :host {
   --ribbon: var(--gr-ribbon-open);
   --ribbon-ink: var(--gr-ribbon-ink);
-  --ribbon-meta: var(--gr-ribbon-meta);
+  --ribbon-len: var(--gr-ribbon-len);
   position: relative;
-  display: flex;
-  align-items: flex-start;
+  z-index: var(--stack, auto);
   filter: drop-shadow(var(--gr-shadow-ribbon));
-}
-
-:host(.right) {
-  flex-direction: row-reverse;
 }
 
 :host([data-tone='thinking']) {
@@ -27,104 +22,110 @@
 :host([data-tone='seal']) {
   --ribbon: var(--gr-ribbon-seal);
   --ribbon-ink: var(--gr-ribbon-ink-light);
-  --ribbon-meta: var(--gr-ribbon-meta-light);
 }
 
-/* Waiting for you: the ribbon glows, sways and gives off motes. */
+/* Waiting for you: the ribbon hangs lower, glows, sways and gives off motes. */
 :host([data-tone='waiting']) {
   --ribbon: var(--gr-ribbon-waiting);
   --ribbon-ink: var(--gr-ribbon-ink-light);
-  --ribbon-meta: var(--gr-ribbon-meta-light);
+  --ribbon-len: var(--gr-ribbon-len-long);
   animation: gr-glow var(--gr-dur-glow) ease-in-out infinite;
 }
 
-:host([data-tone='waiting']) .flat {
-  transform-origin: 100% 50%;
+:host([data-tone='waiting']) .tail {
+  transform-origin: 50% 0;
   animation: gr-sway var(--gr-dur-sway) var(--gr-ease-sway) infinite;
 }
 
-:host([data-tone='waiting']) i {
-  font-weight: 500;
+/* The open chapter's ribbon hangs lowest, on top of the others. */
+:host(.current) {
+  --ribbon-len: var(--gr-ribbon-len-long);
+  z-index: var(--gr-ribbon-z-current);
 }
 
-/* Where it comes out of the book's foot and folds over. */
-.root {
-  display: flex;
-  flex-direction: column;
-  width: var(--gr-ribbon-h);
-  flex: none;
+:host(:hover),
+:host(:focus-within) {
+  z-index: var(--gr-ribbon-z-lifted);
 }
 
-.drop {
-  height: var(--gr-ribbon-drop);
-  background: var(--ribbon);
-  box-shadow: var(--gr-shadow-ribbon-drop);
-}
-
-.crease {
-  height: var(--gr-ribbon-h);
-  background:
-    linear-gradient(to top right, var(--gr-ribbon-crease) 50%, transparent 50%), var(--ribbon);
-}
-
-:host(.right) .crease {
-  background:
-    linear-gradient(to top left, var(--gr-ribbon-crease) 50%, transparent 50%), var(--ribbon);
-}
-
-/* The tail lying flat on the desk, cut with a notch at its end. */
-.flat {
+/*
+ * The ribbon hangs from between the pages at the book's foot, cut with a
+ * notch at its end. Its icon sits on the side its neighbour leaves showing.
+ */
+.tail {
   position: relative;
-  height: var(--gr-ribbon-h);
-  margin-top: var(--gr-ribbon-drop);
   display: flex;
-  align-items: center;
-  gap: var(--gr-ribbon-icon-gap);
-  background:
-    linear-gradient(180deg, var(--gr-ribbon-highlight), transparent 45%, var(--gr-ribbon-lowlight)),
-    var(--ribbon);
+  align-items: flex-end;
+  justify-content: flex-start;
+  width: var(--gr-ribbon-w);
+  height: var(--ribbon-len);
+  padding: 0 var(--gr-ribbon-icon-inset) var(--gr-ribbon-icon-foot);
   color: var(--ribbon-ink);
-  text-align: left;
-  padding: 0 var(--gr-ribbon-pad-near) 0 var(--gr-ribbon-pad-far);
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, var(--gr-ribbon-notch) 50%);
+  isolation: isolate;
 }
 
-:host(.right) .flat {
-  padding: 0 var(--gr-ribbon-pad-far) 0 var(--gr-ribbon-pad-near);
-  clip-path: polygon(0 0, 100% 0, calc(100% - var(--gr-ribbon-notch)) 50%, 100% 100%, 0 100%);
+:host(.right) .tail {
+  justify-content: flex-end;
 }
 
-:host([data-tone='seal']) .flat {
-  padding-right: var(--gr-ribbon-seal-pad);
-}
-
-.flat > * {
-  position: relative;
-  z-index: 1;
-}
-
-/* The open chapter's ribbon catches the light. */
-:host(.sheen) .flat::after {
+.tail::before,
+.tail::after {
   content: '';
   position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: -1;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - var(--gr-ribbon-notch)), 0 100%);
+}
+
+.tail::before {
+  background:
+    linear-gradient(90deg, var(--gr-ribbon-highlight), transparent 45%, var(--gr-ribbon-lowlight)),
+    var(--ribbon);
+  box-shadow: var(--gr-shadow-ribbon-drop);
+}
+
+/* The open chapter's ribbon catches the light. */
+:host(.sheen) .tail::after {
   background: linear-gradient(100deg, transparent 36%, var(--gr-ribbon-sheen) 50%, transparent 64%);
   background-size: 300% 100%;
   animation: gr-sheen var(--gr-dur-sheen) linear infinite;
 }
 
-.text {
+/* The title, on a slip that lies beside the ribbon, toward the spine. */
+.slip {
+  position: absolute;
+  top: var(--gr-ribbon-slip-top);
+  left: calc(100% + var(--gr-ribbon-slip-gap));
+  z-index: 2;
   display: flex;
   flex-direction: column;
-  min-width: 0;
+  padding: var(--gr-ribbon-slip-pad);
+  background: var(--gr-ribbon-slip);
+  color: var(--gr-ribbon-ink);
+  border-radius: var(--gr-radius-ribbon-slip);
+  box-shadow: var(--gr-shadow-ribbon);
   line-height: var(--gr-leading-ribbon);
+  text-align: left;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--gr-dur-slip) ease-out;
+}
+
+:host(.right) .slip {
+  left: auto;
+  right: calc(100% + var(--gr-ribbon-slip-gap));
+  text-align: right;
+}
+
+.tail:hover .slip,
+.tail:focus-visible .slip {
+  opacity: 1;
 }
 
 b {
   font-weight: 500;
   font-size: var(--gr-size-ribbon);
-  white-space: nowrap;
 }
 
 :host(.current) b {
@@ -133,16 +134,16 @@ b {
 
 i {
   font-size: var(--gr-size-ribbon-meta);
-  color: var(--ribbon-meta);
-  white-space: nowrap;
+  color: var(--gr-ribbon-meta);
 }
 
 .seal {
   position: absolute;
-  right: calc(var(--gr-seal-overhang) * -1);
+  left: 50%;
   top: var(--gr-seal-top);
   width: var(--gr-seal-size);
   height: var(--gr-seal-size);
+  transform: translateX(-50%);
   border-radius: 50%;
   background: radial-gradient(
     circle at 34% 30%,

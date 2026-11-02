@@ -1,4 +1,4 @@
-<div #leftHalf class="half left-half">
+<div class="half left-half">
   @for (chapter of left(); track chapter.id) {
     <gr-ribbon
       class="chapter"
@@ -18,11 +18,12 @@
 
 <div class="half right-half">
   @for (chapter of right(); track chapter.id) {
+    <!-- Nearest the spine lies on top, as on the left. -->
     <gr-ribbon
       class="chapter"
       side="right"
+      [style.--stack]="right().length - $index"
       [tone]="tone(chapter)"
-      [current]="chapter.id === chapters.currentId()"
       [heading]="title(chapter)"
       [meta]="meta(chapter)"
       (picked)="chapters.open(chapter.id)"
@@ -35,6 +36,7 @@
 
   @if (seals()) {
     <gr-ribbon
+      class="seals"
       side="right"
       tone="seal"
       heading="Awaiting your seal"

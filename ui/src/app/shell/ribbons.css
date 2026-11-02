@@ -1,4 +1,4 @@
-/* The ribbons come out of the book's foot and lie on the desk below it. */
+/* The ribbons hang from the book's foot onto the desk below it. */
 :host {
   flex: none;
   height: var(--gr-ribbons-h);
@@ -13,20 +13,35 @@
   min-width: 0;
   display: flex;
   align-items: flex-start;
-  gap: var(--gr-ribbons-gap);
 }
 
-/* The first chapters, in the order opened, run up to the spine. */
+/* The chapters before the open one, then the open one at the spine. */
 .left-half {
   justify-content: flex-end;
   margin-right: calc(var(--gr-ribbons-spine-overlap) * -1);
+  padding-left: var(--gr-ribbons-edge-inset);
 }
 
+/* The chapters after it, then the approvals awaiting your seal and New chapter. */
 .right-half {
-  padding-left: var(--gr-ribbons-right-inset);
+  padding: 0 var(--gr-ribbons-edge-inset) 0 var(--gr-ribbon-current-gap);
 }
 
+/* Chapter ribbons lie partly on one another, and closer still when there are many. */
+.chapter {
+  flex: 0 1 var(--gr-ribbon-slot);
+  min-width: var(--gr-ribbon-slot-min);
+}
+
+/* The open chapter's ribbon lies in the spine, clear of the others. */
+.chapter.current {
+  flex: none;
+  margin: 0 var(--gr-ribbon-current-gap);
+}
+
+.seals,
 .new {
+  flex: none;
   margin-left: var(--gr-ribbon-new-gap);
 }
 

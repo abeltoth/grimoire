@@ -74,8 +74,6 @@
   --gr-ribbon-ink: #24190f;
   --gr-ribbon-ink-light: #fbf3e4;
   --gr-ribbon-meta: #3a2a19;
-  --gr-ribbon-meta-light: #fde6da;
-  --gr-ribbon-crease: rgba(0, 0, 0, 0.3);
   --gr-glow: rgba(236, 128, 76, 0.85);
   --gr-mote: #f3c27a;
   --gr-wax: #8e2a20;
@@ -130,8 +128,6 @@
   --gr-page-block: 10px;
   --gr-page-block-foot: 6px;
   --gr-notch-w: 36px;
-  --gr-ribbon-h: 36px;
-  --gr-ribbon-drop: 30px;
 
   /* Shell: title strip and book */
   --gr-tracking-book-title: 0.32em;
@@ -159,25 +155,34 @@
 
   /* Shell: ribbons */
   --gr-ribbons-h: 66px;
-  --gr-ribbons-gap: 16px;
   --gr-ribbons-spine-overlap: 18px;
-  --gr-ribbons-right-inset: 76px;
-  --gr-ribbon-new-gap: 24px;
-  --gr-ribbon-icon-gap: 8px;
-  --gr-ribbon-pad-near: 12px;
-  --gr-ribbon-pad-far: 26px;
-  --gr-ribbon-notch: 14px;
-  --gr-ribbon-seal-pad: 44px;
+  --gr-ribbons-edge-inset: 24px;
+  --gr-ribbon-w: 26px;
+  --gr-ribbon-len: 48px;
+  --gr-ribbon-len-long: 60px;
+  --gr-ribbon-slot: 18px;
+  --gr-ribbon-slot-min: 6px;
+  --gr-ribbon-current-gap: 10px;
+  --gr-ribbon-new-gap: 18px;
+  --gr-ribbon-notch: 8px;
+  --gr-ribbon-icon-inset: 3px;
+  --gr-ribbon-icon-foot: 11px;
+  --gr-ribbon-z-current: 50;
+  --gr-ribbon-z-lifted: 100;
+  --gr-ribbon-slip: #f4ead3;
+  --gr-ribbon-slip-top: 18px;
+  --gr-ribbon-slip-gap: 6px;
+  --gr-ribbon-slip-pad: 4px 10px 5px;
+  --gr-radius-ribbon-slip: 2px;
   --gr-size-ribbon-meta: 11.5px;
   --gr-leading-ribbon: 1.16;
   --gr-ribbon-highlight: rgba(255, 255, 255, 0.16);
   --gr-ribbon-lowlight: rgba(0, 0, 0, 0.12);
   --gr-ribbon-sheen: rgba(255, 244, 214, 0.38);
   --gr-shadow-ribbon-drop: inset 0 4px 4px -2px rgba(0, 0, 0, 0.5);
-  --gr-seal-size: 38px;
-  --gr-seal-overhang: 14px;
-  --gr-seal-top: 15px;
-  --gr-size-seal: 17px;
+  --gr-seal-size: 28px;
+  --gr-seal-top: 24px;
+  --gr-size-seal: 14px;
   --gr-shadow-seal: 0 0 0 3px rgba(90, 22, 14, 0.55), 0 3px 6px rgba(0, 0, 0, 0.5);
   --gr-mote-size: 3px;
   --gr-mote-blur: 6px;
@@ -587,6 +592,7 @@
   --gr-dur-breathe: 2.2s;
   --gr-dur-await: 2.4s;
   --gr-dur-seal: 380ms;
+  --gr-dur-slip: 120ms;
   --gr-dur-page-turn: 700ms;
   --gr-ease-ink: cubic-bezier(0.2, 0.7, 0.2, 1);
   --gr-ease-sway: cubic-bezier(0.45, 0, 0.55, 1);

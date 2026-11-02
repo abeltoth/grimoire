@@ -484,13 +484,12 @@ describe('App', () => {
     // The new chapter takes the settings last used.
     expect(texts('.meta button')[3]).toBe('~/git/grimoire');
 
+    // The book opens at the first chapter: the one after it moves right of the spine.
     [...el.querySelectorAll<HTMLButtonElement>('.left-half gr-ribbon button')][0]!.click();
     await fixture.whenStable();
     expect(texts('.you p')).toEqual(['Fix the flaky login test']);
-    expect(texts('.left-half gr-ribbon i')).toEqual([
-      'Claude Code · thinking',
-      'Claude Code · blank page',
-    ]);
+    expect(texts('.left-half gr-ribbon i')).toEqual(['Claude Code · thinking']);
+    expect(texts('.right-half gr-ribbon.chapter i')).toEqual(['Claude Code · blank page']);
     expect(texts('[aria-current="page"] i')).toEqual(['Claude Code · thinking']);
   });
 

@@ -11,8 +11,8 @@ import {
 export type RibbonTone = 'open' | 'thinking' | 'waiting' | 'idle' | 'seal' | 'new';
 
 /**
- * A ribbon marker: it drops out of the book's foot, creases and lies flat
- * on the desk, pointing away from the spine. Its icon goes inside.
+ * A ribbon marker hanging from the book's foot. Its icon goes inside; its
+ * heading and meta are read out, and shown on a slip when you point at it.
  */
 @Component({
   selector: 'gr-ribbon',
@@ -26,7 +26,7 @@ export type RibbonTone = 'open' | 'thinking' | 'waiting' | 'idle' | 'seal' | 'ne
   },
 })
 export class Ribbon {
-  /** Which half of the desk the ribbon lies on; it points away from the spine. */
+  /** Which side of the spine the ribbon hangs on; its slip lies toward the spine. */
   readonly side = input.required<'left' | 'right'>();
   readonly tone = input.required<RibbonTone>();
   readonly heading = input.required<string>();
