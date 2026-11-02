@@ -29,6 +29,9 @@ const sdk = () => import('@anthropic-ai/claude-agent-sdk');
 // Claude Code keeps its plan with its task tools only when asked to; the Outline shows it.
 const ENV = { ...process.env, CLAUDE_CODE_ENABLE_TODO_TOOLS: '1' };
 
+// Claude Code leaves the thinking out unless asked for its summary, which the page shows.
+const CLI_ARGS = { 'thinking-display': 'summarized' };
+
 /** How long a folder's commands are kept before Claude Code is asked again. */
 const COMMANDS_FRESH_MS = 60_000;
 
@@ -146,6 +149,7 @@ export class ClaudeAdapter implements AgentAdapter {
           // Undo restores files from these checkpoints.
           enableFileCheckpointing: true,
           env: ENV,
+          extraArgs: CLI_ARGS,
           ...(resume ? { resume: chatId } : { sessionId: chatId, ...(title ? { title } : {}) }),
           canUseTool: approvalsTo(async () => events),
         },
@@ -194,6 +198,7 @@ export class ClaudeAdapter implements AgentAdapter {
             allowDangerouslySkipPermissions: true,
             enableFileCheckpointing: true,
             env: ENV,
+            extraArgs: CLI_ARGS,
             canUseTool: approvalsTo(() => claimedBy.promise),
           },
         }),
