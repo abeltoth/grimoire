@@ -1,6 +1,7 @@
-<div class="half left-half">
+<div #leftHalf class="half left-half">
   @for (chapter of left(); track chapter.id) {
     <gr-ribbon
+      class="chapter"
       side="left"
       [tone]="tone(chapter)"
       [current]="chapter.id === chapters.currentId()"
@@ -18,8 +19,10 @@
 <div class="half right-half">
   @for (chapter of right(); track chapter.id) {
     <gr-ribbon
+      class="chapter"
       side="right"
       [tone]="tone(chapter)"
+      [current]="chapter.id === chapters.currentId()"
       [heading]="title(chapter)"
       [meta]="meta(chapter)"
       (picked)="chapters.open(chapter.id)"

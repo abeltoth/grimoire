@@ -16,9 +16,9 @@
   gap: var(--gr-ribbons-gap);
 }
 
-/* The open chapter comes first, nearest the spine. */
+/* The first chapters, in the order opened, run up to the spine. */
 .left-half {
-  flex-direction: row-reverse;
+  justify-content: flex-end;
   margin-right: calc(var(--gr-ribbons-spine-overlap) * -1);
 }
 
