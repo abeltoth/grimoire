@@ -39,6 +39,8 @@ function fakeBridge(overrides: Partial<GrimoireBridge> = {}) {
       plan: [],
       withdrawn: [],
       dogEars: [],
+
+      tags: [],
       copied: [],
     }),
     'agents.unqueue': () => true,
@@ -596,6 +598,8 @@ describe('App', () => {
         plan: [],
         withdrawn: [],
         dogEars: [],
+
+        tags: [],
         copied: [],
       },
     ];
@@ -651,6 +655,8 @@ describe('App', () => {
         plan: [],
         withdrawn: [],
         dogEars: [],
+
+        tags: [],
         copied: ['u1'],
       },
     ];
@@ -676,6 +682,8 @@ describe('App', () => {
       plan: [],
       withdrawn: [],
       dogEars: [],
+
+      tags: [],
       copied: [],
     });
     answers['agents.openChats'] = () => [chat('c1', 'Context meter')];
@@ -709,6 +717,8 @@ describe('App', () => {
         plan: [],
         withdrawn: [],
         dogEars: ['star'],
+
+        tags: [],
         copied: [],
       },
     ];
@@ -754,6 +764,8 @@ describe('App', () => {
       plan: [],
       withdrawn: [],
       dogEars: [],
+
+      tags: [],
       copied: [],
     });
     const { fixture, el, texts } = await render(bridge);
@@ -980,6 +992,43 @@ describe('App', () => {
     expect(el.querySelector('[aria-label="Rename chapter"]')).toBeNull();
   });
 
+  it('tags a chapter in its running head, and takes tags off again', async () => {
+    const { bridge, calls } = fakeBridge();
+    const { fixture, el, texts } = await render(bridge);
+    const add = async (tag: string, key: string) => {
+      el.querySelector<HTMLButtonElement>('gr-chapter-tags .gr-link')!.click();
+      await fixture.whenStable();
+      const field = el.querySelector<HTMLInputElement>('gr-chapter-tags input')!;
+      expect(document.activeElement).toBe(field);
+      field.value = tag;
+      field.dispatchEvent(new KeyboardEvent('keydown', { key, cancelable: true }));
+      await fixture.whenStable();
+    };
+    const tagCalls = () => calls.filter((c) => c.command === 'agents.tag').map((c) => c.request);
+
+    // A blank chapter's tags go to its chat once it starts.
+    await add('ui', 'Enter');
+    expect(texts('gr-chapter-tags .tag')).toEqual(['ui']);
+    await write(fixture, el, 'First');
+    expect(tagCalls()).toEqual([{ chatId: 'chat-1', tags: ['ui'] }]);
+
+    await add(' bug ', 'Enter');
+    await add('UI', 'Enter');
+    await add('later', 'Escape');
+    expect(texts('gr-chapter-tags .tag')).toEqual(['ui', 'bug']);
+    expect(tagCalls()).toEqual([
+      { chatId: 'chat-1', tags: ['ui'] },
+      { chatId: 'chat-1', tags: ['ui', 'bug'] },
+    ]);
+    expect(calls.filter((c) => c.command === 'agents.interrupt')).toEqual([]);
+    expect(document.activeElement).toBe(el.querySelector('gr-chapter-tags .gr-link'));
+
+    el.querySelector<HTMLButtonElement>('[aria-label="Remove tag ui"]')!.click();
+    await fixture.whenStable();
+    expect(texts('gr-chapter-tags .tag')).toEqual(['bug']);
+    expect(tagCalls().at(-1)).toEqual({ chatId: 'chat-1', tags: ['bug'] });
+  });
+
   it('shows why an undo failed', async () => {
     const { bridge, answers } = fakeBridge();
     answers['agents.openChats'] = (): OpenChat[] => [
@@ -1010,6 +1059,8 @@ describe('App', () => {
         plan: [],
         withdrawn: [],
         dogEars: [],
+
+        tags: [],
         copied: [],
       },
     ];
@@ -1035,6 +1086,8 @@ describe('App', () => {
       plan: [],
       withdrawn: [],
       dogEars: [],
+
+      tags: [],
       copied: [],
     });
     answers['agents.openChats'] = () => [
@@ -1073,6 +1126,8 @@ describe('App', () => {
       plan: [],
       withdrawn: [],
       dogEars: [],
+
+      tags: [],
       copied: [],
     });
     answers['agents.openChats'] = () => [chat('c1', 'One'), chat('c2', 'Two'), chat('c3', 'Three')];
@@ -1126,6 +1181,8 @@ describe('App', () => {
       plan: [],
       withdrawn: [],
       dogEars: [],
+
+      tags: [],
       copied: [],
     });
     answers['agents.openChats'] = () => [
@@ -1201,6 +1258,8 @@ describe('App', () => {
         plan: [],
         withdrawn: [],
         dogEars: [],
+
+        tags: [],
         copied: [],
       },
     ];

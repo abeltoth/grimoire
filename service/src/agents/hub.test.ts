@@ -439,6 +439,23 @@ describe('AgentHub', () => {
     await expect(hub.rename('missing', 'x')).rejects.toThrow('This chat is not open');
   });
 
+  it('keeps your tags for a chat, each once, across restarts', async () => {
+    const store = hubStore(openDatabase(':memory:'));
+    hub = new AgentHub((event, payload) => sent.push({ event, payload } as Sent), 50, store);
+    hub.addAdapter(fake);
+    const { id } = await hub.start('fake', settings, 'Hello');
+    sent = [];
+
+    hub.tag(id, [' ui ', 'bug', '', 'UI']);
+    expect(sent).toEqual([{ event: 'agents.tags', payload: { chatId: id, tags: ['ui', 'bug'] } }]);
+    expect((await hub.open('fake', id, settings)).tags).toEqual(['ui', 'bug']);
+    hub.tag(id, ['bug']);
+
+    const restarted = new AgentHub(() => {}, 50, store);
+    restarted.addAdapter(fake);
+    expect((await restarted.open('fake', id, settings)).tags).toEqual(['bug']);
+  });
+
   it('pins and stars chats with dog-ears, kept across restarts', async () => {
     const store = hubStore(openDatabase(':memory:'));
     hub = new AgentHub((event, payload) => sent.push({ event, payload } as Sent), 50, store);

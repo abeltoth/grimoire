@@ -17,6 +17,7 @@ import { RunningFoot } from '@ui/app/shell/running-foot';
 import { RunningHead } from '@ui/app/shell/running-head';
 import { StatusIndicators } from '@ui/app/shell/status-indicators';
 import { ChapterOpening } from './chapter-opening';
+import { ChapterTags } from './chapter-tags';
 import { Composer } from './composer';
 import { DogEars } from './dog-ears';
 import { MODES, SettingsCard } from './settings-card';
@@ -36,6 +37,7 @@ import { Transcript } from './transcript';
   selector: 'gr-chapter-page',
   imports: [
     ChapterOpening,
+    ChapterTags,
     Composer,
     DogEars,
     Icon,

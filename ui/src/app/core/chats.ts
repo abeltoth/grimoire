@@ -44,6 +44,8 @@ export interface Chapter {
   withdrawn: readonly string[];
   /** The dog-ears folded down: pinned, starred. */
   dogEars: readonly DogEar[];
+  /** Your tags, in the order you added them. */
+  tags: readonly string[];
   /** Your entries copied from the chat this one was forked from; they can't be undone. */
   copied: readonly string[];
   /** Why the last turn failed, until the next message. */
@@ -131,6 +133,7 @@ export class Chats {
     this.listen('agents.dogEars', ({ chatId, dogEars }) =>
       this.update(chatId, (c) => ({ ...c, dogEars })),
     );
+    this.listen('agents.tags', ({ chatId, tags }) => this.update(chatId, (c) => ({ ...c, tags })));
     this.listen('agents.withdrawn', ({ chatId, withdrawn }) =>
       this.update(chatId, (c) => ({ ...c, withdrawn })),
     );
@@ -233,6 +236,7 @@ export class Chats {
       plan: [],
       withdrawn: [],
       dogEars: [],
+      tags: [],
       copied: [],
       begunAt: Date.now(),
     };
@@ -277,9 +281,12 @@ export class Chats {
         text,
         ...(chapter.title ? { title: chapter.title } : {}),
       });
+      // Tags given to the blank page go to its chat.
+      const tags = this.find(id)?.tags ?? [];
       this.all.update((all) => all.map((c) => (c.id === id ? fromOpenChat(chat) : c)));
       if (this.currentId() === id) this.turnTo(chat.id);
       this.remember({ agent: chapter.agent, settings: chapter.settings });
+      if (tags.length) await this.tag(chat.id, tags);
     } catch (error) {
       this.fail(id, error);
     }
@@ -351,6 +358,25 @@ export class Chats {
       await this.bridge.invoke('agents.rename', { chatId: id, title: named });
     } catch (error) {
       this.update(id, (c) => ({ ...c, title: chapter.title }));
+      this.fail(id, error);
+    }
+  }
+
+  /** Sets a chapter's tags: trimmed, without blanks, each once whatever its case. */
+  async tag(id: string, tags: readonly string[]): Promise<void> {
+    const chapter = this.find(id);
+    if (!chapter) return;
+    const seen = new Set<string>();
+    const kept = tags
+      .map((tag) => tag.trim())
+      .filter((tag) => tag && !seen.has(tag.toLowerCase()) && seen.add(tag.toLowerCase()));
+    if (kept.join('\n') === chapter.tags.join('\n')) return;
+    this.update(id, ({ error: _, ...c }) => ({ ...c, tags: kept }));
+    if (chapter.status === 'blank') return;
+    try {
+      await this.bridge.invoke('agents.tag', { chatId: id, tags: kept });
+    } catch (error) {
+      this.update(id, (c) => ({ ...c, tags: chapter.tags }));
       this.fail(id, error);
     }
   }
@@ -463,6 +489,7 @@ function fromOpenChat(chat: OpenChat): Chapter {
     plan: chat.plan ?? [],
     withdrawn: chat.withdrawn ?? [],
     dogEars: chat.dogEars ?? [],
+    tags: chat.tags ?? [],
     copied: chat.copied ?? [],
     ...(chat.context ? { context: chat.context } : {}),
   };

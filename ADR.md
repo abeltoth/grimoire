@@ -100,15 +100,17 @@ Responsiveness with many chats, safety and resilience are secondary.
 | Data | Source of truth | What Grimoire does |
 |---|---|---|
 | Chat transcripts | The agent: Claude Code's session files | Reads them through the agent and never copies them |
-| Chat titles and tags | The agent | Writes them through the agent, so terminal Claude Code sees them too |
+| Chat titles | The agent | Writes them through the agent, so terminal Claude Code sees them too |
 | Agent config: CLAUDE.md, memory, skills, hooks, settings, plugins | The files in `~/.claude` and project `.claude` folders | Reads and edits them in place, in Claude Code's own format |
 | Credentials | Each agent | Never reads or stores them |
 | Git state, PRs, CI | git and GitHub | Reads them live and doesn't store them |
-| Layout, presets, pins and stars, kanban, schedules, theme, Grimoire settings | Grimoire | Stores them in SQLite and refers to chats by session ID |
+| Layout, presets, pins and stars, tags, kanban, schedules, theme, Grimoire settings | Grimoire | Stores them in SQLite and refers to chats by session ID |
 | Search index, usage stats | Grimoire (derived) | Treats them as a cache that can be deleted and rebuilt |
 | Running chats, pending approvals | Grimoire (in memory) | Doesn't persist them |
 
 Grimoire's data stays local on each machine and isn't synced, because Claude Code's session files are per machine too.
+
+Tags are Grimoire's, not the agent's: Claude Code holds only one tag per chat and terminal Claude Code doesn't show it, so Grimoire keeps any number of tags per chat, the same for every agent.
 
 ## ADR-010: Backend runs as a background service
 

@@ -1,0 +1,53 @@
+:host {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gr-tags-gap);
+}
+
+/* A tag is a plain-text label; its cross shows when you point at it or reach it. */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gr-untag-gap);
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-control);
+  letter-spacing: var(--gr-tracking-control);
+  color: var(--gr-ink-soft);
+}
+
+.untag {
+  display: inline-grid;
+  place-items: center;
+  color: var(--gr-ink-soft);
+  opacity: 0;
+}
+
+.tag:hover .untag,
+.untag:focus-visible {
+  opacity: 1;
+}
+
+.untag:hover {
+  color: var(--gr-ink);
+}
+
+/* The new tag, written in pen. */
+.field {
+  field-sizing: content;
+  min-width: var(--gr-tag-field-min);
+  padding: 0;
+  border: 0;
+  border-bottom: var(--gr-rename-rule);
+  background: transparent;
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-control);
+  letter-spacing: var(--gr-tracking-control);
+  color: var(--gr-pen);
+  caret-color: var(--gr-pen);
+  outline: none;
+}
+
+.field::placeholder {
+  font-style: italic;
+  color: var(--gr-ink-placeholder);
+}

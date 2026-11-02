@@ -56,7 +56,7 @@ export class ClaudeAdapter implements AgentAdapter {
   readonly info: AgentInfo = {
     id: 'claude-code',
     name: 'Claude Code',
-    capabilities: ['rename', 'fork', 'undo', 'tags'],
+    capabilities: ['rename', 'fork', 'undo'],
   };
 
   async listChats(cwd?: string): Promise<SavedChat[]> {

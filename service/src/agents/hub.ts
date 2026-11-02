@@ -29,6 +29,7 @@ import { Chapters } from '../storage/chapters';
 import { openDatabase } from '../storage/database';
 import { DogEars } from '../storage/dog-ears';
 import { EntryIds } from '../storage/entry-ids';
+import { Tags } from '../storage/tags';
 import type { AgentAdapter, ChatEvents, LiveChat, Verdict } from './adapter';
 
 export type Emit = <K extends EventName>(event: K, payload: EventPayload<K>) => void;
@@ -48,6 +49,7 @@ interface ChatState {
   /** Your entries whose file changes were undone. */
   withdrawn: string[];
   dogEars: DogEar[];
+  tags: string[];
   /** Your entries copied from the chat this one was forked from. */
   copied: string[];
   /** While the agent process runs. */
@@ -72,6 +74,8 @@ export interface HubStore {
   copied: EntryIds;
   /** Which chats are pinned or starred. */
   dogEars: DogEars;
+  /** Your tags for chats. */
+  tags: Tags;
 }
 
 export function hubStore(db: DatabaseSync): HubStore {
@@ -80,6 +84,7 @@ export function hubStore(db: DatabaseSync): HubStore {
     withdrawn: new EntryIds(db, 'withdrawn'),
     copied: new EntryIds(db, 'copied'),
     dogEars: new DogEars(db),
+    tags: new Tags(db),
   };
 }
 
@@ -162,6 +167,7 @@ export class AgentHub {
       chat.plan = history.plan;
       chat.withdrawn = this.store.withdrawn.list(chatId);
       chat.dogEars = this.store.dogEars.of(chatId);
+      chat.tags = this.store.tags.of(chatId);
       chat.copied = this.store.copied.list(chatId);
     }
     this.store.chapters.add({ chatId, agent, settings: chat.settings });
@@ -300,6 +306,18 @@ export class AgentHub {
     this.emit('agents.dogEars', { chatId, dogEars });
   }
 
+  /** Sets a chat's tags: trimmed, without blanks, and each once whatever its case. */
+  tag(chatId: ChatId, tags: readonly string[]): void {
+    const seen = new Set<string>();
+    const kept = tags
+      .map((tag) => tag.trim())
+      .filter((tag) => tag && !seen.has(tag.toLowerCase()) && seen.add(tag.toLowerCase()));
+    this.store.tags.set(chatId, kept);
+    const chat = this.chats.get(chatId);
+    if (chat) chat.tags = kept;
+    this.emit('agents.tags', { chatId, tags: kept });
+  }
+
   /** Takes a message out of the queue; false when it had already gone. */
   unqueue(chatId: ChatId, id: string): boolean {
     const chat = this.chat(chatId);
@@ -374,6 +392,7 @@ export class AgentHub {
       plan: [],
       withdrawn: [],
       dogEars: [],
+      tags: [],
       copied: [],
       pendingText: new Map(),
     };
@@ -544,6 +563,7 @@ export class AgentHub {
       plan: chat.plan,
       withdrawn: [...chat.withdrawn],
       dogEars: [...chat.dogEars],
+      tags: [...chat.tags],
       copied: [...chat.copied],
     };
   }

@@ -9,7 +9,7 @@ export type AgentId = string;
 export type ChatId = string;
 
 /** What an agent supports beyond chatting. Features that need one show only for agents that have it. */
-export type AgentCapability = 'rename' | 'fork' | 'undo' | 'tags';
+export type AgentCapability = 'rename' | 'fork' | 'undo';
 
 export interface AgentInfo {
   id: AgentId;
@@ -218,6 +218,8 @@ export interface OpenChat {
   withdrawn: string[];
   /** The dog-ears folded down on the chapter. */
   dogEars: DogEar[];
+  /** Your tags for it, in the order you added them. */
+  tags: string[];
   /**
    * Your entries copied from the chat this one was forked from. The agent
    * keeps no file checkpoints for them, so they can't be undone.
@@ -269,6 +271,8 @@ declare module './commands' {
       request: { chatId: ChatId; dogEar: DogEar; folded: boolean };
       response: void;
     };
+    /** Sets a chat's tags, in the order you added them. */
+    'agents.tag': { request: { chatId: ChatId; tags: string[] }; response: void };
     /** Takes a message out of the queue; false when it had already gone. */
     'agents.unqueue': { request: { chatId: ChatId; id: string }; response: boolean };
     /**
@@ -312,6 +316,7 @@ declare module './events' {
     'agents.plan': { chatId: ChatId; plan: PlanStep[] };
     /** A chat's dog-ears changed: the ones now folded down. */
     'agents.dogEars': { chatId: ChatId; dogEars: DogEar[] };
+    'agents.tags': { chatId: ChatId; tags: string[] };
     /** Edits were undone: your entries whose file changes are now withdrawn. */
     'agents.withdrawn': { chatId: ChatId; withdrawn: string[] };
   }
