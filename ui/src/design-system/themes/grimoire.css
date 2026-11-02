@@ -219,6 +219,9 @@
   --gr-leading-chapter: 1.05;
   --gr-icon-button: 26px;
   --gr-rename-rule: 1.5px dotted var(--gr-ink-soft);
+  --gr-tags-gap: 12px;
+  --gr-untag-gap: 3px;
+  --gr-tag-field-min: 48px;
   --gr-radius-control: 3px;
   --gr-leading-meta: 1.25;
 

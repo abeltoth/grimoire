@@ -1,0 +1,27 @@
+@for (tag of chapter().tags; track tag) {
+  <span class="tag"
+    >{{ tag
+    }}<button
+      type="button"
+      class="untag"
+      [attr.aria-label]="'Remove tag ' + tag"
+      (click)="remove(tag)"
+    >
+      <gr-icon name="close" /></button
+  ></span>
+}
+@if (adding()) {
+  <input
+    #field
+    class="field"
+    aria-label="New tag"
+    placeholder="tag"
+    autocomplete="off"
+    spellcheck="false"
+    (keydown.enter)="finish(field, true, true)"
+    (keydown.escape)="$event.preventDefault(); finish(field, false, true)"
+    (blur)="finish(field, true, false)"
+  />
+} @else {
+  <button #addButton type="button" class="gr-link" (click)="adding.set(true)">+ Tag</button>
+}

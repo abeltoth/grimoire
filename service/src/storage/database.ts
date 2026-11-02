@@ -27,6 +27,12 @@ const MIGRATIONS = [
      entry_id TEXT NOT NULL,
      PRIMARY KEY (chat_id, entry_id)
    );`,
+  `CREATE TABLE tags (
+     chat_id TEXT NOT NULL,
+     tag TEXT NOT NULL,
+     position INTEGER NOT NULL,
+     PRIMARY KEY (chat_id, tag)
+   );`,
 ];
 
 /**

@@ -17,6 +17,7 @@ export function registerAgentCommands(registry: CommandRegistry, hub: AgentHub):
     hub.start(agent, settings, text, title),
   );
   registry.register('agents.rename', ({ chatId, title }) => hub.rename(chatId, title));
+  registry.register('agents.tag', ({ chatId, tags }) => hub.tag(chatId, tags));
   registry.register('agents.send', ({ chatId, text }) => hub.send(chatId, text));
   registry.register('agents.undo', ({ chatId, entryId }) => hub.undo(chatId, entryId));
   registry.register('agents.fork', ({ chatId, entryId }) => hub.fork(chatId, entryId));
