@@ -20,7 +20,7 @@
         </button>
       </p>
 
-      @if (plan.usage.windows.length) {
+      @if (plan.usage.windows.length || plan.usage.credits) {
         <ul class="limits">
           @for (window of plan.usage.windows; track window.span + (window.model ?? '')) {
             <li>
@@ -41,20 +41,29 @@
               <b>{{ window.used ?? '–' }}%</b>
             </li>
           }
-          @if (plan.usage.extra !== undefined) {
+          @if (plan.usage.credits; as credits) {
             <li>
-              <span class="head"><span class="name">Extra usage this month</span></span>
-              <span
-                class="ticks"
-                role="meter"
-                aria-label="Extra usage used this month"
-                aria-valuemin="0"
-                aria-valuemax="100"
-                [attr.aria-valuenow]="plan.usage.extra"
-              >
-                <span class="used" [style.width.%]="filled(plan.usage.extra)"></span>
+              <span class="head">
+                <span class="name">
+                  Usage credits this month
+                  <span class="spent">{{ spent(credits) }}</span>
+                </span>
+                <span class="resets">{{ resetsOn(credits.resetsAt) }}</span>
               </span>
-              <b>{{ plan.usage.extra ?? '–' }}%</b>
+              @if (credits.limit !== null) {
+                <span
+                  class="ticks"
+                  role="meter"
+                  aria-label="Usage credits spent this month"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  [attr.aria-valuenow]="credits.used"
+                  [attr.aria-valuetext]="spent(credits)"
+                >
+                  <span class="used" [style.width.%]="filled(credits.used)"></span>
+                </span>
+                <b>{{ credits.used === null ? '–' : round(credits.used) }}%</b>
+              }
             </li>
           }
         </ul>
