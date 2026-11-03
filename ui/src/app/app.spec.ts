@@ -627,6 +627,72 @@ describe('App', () => {
     expect(worktree().getAttribute('aria-disabled')).toBe('true');
   });
 
+  it('brings back your earlier entries with Up, and sends one with Enter', async () => {
+    const { bridge, calls, emit } = fakeBridge();
+    const { fixture, el } = await render(bridge);
+    await write(fixture, el, 'Hello');
+    emit('agents.entry', { chatId: 'chat-1', entry: { kind: 'user', id: 'u2', text: 'Add a meter' } });
+    emit('agents.status', { chatId: 'chat-1', status: 'idle' });
+    await fixture.whenStable();
+    const entry = el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!;
+    const press = async (key: string) => {
+      entry.dispatchEvent(new KeyboardEvent('keydown', { key, cancelable: true }));
+      await fixture.whenStable();
+    };
+
+    await press('ArrowUp');
+    expect(entry.value).toBe('Add a meter');
+    await press('ArrowUp');
+    expect(entry.value).toBe('Hello');
+    await press('ArrowUp');
+    expect(entry.value).toBe('Hello');
+    await press('ArrowDown');
+    expect(entry.value).toBe('Add a meter');
+    await press('ArrowDown');
+    expect(entry.value).toBe('');
+
+    await press('ArrowUp');
+    await press('Enter');
+    expect(calls.filter((c) => c.command === 'agents.send').map((c) => c.request)).toEqual([
+      { chatId: 'chat-1', text: 'Add a meter' },
+    ]);
+    expect(entry.value).toBe('');
+
+    // Once you change what came back, Up is the caret's again.
+    await press('ArrowUp');
+    entry.value = 'Add a meter, please';
+    entry.dispatchEvent(new Event('input'));
+    await press('ArrowUp');
+    expect(entry.value).toBe('Add a meter, please');
+  });
+
+  it('says what the next entry re-reads once the prompt cache has run out, and offers to compact first', async () => {
+    const { bridge, calls, emit, answers } = fakeBridge();
+    answers['agents.list'] = () => [{ id: 'claude-code', name: 'Claude Code', capabilities: ['compact'] }];
+    const { fixture, el, texts } = await render(bridge);
+    await write(fixture, el, 'Hello');
+    emit('agents.cache', { chatId: 'chat-1', cache: { tokens: 283_412, until: Date.now() - 3 * 3_600_000 } });
+    // Not while a turn runs: it's reading them already.
+    await fixture.whenStable();
+    expect(el.querySelector('gr-composer .cold')).toBeNull();
+
+    emit('agents.status', { chatId: 'chat-1', status: 'idle' });
+    await fixture.whenStable();
+    expect(texts('gr-composer .cold')).toEqual([
+      'Cache expired 3 hours ago, so your next entry re-reads about 283k tokens Compact first',
+    ]);
+    el.querySelector<HTMLButtonElement>('gr-composer .cold button')!.click();
+    await fixture.whenStable();
+    expect(calls.filter((c) => c.command === 'agents.send').map((c) => c.request)).toEqual([
+      { chatId: 'chat-1', text: '/compact' },
+    ]);
+
+    // A turn leaves a fresh cache.
+    emit('agents.cache', { chatId: 'chat-1', cache: { tokens: 12_000, until: Date.now() + 3_600_000 } });
+    await fixture.whenStable();
+    expect(el.querySelector('gr-composer .cold')).toBeNull();
+  });
+
   it('changes only the model and permission once the chapter has begun', async () => {
     const { bridge, calls, emit } = fakeBridge();
     const { fixture, el, texts } = await render(bridge);

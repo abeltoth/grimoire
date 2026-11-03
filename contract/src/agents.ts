@@ -9,7 +9,8 @@ export type AgentId = string;
 export type ChatId = string;
 
 /** What an agent supports beyond chatting. Features that need one show only for agents that have it. */
-export type AgentCapability = 'rename' | 'fork' | 'undo';
+/** What an agent can do beyond chatting; "compact" sums a chat up to free its context. */
+export type AgentCapability = 'rename' | 'fork' | 'undo' | 'compact';
 
 export interface AgentInfo {
   id: AgentId;
@@ -223,6 +224,17 @@ export interface ContextUsage {
   limit: number;
 }
 
+/**
+ * The prompt cache a chat's last reply left. Until it runs out, continuing
+ * reads the chat's context from the cache; after, it reads it all again.
+ */
+export interface PromptCache {
+  /** The tokens the chat's context holds: what continuing re-reads once the cache has run out. */
+  tokens: number;
+  /** When the cache runs out, in ms since the epoch. */
+  until: number;
+}
+
 /** One step of the agent's plan for the chat, which it keeps up to date as it works. */
 export interface PlanStep {
   text: string;
@@ -264,6 +276,8 @@ export interface OpenChat {
   queued: QueuedEntry[];
   /** Missing until the agent reports it. */
   context?: ContextUsage;
+  /** What its last reply left in the prompt cache; missing until it has replied. */
+  cache?: PromptCache;
   /** The agent's plan; empty until it makes one. */
   plan: PlanStep[];
   /** Your entries whose file changes were undone; their edits show as withdrawn. */
@@ -373,6 +387,8 @@ declare module './events' {
     'agents.queued': { chatId: ChatId; queued: QueuedEntry[] };
     /** How much of the context window the chat now fills. */
     'agents.context': { chatId: ChatId; context: ContextUsage };
+    /** A turn ended, leaving this in the prompt cache. */
+    'agents.cache': { chatId: ChatId; cache: PromptCache };
     /** The chat's settings changed. */
     'agents.settings': { chatId: ChatId; settings: ChatSettings };
     /** The agent changed its plan. */

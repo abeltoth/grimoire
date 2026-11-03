@@ -47,6 +47,42 @@
   white-space: nowrap;
 }
 
+/* The prompt cache ran out: what the next entry costs. */
+.cold {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-queued-gap);
+  padding: var(--gr-queued-pad);
+  border-bottom: 1px dashed var(--gr-queued-rule);
+}
+
+.cold-label {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: var(--gr-queued-label-gap);
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-label);
+  letter-spacing: var(--gr-tracking-queued);
+  color: var(--gr-rubric);
+  white-space: nowrap;
+}
+
+.cold-text {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-style: italic;
+  font-size: var(--gr-size-label);
+  color: var(--gr-ink-soft);
+}
+
+.cold-text b {
+  font-style: normal;
+  font-weight: 500;
+  color: var(--gr-ink);
+}
+
 .writing {
   position: relative;
 }

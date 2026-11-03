@@ -641,6 +641,22 @@ describe('AgentHub', () => {
     expect((await hub.open('fake', id, settings)).context).toEqual({ used: 62_000, limit: 100_000 });
   });
 
+  it('opens a saved chat with what its last reply left in the prompt cache', async () => {
+    fake.transcripts.set('c1', []);
+    fake.caches.set('c1', { tokens: 283_000, until: 1_000 });
+    expect((await hub.open('fake', 'c1', settings)).cache).toEqual({ tokens: 283_000, until: 1_000 });
+  });
+
+  it('passes on the prompt cache each turn leaves', async () => {
+    const { id } = await hub.start('fake', settings, 'Hello');
+    fake.runOf(id).events.cache({ tokens: 12_000, until: 5_000 });
+    expect(sent.at(-1)).toEqual({
+      event: 'agents.cache',
+      payload: { chatId: id, cache: { tokens: 12_000, until: 5_000 } },
+    });
+    expect((await hub.open('fake', id, settings)).cache).toEqual({ tokens: 12_000, until: 5_000 });
+  });
+
   it('takes a message out of the queue, and Stop withdraws the rest', async () => {
     const { id } = await hub.start('fake', settings, 'Hello');
     const run = fake.runOf(id);

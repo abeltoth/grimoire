@@ -118,6 +118,13 @@ export class ChapterPage {
     ] satisfies { key: Setting; label: string }[];
   });
 
+  /** What you wrote in this chapter, oldest first, for Up to bring back. */
+  protected readonly sent = computed(() =>
+    (this.chapter()?.entries ?? []).flatMap((entry) =>
+      entry.kind === 'user' && entry.text.trim() ? [entry.text] : [],
+    ),
+  );
+
   /** The settings card, while it's open on this chapter. */
   protected readonly card = computed(() => {
     const card = this.chats.settingsCard();
