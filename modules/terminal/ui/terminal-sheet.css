@@ -1,0 +1,55 @@
+@import '@xterm/xterm/css/xterm.css';
+
+/*
+ * The leaf's look, from the theme. terminal-sheet.ts reads these and hands
+ * them to xterm.js, which draws with colours and sizes, not CSS.
+ */
+gr-terminal-sheet {
+  --paper: var(--gr-terminal-paper);
+  --ink: var(--gr-terminal-ink);
+  --cursor: var(--gr-terminal-cursor);
+  --cursor-ink: var(--gr-terminal-cursor-ink);
+  --selection: var(--gr-terminal-selection);
+  --selection-inactive: var(--gr-terminal-selection-inactive);
+  --scrollbar: var(--gr-terminal-scrollbar);
+  --scrollbar-hover: var(--gr-terminal-scrollbar-hover);
+  --black: var(--gr-terminal-black);
+  --red: var(--gr-terminal-red);
+  --green: var(--gr-terminal-green);
+  --yellow: var(--gr-terminal-yellow);
+  --blue: var(--gr-terminal-blue);
+  --magenta: var(--gr-terminal-magenta);
+  --cyan: var(--gr-terminal-cyan);
+  --white: var(--gr-terminal-white);
+  --bright-black: var(--gr-terminal-bright-black);
+  --bright-red: var(--gr-terminal-bright-red);
+  --bright-green: var(--gr-terminal-bright-green);
+  --bright-yellow: var(--gr-terminal-bright-yellow);
+  --bright-blue: var(--gr-terminal-bright-blue);
+  --bright-magenta: var(--gr-terminal-bright-magenta);
+  --bright-cyan: var(--gr-terminal-bright-cyan);
+  --bright-white: var(--gr-terminal-bright-white);
+  --font: var(--gr-terminal-font);
+  --size: var(--gr-size-terminal);
+  --leading: var(--gr-leading-terminal);
+  --min-contrast: var(--gr-terminal-min-contrast);
+
+  display: none;
+  flex: 1;
+  min-height: 0;
+  padding: var(--gr-scriptorium-sheet-pad);
+  background: var(--gr-terminal-paper);
+}
+
+gr-terminal-sheet.shown {
+  display: block;
+}
+
+gr-terminal-sheet .xterm {
+  height: 100%;
+}
+
+gr-terminal-sheet .xterm:focus,
+gr-terminal-sheet .xterm .xterm-helper-textarea:focus {
+  outline: none;
+}

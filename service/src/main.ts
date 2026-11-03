@@ -26,6 +26,8 @@ import { CommandRegistry } from './registry';
 import { AlreadyRunningError, startServer, type ServiceServer } from './server';
 import { openDatabase } from './storage/database';
 import { WorktreeRecords } from './storage/worktrees';
+import { registerTerminals } from './terminal/commands';
+import { Terminals } from './terminal/terminals';
 
 const { values } = parseArgs({
   options: {
@@ -76,11 +78,15 @@ registerAgentCommands(registry, hub);
 // The plan's limits are read every quarter of an hour, for the Ledger's history.
 hub.readUsageEvery(15 * 60_000);
 
+const terminals = new Terminals((event, payload) => server?.broadcast(event, payload));
+registerTerminals(registry, terminals);
+
 const token = randomBytes(32).toString('hex');
 const endpoint = endpointFor(dataDir);
 
 async function stop(): Promise<void> {
   hub.closeAll();
+  terminals.closeAll();
   await server?.close();
   db.close();
   removeInfoFileIfOurs();

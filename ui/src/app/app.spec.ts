@@ -169,6 +169,7 @@ describe('App', () => {
       'Memory map',
       'Scheduled chats',
       'Ledger',
+      'Scriptorium',
       'Colophon',
       'Index Ctrl K',
     ]);
