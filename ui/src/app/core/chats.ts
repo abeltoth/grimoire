@@ -66,6 +66,8 @@ export interface SettingsPick {
   model?: string;
   mode?: ApprovalMode;
   cwd?: string;
+  /** Whether a new chapter works in a worktree of its own. */
+  worktree?: boolean;
 }
 
 /** The settings a new chapter takes: the ones last picked or begun with. */

@@ -580,6 +580,53 @@ describe('App', () => {
     });
   });
 
+  it('begins a chapter in a worktree of its own when asked', async () => {
+    const { bridge, calls, answers } = fakeBridge();
+    answers['agents.start'] = (request: CommandRequest<'agents.start'>): OpenChat => ({
+      id: 'chat-1',
+      agent: request.agent,
+      title: '',
+      settings: { ...request.settings, cwd: 'C:/Users/me/git/grimoire/.claude/worktrees/hello', worktree: true },
+      status: 'thinking',
+      entries: [{ kind: 'user', id: 'u1', text: request.text }],
+      approvals: [],
+      queued: [],
+      plan: [],
+      withdrawn: [],
+      dogEars: [],
+      tags: [],
+      copied: [],
+    });
+    const { fixture, el, texts } = await render(bridge);
+    el.querySelector<HTMLButtonElement>('.meta [data-setting="folder"]')!.click();
+    await fixture.whenStable();
+    pick(el, '~/git/grimoire');
+    await fixture.whenStable();
+    const worktree = () => el.querySelector('gr-settings-card [role="checkbox"]')!;
+    expect(worktree().getAttribute('aria-checked')).toBe('false');
+
+    pick(el, 'In a worktree of its own');
+    await fixture.whenStable();
+    expect(worktree().getAttribute('aria-checked')).toBe('true');
+    expect(texts('.meta [data-setting="folder"]')).toEqual(['~/git/grimoire, own worktree']);
+    expect(texts('gr-chapter-opening .note')[0]).toContain(
+      'works in a worktree of its own, on a branch of its own, made from C:/Users/me/git/grimoire',
+    );
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await write(fixture, el, 'Hello');
+    expect(calls.find((c) => c.command === 'agents.start')?.request).toMatchObject({
+      settings: { cwd: 'C:/Users/me/git/grimoire', worktree: true },
+    });
+    expect(texts('.meta [data-setting="folder"]')).toEqual(['~/git/grimoire/.claude/worktrees/hello']);
+
+    // Once begun, it stays in its worktree.
+    el.querySelector<HTMLButtonElement>('.meta [data-setting="folder"]')!.click();
+    await fixture.whenStable();
+    expect(worktree().getAttribute('aria-checked')).toBe('true');
+    expect(worktree().getAttribute('aria-disabled')).toBe('true');
+  });
+
   it('changes only the model and permission once the chapter has begun', async () => {
     const { bridge, calls, emit } = fakeBridge();
     const { fixture, el, texts } = await render(bridge);

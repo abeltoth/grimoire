@@ -85,5 +85,5 @@ export class Presets {
 }
 
 function same(a: NewChatSettings, b: NewChatSettings): boolean {
-  return a.cwd === b.cwd && a.model === b.model && a.mode === b.mode;
+  return a.cwd === b.cwd && a.model === b.model && a.mode === b.mode && !!a.worktree === !!b.worktree;
 }

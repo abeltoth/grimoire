@@ -108,7 +108,12 @@ export class ChapterPage {
       { key: 'agent', label: this.chats.agentName(agent) },
       { key: 'model', label: this.chats.modelName(agent, settings.model) },
       { key: 'mode', label: modeName(settings.mode) },
-      { key: 'folder', label: this.chats.folderName(settings.cwd) },
+      {
+        key: 'folder',
+        label:
+          this.chats.folderName(settings.cwd) +
+          (settings.worktree && chapter.status === 'blank' ? ', own worktree' : ''),
+      },
       { key: 'preset', label: this.presets.of(chapter)?.name ?? 'No preset' },
     ] satisfies { key: Setting; label: string }[];
   });

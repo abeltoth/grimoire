@@ -67,6 +67,16 @@ interface PendingApproval {
   resolve: (verdict: Verdict) => void;
 }
 
+/** Where chats that ask for a worktree of their own work (ADR-011). */
+export interface Workplaces {
+  /** Makes a new chat's worktree from the folder; gives the folder the chat works in. */
+  make(cwd: string, name: string): Promise<string>;
+  /** Whether the chat's folder is a worktree made for it; puts it back first if it's gone. */
+  restore(cwd: string): Promise<boolean>;
+  /** Clears its worktree away when its chapter closes, if nothing would be lost. */
+  release(cwd: string): Promise<unknown>;
+}
+
 /** What the hub keeps across restarts, in Grimoire's database (ADR-009). */
 export interface HubStore {
   /** The chats open as chapters, so they reopen after a restart. */
@@ -110,6 +120,8 @@ export class AgentHub {
     private readonly emit: Emit,
     private readonly textBatchMs = 50,
     private readonly store = hubStore(openDatabase(':memory:')),
+    private readonly workplaces?: Workplaces,
+    private readonly log: (message: string) => void = () => {},
   ) {}
 
   addAdapter(adapter: AgentAdapter): void {
@@ -189,6 +201,12 @@ export class AgentHub {
     let chat = this.chats.get(chatId);
     if (!chat) {
       const adapter = this.adapter(agent);
+      // A chat in a worktree of its own gets it back if its chapter's closing removed it.
+      const restored = await this.workplaces?.restore(settings.cwd).catch((error: unknown) => {
+        this.log(`Couldn't put back the worktree ${settings.cwd}: ${error instanceof Error ? error.message : String(error)}`);
+        return true;
+      });
+      if (restored) settings = { ...settings, worktree: true };
       const [history, title] = await Promise.all([
         adapter.history(chatId, settings.cwd),
         adapter.title(chatId, settings.cwd),
@@ -212,9 +230,13 @@ export class AgentHub {
     title?: string,
     enclosures: Enclosure[] = [],
   ): Promise<OpenChat> {
-    const resolved: ChatSettings = { ...settings, cwd: settings.cwd ?? homedir() };
+    let resolved: ChatSettings = { ...settings, cwd: settings.cwd ?? homedir() };
     const adapter = this.adapter(agent);
     const named = title?.trim() || undefined;
+    if (resolved.worktree) {
+      if (!this.workplaces) throw new Error('Chats can’t have worktrees of their own here');
+      resolved = { ...resolved, cwd: await this.workplaces.make(resolved.cwd, named ?? text) };
+    }
     if (!adapter.start) {
       const chat = this.track(randomUUID(), adapter, resolved, [], named ?? '');
       this.store.chapters.add({ chatId: chat.id, agent, settings: resolved });
@@ -389,8 +411,15 @@ export class AgentHub {
 
   /** Closes a chat's chapter: it's no longer open after a restart. */
   close(chatId: ChatId): void {
+    const settings = this.chats.get(chatId)?.settings;
     this.store.chapters.remove(chatId);
     this.release(chatId);
+    // Its worktree goes too, unless another open chat, such as a fork, works there.
+    if (settings?.worktree && ![...this.chats.values()].some((chat) => chat.settings.cwd === settings.cwd)) {
+      this.workplaces?.release(settings.cwd).catch((error: unknown) =>
+        this.log(`Couldn't remove the worktree ${settings.cwd}: ${error instanceof Error ? error.message : String(error)}`),
+      );
+    }
   }
 
   /** Stops every chat and spare process, for when the service stops; chats reopen when it starts again. */

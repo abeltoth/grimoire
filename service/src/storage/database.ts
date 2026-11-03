@@ -48,6 +48,12 @@ const MIGRATIONS = [
      resets_at INTEGER,
      PRIMARY KEY (agent, at, span, model)
    );`,
+  `CREATE TABLE worktrees (
+     path TEXT PRIMARY KEY,
+     repo TEXT NOT NULL,
+     branch TEXT NOT NULL,
+     created_at INTEGER NOT NULL
+   );`,
 ];
 
 /**

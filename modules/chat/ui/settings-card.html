@@ -65,26 +65,44 @@
     class="column"
     [class.on]="on() === 'folder'"
     data-setting="folder"
-    role="radiogroup"
+    role="group"
     aria-label="Folder"
   >
     <h3>Folder <i>recent</i></h3>
-    @for (cwd of folders(); track cwd) {
-      <button
-        type="button"
-        class="choice"
-        role="radio"
-        [attr.aria-checked]="cwd === folder()"
-        [attr.aria-disabled]="(begun() && cwd !== folder()) || null"
-        (click)="begun() || pick({ cwd })"
-      >
-        <gr-icon name="check" />
-        <span><code>{{ chats.folderName(cwd) }}</code></span>
-      </button>
-    }
+    <div class="radios" role="radiogroup" aria-label="Folder">
+      @for (cwd of folders(); track cwd) {
+        <button
+          type="button"
+          class="choice"
+          role="radio"
+          [attr.aria-checked]="cwd === folder()"
+          [attr.aria-disabled]="(begun() && cwd !== folder()) || null"
+          (click)="begun() || pick({ cwd })"
+        >
+          <gr-icon name="check" />
+          <span><code>{{ chats.folderName(cwd) }}</code></span>
+        </button>
+      }
+    </div>
     @if (!begun()) {
       <button type="button" class="choice action" (click)="chooseFolder()">
         Choose another folder…
+      </button>
+    }
+    @if (!begun() || c.settings.worktree) {
+      <button
+        type="button"
+        class="choice"
+        role="checkbox"
+        [attr.aria-checked]="!!c.settings.worktree"
+        [attr.aria-disabled]="begun() || null"
+        (click)="begun() || pick({ worktree: !c.settings.worktree })"
+      >
+        <gr-icon name="check" />
+        <span>
+          In a worktree of its own
+          <small>on a branch of its own, so chapters on one repository don’t collide</small>
+        </span>
       </button>
     }
   </div>

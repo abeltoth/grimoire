@@ -3,6 +3,9 @@
 <p class="begun">Begun at {{ begun() }}, to be written by {{ agentName() }}</p>
 <p class="note">
   Write your first entry on the page below. {{ agentName() }} works in
+  @if (worktree()) {
+    a worktree of its own, on a branch of its own, made from
+  }
   @if (cwd(); as cwd) {
     <code>{{ cwd }}</code>
   } @else {
