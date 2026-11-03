@@ -395,6 +395,48 @@
   --gr-ledger-section-gap: 32px;
   --gr-ledger-percent-col: 40px;
 
+  /* The Scriptorium: your shells, as leaves written in the book's inks */
+  --gr-scriptorium-pad-bottom: 18px;
+  --gr-scriptorium-tabs-gap: 26px;
+  --gr-scriptorium-tabs-pad-bottom: 6px;
+  --gr-size-scriptorium-tab: 18px;
+  --gr-leading-scriptorium-tab: 1.15;
+  --gr-scriptorium-close-gap: 6px;
+  --gr-scriptorium-rule-top: 3px double var(--gr-ink-faint);
+  --gr-scriptorium-rule-foot: 1px solid var(--gr-ink-faint);
+  --gr-scriptorium-sheet-pad: 10px 2px 8px 6px;
+  --gr-scriptorium-foot-gap: 6px;
+  --gr-terminal-font: var(--gr-font-mono);
+  --gr-size-terminal: 13px;
+  --gr-leading-terminal: 1.3;
+  /* Colours too faint against the paper are darkened until text reaches this contrast. */
+  --gr-terminal-min-contrast: 3;
+  --gr-terminal-paper: var(--gr-page);
+  --gr-terminal-ink: var(--gr-ink);
+  --gr-terminal-cursor: var(--gr-pen);
+  --gr-terminal-cursor-ink: var(--gr-page);
+  --gr-terminal-selection: rgba(184, 145, 63, 0.32);
+  --gr-terminal-selection-inactive: rgba(184, 145, 63, 0.18);
+  --gr-terminal-scrollbar: var(--gr-scrollbar-thumb);
+  --gr-terminal-scrollbar-hover: var(--gr-scrollbar-thumb-hover);
+  --gr-terminal-black: var(--gr-ink);
+  --gr-terminal-red: var(--gr-rubric);
+  --gr-terminal-green: var(--gr-verdigris);
+  --gr-terminal-yellow: var(--gr-gilt-ink);
+  --gr-terminal-blue: var(--gr-lapis);
+  --gr-terminal-magenta: #7b3a6a;
+  --gr-terminal-cyan: #2d6878;
+  /* White and bright white are ink here: the leaf is paper, not a dark screen. */
+  --gr-terminal-white: var(--gr-ink-soft);
+  --gr-terminal-bright-black: #8c7d69;
+  --gr-terminal-bright-red: var(--gr-wax-light);
+  --gr-terminal-bright-green: #3b8467;
+  --gr-terminal-bright-yellow: var(--gr-ink-drying);
+  --gr-terminal-bright-blue: #3c62a0;
+  --gr-terminal-bright-magenta: #9a4c86;
+  --gr-terminal-bright-cyan: #3a8597;
+  --gr-terminal-bright-white: var(--gr-ink);
+
   /* Git: the Git page on the facing page */
   --gr-git-width: 640px;
   --gr-git-gap: 12px;
