@@ -42,7 +42,7 @@ const MODES: Record<ApprovalMode, PermissionMode> = {
   ask: 'default',
   'accept-edits': 'acceptEdits',
   plan: 'plan',
-  'allow-all': 'bypassPermissions',
+  'allow-all': 'auto',
 };
 
 /** A parked Claude Code process, and where its approvals go once a chat claims it. */
