@@ -1073,6 +1073,56 @@ describe('App', () => {
     expect(calls.filter((call) => call.command === 'agents.usage')).toHaveLength(2);
   });
 
+  it("shows an organization's monthly allowance in the Ledger, with no session or week limits", async () => {
+    const { bridge, answers } = fakeBridge();
+    answers['agents.usage'] = () => ({
+      plan: 'enterprise',
+      windows: [],
+      credits: {
+        spent: 12345,
+        limit: 60000,
+        currency: 'USD',
+        used: 20.575,
+        resetsAt: new Date(2026, 11, 1).getTime(),
+      },
+      at: 0,
+    });
+    const { fixture, el, texts } = await render(bridge);
+    [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
+      .find((tab) => tab.textContent!.trim() === 'Ledger')!
+      .click();
+    await fixture.whenStable();
+
+    expect(texts('gr-ledger-page .sub')[0]).toMatch(/^Enterprise plan, read at /);
+    expect(texts('gr-ledger-page .none')).toEqual([]);
+    const spent = (12345 / 100).toLocaleString([], { style: 'currency', currency: 'USD' });
+    const limit = (600).toLocaleString([], { style: 'currency', currency: 'USD' });
+    expect(texts('gr-ledger-page .name')).toEqual([`Usage credits this month ${spent} of ${limit}`]);
+    expect(texts('gr-ledger-page .resets')[0]).toMatch(/^resets on \S/);
+    expect(texts('gr-ledger-page b')).toEqual(['21%']);
+    const meter = el.querySelector('gr-ledger-page [role="meter"]')!;
+    expect(meter.getAttribute('aria-valuetext')).toBe(`${spent} of ${limit}`);
+  });
+
+  it('shows usage credits with no limit as money spent, without a meter', async () => {
+    const { bridge, answers } = fakeBridge();
+    answers['agents.usage'] = () => ({
+      plan: 'team',
+      windows: [],
+      credits: { spent: 900, limit: null, currency: 'EUR', used: null, resetsAt: 0 },
+      at: 0,
+    });
+    const { fixture, el, texts } = await render(bridge);
+    [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
+      .find((tab) => tab.textContent!.trim() === 'Ledger')!
+      .click();
+    await fixture.whenStable();
+
+    const spent = (9).toLocaleString([], { style: 'currency', currency: 'EUR' });
+    expect(texts('gr-ledger-page .spent')).toEqual([`${spent} spent, no limit`]);
+    expect(el.querySelector('gr-ledger-page [role="meter"]')).toBeNull();
+  });
+
   it('says so in the Ledger when the agent has no plan limits', async () => {
     const { bridge, answers } = fakeBridge();
     answers['agents.usage'] = () => ({ plan: null, windows: [], at: 0 });

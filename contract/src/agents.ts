@@ -66,14 +66,33 @@ export interface UsageWindow {
   resetsAt: number | null;
 }
 
+/**
+ * Usage credits: money a month's use may cost, as Claude Code's /usage
+ * shows them. On Pro and Max they pay for use past the plan's limits; on a
+ * Team or Enterprise plan they can be the allowance your organization gives
+ * you each month.
+ */
+export interface UsageCredits {
+  /** Spent this month, in the currency's minor units (cents for USD); null when the agent doesn't say. */
+  spent: number | null;
+  /** The month's limit, in the same units; null when there's no limit. */
+  limit: number | null;
+  /** The ISO 4217 code, such as "USD". */
+  currency: string;
+  /** The share of the limit spent, in percent; null when there's no limit or the agent doesn't say. */
+  used: number | null;
+  /** When the month starts afresh, in ms since the epoch: the first of next month, as /usage counts it. */
+  resetsAt: number;
+}
+
 /** The agent's subscription, and how much of its limits is used. */
 export interface PlanUsage {
-  /** The subscription, such as "pro" or "max"; null when there's none, as with an API key. */
+  /** The subscription, such as "pro", "max", "team" or "enterprise"; null when there's none, as with an API key. */
   plan: string | null;
   /** Empty when the plan's limits don't apply. */
   windows: UsageWindow[];
-  /** The share of this month's extra usage spent, in percent, when extra usage is turned on. */
-  extra?: number | null;
+  /** While usage credits are turned on. */
+  credits?: UsageCredits;
   /** When it was read, in ms since the epoch. */
   at: number;
 }

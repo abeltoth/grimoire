@@ -60,6 +60,14 @@ li {
   color: var(--gr-ink);
 }
 
+/* The money spent, after the credits' name, as an aside. */
+.spent {
+  margin-left: var(--gr-allowance-gap);
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
 .resets {
   font-style: italic;
   font-size: var(--gr-size-aside);

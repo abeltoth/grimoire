@@ -1,5 +1,5 @@
 import { Component, PendingTasks, effect, inject, signal, untracked } from '@angular/core';
-import type { AgentInfo, PlanUsage, UsageWindow } from '@grimoire/contract';
+import type { AgentInfo, PlanUsage, UsageCredits, UsageWindow } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { Chats } from '@ui/app/core/chats';
 
@@ -10,6 +10,19 @@ interface Plan {
 }
 
 const time = (at: number) => new Date(at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+/** An amount in the currency's minor units, such as 12345 cents, written as money: "$123.45". */
+export function money(minor: number, currency: string): string {
+  let format: Intl.NumberFormat;
+  try {
+    format = new Intl.NumberFormat([], { style: 'currency', currency });
+  } catch {
+    // A code Intl doesn't know: assume cents, and name the currency.
+    return `${(minor / 100).toFixed(2)} ${currency}`;
+  }
+  const digits = format.resolvedOptions().maximumFractionDigits ?? 2;
+  return format.format(minor / 10 ** digits);
+}
 
 /**
  * The Ledger: how much of each agent's subscription limits is used, read
@@ -76,6 +89,23 @@ export class LedgerPage {
 
   protected filled(used: number | null): number {
     return Math.min(Math.max(used ?? 0, 0), 100);
+  }
+
+  protected round(used: number): number {
+    return Math.round(used);
+  }
+
+  /** What's spent of the month's credits, such as "$123.45 of $600.00", or "$123.45 spent, no limit". */
+  protected spent(credits: UsageCredits): string {
+    const spent = credits.spent === null ? '–' : money(credits.spent, credits.currency);
+    return credits.limit === null
+      ? `${spent} spent, no limit`
+      : `${spent} of ${money(credits.limit, credits.currency)}`;
+  }
+
+  /** When the month starts afresh, such as "resets on December 1". */
+  protected resetsOn(at: number): string {
+    return `resets on ${new Date(at).toLocaleDateString([], { month: 'long', day: 'numeric' })}`;
   }
 
   /** When the limit resets: today, tomorrow, or on a day this week. */
