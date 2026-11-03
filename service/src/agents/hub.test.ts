@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { openDatabase } from '../storage/database';
 import type { ChatEvents, LiveChat } from './adapter';
 import { FakeAdapter } from './fake-adapter';
-import { AgentHub, hubStore } from './hub';
+import { AgentHub, type Workplaces, hubStore } from './hub';
 
 type Sent = { [K in EventName]: { event: K; payload: EventPayload<K> } }[EventName];
 
@@ -210,6 +210,75 @@ describe('AgentHub', () => {
       answers: [{ chosen: ['Here'], ownWords: 'near the top' }],
     });
     expect(() => hub.answer('q1', [{ chosen: [] }])).toThrow('no longer pending');
+  });
+
+  describe('in a worktree of its own', () => {
+    let calls: string[];
+    let made: Set<string>;
+    const workplaces: Workplaces = {
+      make: async (cwd, name) => {
+        calls.push(`make ${cwd} ${name}`);
+        made.add('/work/.claude/worktrees/hello');
+        return '/work/.claude/worktrees/hello';
+      },
+      restore: async (cwd) => {
+        calls.push(`restore ${cwd}`);
+        return made.has(cwd);
+      },
+      release: async (cwd) => void calls.push(`release ${cwd}`),
+    };
+    const tree = '/work/.claude/worktrees/hello';
+
+    beforeEach(() => {
+      calls = [];
+      made = new Set();
+      hub = new AgentHub(
+        (event, payload) => sent.push({ event, payload } as Sent),
+        50,
+        hubStore(openDatabase(':memory:')),
+        workplaces,
+      );
+      hub.addAdapter(fake);
+    });
+
+    it('starts the chat in a worktree made from the folder', async () => {
+      const chat = await hub.start('fake', { ...settings, worktree: true }, 'Hello there');
+      expect(calls).toEqual(['make /work Hello there']);
+      expect(chat.settings).toEqual({ cwd: tree, worktree: true });
+      expect(fake.runOf(chat.id)).toMatchObject({ settings: { cwd: tree, worktree: true } });
+    });
+
+    it('names the worktree after the title given', async () => {
+      await hub.start('fake', { ...settings, worktree: true }, 'Hello there', 'Context meter');
+      expect(calls).toEqual(['make /work Context meter']);
+    });
+
+    it('releases the worktree when the chapter closes, unless a fork still works there', async () => {
+      const chat = await hub.start('fake', { ...settings, worktree: true }, 'Hello');
+      fake.transcripts.set('fork', []);
+      await hub.open('fake', 'fork', chat.settings);
+      hub.close(chat.id);
+      expect(calls).not.toContain(`release ${tree}`);
+      hub.close('fork');
+      await Promise.resolve();
+      expect(calls).toContain(`release ${tree}`);
+    });
+
+    it('leaves alone the folders of chats without a worktree', async () => {
+      const chat = await hub.start('fake', settings, 'Hello');
+      hub.close(chat.id);
+      await Promise.resolve();
+      expect(calls).toEqual([]);
+    });
+
+    it('puts the worktree back when the chat opens again', async () => {
+      made.add(tree);
+      fake.transcripts.set('c1', []);
+      // Opened from the Index, which knows only the folder.
+      const chat = await hub.open('fake', 'c1', { cwd: tree });
+      expect(calls).toEqual([`restore ${tree}`]);
+      expect(chat.settings).toEqual({ cwd: tree, worktree: true });
+    });
   });
 
   it('opens a saved chat once, and continues it when you send', async () => {

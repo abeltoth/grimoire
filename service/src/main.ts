@@ -21,9 +21,11 @@ import { registerPing } from './core/ping';
 import { endpointFor } from './endpoint';
 import { registerGit } from './git/commands';
 import { Git } from './git/git';
+import { Worktrees } from './git/worktrees';
 import { CommandRegistry } from './registry';
 import { AlreadyRunningError, startServer, type ServiceServer } from './server';
 import { openDatabase } from './storage/database';
+import { WorktreeRecords } from './storage/worktrees';
 
 const { values } = parseArgs({
   options: {
@@ -64,6 +66,8 @@ const hub = new AgentHub(
   (event, payload) => server?.broadcast(event, payload),
   50,
   hubStore(db),
+  new Worktrees(new WorktreeRecords(db), log),
+  log,
 );
 const claude = new ClaudeAdapter();
 hub.addAdapter(claude);

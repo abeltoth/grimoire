@@ -26,6 +26,12 @@ export interface ChatSettings {
   /** The agent's model ID; the agent's default when left out. */
   model?: string;
   mode?: ApprovalMode;
+  /**
+   * Works in a worktree of its own, on a branch of its own, so chats on one
+   * repository don't change each other's files. For a new chat the folder
+   * is the one its worktree is made from; once begun, it's the worktree.
+   */
+  worktree?: boolean;
 }
 
 /** Settings for a new chat; the folder defaults to your home folder. */
