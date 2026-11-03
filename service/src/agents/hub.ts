@@ -13,6 +13,7 @@ import type {
   ChatStatus,
   ChatSummary,
   ContextUsage,
+  PromptCache,
   Enclosure,
   DogEar,
   Entry,
@@ -48,6 +49,8 @@ interface ChatState {
   queued: QueuedEntry[];
   /** How full the context window is, once the agent reports it. */
   context?: ContextUsage;
+  /** What the last reply left in the prompt cache. */
+  cache?: PromptCache;
   plan: PlanStep[];
   /** Your entries whose file changes were undone. */
   withdrawn: string[];
@@ -214,6 +217,7 @@ export class AgentHub {
       // Another window may have opened it meanwhile.
       chat = this.chats.get(chatId) ?? this.track(chatId, adapter, settings, history.entries, title);
       chat.plan = history.plan;
+      if (history.cache && !chat.cache) chat.cache = history.cache;
       chat.withdrawn = this.store.withdrawn.list(chatId);
       chat.dogEars = this.store.dogEars.of(chatId);
       chat.tags = this.store.tags.of(chatId);
@@ -512,6 +516,11 @@ export class AgentHub {
         chat.context = context;
         this.emit('agents.context', { chatId: chat.id, context });
       },
+      cache: (cache) => {
+        if (!current()) return;
+        chat.cache = cache;
+        this.emit('agents.cache', { chatId: chat.id, cache });
+      },
       plan: (plan) => {
         if (!current()) return;
         chat.plan = plan;
@@ -623,6 +632,7 @@ export class AgentHub {
         .map((pending) => pending.approval),
       queued: [...chat.queued],
       ...(chat.context ? { context: chat.context } : {}),
+      ...(chat.cache ? { cache: chat.cache } : {}),
       plan: chat.plan,
       withdrawn: [...chat.withdrawn],
       dogEars: [...chat.dogEars],

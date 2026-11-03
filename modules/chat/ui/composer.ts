@@ -8,6 +8,7 @@ import {
   inject,
   input,
   linkedSignal,
+  signal,
   untracked,
   viewChild,
 } from '@angular/core';
@@ -16,6 +17,7 @@ import type {
   AgentId,
   ContextUsage,
   Enclosure,
+  PromptCache,
   QueuedEntry,
 } from '@grimoire/contract';
 import { Icon } from '@ui/design-system/icon';
@@ -57,6 +59,23 @@ export class Composer {
   readonly queued = input<readonly QueuedEntry[]>([]);
   /** How full the context window is: the chapter's page allowance. */
   readonly context = input<ContextUsage>();
+  /** What the last reply left in the prompt cache, while no turn runs. */
+  readonly cache = input<PromptCache>();
+  /** What you wrote in this chapter, oldest first, for Up to bring back. */
+  readonly sent = input<readonly string[]>([]);
+
+  /** The time, kept to the minute, for when the cache runs out. */
+  private readonly now = signal(Date.now());
+  /** Once the cache has run out: when, and the tokens the next entry re-reads. */
+  protected readonly cold = computed(() => {
+    const cache = this.cache();
+    const now = this.now();
+    if (!cache || cache.until > now) return undefined;
+    return { ago: ago(now - cache.until), tokens: tokens(cache.tokens) };
+  });
+
+  /** Which of your entries Up brought back, counted back from the last, and its text. */
+  private recalled: { back: number; text: string } | null = null;
 
   /** The share of the allowance used, in percent; missing until the agent reports it. */
   protected readonly used = computed(() => {
@@ -99,7 +118,23 @@ export class Composer {
         if (lookUp && lookUp.chapterId !== chapterId) this.commands.close();
       });
     });
+    // Another chapter's entries to bring back.
+    effect(() => {
+      this.chapterId();
+      this.recalled = null;
+    });
+    const minute = setInterval(() => this.now.set(Date.now()), 60_000);
+    // Read again the moment the cache runs out, not up to a minute later.
+    effect((onCleanup) => {
+      const until = this.cache()?.until;
+      untracked(() => this.now.set(Date.now()));
+      const wait = until === undefined ? -1 : until - Date.now();
+      if (wait <= 0 || wait > 2 ** 31 - 1) return;
+      const timer = setTimeout(() => this.now.set(Date.now()), wait + 50);
+      onCleanup(() => clearTimeout(timer));
+    });
     inject(DestroyRef).onDestroy(() => {
+      clearInterval(minute);
       if (this.lookingUp()) this.commands.close();
     });
   }
@@ -126,6 +161,15 @@ export class Composer {
     if (this.lookingUp() && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
       event.preventDefault();
       this.commands.move(event.key === 'ArrowDown' ? 1 : -1);
+    } else if (
+      (event.key === 'ArrowUp' || event.key === 'ArrowDown') &&
+      !event.shiftKey &&
+      !event.altKey &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      this.recall(event.key === 'ArrowUp' ? 1 : -1, entry)
+    ) {
+      event.preventDefault();
     } else if (chosen && event.key === 'Tab' && !event.shiftKey) {
       event.preventDefault();
       this.complete(chosen, entry);
@@ -134,6 +178,46 @@ export class Composer {
       if (chosen) this.use(chosen);
       else this.send(entry);
     }
+  }
+
+  /**
+   * Up in an empty entry brings back your last one, and again the one
+   * before; Down goes the other way, back to an empty entry. Once you change
+   * what came back, the keys move the caret again. Whether it took the key.
+   */
+  private recall(step: 1 | -1, entry: HTMLTextAreaElement): boolean {
+    const sent = this.sent();
+    const value = entry.value;
+    const recalled = value !== '' && value === this.recalled?.text ? this.recalled : null;
+    if (value !== '' && !recalled) return false;
+    // In an entry of several lines, only from its first line up or its last line down.
+    const caret = entry.selectionStart ?? 0;
+    if (recalled && step === 1 && value.lastIndexOf('\n', caret - 1) !== -1) return false;
+    if (recalled && step === -1 && value.indexOf('\n', caret) !== -1) return false;
+    const back = (recalled?.back ?? 0) + step;
+    if (back < 1) {
+      if (!recalled) return false;
+      this.recalled = null;
+      this.fill(entry, '');
+      return true;
+    }
+    const text = sent[sent.length - back];
+    // Already at your first entry: Up stays on it.
+    if (text === undefined) return !!recalled;
+    this.recalled = { back, text };
+    this.fill(entry, text);
+    return true;
+  }
+
+  private fill(entry: HTMLTextAreaElement, text: string): void {
+    entry.value = text;
+    this.draft.set(text);
+    entry.setSelectionRange(text.length, text.length);
+  }
+
+  /** Has the agent sum the chapter up before your next entry. */
+  protected compact(): void {
+    void this.chats.send(this.chapterId(), '/compact');
   }
 
   /** Writes the command's name in full, ready for what it takes. */
@@ -240,4 +324,22 @@ export class Composer {
 
 function now(): string {
   return new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
+/** How long ago, in words: "20 minutes ago", "3 hours ago", "2 days ago". */
+function ago(ms: number): string {
+  const minutes = Math.floor(ms / 60_000);
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return minutes === 1 ? 'A minute ago' : `${minutes} minutes ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return hours === 1 ? 'An hour ago' : `${hours} hours ago`;
+  const days = Math.floor(hours / 24);
+  return days === 1 ? 'A day ago' : `${days} days ago`;
+}
+
+/** A count of tokens, rounded: "850", "283k", "1.2M". */
+function tokens(count: number): string {
+  if (count < 1_000) return String(count);
+  if (count < 1_000_000) return `${Math.round(count / 1_000)}k`;
+  return `${(count / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
 }

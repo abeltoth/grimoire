@@ -7,6 +7,7 @@ import type {
   Enclosure,
   Entry,
   PlanStep,
+  PromptCache,
   SettingsChange,
 } from '@grimoire/contract';
 import type { AgentAdapter, ChatEvents, ChatHistory, LiveChat, SavedChat } from './adapter';
@@ -37,6 +38,7 @@ export class FakeAdapter implements AgentAdapter {
   chats: SavedChat[] = [];
   transcripts = new Map<ChatId, Entry[]>();
   plans = new Map<ChatId, PlanStep[]>();
+  caches = new Map<ChatId, PromptCache>();
   transcriptLoads = 0;
   /** When set, undo fails with this. */
   undoError?: string;
@@ -50,6 +52,7 @@ export class FakeAdapter implements AgentAdapter {
     return structuredClone({
       entries: this.transcripts.get(chatId) ?? [],
       plan: this.plans.get(chatId) ?? [],
+      ...(this.caches.has(chatId) ? { cache: this.caches.get(chatId) } : {}),
     });
   }
 

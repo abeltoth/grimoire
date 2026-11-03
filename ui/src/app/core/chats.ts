@@ -19,6 +19,7 @@ import type {
   NewChatSettings,
   OpenChat,
   PlanStep,
+  PromptCache,
   QueuedEntry,
   RecentFolders,
 } from '@grimoire/contract';
@@ -39,6 +40,8 @@ export interface Chapter {
   queued: readonly QueuedEntry[];
   /** How full the context window is, once the agent reports it. */
   context?: ContextUsage;
+  /** What its last reply left in the prompt cache. */
+  cache?: PromptCache;
   /** The agent's plan, kept up to date as it works. */
   plan: readonly PlanStep[];
   /** Your entries whose file changes were undone. */
@@ -125,6 +128,9 @@ export class Chats {
     );
     this.listen('agents.context', ({ chatId, context }) =>
       this.update(chatId, (c) => ({ ...c, context })),
+    );
+    this.listen('agents.cache', ({ chatId, cache }) =>
+      this.update(chatId, (c) => ({ ...c, cache })),
     );
     this.listen('agents.turnEnded', ({ chatId, error }) =>
       this.update(chatId, (c) => ({ ...c, ...(error ? { error } : {}) })),
@@ -505,6 +511,7 @@ function fromOpenChat(chat: OpenChat): Chapter {
     tags: chat.tags ?? [],
     copied: chat.copied ?? [],
     ...(chat.context ? { context: chat.context } : {}),
+    ...(chat.cache ? { cache: chat.cache } : {}),
   };
 }
 

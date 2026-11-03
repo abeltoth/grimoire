@@ -13,6 +13,25 @@
   </div>
 }
 
+@if (cold(); as cold) {
+  <div class="cold" role="note">
+    <span class="cold-label"><gr-icon name="hourglass" />Cache expired</span>
+    <p class="cold-text">
+      {{ cold.ago }}, so your next entry re-reads about <b>{{ cold.tokens }} tokens</b>
+    </p>
+    @if (chats.can(agent(), 'compact')) {
+      <button
+        type="button"
+        class="gr-link"
+        title="Sums the chapter up so later entries read less; summing up reads it all once too"
+        (click)="compact()"
+      >
+        Compact first
+      </button>
+    }
+  </div>
+}
+
 <label class="sr-only" for="gr-next-entry">{{ first() ? 'First entry' : 'Next entry' }}</label>
 <div class="writing">
   <textarea

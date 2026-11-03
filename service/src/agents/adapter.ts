@@ -10,6 +10,7 @@ import type {
   ChatStatus,
   ChatSummary,
   ContextUsage,
+  PromptCache,
   Enclosure,
   Entry,
   PlanStep,
@@ -76,6 +77,8 @@ export interface AgentAdapter {
 export interface ChatHistory {
   entries: Entry[];
   plan: PlanStep[];
+  /** What the last reply left in the prompt cache, when the agent records it. */
+  cache?: PromptCache;
 }
 
 /** A chat whose agent process is running. */
@@ -111,6 +114,8 @@ export interface ChatEvents {
   title(title: string): void;
   /** How much of the context window the chat now fills. */
   context(usage: ContextUsage): void;
+  /** A turn ended, leaving this in the prompt cache. */
+  cache(cache: PromptCache): void;
   /** The agent changed its plan. */
   plan(plan: PlanStep[]): void;
   turnEnded(error?: string): void;

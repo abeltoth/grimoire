@@ -19,6 +19,7 @@ import type {
   PlanUsage,
 } from '@grimoire/contract';
 import type { AgentAdapter, ChatEvents, ChatHistory, LiveChat, SavedChat } from '../adapter';
+import { CacheTracker, type ReplyUsage } from './cache';
 import { MessageQueue } from './message-queue';
 import { ASK_TOOL, alwaysAllowOf, toClaudeAnswers, toQuestions } from './permissions';
 import { withReferences } from './references';
@@ -63,7 +64,7 @@ export class ClaudeAdapter implements AgentAdapter {
   readonly info: AgentInfo = {
     id: 'claude-code',
     name: 'Claude Code',
-    capabilities: ['rename', 'fork', 'undo'],
+    capabilities: ['rename', 'fork', 'undo', 'compact'],
   };
 
   async listChats(cwd?: string): Promise<SavedChat[]> {
@@ -83,8 +84,19 @@ export class ClaudeAdapter implements AgentAdapter {
   async history(chatId: ChatId, cwd: string): Promise<ChatHistory> {
     const { getSessionMessages } = await sdk();
     const transcript = new ClaudeTranscript(false);
-    for (const message of await getSessionMessages(chatId, { dir: cwd })) transcript.apply(message);
-    return { entries: transcript.entries, plan: transcript.plan };
+    const cache = new CacheTracker();
+    for (const message of await getSessionMessages(chatId, { dir: cwd })) {
+      transcript.apply(message);
+      // Claude Code saves when each reply came, though the SDK's type leaves it out.
+      const at = Date.parse((message as { timestamp?: string }).timestamp ?? '');
+      if (message.type === 'assistant' && message.parent_tool_use_id === null && Number.isFinite(at))
+        cache.reply((message.message as { usage?: ReplyUsage }).usage, at);
+    }
+    return {
+      entries: transcript.entries,
+      plan: transcript.plan,
+      ...(cache.cache ? { cache: cache.cache } : {}),
+    };
   }
 
   async fork(chatId: ChatId, cwd: string, entryId: string, title: string): Promise<ChatId> {
@@ -276,13 +288,17 @@ export class ClaudeAdapter implements AgentAdapter {
     events: ChatEvents,
   ): LiveChat {
     const transcript = new ClaudeTranscript(true, events);
+    const cache = new CacheTracker();
     void (async () => {
       try {
         const live = await started;
         for await (const message of live) {
           transcript.apply(message);
+          if (message.type === 'assistant' && message.parent_tool_use_id === null)
+            cache.reply(message.message.usage as ReplyUsage, Date.now());
           if (message.type !== 'result') continue;
           events.turnEnded(resultError(message));
+          if (cache.cache) events.cache(cache.cache);
           live.getContextUsage({ detail: 'summary' }).then(
             (usage) => events.context({ used: usage.totalTokens, limit: usage.rawMaxTokens }),
             () => {},

@@ -80,6 +80,8 @@
     [first]="c.status === 'blank'"
     [queued]="c.queued"
     [context]="c.context"
+    [cache]="c.status === 'idle' ? c.cache : undefined"
+    [sent]="sent()"
   />
 
   <gr-running-foot>
