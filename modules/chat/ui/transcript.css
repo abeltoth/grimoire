@@ -67,11 +67,30 @@
   font-weight: 500;
 }
 
-.time {
+.time,
+.took,
+.elapsed {
   font-family: var(--gr-font-text);
   font-style: italic;
   letter-spacing: 0;
   font-size: var(--gr-size-label);
+}
+
+/* How long the turn took, by its hourglass; the running one's counts up. */
+.took {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gr-took-gap);
+  font-variant-numeric: tabular-nums;
+}
+
+.took gr-icon {
+  color: var(--gr-gilt-ink);
+}
+
+.elapsed {
+  color: var(--gr-ink-soft);
+  font-variant-numeric: tabular-nums;
 }
 
 .spacer {

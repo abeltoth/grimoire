@@ -4,6 +4,7 @@ import {
   ElementRef,
   afterRenderEffect,
   computed,
+  effect,
   inject,
   input,
   output,
@@ -22,6 +23,7 @@ import { parseMarkdown } from './markdown/markdown';
 import { Output } from '@ui/design-system/output';
 import { QuestionsForm } from './questions-form';
 import { SealStub } from './seal-stub';
+import { duration } from './duration';
 import { toRows } from './rows';
 
 /**
@@ -83,6 +85,21 @@ export class Transcript {
     ['thinking', 'writing'].includes(this.chapter().status),
   );
   protected readonly endsInReply = computed(() => this.rows().at(-1)?.kind === 'reply');
+  /** Your entry that began the running turn, and when you wrote it. */
+  protected readonly turn = computed(() => {
+    if (!this.running()) return undefined;
+    const began = this.chapter().entries.filter((entry) => entry.kind === 'user').at(-1);
+    return began?.kind === 'user' && began.at !== undefined ? { key: began.id, at: began.at } : undefined;
+  });
+  private readonly turnKey = computed(() => this.turn()?.key);
+  /** The clock the running turn is timed by, ticking each second while it runs. */
+  private readonly now = signal(Date.now());
+  /** How long the running turn has taken so far. */
+  protected readonly elapsed = computed(() => {
+    const turn = this.turn();
+    return turn ? duration(this.now() - turn.at) : '';
+  });
+  protected readonly duration = duration;
   /** The thinking you're reading and the notes you folded out. */
   private readonly open = signal<ReadonlySet<string>>(new Set());
   /** The entry being undone, until the agent is done. */
@@ -93,6 +110,12 @@ export class Transcript {
   private following = true;
 
   constructor() {
+    effect((onCleanup) => {
+      if (!this.turnKey()) return;
+      this.now.set(Date.now());
+      const tick = setInterval(() => this.now.set(Date.now()), 1000);
+      onCleanup(() => clearInterval(tick));
+    });
     afterRenderEffect(() => {
       this.rows();
       this.chapter().error;

@@ -143,8 +143,23 @@ describe('AgentHub', () => {
     agent.text('r1', 0, 'Done');
     agent.turnEnded();
 
-    expect(events()).toEqual(['agents.text', 'agents.status', 'agents.turnEnded']);
-    expect(sent[1]!.payload).toEqual({ chatId: id, status: 'idle' });
+    expect(events()).toEqual(['agents.text', 'agents.entry', 'agents.status', 'agents.turnEnded']);
+    expect(sent[2]!.payload).toEqual({ chatId: id, status: 'idle' });
+  });
+
+  it('writes how long each turn took on your entry that began it', async () => {
+    const { id } = await hub.start('fake', settings, 'Hello');
+    const run = fake.runOf(id);
+    hub.send(id, 'Also this');
+    vi.advanceTimersByTime(90_000);
+    run.events.turnEnded();
+    // The queued entry begins the next turn, which ends when the process stops.
+    vi.advanceTimersByTime(5_000);
+    run.events.closed();
+
+    const { entries } = await hub.open('fake', id, settings);
+    expect(entries.map((entry) => entry.kind === 'user' && entry.took)).toEqual([90_000, 5_000]);
+    expect(sent.find((s) => s.event === 'agents.entry' && s.payload.entry.kind === 'user' && s.payload.entry.took)).toBeTruthy();
   });
 
   it('waits for your decision on an approval', async () => {

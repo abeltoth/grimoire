@@ -8,6 +8,7 @@ import type {
   PlanStep,
   ToolBlock,
   ToolResult,
+  UserEntry,
 } from '@grimoire/contract';
 import { splitReferences } from './references';
 
@@ -98,6 +99,8 @@ export class ClaudeTranscript {
   private streamingIndex: number | undefined;
   /** The plan's steps by Claude Code's task ID, in the order it made them. */
   private readonly tasks = new Map<string, PlanStep>();
+  /** The saved turn being read: your entry that began it, and when you wrote it. */
+  private turn: { entry: UserEntry; began: number } | undefined;
 
   /**
    * @param live Your own messages aren't echoed back live; the hub adds them as you send.
@@ -111,12 +114,21 @@ export class ClaudeTranscript {
     return [...this.tasks.values()].map((step) => ({ ...step }));
   }
 
-  apply(message: ClaudeMessage): void {
+  /**
+   * @param at When a saved message was written, in ms since the epoch: a
+   *   turn took from your entry until its last message.
+   */
+  apply(message: ClaudeMessage, at?: number): void {
     // Messages inside a subagent's run belong to its tool call, not the chat.
     if (message.parent_tool_use_id) return;
+    const entries = this.entries.length;
     if (message.type === 'stream_event') this.applyStreamEvent(message.event as StreamEvent);
     else if (message.type === 'assistant') this.applyAssistant(message.message as ApiMessage);
     else if (message.type === 'user') this.applyUser(message.uuid, message.message as ApiMessage);
+    if (at === undefined || !Number.isFinite(at)) return;
+    const last = this.entries.at(-1);
+    if (this.entries.length > entries && last?.kind === 'user') this.turn = { entry: last, began: at };
+    else if (this.turn && at > this.turn.began) this.turn.entry.took = at - this.turn.began;
   }
 
   private applyStreamEvent(event: StreamEvent): void {

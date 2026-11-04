@@ -1,6 +1,7 @@
 import { randomUUID, type UUID } from 'node:crypto';
 import type {
   CanUseTool,
+  ModelInfo,
   PermissionMode,
   Query,
   SDKMessage,
@@ -20,7 +21,9 @@ import type {
 } from '@grimoire/contract';
 import type { AgentAdapter, ChatEvents, ChatHistory, LiveChat, SavedChat } from '../adapter';
 import { CacheTracker, type ReplyUsage } from './cache';
+import { readUserSettings } from './effort';
 import { MessageQueue } from './message-queue';
+import { toAgentModels } from './models';
 import { ASK_TOOL, alwaysAllowOf, toClaudeAnswers, toQuestions } from './permissions';
 import { withReferences } from './references';
 import { ClaudeTranscript, turnEnd } from './transcript';
@@ -58,7 +61,7 @@ interface Spare {
  */
 export class ClaudeAdapter implements AgentAdapter {
   private spare: Spare | undefined;
-  private modelList: Promise<AgentModels> | undefined;
+  private modelList: Promise<ModelInfo[]> | undefined;
   private readonly commandLists = new Map<string, { at: number; list: Promise<AgentCommand[]> }>();
 
   readonly info: AgentInfo = {
@@ -86,9 +89,9 @@ export class ClaudeAdapter implements AgentAdapter {
     const transcript = new ClaudeTranscript(false);
     const cache = new CacheTracker();
     for (const message of await getSessionMessages(chatId, { dir: cwd })) {
-      transcript.apply(message);
-      // Claude Code saves when each reply came, though the SDK's type leaves it out.
+      // Claude Code saves when each message came, though the SDK's type leaves it out.
       const at = Date.parse((message as { timestamp?: string }).timestamp ?? '');
+      transcript.apply(message, at);
       if (message.type === 'assistant' && message.parent_tool_use_id === null && Number.isFinite(at))
         cache.reply((message.message as { usage?: ReplyUsage }).usage, at);
     }
@@ -121,13 +124,17 @@ export class ClaudeAdapter implements AgentAdapter {
     return info?.customTitle ?? info?.summary ?? '';
   }
 
-  /** Claude Code's model aliases, such as Opus 5.5; the dated model IDs are left out. */
+  /**
+   * Claude Code's model aliases, such as Opus 5.5, and their effort levels.
+   * The models are asked for once; the default efforts are read from your
+   * settings each time, as /effort in a terminal can change them.
+   */
   models(): Promise<AgentModels> {
     this.modelList ??= listModels().catch((error: unknown) => {
       this.modelList = undefined;
       throw error;
     });
-    return this.modelList;
+    return this.modelList.then((all) => toAgentModels(all, readUserSettings()));
   }
 
   /** Claude Code's commands and skills in a folder, kept for a minute. */
@@ -160,6 +167,7 @@ export class ClaudeAdapter implements AgentAdapter {
         options: {
           cwd: settings.cwd,
           ...(settings.model ? { model: settings.model } : {}),
+          ...(settings.effort ? { effort: settings.effort } : {}),
           permissionMode: MODES[settings.mode ?? 'ask'],
           // Lets you pick Full access, now or later; it doesn't skip any asking by itself.
           allowDangerouslySkipPermissions: true,
@@ -259,6 +267,7 @@ export class ClaudeAdapter implements AgentAdapter {
         cwd: settings.cwd,
         ...(settings.model ? { model: settings.model } : {}),
         permissionMode: MODES[settings.mode ?? 'ask'],
+        ...(settings.effort ? { settings: { effortLevel: settings.effort } } : {}),
         ...(title ? { title } : {}),
       },
     });
@@ -266,9 +275,10 @@ export class ClaudeAdapter implements AgentAdapter {
     try {
       ({ sessionId: chatId } = await process.claimed);
     } catch (error) {
-      // Only the model was refused: the chat runs, on the default model.
+      // Only the model or effort was refused, and the chat runs on the defaults: it carries the claim.
       const claim = (error as { claim?: { sessionId: string } }).claim;
-      if (!(error instanceof Error && error.message.startsWith('option_not_applied') && claim)) {
+      const refused = error instanceof Error && /^(option|settings)_not_applied/.test(error.message);
+      if (!(refused && claim)) {
         process.close();
         throw error;
       }
@@ -318,9 +328,10 @@ export class ClaudeAdapter implements AgentAdapter {
       interrupt: async () => {
         await (await started).interrupt();
       },
-      configure: async ({ model, mode }) => {
+      configure: async ({ model, mode, effort }) => {
         const live = await started;
         if (model) await live.setModel(model);
+        if (effort) await live.applyFlagSettings({ effortLevel: effort });
         if (mode) await live.setPermissionMode(MODES[mode]);
       },
       undo: async (entryId) => {
@@ -336,23 +347,12 @@ export class ClaudeAdapter implements AgentAdapter {
 }
 
 /** Asks a Claude Code process that never gets a message for the models it offers. */
-async function listModels(): Promise<AgentModels> {
+async function listModels(): Promise<ModelInfo[]> {
   const { query } = await sdk();
   const input = new MessageQueue<SDKUserMessage>();
   const probe = query({ prompt: input, options: { permissionMode: MODES.ask } });
   try {
-    const all = await probe.supportedModels();
-    const aliases = all.filter(({ value }) => value !== 'default' && !value.startsWith('claude-'));
-    const fallback = all.find(({ value }) => value === 'default')?.resolvedModel;
-    const byDefault = aliases.find(({ resolvedModel }) => resolvedModel === fallback);
-    return {
-      models: aliases.map(({ value, displayName, description }) => ({
-        id: value,
-        name: displayName,
-        description,
-      })),
-      ...(byDefault ? { default: byDefault.value } : {}),
-    };
+    return await probe.supportedModels();
   } finally {
     input.end();
     probe.close();

@@ -12,6 +12,7 @@ import type {
   ChatSummary,
   ContextUsage,
   DogEar,
+  EffortLevel,
   Enclosure,
   Entry,
   EventName,
@@ -23,6 +24,7 @@ import type {
   QueuedEntry,
   RecentFolders,
 } from '@grimoire/contract';
+import { fitEffort } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from './bridge';
 
 /** A chapter: one chat, or a blank page waiting for its first message. */
@@ -61,12 +63,13 @@ export interface Chapter {
 const DEFAULT_AGENT = 'claude-code';
 
 /** The settings a chapter's settings card changes. */
-export type Setting = 'agent' | 'model' | 'mode' | 'folder' | 'preset';
+export type Setting = 'agent' | 'model' | 'effort' | 'mode' | 'folder' | 'preset';
 
 /** A pick on the settings card. The agent and folder change only on a blank chapter. */
 export interface SettingsPick {
   agent?: AgentId;
   model?: string;
+  effort?: EffortLevel;
   mode?: ApprovalMode;
   cwd?: string;
   /** Whether a new chapter works in a worktree of its own. */
@@ -173,6 +176,21 @@ export class Chats {
     return listed?.models.find((m) => m.id === id)?.name ?? model ?? 'Default model';
   }
 
+  /**
+   * The effort levels a chapter's model takes, and the one it runs at: the
+   * chapter's own, else the model's default, as near as the model takes it.
+   */
+  effortOf(
+    agent: AgentId,
+    settings: { model?: string; effort?: EffortLevel },
+  ): { levels: readonly EffortLevel[]; level?: EffortLevel } {
+    const listed = this.models()[agent];
+    const id = settings.model ?? listed?.default;
+    const model = listed?.models.find((m) => m.id === id);
+    const levels = model?.efforts ?? [];
+    return { levels, level: fitEffort(settings.effort ?? model?.effort, levels) };
+  }
+
   /** A folder as you'd write it, with your home folder as ~. */
   folderName(cwd: string | undefined): string {
     const { home } = this.folders();
@@ -211,8 +229,8 @@ export class Chats {
     if (!chapter) return;
     if (chapter.status === 'blank') {
       const agent = pick.agent ?? chapter.agent;
-      // Another agent has other models: it starts on its default.
-      const { model: _, ...kept } = chapter.settings;
+      // Another agent has other models: it starts on its default, at its effort.
+      const { model: _, effort: ___, ...kept } = chapter.settings;
       const base = agent === chapter.agent ? chapter.settings : kept;
       const { agent: __, ...change } = pick;
       const settings: NewChatSettings = { ...base, ...change };
@@ -221,6 +239,7 @@ export class Chats {
     }
     const change = {
       ...(pick.model ? { model: pick.model } : {}),
+      ...(pick.effort ? { effort: pick.effort } : {}),
       ...(pick.mode ? { mode: pick.mode } : {}),
     };
     try {

@@ -15,6 +15,7 @@ import type { Preset } from '@grimoire/contract';
 import { Icon } from '@ui/design-system/icon';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { type Chapter, Chats, type Setting, type SettingsPick } from '@ui/app/core/chats';
+import { EFFORTS } from '@ui/app/core/efforts';
 import { MODES } from '@ui/app/core/modes';
 import { Presets } from '@ui/app/core/presets';
 
@@ -69,6 +70,14 @@ export class SettingsCard {
   protected readonly selectedModel = computed(
     () => this.chapter().settings.model ?? this.models()?.default,
   );
+  protected readonly modelName = computed(() =>
+    this.chats.modelName(this.chapter().agent, this.chapter().settings.model),
+  );
+  /** The levels the chapter's model takes, and the one it runs at. */
+  protected readonly effort = computed(() => {
+    const { levels, level } = this.chats.effortOf(this.chapter().agent, this.chapter().settings);
+    return { efforts: EFFORTS.filter((e) => levels.includes(e.level)), level };
+  });
   protected readonly folder = computed(
     () => this.chapter().settings.cwd ?? this.chats.folders().home,
   );

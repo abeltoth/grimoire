@@ -53,8 +53,8 @@ function fakeBridge(overrides: Partial<GrimoireBridge> = {}) {
     'agents.chats': () => [],
     'agents.models': () => ({
       models: [
-        { id: 'opus', name: 'Opus 5.5' },
-        { id: 'sonnet', name: 'Sonnet 5.5' },
+        { id: 'opus', name: 'Opus 5.5', efforts: ['low', 'medium', 'high', 'xhigh', 'max'], effort: 'xhigh' },
+        { id: 'sonnet', name: 'Sonnet 5.5', efforts: ['low', 'medium', 'high', 'max'] },
         { id: 'haiku', name: 'Haiku 5.5' },
       ],
       default: 'opus',
@@ -197,6 +197,7 @@ describe('App', () => {
     expect(texts('.meta button')).toEqual([
       'Claude Code',
       'Opus 5.5',
+      'Extra high effort',
       'Ask first',
       '~',
       'No preset',
@@ -215,6 +216,24 @@ describe('App', () => {
     expect(texts('gr-transcript')).toEqual([]);
   });
 
+  it('times the running turn by Stop, and keeps how long each turn took', async () => {
+    const { bridge, emit } = fakeBridge();
+    const { fixture, el, texts } = await render(bridge);
+    await write(fixture, el, 'Fix the flaky login test');
+    const user = { kind: 'user' as const, id: 'u1', text: 'Fix the flaky login test' };
+    emit('agents.entry', { chatId: 'chat-1', entry: { ...user, at: Date.now() - 134_000 } });
+    await fixture.whenStable();
+    expect(texts('.stop')).toEqual(['Stop Esc 2m 14s']);
+    expect(texts('.you .took')).toEqual(['2m 14s']);
+
+    emit('agents.entry', { chatId: 'chat-1', entry: { ...user, at: Date.now() - 200_000, took: 200_000 } });
+    emit('agents.status', { chatId: 'chat-1', status: 'idle' });
+    await fixture.whenStable();
+    expect(texts('.stop')).toEqual([]);
+    expect(texts('.you .took')).toEqual(['3m 20s']);
+    expect(el.querySelector('.you .took')!.getAttribute('title')).toBe('This turn took 3m 20s');
+  });
+
   it('starts the chat with the first entry and follows its events', async () => {
     const { bridge, calls, emit } = fakeBridge();
     const { fixture, el, texts } = await render(bridge);
@@ -227,7 +246,7 @@ describe('App', () => {
     });
     expect(el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!.value).toBe('');
     expect(texts('.you p')).toEqual(['Fix the flaky login test']);
-    expect(texts('.meta button')[3]).toBe('C:/work/grimoire');
+    expect(texts('.meta button')[4]).toBe('C:/work/grimoire');
     expect(texts('.stop')).toEqual(['Stop Esc']);
 
     emit('agents.entry', {
@@ -493,7 +512,7 @@ describe('App', () => {
     ]);
     expect(texts('.spine gr-ribbon i')).toEqual(['Claude Code · blank page']);
     // The new chapter takes the settings last used.
-    expect(texts('.meta button')[3]).toBe('~/git/grimoire');
+    expect(texts('.meta button')[4]).toBe('~/git/grimoire');
 
     // The book opens at the first chapter: the one after it moves right of the spine.
     [...el.querySelectorAll<HTMLButtonElement>('gr-ribbon.chapter button')][0]!.click();
@@ -541,6 +560,7 @@ describe('App', () => {
     expect(texts('gr-settings-card [aria-checked="true"]')).toEqual([
       'Claude Code',
       'Opus 5.5',
+      'Extra high',
       '~',
       'Ask first Asks before edits and commands',
       'No preset',
@@ -553,12 +573,19 @@ describe('App', () => {
     expect(document.activeElement?.textContent?.trim()).toBe('Opus 5.5');
 
     pick(el, 'Sonnet 5.5');
+    await fixture.whenStable();
+    // Sonnet takes no Extra high, and your settings give it no effort.
+    expect(texts('gr-settings-card [data-setting="effort"] h3')).toEqual(['Effort for Sonnet 5.5']);
+    expect(texts('gr-settings-card [data-setting="effort"] .choice')).toEqual(['Low', 'Medium', 'High', 'Max']);
+    expect(texts('.meta button')[2]).toBe('Default effort');
+    pick(el, 'Max');
     pick(el, 'Full access');
     pick(el, 'Choose another folder');
     await fixture.whenStable();
     expect(texts('.meta button')).toEqual([
       'Claude Code',
       'Sonnet 5.5',
+      'Max effort',
       'Full access',
       '~/git/new',
       'No preset',
@@ -566,7 +593,7 @@ describe('App', () => {
     expect(calls.filter((c) => c.command === 'layout.set').at(-1)?.request).toEqual({
       lastUsed: {
         agent: 'claude-code',
-        settings: { model: 'sonnet', mode: 'allow-all', cwd: 'C:/Users/me/git/new' },
+        settings: { model: 'sonnet', effort: 'max', mode: 'allow-all', cwd: 'C:/Users/me/git/new' },
       },
     });
 
@@ -710,14 +737,18 @@ describe('App', () => {
     expect(texts('gr-settings-card .action')).toEqual(['Save these settings as a preset…']);
 
     pick(el, 'Plan only');
+    pick(el, 'Medium');
     await fixture.whenStable();
-    expect(calls.find((c) => c.command === 'agents.configure')?.request).toEqual({
+    expect(calls.filter((c) => c.command === 'agents.configure').map((c) => c.request)).toEqual([
+      { chatId: 'chat-1', change: { mode: 'plan' } },
+      { chatId: 'chat-1', change: { effort: 'medium' } },
+    ]);
+    emit('agents.settings', {
       chatId: 'chat-1',
-      change: { mode: 'plan' },
+      settings: { cwd: 'C:/work/grimoire', mode: 'plan', effort: 'medium' },
     });
-    emit('agents.settings', { chatId: 'chat-1', settings: { cwd: 'C:/work/grimoire', mode: 'plan' } });
     await fixture.whenStable();
-    expect(texts('.meta button')[2]).toBe('Plan only');
+    expect(texts('.meta button').slice(2, 4)).toEqual(['Medium effort', 'Plan only']);
 
     document.body.dispatchEvent(new Event('pointerdown', { bubbles: true }));
     await fixture.whenStable();
@@ -1363,16 +1394,16 @@ describe('App', () => {
       settings: { cwd: 'C:/Users/me', model: 'opus', mode: 'ask' },
     });
     expect(texts(`${presetColumn} [aria-checked="true"]`)).toEqual(['Plan a feature Claude Code · Ask first']);
-    expect(head()[4]).toBe('Plan a feature');
+    expect(head()[5]).toBe('Plan a feature');
     expect(document.activeElement).toBe(el.querySelector(`${presetColumn} .action`));
 
     // Another setting takes the chapter off the preset; picking the preset puts it back.
     pick(el, 'Plan only');
     await fixture.whenStable();
-    expect(head()[4]).toBe('No preset');
+    expect(head()[5]).toBe('No preset');
     pick(el, 'Plan a feature');
     await fixture.whenStable();
-    expect(head().slice(2)).toEqual(['Ask first', '~', 'Plan a feature']);
+    expect(head().slice(3)).toEqual(['Ask first', '~', 'Plan a feature']);
 
     // Once begun in another folder, the chapter can't take it.
     pick(el, '~/git/breeder');
@@ -1384,7 +1415,7 @@ describe('App', () => {
       c.textContent!.includes('Plan a feature'),
     )!;
     expect(choice.getAttribute('aria-disabled')).toBe('true');
-    expect(head()[4]).toBe('No preset');
+    expect(head()[5]).toBe('No preset');
   });
 
   it('begins a chapter from a preset listed in the Index', async () => {
@@ -1424,6 +1455,7 @@ describe('App', () => {
     expect(texts('.meta button')).toEqual([
       'Claude Code',
       'Sonnet 5.5',
+      'Default effort',
       'Accept edits',
       '~/git/breeder',
       'Bug fix',
