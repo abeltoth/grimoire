@@ -12,6 +12,7 @@ import {
 } from '@angular/core';
 import { Icon } from '@ui/design-system/icon';
 import { Chats, type Setting } from '@ui/app/core/chats';
+import { effortName } from '@ui/app/core/efforts';
 import { modeName } from '@ui/app/core/modes';
 import { Presets } from '@ui/app/core/presets';
 import { Facing } from '@ui/app/shell/facing';
@@ -104,9 +105,12 @@ export class ChapterPage {
     const chapter = this.chapter();
     if (!chapter) return [];
     const { agent, settings } = chapter;
+    const effort = this.chats.effortOf(agent, settings);
     return [
       { key: 'agent', label: this.chats.agentName(agent) },
       { key: 'model', label: this.chats.modelName(agent, settings.model) },
+      // Only for a model that takes effort levels.
+      ...(effort.levels.length ? [{ key: 'effort' as const, label: effortName(effort.level) }] : []),
       { key: 'mode', label: modeName(settings.mode) },
       {
         key: 'folder',

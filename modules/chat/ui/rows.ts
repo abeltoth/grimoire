@@ -71,6 +71,8 @@ export type Row =
       /** Pictures and files sent with it. */
       enclosures: readonly Enclosure[];
       at?: number;
+      /** How long the turn it began took, once it ended. */
+      took?: number;
       withdrawn: boolean;
       /** Undo would restore something: this turn or a later one changed files, not yet undone. */
       undoable: boolean;
@@ -127,6 +129,7 @@ export function toRows(
         text: entry.text,
         enclosures: entry.enclosures ?? [],
         ...(entry.at ? { at: entry.at } : {}),
+        ...(entry.took !== undefined ? { took: entry.took } : {}),
         withdrawn: withdrawn.has(entry.id),
         undoable: false,
       });

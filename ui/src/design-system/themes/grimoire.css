@@ -256,6 +256,7 @@
   --gr-scrollbar-thumb: rgba(74, 48, 22, 0.28);
   --gr-scrollbar-thumb-hover: rgba(74, 48, 22, 0.45);
   --gr-by-gap: 9px;
+  --gr-took-gap: 4px;
   --gr-leading-entry: 1.42;
   --gr-list-indent: 22px;
   --gr-size-mark: 0.78em;
@@ -295,7 +296,7 @@
 
   /* Chat: the settings card under the running head */
   --gr-z-card: 6;
-  --gr-card-width: 1250px;
+  --gr-card-width: 1400px;
   --gr-card-max-width: calc(100vw - 2 * var(--gr-page-margin-outer));
   --gr-card-offset: 4px;
   --gr-card-anchor-rule: 1.5px;
@@ -309,7 +310,7 @@
   --gr-size-card-head: 16px;
   --gr-tracking-card-head: 0.14em;
   --gr-size-card-aside: 13.5px;
-  --gr-card-columns: 136px 140px 272px 300px minmax(0, 1fr);
+  --gr-card-columns: 136px 140px 142px 272px 300px minmax(0, 1fr);
   --gr-card-column-gap: 26px;
   --gr-card-columns-pad: 12px;
   --gr-card-column-pad: 22px;

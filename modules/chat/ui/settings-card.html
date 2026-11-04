@@ -63,6 +63,33 @@
 
   <div
     class="column"
+    [class.on]="on() === 'effort'"
+    data-setting="effort"
+    role="radiogroup"
+    [attr.aria-label]="'Effort for ' + modelName()"
+  >
+    <h3>
+      Effort <i>for {{ modelName() }}</i>
+    </h3>
+    @for (e of effort().efforts; track e.level) {
+      <button
+        type="button"
+        class="choice"
+        role="radio"
+        [attr.aria-checked]="e.level === effort().level"
+        [attr.title]="e.detail"
+        (click)="pick({ effort: e.level })"
+      >
+        <gr-icon name="check" />
+        <span>{{ e.label }}</span>
+      </button>
+    } @empty {
+      <p class="none">{{ modelName() }} has no effort levels</p>
+    }
+  </div>
+
+  <div
+    class="column"
     [class.on]="on() === 'folder'"
     data-setting="folder"
     role="group"

@@ -534,6 +534,7 @@ export class AgentHub {
       turnEnded: (error) => {
         if (!current()) return;
         this.settleAll(chat);
+        this.timeTurn(chat);
         this.setStatus(chat, 'idle');
         this.emit('agents.turnEnded', { chatId: chat.id, ...(error ? { error } : {}) });
         this.sendQueued(chat);
@@ -543,6 +544,7 @@ export class AgentHub {
         chat.live = undefined;
         this.settleAll(chat);
         if (chat.status !== 'idle') {
+          this.timeTurn(chat);
           this.setStatus(chat, 'idle');
           this.emit('agents.turnEnded', { chatId: chat.id, error: error ?? 'The agent stopped' });
           this.sendQueued(chat);
@@ -561,6 +563,13 @@ export class AgentHub {
     if (index === -1) chat.entries.push(entry);
     else chat.entries[index] = entry;
     this.emit('agents.entry', { chatId: chat.id, entry });
+  }
+
+  /** Writes how long the turn took on your entry that began it. */
+  private timeTurn(chat: ChatState): void {
+    const began = chat.entries.findLast((entry) => entry.kind === 'user');
+    if (began?.kind !== 'user' || began.at === undefined || began.took !== undefined) return;
+    this.upsert(chat, { ...began, took: Date.now() - began.at });
   }
 
   private appendText(chat: ChatState, entryId: string, block: number, text: string): void {

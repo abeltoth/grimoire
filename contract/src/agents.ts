@@ -21,11 +21,27 @@ export interface AgentInfo {
 /** How freely the agent may act: ask first, accept edits, plan only, or allow everything. */
 export type ApprovalMode = 'ask' | 'accept-edits' | 'plan' | 'allow-all';
 
+/** How hard the model thinks before it answers, from least to most. */
+export const EFFORT_LEVELS = ['low', 'medium', 'high', 'xhigh', 'max'] as const;
+export type EffortLevel = (typeof EFFORT_LEVELS)[number];
+
+/** The level a model runs at when asked for one it doesn't take: the highest it takes below it. */
+export function fitEffort(
+  level: EffortLevel | undefined,
+  levels: readonly EffortLevel[],
+): EffortLevel | undefined {
+  if (!level || !levels.length) return undefined;
+  const asked = EFFORT_LEVELS.indexOf(level);
+  return [...levels].reverse().find((taken) => EFFORT_LEVELS.indexOf(taken) <= asked) ?? levels[0];
+}
+
 export interface ChatSettings {
   /** The project folder the agent works in. */
   cwd: string;
   /** The agent's model ID; the agent's default when left out. */
   model?: string;
+  /** The model's effort; what your agent's own settings give when left out. */
+  effort?: EffortLevel;
   mode?: ApprovalMode;
   /**
    * Works in a worktree of its own, on a branch of its own, so chats on one
@@ -39,7 +55,7 @@ export interface ChatSettings {
 export type NewChatSettings = Omit<ChatSettings, 'cwd'> & { cwd?: string };
 
 /** The settings you can change once a chat has begun. */
-export type SettingsChange = Pick<ChatSettings, 'model' | 'mode'>;
+export type SettingsChange = Pick<ChatSettings, 'model' | 'mode' | 'effort'>;
 
 /** A model an agent offers. */
 export interface AgentModel {
@@ -47,6 +63,10 @@ export interface AgentModel {
   id: string;
   name: string;
   description?: string;
+  /** The effort levels it takes, least first; missing when it has none. */
+  efforts?: EffortLevel[];
+  /** The effort it runs at when a chat names none, as your agent's own settings give it; missing when they don't say. */
+  effort?: EffortLevel;
 }
 
 export interface AgentModels {
@@ -129,6 +149,8 @@ export interface UserEntry {
   enclosures?: Enclosure[];
   /** When it was written, in ms since the epoch, when known. */
   at?: number;
+  /** How long the turn it began took, in ms, once that turn has ended and when known. */
+  took?: number;
 }
 
 /** Something sent with an entry: a picture, shown as a plate, or a file, as a reference. */

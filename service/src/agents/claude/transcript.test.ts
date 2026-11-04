@@ -136,6 +136,23 @@ describe('ClaudeTranscript', () => {
     ]);
   });
 
+  it('times each saved turn, from your message to its last', () => {
+    const transcript = new ClaudeTranscript(false);
+    const second: ClaudeMessage = {
+      type: 'user',
+      uuid: 'u3',
+      parent_tool_use_id: null,
+      message: { role: 'user', content: 'Thanks' },
+    };
+    const at = [0, 2_000, 3_000, 61_000, 75_500, 100_000];
+    [...saved, second].forEach((message, i) => transcript.apply(message, at[i]));
+    // The last turn has no reply yet: no time.
+    expect(transcript.entries.filter((entry) => entry.kind === 'user')).toEqual([
+      { kind: 'user', id: 'u1', text: 'Run echo hi', took: 75_500 },
+      { kind: 'user', id: 'u3', text: 'Thanks' },
+    ]);
+  });
+
   it('keeps the plan from Claude Code\'s task tools, once they succeed', () => {
     const plans: string[][] = [];
     const transcript = new ClaudeTranscript(false, {
