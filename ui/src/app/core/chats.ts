@@ -284,6 +284,17 @@ export class Chats {
     this.turnTo(id);
   }
 
+  /** Adds a chapter the service began by itself, such as a scheduled chat's run, without turning to it. */
+  adopt(chat: OpenChat): void {
+    if (this.find(chat.id)) return;
+    this.all.update((all) => [...all, fromOpenChat(chat)]);
+  }
+
+  /** Whether a chapter is open in the book. */
+  has(id: string): boolean {
+    return !!this.find(id);
+  }
+
   /**
    * Closes a chapter and turns to the next one, or to a blank page. The
    * chat itself stays with the agent.

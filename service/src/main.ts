@@ -24,6 +24,9 @@ import { Git } from './git/git';
 import { Worktrees } from './git/worktrees';
 import { CommandRegistry } from './registry';
 import { AlreadyRunningError, startServer, type ServiceServer } from './server';
+import { registerSchedules } from './schedules/commands';
+import { Scheduler } from './schedules/scheduler';
+import { ScheduleStore } from './schedules/store';
 import { openDatabase } from './storage/database';
 import { WorktreeRecords } from './storage/worktrees';
 import { registerTerminals } from './terminal/commands';
@@ -81,6 +84,13 @@ hub.readUsageEvery(15 * 60_000);
 const terminals = new Terminals((event, payload) => server?.broadcast(event, payload));
 registerTerminals(registry, terminals);
 
+const scheduler = new Scheduler(
+  new ScheduleStore(db),
+  (agent, settings, text, title) => hub.start(agent, settings, text, title),
+  (event, payload) => server?.broadcast(event, payload),
+);
+registerSchedules(registry, scheduler);
+
 const token = randomBytes(32).toString('hex');
 const endpoint = endpointFor(dataDir);
 
@@ -108,6 +118,8 @@ const info: ServiceInfo = { endpoint, token, pid: process.pid, buildId, protocol
 writeFileSync(`${infoFile}.tmp`, JSON.stringify(info), { mode: 0o600 });
 renameSync(`${infoFile}.tmp`, infoFile);
 log(`Listening on ${endpoint}, build ${buildId}`);
+// Checked twice a minute, which also notices a time that passed while the computer slept.
+scheduler.checkEvery(30_000);
 
 process.on('SIGTERM', () => void stop());
 process.on('SIGINT', () => void stop());

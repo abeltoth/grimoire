@@ -1,0 +1,88 @@
+<p class="lead">
+  Chats Grimoire begins by itself, on the days and at the time you set, each run a new chapter with
+  Full access. They run while Grimoire’s service does; a time it was away for runs when it’s back,
+  unless that’s more than three hours late.
+</p>
+
+@if (scheduled.failed(); as error) {
+  <p class="error" role="alert">{{ error }}</p>
+}
+
+@if (scheduled.all(); as all) {
+  @for (s of all; track s.id) {
+    <article class="entry" [class.paused]="!s.enabled">
+      @if (editing() === s.id) {
+        <gr-schedule-form [schedule]="s" (done)="editing.set(null)" />
+      } @else {
+        <p class="dateline">
+          @if (!s.enabled) {
+            Paused
+          } @else if (s.nextAt !== null) {
+            {{ dateline(s.nextAt) }}
+          } @else {
+            On no days
+          }
+        </p>
+        <h2>{{ s.name }}</h2>
+        <p class="sub">
+          {{ cadence(s.days, s.time) }} · {{ settingsOf(s) }} ·
+          <code>{{ chats.folderName(s.settings.cwd) }}</code>
+        </p>
+        <blockquote class="prompt">{{ s.prompt }}</blockquote>
+
+        @if (s.runs.length) {
+          <ol class="runs" aria-label="Last runs">
+            @for (run of s.runs; track run.dueAt) {
+              <li [class.amiss]="run.outcome !== 'began'">
+                <span class="when">{{ when(run.dueAt) }}</span>&ngsp;
+                <span class="outcome">{{ outcome(run) }}</span>
+                @if (run.chatId) {
+                  &ngsp;<button type="button" class="gr-link" (click)="scheduled.openRun(s, run)">
+                    Open its chapter
+                  </button>
+                }
+              </li>
+            }
+          </ol>
+        }
+
+        <div class="actions">
+          @if (removing() === s.id) {
+            <span class="ask">Remove “{{ s.name }}” and the record of its runs?</span>
+            <button type="button" class="gr-link danger" (click)="remove(s)">Remove</button>
+            <button type="button" class="gr-link" (click)="removing.set(null)">Keep it</button>
+          } @else {
+            <button
+              type="button"
+              class="gr-link"
+              [attr.aria-disabled]="running() || null"
+              (click)="run(s)"
+            >
+              {{ running() === s.id ? 'Beginning…' : 'Run now' }}
+            </button>
+            <button type="button" class="gr-link" (click)="editing.set(s.id)">Change</button>
+            <button type="button" class="gr-link" (click)="pause(s, !s.enabled)">
+              {{ s.enabled ? 'Pause' : 'Resume' }}
+            </button>
+            <button type="button" class="gr-link" (click)="removing.set(s.id)">Remove</button>
+          }
+        </div>
+      }
+    </article>
+  } @empty {
+    @if (editing() !== 'new') {
+      <p class="none">No scheduled chats yet.</p>
+    }
+  }
+
+  @if (editing() === 'new') {
+    <article class="entry">
+      <p class="dateline">A new schedule</p>
+      <gr-schedule-form (done)="editing.set(null)" />
+    </article>
+  } @else {
+    <button type="button" class="gr-link add" (click)="editing.set('new')">Schedule a chat…</button>
+  }
+} @else {
+  <p class="none">Asking the service…</p>
+}
