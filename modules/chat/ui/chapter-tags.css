@@ -1,7 +1,9 @@
 :host {
   display: inline-flex;
+  flex: none;
   align-items: center;
   gap: var(--gr-tags-gap);
+  white-space: nowrap;
 }
 
 /* A tag is a plain-text label; its cross shows when you point at it or reach it. */

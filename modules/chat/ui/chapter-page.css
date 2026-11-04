@@ -8,8 +8,13 @@
   gap: var(--gr-head-row-gap);
 }
 
+/* One line: a long title is cut short, and shows in full when you point at it. */
 .title {
   margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-family: var(--gr-font-display);
   font-weight: 400;
   font-size: var(--gr-size-chapter);

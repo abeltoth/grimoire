@@ -29,7 +29,7 @@ export class Presets {
     }
   }
 
-  /** Saves the chapter's settings under a name, spelled out: its folder, model and permission. */
+  /** Saves the chapter's settings under a name, spelled out: its folder, model, effort and permission. */
   async save(chapter: Chapter, name: string): Promise<void> {
     const named = name.trim();
     if (!named) return;
@@ -67,8 +67,12 @@ export class Presets {
       this.chats.setUp(chapter.id, preset.agent, preset.settings);
       return Promise.resolve();
     }
-    const { model, mode } = this.spelledOut(preset.agent, preset.settings);
-    return this.chats.configure(chapter.id, { ...(model ? { model } : {}), ...(mode ? { mode } : {}) });
+    const { model, effort, mode } = this.spelledOut(preset.agent, preset.settings);
+    return this.chats.configure(chapter.id, {
+      ...(model ? { model } : {}),
+      ...(effort ? { effort } : {}),
+      ...(mode ? { mode } : {}),
+    });
   }
 
   /** What the preset begins with, in a few words: "Claude Code · Plan only". */
@@ -76,14 +80,29 @@ export class Presets {
     return `${this.chats.agentName(preset.agent)} · ${modeName(preset.settings.mode)}`;
   }
 
-  /** Settings with the defaults written in: your home folder, the agent's default model, Ask first. */
+  /**
+   * Settings with the defaults written in: your home folder, the agent's
+   * default model, the effort it runs at when known, Ask first.
+   */
   private spelledOut(agent: AgentId, settings: NewChatSettings): NewChatSettings {
     const cwd = settings.cwd ?? this.chats.folders().home;
     const model = settings.model ?? this.chats.models()[agent]?.default;
-    return { ...(cwd ? { cwd } : {}), ...(model ? { model } : {}), mode: settings.mode ?? 'ask' };
+    const { level: effort } = this.chats.effortOf(agent, { ...settings, ...(model ? { model } : {}) });
+    return {
+      ...(cwd ? { cwd } : {}),
+      ...(model ? { model } : {}),
+      ...(effort ? { effort } : {}),
+      mode: settings.mode ?? 'ask',
+    };
   }
 }
 
 function same(a: NewChatSettings, b: NewChatSettings): boolean {
-  return a.cwd === b.cwd && a.model === b.model && a.mode === b.mode && !!a.worktree === !!b.worktree;
+  return (
+    a.cwd === b.cwd &&
+    a.model === b.model &&
+    a.effort === b.effort &&
+    a.mode === b.mode &&
+    !!a.worktree === !!b.worktree
+  );
 }

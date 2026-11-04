@@ -281,6 +281,8 @@ describe('App', () => {
     expect(texts('.note .detail')).toEqual(['running…']);
     expect(el.querySelector('.reply gr-markdown p .quill')).not.toBeNull();
     expect(texts('gr-running-head h1')).toEqual(['Fix flaky login test']);
+    // A title too long for its line is cut short; pointing at it shows it all.
+    expect(el.querySelector('gr-running-head h1')!.getAttribute('title')).toBe('Fix flaky login test');
     expect(texts('[aria-current="page"] b')).toEqual(['Fix flaky login test']);
     expect(texts('[aria-current="page"] i')).toEqual(['Claude Code · writing']);
 
@@ -1391,7 +1393,7 @@ describe('App', () => {
     expect(calls.find((c) => c.command === 'presets.save')!.request).toEqual({
       name: 'Plan a feature',
       agent: 'claude-code',
-      settings: { cwd: 'C:/Users/me', model: 'opus', mode: 'ask' },
+      settings: { cwd: 'C:/Users/me', model: 'opus', effort: 'xhigh', mode: 'ask' },
     });
     expect(texts(`${presetColumn} [aria-checked="true"]`)).toEqual(['Plan a feature Claude Code · Ask first']);
     expect(head()[5]).toBe('Plan a feature');
@@ -1399,11 +1401,12 @@ describe('App', () => {
 
     // Another setting takes the chapter off the preset; picking the preset puts it back.
     pick(el, 'Plan only');
+    pick(el, 'Low');
     await fixture.whenStable();
     expect(head()[5]).toBe('No preset');
     pick(el, 'Plan a feature');
     await fixture.whenStable();
-    expect(head().slice(3)).toEqual(['Ask first', '~', 'Plan a feature']);
+    expect(head().slice(2)).toEqual(['Extra high effort', 'Ask first', '~', 'Plan a feature']);
 
     // Once begun in another folder, the chapter can't take it.
     pick(el, '~/git/breeder');
