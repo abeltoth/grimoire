@@ -14,7 +14,9 @@
           (blur)="finishRenaming(titleField, true, false)"
         />
       } @else {
-        <h1 class="title" [class.untitled]="!c.title">{{ c.title || 'Untitled chapter' }}</h1>
+        <h1 class="title" [class.untitled]="!c.title" [attr.title]="c.title || null">
+          {{ c.title || 'Untitled chapter' }}
+        </h1>
         @if (canRename()) {
           <button
             #renameButton
