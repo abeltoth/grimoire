@@ -1,0 +1,103 @@
+<form class="form" (submit)="$event.preventDefault(); save()">
+  <label class="label" for="gr-schedule-name">Name</label>
+  <input
+    id="gr-schedule-name"
+    class="line"
+    autocomplete="off"
+    placeholder="Morning repo summary"
+    [value]="name()"
+    (input)="name.set($any($event.target).value)"
+  />
+
+  <label class="label" for="gr-schedule-prompt">First entry</label>
+  <textarea
+    id="gr-schedule-prompt"
+    class="line"
+    rows="3"
+    placeholder="Summarize what changed in this repository since yesterday."
+    [value]="prompt()"
+    (input)="prompt.set($any($event.target).value)"
+  ></textarea>
+
+  <span class="label" id="gr-schedule-days">Days</span>
+  <span class="words" role="group" aria-labelledby="gr-schedule-days">
+    @for (d of week; track d.day) {
+      <button type="button" class="word" [attr.aria-pressed]="days().has(d.day)" (click)="toggleDay(d.day)">
+        {{ d.short }}
+      </button>
+    }
+  </span>
+
+  <label class="label" for="gr-schedule-time">At</label>
+  <input
+    id="gr-schedule-time"
+    class="line time"
+    type="time"
+    required
+    [value]="time()"
+    (input)="time.set($any($event.target).value)"
+  />
+
+  <span class="label" id="gr-schedule-folder">Folder</span>
+  <span class="words" role="radiogroup" aria-labelledby="gr-schedule-folder">
+    @for (folder of folders(); track folder) {
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="folder === (cwd() ?? chats.folders().home)"
+        (click)="cwd.set(folder)"
+      >
+        <code>{{ chats.folderName(folder) }}</code>
+      </button>
+    }
+    <button type="button" class="gr-link" (click)="chooseFolder()">Choose another…</button>
+  </span>
+
+  @if (models()?.models?.length) {
+    <span class="label" id="gr-schedule-model">Model</span>
+    <span class="words" role="radiogroup" aria-labelledby="gr-schedule-model">
+      @for (m of models()!.models; track m.id) {
+        <button
+          type="button"
+          class="word"
+          role="radio"
+          [attr.aria-checked]="m.id === selectedModel()"
+          (click)="pickModel(m.id)"
+        >
+          {{ m.name }}
+        </button>
+      }
+    </span>
+  }
+
+  @if (efforts().choices.length) {
+    <span class="label" id="gr-schedule-effort">Effort</span>
+    <span class="words" role="radiogroup" aria-labelledby="gr-schedule-effort">
+      @for (e of efforts().choices; track e.level) {
+        <button
+          type="button"
+          class="word"
+          role="radio"
+          [attr.title]="e.detail"
+          [attr.aria-checked]="e.level === efforts().level"
+          (click)="effort.set(e.level)"
+        >
+          {{ e.label }}
+        </button>
+      }
+    </span>
+  }
+
+  <p class="note">
+    Each run begins a new chapter with <b>Full access</b>: it edits files and runs commands without
+    asking, as no one is there to approve.
+  </p>
+
+  <div class="actions">
+    <button type="submit" class="send" [attr.aria-disabled]="!complete() || saving() || null">
+      {{ schedule() ? 'Save the schedule' : 'Add the schedule' }}
+    </button>
+    <button type="button" class="gr-link" (click)="done.emit()">Cancel</button>
+  </div>
+</form>

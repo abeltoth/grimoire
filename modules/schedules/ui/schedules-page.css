@@ -1,0 +1,127 @@
+:host {
+  display: block;
+  max-width: var(--gr-schedules-width);
+}
+
+.lead,
+.none {
+  margin: 0 0 var(--gr-schedules-entry-gap);
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.error {
+  margin: 0 0 var(--gr-space-4);
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-rubric);
+}
+
+/* A journal entry, ruled off from the next. */
+.entry {
+  padding-bottom: var(--gr-schedules-entry-pad);
+  margin-bottom: var(--gr-schedules-entry-pad);
+  border-bottom: 1px solid var(--gr-hairline);
+}
+
+.dateline {
+  margin: 0;
+  font-family: var(--gr-font-display-sc);
+  font-size: var(--gr-size-section-head);
+  letter-spacing: var(--gr-tracking-section-head);
+  color: var(--gr-rubric);
+}
+
+.paused .dateline {
+  color: var(--gr-ink-faint);
+}
+
+h2 {
+  margin: var(--gr-aside-gap) 0 0;
+  font-family: var(--gr-font-display);
+  font-weight: 400;
+  font-size: var(--gr-size-schedule-name);
+  line-height: var(--gr-leading-schedule-name);
+  color: var(--gr-ink);
+}
+
+.paused h2 {
+  color: var(--gr-ink-soft);
+}
+
+.sub {
+  margin: var(--gr-aside-gap) 0 0;
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+code {
+  font-family: var(--gr-font-mono);
+  font-style: normal;
+  font-size: var(--gr-size-code);
+}
+
+/* The entry each run begins with, quoted. */
+.prompt {
+  margin: var(--gr-schedule-prompt-margin);
+  padding: var(--gr-schedule-prompt-pad);
+  border-left: var(--gr-schedule-prompt-rule);
+  font-size: var(--gr-size-schedule-prompt);
+  line-height: var(--gr-leading-text);
+  color: var(--gr-ink);
+  white-space: pre-wrap;
+}
+
+.runs {
+  list-style: none;
+  margin: 0 0 var(--gr-space-2);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-schedule-runs-gap);
+  font-size: var(--gr-size-aside);
+}
+
+.runs li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--gr-schedule-actions-gap);
+}
+
+.when {
+  font-variant-numeric: tabular-nums;
+  color: var(--gr-ink-soft);
+}
+
+.outcome {
+  color: var(--gr-ink);
+}
+
+.amiss .outcome {
+  font-style: italic;
+  color: var(--gr-rubric);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--gr-schedule-actions-gap);
+}
+
+.ask {
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink);
+}
+
+.danger {
+  color: var(--gr-rubric);
+}
+
+.add {
+  color: var(--gr-lapis);
+}

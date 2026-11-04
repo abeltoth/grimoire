@@ -396,6 +396,28 @@
   --gr-ledger-section-gap: 32px;
   --gr-ledger-percent-col: 40px;
 
+  /* Scheduled chats: each schedule a dated journal entry */
+  --gr-schedules-width: 620px;
+  --gr-schedules-entry-gap: 22px;
+  --gr-schedules-entry-pad: 18px;
+  --gr-size-schedule-name: 22px;
+  --gr-leading-schedule-name: 1.2;
+  --gr-schedule-prompt-margin: 10px 0 12px;
+  --gr-schedule-prompt-pad: 1px 0 1px 14px;
+  --gr-schedule-prompt-rule: 2px solid var(--gr-hairline);
+  --gr-size-schedule-prompt: 15.5px;
+  --gr-schedule-runs-gap: 3px;
+  --gr-schedule-actions-gap: 14px;
+  --gr-schedule-form-label-col: 92px;
+  --gr-schedule-form-row-gap: 14px;
+  --gr-schedule-form-col-gap: 18px;
+  --gr-size-schedule-field: 15.5px;
+  --gr-schedule-word-gap: 12px;
+  --gr-schedule-word-pad: 0 0 1px;
+  --gr-schedule-word-rule: 1.5px solid var(--gr-rubric);
+  --gr-schedule-word-rule-off: 1.5px solid transparent;
+  --gr-schedule-time-width: 140px;
+
   /* The Scriptorium: your shells, as leaves written in the book's inks */
   --gr-scriptorium-pad-bottom: 18px;
   --gr-scriptorium-tabs-gap: 26px;

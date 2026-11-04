@@ -1,0 +1,111 @@
+/* A schedule written out: its labels in small capitals down the left, what each takes beside them. */
+.form {
+  display: grid;
+  grid-template-columns: var(--gr-schedule-form-label-col) minmax(0, 1fr);
+  align-items: baseline;
+  row-gap: var(--gr-schedule-form-row-gap);
+  column-gap: var(--gr-schedule-form-col-gap);
+}
+
+.label {
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-label);
+  letter-spacing: var(--gr-tracking-label);
+  color: var(--gr-ink-soft);
+}
+
+/* Written on a dotted line, in pen. */
+.line {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-bottom: var(--gr-rename-rule);
+  background: transparent;
+  font: inherit;
+  font-size: var(--gr-size-schedule-field);
+  line-height: var(--gr-leading-text);
+  color: var(--gr-pen);
+  caret-color: var(--gr-pen);
+  outline: none;
+  resize: vertical;
+}
+
+.line::placeholder {
+  font-style: italic;
+  color: var(--gr-ink-placeholder);
+}
+
+.line:focus-visible {
+  border-bottom-color: var(--gr-pen);
+}
+
+.time {
+  width: var(--gr-schedule-time-width);
+}
+
+/* Words to pick from, the picked ones underlined in rubric. */
+.words {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--gr-schedule-word-gap);
+}
+
+.word {
+  padding: var(--gr-schedule-word-pad);
+  border-bottom: var(--gr-schedule-word-rule-off);
+  font-size: var(--gr-size-schedule-field);
+  color: var(--gr-ink-soft);
+}
+
+.word:hover {
+  color: var(--gr-ink);
+}
+
+.word[aria-pressed='true'],
+.word[aria-checked='true'] {
+  color: var(--gr-ink);
+  border-bottom: var(--gr-schedule-word-rule);
+}
+
+.word code {
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-code);
+}
+
+.note {
+  grid-column: 2;
+  margin: 0;
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.note b {
+  font-style: normal;
+  font-weight: 500;
+  color: var(--gr-rubric);
+}
+
+.actions {
+  grid-column: 2;
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-schedule-actions-gap);
+}
+
+.send {
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-control);
+  font-weight: 500;
+  letter-spacing: var(--gr-tracking-label);
+  color: var(--gr-rubric);
+}
+
+.send:hover:not([aria-disabled]) {
+  color: var(--gr-ink);
+}
+
+.send[aria-disabled] {
+  color: var(--gr-ink-faint);
+}

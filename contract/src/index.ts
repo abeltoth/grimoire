@@ -5,5 +5,6 @@ export * from './git';
 export * from './terminal';
 export * from './layout';
 export * from './presets';
+export * from './schedules';
 export * from './bridge';
 export * from './protocol';

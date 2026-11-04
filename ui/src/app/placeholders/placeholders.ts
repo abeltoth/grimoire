@@ -8,13 +8,13 @@ import { provideShellEntries } from '../shell/shell-registry';
  */
 export function providePlaceholders(): EnvironmentProviders {
   return provideShellEntries((shell) => {
-    // The Ledger, at 50, is its own module, as are the Git page and the branch in the running foot.
+    // The Ledger, at 50, and Scheduled chats, at 40, are modules of their own, as are the Git
+    // page, the branch in the running foot and the next scheduled run.
     const thumbs: [string, number][] = [
       ['Table of contents', 0],
       ['Front matter', 10],
       ['Kanban', 20],
       ['Memory map', 30],
-      ['Scheduled chats', 40],
       ['Colophon', 60],
     ];
     thumbs.forEach(([label, order]) =>
@@ -23,7 +23,5 @@ export function providePlaceholders(): EnvironmentProviders {
 
     shell.facingPages.add({ id: 'files', label: 'Files', order: 20 });
     shell.facingPages.add({ id: 'second-chapter', label: 'Second chapter', order: 40 });
-
-    shell.indicators.add({ id: 'schedule.next', label: 'Morning repo summary at 8:00', order: 20 });
   });
 }
