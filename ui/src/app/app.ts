@@ -4,6 +4,7 @@ import { DesignSettings } from '../design-system/design-settings';
 import { GRIMOIRE_BRIDGE } from './core/bridge';
 import { Chats } from './core/chats';
 import { ServiceStatus } from './core/service-status';
+import { Wording } from './core/wording';
 import { Book } from './shell/book';
 import { FacingPage } from './shell/facing-page';
 import { Page } from './shell/page';
@@ -46,6 +47,7 @@ export class App {
   protected readonly service = inject(ServiceStatus);
   protected readonly chapters = inject(Chats);
   protected readonly registry = inject(ShellRegistry);
+  protected readonly wording = inject(Wording);
   private readonly platform = inject(GRIMOIRE_BRIDGE).platform;
 
   // Mock until profiles exist.

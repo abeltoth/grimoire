@@ -44,7 +44,7 @@ A custom UI for Claude Code, built on the Claude Agent SDK.
 - [x] Git panel: branch and uncommitted changes, plus a separate worktree per chat so parallel chats don't collide
 - [x] Scheduled chats, such as a morning summary of repo changes
 - [ ] Theme editor with live preview
-- [ ] Setting to toggle between the book names (Colophon, Ledger...) and plain labels (Settings, Usage...)
+- [x] Setting to toggle between the book names (Colophon, Ledger...) and plain labels (Settings, Usage...)
 - [ ] Animated status per chat: thinking, writing, waiting for you
 - [ ] Focus mode that hides everything except the active chat
 - [ ] Transcript detail levels: normal, thinking, verbose

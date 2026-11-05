@@ -7,9 +7,11 @@
     <b>{{ from }}</b>
     <span class="asks">{{ agentName() }} {{ a.asks }}</span>
     <span class="spacer"></span>
-    <button type="button" class="gr-link" (click)="opened.emit()">Open the chapter →</button>
+    <button type="button" class="gr-link" (click)="opened.emit()">
+      {{ wording.say('Open the chapter', 'Open the chat') }} →
+    </button>
   } @else {
-    <b>¶ Awaiting your seal</b>
+    <b>{{ wording.say('¶ Awaiting your seal', 'Waiting for approval') }}</b>
     <span>{{ agentName() }} {{ a.asks }}</span>
   }
 </div>

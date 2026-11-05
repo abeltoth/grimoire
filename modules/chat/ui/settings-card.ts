@@ -18,6 +18,7 @@ import { type Chapter, Chats, type Setting, type SettingsPick } from '@ui/app/co
 import { EFFORTS } from '@ui/app/core/efforts';
 import { MODES } from '@ui/app/core/modes';
 import { Presets } from '@ui/app/core/presets';
+import { Wording } from '@ui/app/core/wording';
 
 const RECENT_FOLDERS = 3;
 
@@ -49,6 +50,7 @@ export class SettingsCard {
 
   protected readonly chats = inject(Chats);
   protected readonly presets = inject(Presets);
+  protected readonly wording = inject(Wording);
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
   private readonly injector = inject(Injector);
   private readonly nameField = viewChild<ElementRef<HTMLInputElement>>('presetName');

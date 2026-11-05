@@ -9,6 +9,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { Chats } from '@ui/app/core/chats';
+import { Wording } from '@ui/app/core/wording';
 import type { Approval, ApprovalDecision } from '@grimoire/contract';
 import { Icon } from '@ui/design-system/icon';
 import { askOf, scopeText } from './asks';
@@ -49,6 +50,7 @@ export class ApprovalSlip {
 
   protected readonly ask = computed(() => askOf(this.approval(), this.cwd()));
   private readonly chats = inject(Chats);
+  protected readonly wording = inject(Wording);
   protected readonly folder = computed(() => this.chats.folderName(this.cwd()));
   protected readonly headId = computed(() => `gr-slip-${this.approval().id}`);
   protected readonly scopeText = scopeText;

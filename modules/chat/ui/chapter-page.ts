@@ -15,6 +15,7 @@ import { Chats, type Setting } from '@ui/app/core/chats';
 import { effortName } from '@ui/app/core/efforts';
 import { modeName } from '@ui/app/core/modes';
 import { Presets } from '@ui/app/core/presets';
+import { Wording } from '@ui/app/core/wording';
 import { Facing } from '@ui/app/shell/facing';
 import { RunningFoot } from '@ui/app/shell/running-foot';
 import { ReviewStamps } from '@ui/app/shell/review-stamps';
@@ -64,6 +65,7 @@ export class ChapterPage {
   protected readonly chats = inject(Chats);
   private readonly facing = inject(Facing);
   private readonly presets = inject(Presets);
+  protected readonly wording = inject(Wording);
   protected readonly chapter = this.chats.current;
   protected readonly composer = viewChild(Composer);
   private readonly running = computed(() =>

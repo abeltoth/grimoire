@@ -23,6 +23,7 @@ import type {
 import { Icon } from '@ui/design-system/icon';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { Chats } from '@ui/app/core/chats';
+import { Wording } from '@ui/app/core/wording';
 import { AgentCommands } from '@ui/app/shell/agent-commands';
 import { Drafts } from './drafts';
 import { Enclosures } from './enclosures';
@@ -41,10 +42,11 @@ import { readPicture } from './pictures';
   imports: [Enclosures, Icon],
   templateUrl: './composer.html',
   styleUrl: './composer.css',
-  host: { role: 'region', 'aria-label': 'Next page' },
+  host: { role: 'region', '[attr.aria-label]': "wording.say('Next page', 'Message')" },
 })
 export class Composer {
   protected readonly chats = inject(Chats);
+  protected readonly wording = inject(Wording);
   private readonly commands = inject(AgentCommands);
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
   private readonly pending = inject(PendingTasks);

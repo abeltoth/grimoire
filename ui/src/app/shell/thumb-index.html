@@ -15,13 +15,14 @@
   type="button"
   class="thumb index"
   [attr.aria-label]="
-    'Index, the command palette' + (shortcut ? '. ' + (shortcut | shortcut: 'spoken') : '')
+    wording.say('Index, the command palette', 'Command palette') +
+    (shortcut ? '. ' + (shortcut | shortcut: 'spoken') : '')
   "
   [attr.aria-current]="facing.index() !== null ? 'page' : null"
   (click)="index()?.run?.()"
 >
   <span>
-    Index
+    {{ wording.say('Index', 'Commands') }}
     @if (shortcut) {
       <span class="gr-kbd" [class.words]="platform !== 'mac'">{{
         shortcut | shortcut: 'keys'

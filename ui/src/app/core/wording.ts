@@ -18,4 +18,10 @@ export class Wording {
   /** A shell entry's label, or its plain one when it has one and Grimoire speaks plainly. */
   readonly label = (entry: { label: string; plainLabel?: string }): string =>
     this.plain() && entry.plainLabel ? entry.plainLabel : entry.label;
+
+  /** What a chapter is called until it has a title. */
+  readonly untitled = computed(() => this.say('Untitled chapter', 'Untitled chat'));
+
+  /** The link that turns back to a page: "Back to the Outline", or plainly "Back to Plan". */
+  readonly back = (to: string): string => this.say(`Back to the ${to}`, `Back to ${to}`);
 }

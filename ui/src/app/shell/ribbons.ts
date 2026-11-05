@@ -50,7 +50,7 @@ const MOTION: Partial<Record<Chapter['status'], string>> = {
   imports: [Icon, Ribbon, ShortcutPipe],
   templateUrl: './ribbons.html',
   styleUrl: './ribbons.css',
-  host: { role: 'navigation', 'aria-label': 'Open chapters' },
+  host: { role: 'navigation', '[attr.aria-label]': "wording.say('Open chapters', 'Open chats')" },
 })
 export class Ribbons {
   protected readonly chapters = inject(Chats);
@@ -83,16 +83,16 @@ export class Ribbons {
     this.awaitingSeal().reduce((sum, c) => sum + this.sealsOf(c), 0),
   );
 
-  private readonly wording = inject(Wording);
+  protected readonly wording = inject(Wording);
 
   protected readonly newChapter = computed(() => this.registry.commands.get('chapters.new'));
   protected readonly newChapterLabel = computed(() => {
     const command = this.newChapter();
-    return command ? this.wording.label(command) : 'New chapter';
+    return command ? this.wording.label(command) : this.wording.say('New chapter', 'New chat');
   });
 
   protected title(chapter: Chapter): string {
-    return chapter.title || 'Untitled chapter';
+    return chapter.title || this.wording.untitled();
   }
 
   protected tone(chapter: Chapter): RibbonTone {
@@ -108,7 +108,11 @@ export class Ribbons {
   }
 
   protected meta(chapter: Chapter): string {
-    return `${this.chapters.agentName(chapter.agent)} · ${STATUS_TEXT[chapter.status]}`;
+    const status =
+      chapter.status === 'blank'
+        ? this.wording.say('blank page', 'new chat')
+        : STATUS_TEXT[chapter.status];
+    return `${this.chapters.agentName(chapter.agent)} · ${status}`;
   }
 
   protected sealLabel(): string {
@@ -116,6 +120,10 @@ export class Ribbons {
     const titles = this.awaitingSeal().map((c) => this.title(c));
     const from =
       titles.length > 1 ? `${titles.slice(0, -1).join(', ')} and ${titles.at(-1)}` : titles[0];
-    return `${count} ${count === 1 ? 'approval' : 'approvals'} awaiting your seal, from ${from}`;
+    const approvals = `${count} ${count === 1 ? 'approval' : 'approvals'}`;
+    return this.wording.say(
+      `${approvals} awaiting your seal, from ${from}`,
+      `${approvals} waiting, from ${from}`,
+    );
   }
 }

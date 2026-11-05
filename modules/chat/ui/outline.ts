@@ -2,6 +2,7 @@ import { Component, computed, inject } from '@angular/core';
 import type { PlanStep } from '@grimoire/contract';
 import { Icon } from '@ui/design-system/icon';
 import { Chats } from '@ui/app/core/chats';
+import { Wording } from '@ui/app/core/wording';
 
 const NUMERALS = ['m', 'cm', 'd', 'cd', 'c', 'xc', 'l', 'xl', 'x', 'ix', 'v', 'iv', 'i'];
 const VALUES = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
@@ -34,6 +35,7 @@ const RUNNING: Record<string, string> = {
 })
 export class Outline {
   private readonly chats = inject(Chats);
+  protected readonly wording = inject(Wording);
   protected readonly roman = roman;
 
   protected readonly chapter = this.chats.current;

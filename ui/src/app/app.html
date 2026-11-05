@@ -4,7 +4,9 @@
   <gr-book>
     <gr-page
       side="left"
-      [attr.aria-label]="'Chapter: ' + (chapters.current()?.title || 'Untitled chapter')"
+      [attr.aria-label]="
+        wording.say('Chapter: ', 'Chat: ') + (chapters.current()?.title || wording.untitled())
+      "
     >
       @if (registry.chapterPage(); as chapterPage) {
         <ng-container *ngComponentOutlet="chapterPage" />

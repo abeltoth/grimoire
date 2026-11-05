@@ -2,6 +2,7 @@ import { Component, computed, inject, input, linkedSignal, output, signal, untra
 import type { AgentId, EffortLevel, ScheduleDraft, ScheduleInfo } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { Chats } from '@ui/app/core/chats';
+import { Wording } from '@ui/app/core/wording';
 import { EFFORTS } from '@ui/app/core/efforts';
 import { ScheduledChats } from './scheduled-chats';
 import { WEEK } from './wording';
@@ -26,6 +27,7 @@ export class ScheduleForm {
   readonly done = output<void>();
 
   protected readonly chats = inject(Chats);
+  protected readonly wording = inject(Wording);
   private readonly scheduled = inject(ScheduledChats);
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
   protected readonly week = WEEK;

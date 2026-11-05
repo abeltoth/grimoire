@@ -1,6 +1,6 @@
 <p class="lead">
-  Chats Grimoire begins by itself, on the days and at the time you set, each run a new chapter with
-  Full access. They run while Grimoire’s service does; a time it was away for runs when it’s back,
+  Chats Grimoire begins by itself, on the days and at the time you set, each run a new
+  {{ wording.say('chapter', 'chat') }} with Full access. They run while Grimoire’s service does; a time it was away for runs when it’s back,
   unless that’s more than three hours late.
 </p>
 
@@ -38,7 +38,7 @@
                 <span class="outcome">{{ outcome(run) }}</span>
                 @if (run.chatId) {
                   &ngsp;<button type="button" class="gr-link" (click)="scheduled.openRun(s, run)">
-                    Open its chapter
+                    {{ wording.say('Open its chapter', 'Open its chat') }}
                   </button>
                 }
               </li>

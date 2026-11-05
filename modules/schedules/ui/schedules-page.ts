@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import type { ScheduleDraft, ScheduleInfo, ScheduleRun } from '@grimoire/contract';
 import { Chats } from '@ui/app/core/chats';
+import { Wording } from '@ui/app/core/wording';
 import { effortName } from '@ui/app/core/efforts';
 import { ScheduleForm } from './schedule-form';
 import { ScheduledChats } from './scheduled-chats';
@@ -20,6 +21,7 @@ import { cadence, dateline, when } from './wording';
 export class SchedulesPage {
   protected readonly scheduled = inject(ScheduledChats);
   protected readonly chats = inject(Chats);
+  protected readonly wording = inject(Wording);
   /** The schedule written out to change, or 'new' for one being added. */
   protected readonly editing = signal<string | null>(null);
   /** The schedule asked about before it's removed. */

@@ -17,13 +17,19 @@
   <div class="cold" role="note">
     <span class="cold-label"><gr-icon name="hourglass" />Cache expired</span>
     <p class="cold-text">
-      {{ cold.ago }}, so your next entry re-reads about <b>{{ cold.tokens }} tokens</b>
+      {{ cold.ago }}, so your next {{ wording.say('entry', 'message') }} re-reads about
+      <b>{{ cold.tokens }} tokens</b>
     </p>
     @if (chats.can(agent(), 'compact')) {
       <button
         type="button"
         class="gr-link"
-        title="Sums the chapter up so later entries read less; summing up reads it all once too"
+        [attr.title]="
+          wording.say(
+            'Sums the chapter up so later entries read less; summing up reads it all once too',
+            'Sums the chat up so later messages read less; summing up reads it all once too'
+          )
+        "
         (click)="compact()"
       >
         Compact first
@@ -32,7 +38,9 @@
   </div>
 }
 
-<label class="sr-only" for="gr-next-entry">{{ first() ? 'First entry' : 'Next entry' }}</label>
+<label class="sr-only" for="gr-next-entry">{{
+  first() ? wording.say('First entry', 'First message') : wording.say('Next entry', 'Next message')
+}}</label>
 <div class="writing">
   <textarea
     #entry
@@ -40,7 +48,11 @@
     class="entry"
     rows="2"
     [class.slash]="lookingUp()"
-    [placeholder]="first() ? 'Write the first entry…' : 'Write the next entry…'"
+    [placeholder]="
+      first()
+        ? wording.say('Write the first entry…', 'Write the first message…')
+        : wording.say('Write the next entry…', 'Write the next message…')
+    "
     [value]="draft()"
     [attr.aria-controls]="lookingUp() ? 'gr-command-entries' : null"
     [attr.aria-expanded]="lookingUp() ? true : null"
@@ -51,7 +63,8 @@
   ></textarea>
   @if (lookingUp()) {
     <span class="slash-hint"
-      >{{ chats.agentName(agent()) }}’s commands and skills are on the facing page →</span
+      >{{ chats.agentName(agent()) }}’s commands and skills are on the
+      {{ wording.say('facing page', 'right') }} →</span
     >
   }
 </div>
@@ -75,7 +88,9 @@
   >
     <gr-icon name="attach" />Attach
   </button>
-  <span class="drop-hint">or drop or paste them onto the page</span>
+  <span class="drop-hint">{{
+    wording.say('or drop or paste them onto the page', 'or drop or paste them here')
+  }}</span>
   <span class="spacer"></span>
   @if (used() !== undefined) {
     <div
@@ -90,13 +105,18 @@
         <span class="used" [style.width.%]="used()! > 100 ? 100 : used()"></span>
       </span>
       <b>{{ used() }}%</b>
-      <span>of the chapter’s page allowance</span>
+      <span>{{ wording.say('of the chapter’s page allowance', 'of the context window') }}</span>
     </div>
   }
   <button
     type="button"
     class="control"
-    aria-label="Parallel texts: send to two models on facing pages"
+    [attr.aria-label]="
+      wording.say(
+        'Parallel texts: send to two models on facing pages',
+        'Parallel: send to two models side by side'
+      )
+    "
     aria-disabled="true"
   >
     <gr-icon name="parallel" />Parallel

@@ -9,6 +9,7 @@ import {
 import type { AgentCommand } from '@grimoire/contract';
 import { Icon } from '../../design-system/icon';
 import { Chats } from '../core/chats';
+import { Wording } from '../core/wording';
 import { AgentCommands, type ListedCommand } from './agent-commands';
 import { RunningFoot } from './running-foot';
 import { RunningHead } from './running-head';
@@ -36,6 +37,7 @@ export class CommandIndex {
 
   protected readonly commands = inject(AgentCommands);
   private readonly chats = inject(Chats);
+  protected readonly wording = inject(Wording);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
 
   protected readonly agentName = computed(() => {
@@ -54,7 +56,8 @@ export class CommandIndex {
 
   protected readonly count = computed(() => {
     const count = this.commands.listed().length;
-    return `${count} ${count === 1 ? 'entry' : 'entries'}`;
+    const [one, many] = this.wording.plain() ? ['result', 'results'] : ['entry', 'entries'];
+    return `${count} ${count === 1 ? one : many}`;
   });
 
   /** Why nothing is listed. */
