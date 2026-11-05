@@ -70,8 +70,11 @@
     class="new"
     side="right"
     tone="new"
-    heading="New chapter"
-    [meta]="'Last settings' + (shortcut ? ' · ' + (shortcut | shortcut) : '')"
+    [heading]="newChapterLabel()"
+    [meta]="
+      (chapters.startOf().preset ?? 'Last settings') +
+      (shortcut ? ' · ' + (shortcut | shortcut) : '')
+    "
     (picked)="chapters.newChapter()"
   >
     <gr-icon name="plus" />

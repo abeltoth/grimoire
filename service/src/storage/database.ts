@@ -76,6 +76,10 @@ const MIGRATIONS = [
      error TEXT,
      PRIMARY KEY (schedule_id, due_at)
    );`,
+  `CREATE TABLE settings (
+     key TEXT PRIMARY KEY,
+     value TEXT NOT NULL
+   );`,
 ];
 
 /**

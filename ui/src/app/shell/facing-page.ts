@@ -2,6 +2,7 @@ import { NgComponentOutlet } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
 import { Drawing } from '../../design-system/drawing';
 import { Icon } from '../../design-system/icon';
+import { Wording } from '../core/wording';
 import { CommandIndex } from './command-index';
 import { IndexPage } from './index-page';
 import { Page } from './page';
@@ -37,10 +38,17 @@ import { type FacingPageEntry, ShellRegistry } from './shell-registry';
 export class FacingPage {
   protected readonly registry = inject(ShellRegistry);
   protected readonly facing = inject(Facing);
+  protected readonly wording = inject(Wording);
 
   protected readonly shown = computed<FacingPageEntry | undefined>(() => {
     const pages = this.registry.facingPages.all().filter((page) => page.component);
     return pages.find((page) => page.id === this.facing.page()) ?? pages[0];
+  });
+
+  /** The label of the page the Index, a thumb tab's page or the seals turn back to. */
+  protected readonly back = computed(() => {
+    const page = this.shown();
+    return page ? this.wording.label(page) : 'facing page';
   });
 
   /** The thumb tab whose page shows, if any. */

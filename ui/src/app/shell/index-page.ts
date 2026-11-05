@@ -15,6 +15,7 @@ import { Icon } from '../../design-system/icon';
 import { GRIMOIRE_BRIDGE } from '../core/bridge';
 import { Chats } from '../core/chats';
 import { Presets } from '../core/presets';
+import { Wording } from '../core/wording';
 import { Facing } from './facing';
 import { RunningFoot } from './running-foot';
 import { RunningHead } from './running-head';
@@ -71,6 +72,7 @@ export class IndexPage {
   private readonly registry = inject(ShellRegistry);
   private readonly chats = inject(Chats);
   private readonly presets = inject(Presets);
+  private readonly wording = inject(Wording);
   private readonly platform = inject(GRIMOIRE_BRIDGE).platform;
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly field = viewChild.required<ElementRef<HTMLInputElement>>('field');
@@ -101,8 +103,10 @@ export class IndexPage {
       .map(
         (command): IndexEntry => ({
           id: `action-${command.id}`,
-          label: command.label,
-          ...(command.hint ? { hint: command.hint } : {}),
+          label: this.wording.label(command),
+          ...(command.hint
+            ? { hint: typeof command.hint === 'string' ? command.hint : command.hint() }
+            : {}),
           ...(command.shortcut ? { shortcut: command.shortcut } : {}),
           run: command.run!,
         }),

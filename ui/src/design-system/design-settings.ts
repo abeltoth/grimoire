@@ -2,7 +2,7 @@ import { DOCUMENT, Injectable, effect, inject, signal } from '@angular/core';
 
 /**
  * Look-and-feel switches that apply to the whole window. For now only
- * drawings; the Colophon will set and save these later.
+ * drawings, which the app's Settings keep as the Colophon sets them.
  */
 @Injectable({ providedIn: 'root' })
 export class DesignSettings {

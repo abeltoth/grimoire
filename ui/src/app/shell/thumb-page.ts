@@ -1,5 +1,6 @@
 import { NgComponentOutlet } from '@angular/common';
 import { Component, inject, input } from '@angular/core';
+import { Wording } from '../core/wording';
 import { Facing } from './facing';
 import { RunningHead } from './running-head';
 import type { ThumbTab } from './shell-registry';
@@ -21,6 +22,7 @@ export class ThumbPage {
   readonly backTo = input('facing page');
 
   protected readonly facing = inject(Facing);
+  protected readonly wording = inject(Wording);
 
   protected back(event: Event): void {
     if (event.defaultPrevented) return;

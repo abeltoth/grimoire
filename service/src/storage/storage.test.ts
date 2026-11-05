@@ -4,6 +4,7 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { LayoutStore } from '../core/layout';
 import { PresetStore } from '../core/presets';
+import { SettingsStore } from '../core/settings';
 import { Chapters } from './chapters';
 import { openDatabase } from './database';
 import { DogEars } from './dog-ears';
@@ -82,5 +83,35 @@ describe('storage', () => {
     expect(layout.get()).toEqual({ current: 'a', lastUsed });
     layout.set({ current: null });
     expect(layout.get()).toEqual({ current: null, lastUsed });
+  });
+
+  it('keeps the settings, each with its default until set, and refuses what they don’t take', () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'grimoire-db-'));
+    dirs.push(dir);
+    const file = path.join(dir, 'grimoire.db');
+    const db = openDatabase(file);
+    const settings = new SettingsStore(db);
+    expect(settings.get()).toEqual({
+      wording: 'book',
+      drawings: true,
+      defaultAgent: null,
+      newChapter: { from: 'last-used' },
+    });
+    settings.set({ wording: 'plain', newChapter: { from: 'preset', preset: 'Bug fix' } });
+    expect(() => settings.set({ wording: 'fancy' } as never)).toThrow(`"wording" can't be "fancy"`);
+    expect(() => settings.set({ newChapter: { from: 'preset', preset: '' } })).toThrow('"newChapter"');
+    expect(() => settings.set({ theme: 'x' } as never)).toThrow(`There's no setting "theme"`);
+    // A refused change changes nothing, even the settings given beside it.
+    expect(() => settings.set({ drawings: false, defaultAgent: 3 } as never)).toThrow();
+    db.close();
+
+    const again = openDatabase(file);
+    expect(new SettingsStore(again).get()).toEqual({
+      wording: 'plain',
+      drawings: true,
+      defaultAgent: null,
+      newChapter: { from: 'preset', preset: 'Bug fix' },
+    });
+    again.close();
   });
 });

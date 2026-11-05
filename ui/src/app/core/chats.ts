@@ -26,6 +26,8 @@ import type {
 } from '@grimoire/contract';
 import { fitEffort } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from './bridge';
+import { PresetList } from './preset-list';
+import { Settings } from './settings';
 
 /** A chapter: one chat, or a blank page waiting for its first message. */
 export interface Chapter {
@@ -91,6 +93,8 @@ interface LastUsed {
 @Injectable({ providedIn: 'root' })
 export class Chats {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
+  private readonly settings = inject(Settings);
+  private readonly presets = inject(PresetList);
   private nextBlank = 1;
 
   readonly agents = signal<readonly AgentInfo[]>([]);
@@ -257,14 +261,28 @@ export class Chats {
     this.remember({ agent, settings });
   }
 
-  /** Opens a blank chapter, with the settings used last or the ones given, and turns to it. */
+  /**
+   * What a new chapter begins with, as the Colophon says: a preset's
+   * settings, or those used last, if they were with the default agent.
+   */
+  startOf(): { preset?: string; agent: AgentId; settings: NewChatSettings } {
+    const { newChapter, defaultAgent } = this.settings.all();
+    if (newChapter.from === 'preset') {
+      const preset = this.presets.all().find((p) => p.name === newChapter.preset);
+      if (preset) return { preset: preset.name, agent: preset.agent, settings: preset.settings };
+    }
+    const agent = defaultAgent ?? this.lastUsed?.agent ?? DEFAULT_AGENT;
+    return this.lastUsed?.agent === agent ? this.lastUsed : { agent, settings: {} };
+  }
+
+  /** Opens a blank chapter, with the settings given or what new chapters begin with, and turns to it. */
   newChapter(from?: { agent: AgentId; settings: NewChatSettings }): void {
-    const start = from ?? this.lastUsed;
+    const start = from ?? this.startOf();
     const blank: Chapter = {
       id: `blank-${this.nextBlank++}`,
-      agent: start?.agent ?? DEFAULT_AGENT,
+      agent: start.agent,
       title: '',
-      settings: start?.settings ?? {},
+      settings: start.settings,
       status: 'blank',
       entries: [],
       approvals: [],
@@ -474,9 +492,12 @@ export class Chats {
   /** Opens the chapters the hub has open, on the one you were on; else a blank page. */
   private async restore(): Promise<void> {
     try {
+      // A blank page begins as the settings say, so they're asked for too.
       const [chats, layout] = await Promise.all([
         this.bridge.invoke('agents.openChats', {}),
         this.bridge.invoke('layout.get', {}),
+        this.settings.ready,
+        this.presets.ready,
       ]);
       this.all.set((chats ?? []).map(fromOpenChat));
       this.lastUsed = layout?.lastUsed ?? null;

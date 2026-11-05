@@ -2,26 +2,26 @@
 @let seals = facing.seals() ? registry.sealsPage() : undefined;
 @if (facing.index() !== null) {
   <gr-page side="right" aria-label="Facing page: Index">
-    <gr-index-page [backTo]="page?.label ?? 'facing page'" />
+    <gr-index-page [backTo]="back()" />
     <gr-drawing class="sigil" name="empty-page" />
   </gr-page>
 } @else if (facing.commands()) {
   <gr-page side="right" aria-label="Facing page: Index, commands and skills">
-    <gr-command-index [backTo]="page?.label ?? 'facing page'" />
+    <gr-command-index [backTo]="back()" />
     <gr-drawing class="sigil" name="empty-page" />
   </gr-page>
 } @else if (thumb(); as tab) {
-  <gr-page side="right" [attr.aria-label]="'Facing page: ' + tab.label">
-    <gr-thumb-page [tab]="tab" [backTo]="page?.label ?? 'facing page'" />
+  <gr-page side="right" [attr.aria-label]="'Facing page: ' + wording.label(tab)">
+    <gr-thumb-page [tab]="tab" [backTo]="back()" />
     <gr-drawing class="sigil" name="empty-page" />
   </gr-page>
 } @else if (seals) {
   <gr-page side="right" aria-label="Facing page: Awaiting your seal">
-    <ng-container *ngComponentOutlet="seals; inputs: { backTo: page?.label ?? 'facing page' }" />
+    <ng-container *ngComponentOutlet="seals; inputs: { backTo: back() }" />
     <gr-drawing class="sigil" name="empty-page" />
   </gr-page>
 } @else {
-<gr-page side="right" [attr.aria-label]="page ? 'Facing page: ' + page.label : 'Facing page'">
+<gr-page side="right" [attr.aria-label]="page ? 'Facing page: ' + wording.label(page) : 'Facing page'">
   <gr-running-head>
     <div class="row">
       <nav class="tabs" aria-label="Facing page shows">
@@ -32,7 +32,7 @@
             [attr.aria-disabled]="entry.component ? null : true"
             (click)="show(entry)"
           >
-            {{ entry.label }}
+            {{ wording.label(entry) }}
           </button>
         }
       </nav>

@@ -8,6 +8,7 @@ export function provideTableOfContents(): EnvironmentProviders {
     shell.thumbs.add({
       id: 'table-of-contents',
       label: 'Table of contents',
+      plainLabel: 'History',
       order: 0,
       component: ContentsPage,
     });

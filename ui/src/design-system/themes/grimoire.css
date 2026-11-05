@@ -428,6 +428,20 @@
   --gr-schedule-word-rule-off: 1.5px solid transparent;
   --gr-schedule-time-width: 140px;
 
+  /* The Colophon: Grimoire's settings, written out as words to pick */
+  --gr-colophon-width: 640px;
+  --gr-colophon-lead-gap: 20px;
+  --gr-colophon-label-col: 168px;
+  --gr-colophon-label-leading: 1.35;
+  --gr-colophon-row-gap: 16px;
+  --gr-colophon-col-gap: 18px;
+  --gr-colophon-note-pull: 8px;
+  --gr-size-colophon-word: 15.5px;
+  --gr-colophon-word-gap: 14px;
+  --gr-colophon-word-pad: 0 0 1px;
+  --gr-colophon-word-rule: 1.5px solid var(--gr-rubric);
+  --gr-colophon-word-rule-off: 1.5px solid transparent;
+
   /* The Scriptorium: your shells, as leaves written in the book's inks */
   --gr-scriptorium-pad-bottom: 18px;
   --gr-scriptorium-tabs-gap: 26px;

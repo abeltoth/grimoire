@@ -18,6 +18,7 @@ export function provideChat(): EnvironmentProviders {
     shell.facingPages.add({
       id: 'outline',
       label: 'Outline',
+      plainLabel: 'Plan',
       order: 10,
       component: Outline,
       foot: () => outlineFoot(chats),
