@@ -43,8 +43,8 @@
         }
       </nav>
       <span class="spacer"></span>
-      <button type="button" class="gr-link" aria-disabled="true">
-        <gr-icon name="single-page" />Single page
+      <button type="button" class="gr-link" (click)="focus.enter()">
+        <gr-icon name="single-page" />{{ wording.say('Single page', 'Focus') }}
       </button>
     </div>
   </gr-running-head>

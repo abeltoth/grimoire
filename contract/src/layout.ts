@@ -6,6 +6,8 @@ export interface Layout {
   current: ChatId | null;
   /** The settings you last picked or began a chapter with; a new chapter takes them. */
   lastUsed: { agent: AgentId; settings: NewChatSettings } | null;
+  /** Whether the book lies at a single page, the chapter alone on the desk. */
+  focus: boolean;
 }
 
 declare module './commands' {

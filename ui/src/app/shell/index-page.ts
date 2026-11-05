@@ -17,6 +17,7 @@ import { Chats } from '../core/chats';
 import { Presets } from '../core/presets';
 import { Wording } from '../core/wording';
 import { Facing } from './facing';
+import { Focus } from './focus';
 import { RunningFoot } from './running-foot';
 import { RunningHead } from './running-head';
 import { ShellRegistry } from './shell-registry';
@@ -73,6 +74,7 @@ export class IndexPage {
   private readonly chats = inject(Chats);
   private readonly presets = inject(Presets);
   protected readonly wording = inject(Wording);
+  protected readonly focus = inject(Focus);
   private readonly platform = inject(GRIMOIRE_BRIDGE).platform;
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly field = viewChild.required<ElementRef<HTMLInputElement>>('field');

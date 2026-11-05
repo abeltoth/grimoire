@@ -140,6 +140,17 @@
   --gr-spine-line: rgba(74, 48, 22, 0.25);
   --gr-gutter-shade-w: 44px;
 
+  /* Focus mode: the chapter's page alone on the desk */
+  /* The page: its margins, a text column of about 680px, the gap and the margin. */
+  --gr-focus-page-w: 1056px;
+  --gr-focus-margin-col: 260px;
+  /* Both pages, when something is turned to on the facing page. */
+  --gr-focus-spread-w: 1840px;
+  /* Room on the desk either side for the window's buttons. */
+  --gr-focus-desk-min: 138px;
+  --gr-focus-desk-pad: 12px;
+  --gr-shadow-focus-leaf: 0 2px 3px rgba(0, 0, 0, 0.35), 0 18px 40px -12px rgba(0, 0, 0, 0.7);
+
   /* Shell: thumb index */
   --gr-thumbs-top: 112px;
   --gr-thumbs-bottom: 30px;

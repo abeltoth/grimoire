@@ -10,6 +10,7 @@ export type IconName =
   | 'branch'
   | 'chevron-down'
   | 'single-page'
+  | 'two-pages'
   | 'minimize'
   | 'maximize'
   | 'close'

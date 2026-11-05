@@ -9,8 +9,10 @@ import { Component, input } from '@angular/core';
   selector: 'gr-page',
   template: '<ng-content />',
   styleUrl: './page.css',
-  host: { role: 'region', '[class.facing]': "side() === 'right'" },
+  host: { role: 'region', '[class.facing]': "side() === 'right'", '[class.alone]': 'alone()' },
 })
 export class Page {
   readonly side = input.required<'left' | 'right'>();
+  /** The only page showing, with no spine to shade towards. */
+  readonly alone = input(false);
 }

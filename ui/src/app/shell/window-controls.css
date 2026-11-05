@@ -1,0 +1,16 @@
+:host {
+  display: flex;
+  -webkit-app-region: no-drag;
+}
+
+button {
+  width: var(--gr-window-control-w);
+  height: var(--gr-window-control-h);
+  display: grid;
+  place-items: center;
+  color: var(--gr-chrome);
+}
+
+button:hover {
+  background: var(--gr-window-control-hover);
+}

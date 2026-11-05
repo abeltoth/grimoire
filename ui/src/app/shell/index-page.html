@@ -6,7 +6,9 @@
       @for (cap of indexCaps(); track $index) {
         <span class="gr-kbd">{{ cap }}</span>
       }
-      <span>{{ wording.say('or its thumb notch', 'or its tab') }}</span>
+      @if (!focus.on()) {
+        <span>{{ wording.say('or its thumb notch', 'or its tab') }}</span>
+      }
     </span>
     <span class="spacer"></span>
     <button type="button" class="gr-link" (click)="facing.closeIndex()">
