@@ -14,15 +14,17 @@ import { PresetList } from '@ui/app/core/preset-list';
 import { Presets } from '@ui/app/core/presets';
 import { Settings } from '@ui/app/core/settings';
 import { Wording } from '@ui/app/core/wording';
+import { ThemeEditor } from './theme-editor';
 
 /**
  * The Colophon: how the book is made. Its settings are written out as
  * words to pick, the picked one underlined, and each is kept by the
  * service as soon as it's picked. Below them, the presets, each with the
- * first entry its chapters begin with, to rename or remove.
+ * first entry its chapters begin with, to rename or remove; then the theme.
  */
 @Component({
   selector: 'gr-colophon-page',
+  imports: [ThemeEditor],
   templateUrl: './colophon-page.html',
   styleUrl: './colophon-page.css',
 })

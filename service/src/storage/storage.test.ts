@@ -96,11 +96,17 @@ describe('storage', () => {
       drawings: true,
       defaultAgent: null,
       newChapter: { from: 'last-used' },
+      theme: {},
     });
     settings.set({ wording: 'plain', newChapter: { from: 'preset', preset: 'Bug fix' } });
+    settings.set({ theme: { '--gr-page': '#fffaf0', '--gr-size-text': '18px' } });
     expect(() => settings.set({ wording: 'fancy' } as never)).toThrow(`"wording" can't be "fancy"`);
     expect(() => settings.set({ newChapter: { from: 'preset', preset: '' } })).toThrow('"newChapter"');
-    expect(() => settings.set({ theme: 'x' } as never)).toThrow(`There's no setting "theme"`);
+    expect(() => settings.set({ shelf: 'x' } as never)).toThrow(`There's no setting "shelf"`);
+    // A theme changes the book's tokens, and only with a value each.
+    expect(() => settings.set({ theme: { color: 'red' } })).toThrow('"theme"');
+    expect(() => settings.set({ theme: { '--gr-page': 'red; }' } })).toThrow('"theme"');
+    expect(() => settings.set({ theme: { '--gr-page': ' ' } })).toThrow('"theme"');
     // A refused change changes nothing, even the settings given beside it.
     expect(() => settings.set({ drawings: false, defaultAgent: 3 } as never)).toThrow();
     db.close();
@@ -111,6 +117,7 @@ describe('storage', () => {
       drawings: true,
       defaultAgent: null,
       newChapter: { from: 'preset', preset: 'Bug fix' },
+      theme: { '--gr-page': '#fffaf0', '--gr-size-text': '18px' },
     });
     again.close();
   });

@@ -3,6 +3,9 @@ import { DEFAULT_SETTINGS, type GrimoireSettings } from '@grimoire/contract';
 import { DesignSettings } from '../../design-system/design-settings';
 import { GRIMOIRE_BRIDGE } from './bridge';
 
+/** How long a run of changes, such as dragging a colour, waits to be kept once it stops. */
+const SOON_MS = 300;
+
 /**
  * Grimoire's settings, as the service keeps them (ADR-007): set on the
  * Colophon, and the same in every window.
@@ -16,30 +19,63 @@ export class Settings {
   readonly failed = signal<string | null>(null);
   /** Settles once the service's settings have been asked for, whatever it answered. */
   readonly ready: Promise<void>;
+  /** Changes made here but not yet sent, which stand over what the service says until they are. */
+  private pending: Partial<GrimoireSettings> = {};
+  private timer: ReturnType<typeof setTimeout> | undefined;
 
   constructor() {
-    this.bridge.on('settings.changed', ({ settings }) => this.all.set(settings));
-    this.ready = this.bridge.invoke('settings.get', {}).then(
-      (settings) => {
-        if (settings) this.all.set(settings);
-      },
-      () => {},
-    );
+    this.bridge.on('settings.changed', ({ settings }) => this.take(settings));
+    this.ready = this.reload();
     const design = inject(DesignSettings);
-    effect(() => design.drawings.set(this.all().drawings));
+    effect(() => {
+      const { drawings, theme } = this.all();
+      design.drawings.set(drawings);
+      design.tokens.set(theme ?? {});
+    });
   }
 
-  /** Changes the settings given at once, and back again if the service refuses them. */
+  /** Changes the settings given at once, and as the service has them again if it refuses them. */
   async set(change: Partial<GrimoireSettings>): Promise<void> {
-    const before = this.all();
-    this.all.set({ ...before, ...change });
+    this.all.update((all) => ({ ...all, ...change }));
+    await this.send(change);
+  }
+
+  /**
+   * Changes the settings given at once, and sends them once they've stopped
+   * changing for a moment, so a colour being dragged is kept once, not at every step.
+   */
+  setSoon(change: Partial<GrimoireSettings>): void {
+    this.pending = { ...this.pending, ...change };
+    this.all.update((all) => ({ ...all, ...change }));
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => {
+      const pending = this.pending;
+      this.pending = {};
+      void this.send(pending);
+    }, SOON_MS);
+  }
+
+  private async send(change: Partial<GrimoireSettings>): Promise<void> {
     try {
       const settings = await this.bridge.invoke('settings.set', change);
-      if (settings) this.all.set(settings);
+      if (settings) this.take(settings);
       this.failed.set(null);
     } catch (error) {
-      this.all.set(before);
       this.failed.set(error instanceof Error ? error.message : String(error));
+      await this.reload();
     }
+  }
+
+  private async reload(): Promise<void> {
+    try {
+      const settings = await this.bridge.invoke('settings.get', {});
+      if (settings) this.take(settings);
+    } catch {
+      // Keep the settings shown.
+    }
+  }
+
+  private take(settings: GrimoireSettings): void {
+    this.all.set({ ...settings, ...this.pending });
   }
 }

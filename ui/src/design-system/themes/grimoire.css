@@ -447,6 +447,19 @@
   --gr-size-colophon-preset-name: 20px;
   --gr-leading-colophon-preset-name: 1.2;
   --gr-colophon-actions-gap: 14px;
+  --gr-theme-row-gap: 10px;
+  --gr-theme-control-gap: 12px;
+  --gr-theme-group-gap: 12px;
+  --gr-theme-picker-width: 44px;
+  --gr-theme-picker-height: 24px;
+  --gr-theme-size-width: 200px;
+  --gr-theme-swatch-size: 14px;
+  --gr-theme-swatch-rule: 1px solid var(--gr-hairline);
+  --gr-theme-radius: 2px;
+  --gr-theme-leader: var(--gr-leader);
+  --gr-theme-summary-pad: 7px 0;
+  --gr-theme-name-col: 290px;
+  --gr-theme-token-pad: 3px 0;
 
   /* The Scriptorium: your shells, as leaves written in the book's inks */
   --gr-scriptorium-pad-bottom: 18px;

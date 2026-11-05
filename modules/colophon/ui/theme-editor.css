@@ -1,0 +1,218 @@
+:host {
+  display: block;
+}
+
+.lead {
+  margin: var(--gr-aside-gap) 0 var(--gr-colophon-lead-gap);
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.none {
+  margin: 0;
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+/* The main colours, each name in small capitals beside its well of ink. */
+.form {
+  display: grid;
+  grid-template-columns: var(--gr-colophon-label-col) minmax(0, 1fr);
+  align-items: center;
+  row-gap: var(--gr-theme-row-gap);
+  column-gap: var(--gr-colophon-col-gap);
+}
+
+.label {
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-label);
+  letter-spacing: var(--gr-tracking-label);
+  color: var(--gr-ink-soft);
+}
+
+.control {
+  display: flex;
+  align-items: center;
+  gap: var(--gr-theme-control-gap);
+}
+
+code {
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-code);
+  color: var(--gr-ink-soft);
+}
+
+/* A well of the colour itself, ruled round. */
+.picker {
+  width: var(--gr-theme-picker-width);
+  height: var(--gr-theme-picker-height);
+  padding: 0;
+  border: var(--gr-theme-swatch-rule);
+  border-radius: var(--gr-theme-radius);
+  background: transparent;
+  cursor: pointer;
+}
+
+.picker::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.picker::-webkit-color-swatch {
+  border: 0;
+  border-radius: var(--gr-theme-radius);
+}
+
+.size {
+  width: var(--gr-theme-size-width);
+  accent-color: var(--gr-rubric);
+}
+
+h3 {
+  margin: var(--gr-colophon-section-gap) 0 var(--gr-theme-row-gap);
+  font-family: var(--gr-font-display-sc);
+  font-weight: 400;
+  font-size: var(--gr-size-label);
+  letter-spacing: var(--gr-tracking-section-head);
+  color: var(--gr-ink-soft);
+}
+
+.look-up {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-theme-control-gap);
+  margin-bottom: var(--gr-theme-group-gap);
+}
+
+.look-up label {
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-label);
+  letter-spacing: var(--gr-tracking-label);
+  color: var(--gr-ink-soft);
+}
+
+.look-up .line {
+  flex: 1;
+}
+
+.count {
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+  white-space: nowrap;
+}
+
+/* Written on a dotted line, in pen. */
+.line {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-bottom: var(--gr-rename-rule);
+  background: transparent;
+  font: inherit;
+  font-size: var(--gr-size-colophon-word);
+  color: var(--gr-pen);
+  caret-color: var(--gr-pen);
+  outline: none;
+}
+
+.line::placeholder {
+  font-style: italic;
+  color: var(--gr-ink-placeholder);
+}
+
+.line:focus-visible {
+  border-bottom-color: var(--gr-pen);
+}
+
+.danger {
+  color: var(--gr-rubric);
+}
+
+/* A heading of the theme's, folded shut until you open it or look something up. */
+.group {
+  border-top: 1px solid var(--gr-hairline);
+}
+
+.group:last-of-type {
+  border-bottom: 1px solid var(--gr-hairline);
+}
+
+summary {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-theme-control-gap);
+  padding: var(--gr-theme-summary-pad);
+  font-size: var(--gr-size-colophon-word);
+  color: var(--gr-ink);
+  cursor: pointer;
+}
+
+.leader {
+  flex: 1;
+  border-bottom: var(--gr-theme-leader);
+}
+
+.n {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+ul {
+  list-style: none;
+  margin: 0 0 var(--gr-theme-group-gap);
+  padding: 0;
+}
+
+li {
+  display: grid;
+  grid-template-columns: var(--gr-theme-name-col) minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: var(--gr-theme-control-gap);
+  padding: var(--gr-theme-token-pad);
+}
+
+.changed .name {
+  color: var(--gr-rubric);
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.value {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-theme-control-gap);
+  min-width: 0;
+}
+
+.value .line {
+  flex: 1;
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-code);
+}
+
+.swatch {
+  flex: none;
+  width: var(--gr-theme-swatch-size);
+  height: var(--gr-theme-swatch-size);
+  border: var(--gr-theme-swatch-rule);
+  border-radius: var(--gr-theme-radius);
+  align-self: center;
+}
+
+.swatch.blank {
+  visibility: hidden;
+}
+
+.note {
+  grid-column: 2 / -1;
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}

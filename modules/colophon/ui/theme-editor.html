@@ -1,0 +1,114 @@
+<p class="lead">
+  {{
+    wording.say(
+      'Every colour, face, size and timing in the book is one of the theme’s tokens. Change one and every page changes with it; it’s kept for every window once you stop.',
+      'Every colour, font, size and timing is a theme token. Change one and the app changes with it; it’s kept for every window once you stop.'
+    )
+  }}
+</p>
+
+<div class="form">
+  @for (token of main(); track token.name) {
+    <label class="label" [for]="'gr-theme-' + token.name">{{ token.label }}</label>
+    <span class="control">
+      <input
+        type="color"
+        class="picker"
+        [id]="'gr-theme-' + token.name"
+        [value]="token.hex ?? ''"
+        (input)="change(token.name, $any($event.target).value)"
+      />
+      <code>{{ token.value }}</code>
+      @if (token.changed) {
+        <button type="button" class="gr-link" (click)="reset(token.name)">Reset</button>
+      }
+    </span>
+  }
+
+  <label class="label" for="gr-theme-text-size">{{
+    wording.say('Size of the text', 'Text size')
+  }}</label>
+  <span class="control">
+    <input
+      type="range"
+      class="size"
+      id="gr-theme-text-size"
+      step="0.5"
+      [min]="textSizes.min"
+      [max]="textSizes.max"
+      [value]="textSize() ?? ''"
+      (input)="change(TEXT_SIZE, $any($event.target).value + 'px')"
+    />
+    <code>{{ valueOf(TEXT_SIZE) }}</code>
+    @if (TEXT_SIZE in changes()) {
+      <button type="button" class="gr-link" (click)="reset(TEXT_SIZE)">Reset</button>
+    }
+  </span>
+</div>
+
+<h3>{{ wording.say('Every token', 'All tokens') }}</h3>
+<div class="look-up">
+  <label for="gr-theme-look-up">{{ wording.say('Look up', 'Search') }}</label>
+  <input
+    #field
+    id="gr-theme-look-up"
+    class="line"
+    autocomplete="off"
+    spellcheck="false"
+    placeholder="a name, a value or a heading"
+    [value]="lookUp()"
+    (input)="lookUp.set(field.value)"
+  />
+  <span class="count">{{ count() }}</span>
+  @if (changedCount()) {
+    <button type="button" class="gr-link danger" (click)="resetAll()">Reset all</button>
+  }
+</div>
+
+@if (unread(); as error) {
+  <p class="none" role="alert">The theme’s tokens couldn’t be read: {{ error }}</p>
+} @else if (groups()) {
+  @for (group of shown(); track group.title) {
+    <details class="group" [open]="isOpen(group.title)" (toggle)="toggled(group.title, $event)">
+      <summary>
+        {{ group.title }}<span class="leader" aria-hidden="true"></span
+        ><span class="n">{{ group.tokens.length }}</span>
+      </summary>
+      @if (isOpen(group.title)) {
+        <ul>
+          @for (token of group.tokens; track token.name) {
+            @let value = valueOf(token.name);
+            <li [class.changed]="token.name in changes()">
+              <code class="name">{{ token.name }}</code>
+              <span class="value">
+                <!-- A swatch for a colour; its room is kept for the rest, so the values line up. -->
+                <span
+                  class="swatch"
+                  aria-hidden="true"
+                  [class.blank]="!isColour(value)"
+                  [style.background]="isColour(value) ? value : null"
+                ></span>
+                <input
+                  class="line"
+                  autocomplete="off"
+                  spellcheck="false"
+                  [attr.aria-label]="token.name"
+                  [value]="value"
+                  (change)="change(token.name, $any($event.target).value)"
+                />
+              </span>
+              @if (token.name in changes()) {
+                <button type="button" class="gr-link" (click)="reset(token.name)">Reset</button>
+              }
+              @if (token.note) {
+                <small class="note">{{ token.note }}</small>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </details>
+  } @empty {
+    <p class="none">No token matches “{{ lookUp() }}”.</p>
+  }
+}
