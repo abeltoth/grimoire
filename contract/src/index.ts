@@ -7,5 +7,6 @@ export * from './layout';
 export * from './presets';
 export * from './schedules';
 export * from './search';
+export * from './settings';
 export * from './bridge';
 export * from './protocol';

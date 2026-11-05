@@ -18,6 +18,7 @@ import { registerAgentCommands } from './agents/commands';
 import { AgentHub, hubStore } from './agents/hub';
 import { LayoutStore, registerLayout } from './core/layout';
 import { PresetStore, registerPresets } from './core/presets';
+import { SettingsStore, registerSettings } from './core/settings';
 import { registerPing } from './core/ping';
 import { endpointFor } from './endpoint';
 import { registerGit } from './git/commands';
@@ -68,6 +69,7 @@ let server: ServiceServer | undefined;
 const db = openDatabase(values.ephemeral ? ':memory:' : path.join(dataDir, 'grimoire.db'));
 registerLayout(registry, new LayoutStore(db));
 registerPresets(registry, new PresetStore(db));
+registerSettings(registry, new SettingsStore(db), (event, payload) => server?.broadcast(event, payload));
 registerGit(registry, new Git());
 
 // The search worker, bundled beside the service, keeps its index beside Grimoire's data.

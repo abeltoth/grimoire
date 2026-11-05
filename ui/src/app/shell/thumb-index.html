@@ -2,11 +2,11 @@
   <button
     type="button"
     class="thumb"
-    [attr.title]="tab.label"
+    [attr.title]="wording.label(tab)"
     [attr.aria-current]="facing.thumb() === tab.id ? 'page' : null"
     (click)="facing.thumb() === tab.id ? facing.closeThumb() : facing.openThumb(tab.id)"
   >
-    <span>{{ tab.label }}</span>
+    <span>{{ wording.label(tab) }}</span>
   </button>
 }
 

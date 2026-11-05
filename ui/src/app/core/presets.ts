@@ -1,8 +1,9 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import type { AgentId, NewChatSettings, Preset } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from './bridge';
 import { type Chapter, Chats } from './chats';
 import { modeName } from './modes';
+import { PresetList } from './preset-list';
 
 /**
  * Settings saved under a name (ADR-009: Grimoire's own data). A chapter is
@@ -13,20 +14,12 @@ import { modeName } from './modes';
 export class Presets {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
   private readonly chats = inject(Chats);
+  private readonly list = inject(PresetList);
 
-  readonly all = signal<readonly Preset[]>([]);
+  readonly all = this.list.all;
 
-  constructor() {
-    void this.load();
-  }
-
-  async load(): Promise<void> {
-    try {
-      const presets = await this.bridge.invoke('presets.list', {});
-      if (presets) this.all.set(presets);
-    } catch {
-      // Keep the presets listed before.
-    }
+  load(): Promise<void> {
+    return this.list.load();
   }
 
   /** Saves the chapter's settings under a name, spelled out: its folder, model, effort and permission. */

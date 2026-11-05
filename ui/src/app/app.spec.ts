@@ -7,6 +7,7 @@ import type {
   GitBranches,
   GitStatus,
   GrimoireBridge,
+  GrimoireSettings,
   OpenChat,
   PingResult,
   Preset,
@@ -14,6 +15,7 @@ import type {
   ScheduleInfo,
   ScheduleRun,
 } from '@grimoire/contract';
+import { DEFAULT_SETTINGS } from '@grimoire/contract';
 import { clock, dateline, upcoming, when } from '../../../modules/schedules/ui/wording';
 import { App } from './app';
 import { appConfig } from './app.config';
@@ -2395,5 +2397,117 @@ describe('App', () => {
       .click();
     await fixture.whenStable();
     expect(texts('gr-git-page .none')).toEqual(['~ isn’t in a git repository.']);
+  });
+
+  it('keeps the Colophon’s settings with the service, and the book follows them', async () => {
+    const { bridge, answers, calls, emit } = fakeBridge();
+    let kept: GrimoireSettings = { ...DEFAULT_SETTINGS };
+    answers['settings.get'] = () => kept;
+    answers['settings.set'] = (change: Partial<GrimoireSettings>) => (kept = { ...kept, ...change });
+    const { fixture, el, texts } = await render(bridge);
+    const word = (text: string) =>
+      [...el.querySelectorAll<HTMLButtonElement>('gr-colophon-page .word')].find(
+        (button) => button.textContent!.trim() === text,
+      )!;
+    const checked = () => texts('gr-colophon-page .word[aria-checked="true"]');
+    [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
+      .find((tab) => tab.textContent!.trim() === 'Colophon')!
+      .click();
+    await fixture.whenStable();
+
+    expect(texts('gr-thumb-page .title')).toEqual(['Colophon']);
+    expect(texts('gr-colophon-page .label')).toEqual([
+      'Names',
+      'Drawings',
+      'Default agent for new chapters',
+      'New chapters begin with',
+    ]);
+    expect(checked()).toEqual(['The book’s', 'Drawn', 'The one used last', 'Your last settings']);
+
+    word('Plain').click();
+    await fixture.whenStable();
+    expect(calls.filter((c) => c.command === 'settings.set').map((c) => c.request)).toEqual([
+      { wording: 'plain' },
+    ]);
+    expect(texts('gr-thumb-index .thumb:not(.index)')).toEqual([
+      'History',
+      'Workflow setup',
+      'Kanban',
+      'Memories',
+      'Scheduled chats',
+      'Usage',
+      'Terminal',
+      'Settings',
+    ]);
+    expect(texts('gr-thumb-page .title')).toEqual(['Settings']);
+    expect(texts('gr-thumb-page .row .gr-link')).toEqual(['Back to the Plan Esc']);
+    expect(texts('gr-colophon-page .label')[2]).toBe('Default agent for new chats');
+    expect(texts('gr-ribbon.new b')).toEqual(['New chat']);
+
+    word('Left out').click();
+    await fixture.whenStable();
+    expect(document.documentElement.dataset['drawings']).toBe('off');
+
+    // Another window changed them back.
+    emit('settings.changed', { settings: DEFAULT_SETTINGS });
+    await fixture.whenStable();
+    expect(texts('gr-thumb-page .title')).toEqual(['Colophon']);
+    expect(document.documentElement.dataset['drawings']).toBe('on');
+
+    answers['settings.set'] = () => {
+      throw new Error('the service is busy');
+    };
+    word('Plain').click();
+    await fixture.whenStable();
+    expect(checked()[0]).toBe('The book’s');
+    expect(texts('gr-colophon-page [role="alert"]')).toEqual([
+      'That setting couldn’t be kept: the service is busy',
+    ]);
+  });
+
+  it('begins new chapters with the default agent, or the preset the Colophon names', async () => {
+    const { bridge, answers } = fakeBridge();
+    answers['agents.list'] = () => [
+      { id: 'claude-code', name: 'Claude Code', capabilities: [] },
+      { id: 'codex', name: 'Codex', capabilities: [] },
+    ];
+    answers['presets.list'] = (): Preset[] => [
+      { name: 'Bug fix', agent: 'codex', settings: { mode: 'accept-edits' } },
+    ];
+    let kept: GrimoireSettings = {
+      ...DEFAULT_SETTINGS,
+      newChapter: { from: 'preset', preset: 'Bug fix' },
+    };
+    answers['settings.get'] = () => kept;
+    answers['settings.set'] = (change: Partial<GrimoireSettings>) => (kept = { ...kept, ...change });
+    const { fixture, el, texts } = await render(bridge);
+
+    // The blank page it opens on begins with the preset too.
+    expect(texts('.meta button')[0]).toBe('Codex');
+    expect(texts('.meta button').at(-1)).toBe('Bug fix');
+    expect(texts('gr-ribbon.new i')).toEqual(['Bug fix · Ctrl+N']);
+
+    [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
+      .find((tab) => tab.textContent!.trim() === 'Colophon')!
+      .click();
+    await fixture.whenStable();
+    expect(texts('gr-colophon-page .word[aria-checked="true"]').slice(2)).toEqual([
+      'The one used last',
+      'Bug fix',
+    ]);
+    const word = (text: string) =>
+      [...el.querySelectorAll<HTMLButtonElement>('gr-colophon-page .word')].find(
+        (button) => button.textContent!.trim() === text,
+      )!;
+    word('Your last settings').click();
+    word('Claude Code').click();
+    await fixture.whenStable();
+    expect(kept.newChapter).toEqual({ from: 'last-used' });
+    expect(kept.defaultAgent).toBe('claude-code');
+    expect(texts('gr-ribbon.new i')).toEqual(['Last settings · Ctrl+N']);
+
+    el.querySelector<HTMLButtonElement>('gr-ribbon.new button')!.click();
+    await fixture.whenStable();
+    expect(texts('[aria-current="page"] i')).toEqual(['Claude Code · blank page']);
   });
 });

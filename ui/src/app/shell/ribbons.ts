@@ -1,6 +1,7 @@
 import { Component, computed, inject } from '@angular/core';
 import { Icon, type IconName } from '../../design-system/icon';
 import { type Chapter, Chats } from '../core/chats';
+import { Wording } from '../core/wording';
 import { Facing } from './facing';
 import { Ribbon, type RibbonTone } from './ribbon';
 import { ShellRegistry } from './shell-registry';
@@ -82,7 +83,13 @@ export class Ribbons {
     this.awaitingSeal().reduce((sum, c) => sum + this.sealsOf(c), 0),
   );
 
+  private readonly wording = inject(Wording);
+
   protected readonly newChapter = computed(() => this.registry.commands.get('chapters.new'));
+  protected readonly newChapterLabel = computed(() => {
+    const command = this.newChapter();
+    return command ? this.wording.label(command) : 'New chapter';
+  });
 
   protected title(chapter: Chapter): string {
     return chapter.title || 'Untitled chapter';

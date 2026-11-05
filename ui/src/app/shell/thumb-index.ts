@@ -7,6 +7,7 @@ import {
   signal,
 } from '@angular/core';
 import { GRIMOIRE_BRIDGE } from '../core/bridge';
+import { Wording } from '../core/wording';
 import { Facing } from './facing';
 import { ShellRegistry } from './shell-registry';
 import { ShortcutPipe } from './shortcut';
@@ -38,6 +39,7 @@ export class ThumbIndex {
   protected readonly registry = inject(ShellRegistry);
   protected readonly platform = inject(GRIMOIRE_BRIDGE).platform;
   protected readonly facing = inject(Facing);
+  protected readonly wording = inject(Wording);
   protected readonly index = computed(() => this.registry.commands.get('shell.index'));
   /** The share of their full spacing and label size the tabs are drawn at. */
   protected readonly space = signal(1);

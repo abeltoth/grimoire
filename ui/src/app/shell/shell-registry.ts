@@ -19,16 +19,21 @@ interface Entry {
   order?: number;
 }
 
-/** A tab on the fore-edge that turns the facing page to one of the book's pages. */
-export interface ThumbTab extends Entry {
+/** A label, with what it says in plain names when the book's names are turned off. */
+interface Labelled {
   label: string;
+  /** The label in plain names, such as "History" for "Table of contents"; without it the label stays. */
+  plainLabel?: string;
+}
+
+/** A tab on the fore-edge that turns the facing page to one of the book's pages. */
+export interface ThumbTab extends Entry, Labelled {
   /** What the page shows; without it the page is blank, its feature not written yet. */
   component?: Type<unknown>;
 }
 
 /** Something the facing page can show, picked from the tabs in its running head. */
-export interface FacingPageEntry extends Entry {
-  label: string;
+export interface FacingPageEntry extends Entry, Labelled {
   /** Without it the tab shows but can't be picked yet. */
   component?: Type<unknown>;
   /** A line for the running foot while it shows, such as "3 of 5 done". */
@@ -58,10 +63,9 @@ export interface Stamp extends Entry {
 }
 
 /** Something you can do from the Index or with a shortcut. */
-export interface Command extends Entry {
-  label: string;
+export interface Command extends Entry, Labelled {
   /** A gloss the Index shows after the label, such as "with your last settings". */
-  hint?: string;
+  hint?: string | (() => string);
   shortcut?: Shortcut;
   run?: () => void;
 }
@@ -124,6 +128,7 @@ export function provideShell(): EnvironmentProviders {
     shell.commands.add({
       id: 'shell.index',
       label: 'Index',
+      plainLabel: 'Command palette',
       shortcut: 'Mod+K',
       run: () => facing.openIndex(),
     });
@@ -131,13 +136,18 @@ export function provideShell(): EnvironmentProviders {
     shell.commands.add({
       id: 'chapters.new',
       label: 'New chapter',
-      hint: 'with your last settings',
+      plainLabel: 'New chat',
+      hint: () => {
+        const preset = chats.startOf().preset;
+        return preset ? `from the preset ${preset}` : 'with your last settings';
+      },
       shortcut: 'Mod+N',
       run: () => chats.newChapter(),
     });
     shell.commands.add({
       id: 'chapters.close',
       label: 'Close chapter',
+      plainLabel: 'Close chat',
       shortcut: 'Mod+W',
       run: () => {
         const id = chats.currentId();
