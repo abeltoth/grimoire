@@ -12,6 +12,8 @@ export interface GrimoireSettings {
   /** The agent new chapters are written by; null for whichever wrote the last one. */
   defaultAgent: AgentId | null;
   newChapter: NewChapterStart;
+  /** The theme's tokens you changed, by name, such as "--gr-page": "#fffaf0"; the rest stay as drawn. */
+  theme: Readonly<Record<string, string>>;
 }
 
 export const DEFAULT_SETTINGS: GrimoireSettings = {
@@ -19,6 +21,7 @@ export const DEFAULT_SETTINGS: GrimoireSettings = {
   drawings: true,
   defaultAgent: null,
   newChapter: { from: 'last-used' },
+  theme: {},
 };
 
 declare module './commands' {

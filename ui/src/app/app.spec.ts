@@ -2416,7 +2416,7 @@ describe('App', () => {
     await fixture.whenStable();
 
     expect(texts('gr-thumb-page .title')).toEqual(['Colophon']);
-    expect(texts('gr-colophon-page .label')).toEqual([
+    expect(texts('section[aria-labelledby="gr-colophon-settings"] .label')).toEqual([
       'Names',
       'Drawings',
       'Default agent for new chapters',
@@ -2441,7 +2441,7 @@ describe('App', () => {
     ]);
     expect(texts('gr-thumb-page .title')).toEqual(['Settings']);
     expect(texts('gr-thumb-page .row .gr-link')).toEqual(['Back to Plan Esc']);
-    expect(texts('gr-colophon-page .label')[2]).toBe('Default agent for new chats');
+    expect(texts('section[aria-labelledby="gr-colophon-settings"] .label')[2]).toBe('Default agent for new chats');
     expect(texts('gr-ribbon.new b')).toEqual(['New chat']);
 
     word('Left out').click();
@@ -2449,7 +2449,8 @@ describe('App', () => {
     expect(document.documentElement.dataset['drawings']).toBe('off');
 
     // Another window changed them back.
-    emit('settings.changed', { settings: DEFAULT_SETTINGS });
+    kept = { ...DEFAULT_SETTINGS };
+    emit('settings.changed', { settings: kept });
     await fixture.whenStable();
     expect(texts('gr-thumb-page .title')).toEqual(['Colophon']);
     expect(document.documentElement.dataset['drawings']).toBe('on');
@@ -2539,9 +2540,12 @@ describe('App', () => {
     const BOOK =
       /\b(chapters?|entry|entries|seals?|sealed|sealing|slips?|facing page|index|outline|colophon|ledger|scriptorium|table of contents|front matter|memory map|annotated|variorum|look up|thumb|begun)\b/i;
     const bookWords = () => {
+      // The theme file's own headings are its source, as its token names are.
+      const book = el.cloneNode(true) as HTMLElement;
+      book.querySelectorAll('gr-theme-editor summary').forEach((heading) => heading.remove());
       const said = [
-        el.textContent!,
-        ...[...el.querySelectorAll('[aria-label], [placeholder], [title]')].flatMap((node) =>
+        book.textContent!,
+        ...[...book.querySelectorAll('[aria-label], [placeholder], [title]')].flatMap((node) =>
           ['aria-label', 'placeholder', 'title'].map((name) => node.getAttribute(name) ?? ''),
         ),
       ].join('\n');
@@ -2623,7 +2627,7 @@ describe('App', () => {
         (button) => button.textContent!.trim() === text,
       )!;
 
-    expect(texts('gr-colophon-page h3')).toEqual(['Bug fix', 'Plan a feature']);
+    expect(texts('gr-colophon-page .preset h3')).toEqual(['Bug fix', 'Plan a feature']);
     expect(texts('gr-colophon-page .preset .sub')[0]).toBe('Claude Code · Accept edits · ~/git/breeder');
 
     const prompt = preset('Bug fix').querySelector<HTMLTextAreaElement>('textarea')!;
@@ -2645,7 +2649,7 @@ describe('App', () => {
     expect(calls.filter((c) => c.command === 'presets.rename').map((c) => c.request)).toEqual([
       { from: 'Plan a feature', to: 'Plan it' },
     ]);
-    expect(texts('gr-colophon-page h3')).toEqual(['Bug fix', 'Plan it']);
+    expect(texts('gr-colophon-page .preset h3')).toEqual(['Bug fix', 'Plan it']);
 
     link(preset('Plan it'), 'Remove').click();
     await fixture.whenStable();
@@ -2654,7 +2658,7 @@ describe('App', () => {
     ]);
     preset('Plan it').querySelector<HTMLButtonElement>('.danger')!.click();
     await fixture.whenStable();
-    expect(texts('gr-colophon-page h3')).toEqual(['Bug fix']);
+    expect(texts('gr-colophon-page .preset h3')).toEqual(['Bug fix']);
 
     // New chapters begin with the preset, its first entry written in.
     [...el.querySelectorAll<HTMLButtonElement>('gr-colophon-page .word')]
@@ -2666,5 +2670,85 @@ describe('App', () => {
     const entry = el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!;
     expect(entry.value).toBe('Find the failing test and fix it');
     expect(texts('.meta button').at(-1)).toBe('Bug fix');
+  });
+
+  it('changes the theme’s tokens on the Colophon, the book showing each change at once', async () => {
+    const { bridge, answers, calls } = fakeBridge();
+    let kept: GrimoireSettings = { ...DEFAULT_SETTINGS };
+    answers['settings.get'] = () => kept;
+    answers['settings.set'] = (change: Partial<GrimoireSettings>) => (kept = { ...kept, ...change });
+    const { fixture, el, texts } = await render(bridge);
+    const root = document.documentElement.style;
+    const sets = () => calls.filter((c) => c.command === 'settings.set').map((c) => c.request);
+    const settle = async () => {
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      await fixture.whenStable();
+    };
+    [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
+      .find((tab) => tab.textContent!.trim() === 'Colophon')!
+      .click();
+    await fixture.whenStable();
+    for (let i = 0; i < 50 && !el.querySelector('gr-theme-editor details'); i++) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      await fixture.whenStable();
+    }
+
+    expect(texts('gr-theme-editor .form .label')).toEqual([
+      'Desk',
+      'Cover',
+      'Paper',
+      'Ink',
+      'Soft ink',
+      'Rubric',
+      'Pen',
+      'Lapis',
+      'Gilt',
+      'Size of the text',
+    ]);
+    expect(texts('gr-theme-editor summary')[0]).toMatch(/^Desk, binding and thumb index\s*\d+$/);
+    // Folded shut until opened.
+    expect(el.querySelector('gr-theme-editor li')).toBeNull();
+
+    const paper = el.querySelector<HTMLInputElement>('#gr-theme---gr-page')!;
+    expect(paper.value).toBe('#f3ebd9');
+    paper.value = '#fffaf0';
+    paper.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    expect(root.getPropertyValue('--gr-page')).toBe('#fffaf0');
+    // Kept once you stop, not at every step.
+    paper.value = '#ffffff';
+    paper.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    expect(sets()).toEqual([]);
+    await settle();
+    expect(sets()).toEqual([{ theme: { '--gr-page': '#ffffff' } }]);
+    expect(texts('gr-theme-editor .count')).toEqual([expect.stringMatching(/ tokens · 1 changed$/)]);
+
+    const field = el.querySelector<HTMLInputElement>('#gr-theme-look-up')!;
+    field.value = 'composer';
+    field.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    expect(texts('gr-theme-editor summary')).toEqual([expect.stringMatching(/^Chat: composer\s*\d+$/)]);
+    const gap = el.querySelector<HTMLInputElement>('gr-theme-editor input[aria-label="--gr-composer-gap"]')!;
+    expect(gap.value).toBe('5px');
+    gap.value = '8px';
+    gap.dispatchEvent(new Event('change'));
+    await settle();
+    expect(root.getPropertyValue('--gr-composer-gap')).toBe('8px');
+    expect(kept.theme).toEqual({ '--gr-page': '#ffffff', '--gr-composer-gap': '8px' });
+
+    // Written back as drawn, it's no longer changed.
+    gap.value = '5px';
+    gap.dispatchEvent(new Event('change'));
+    await settle();
+    expect(kept.theme).toEqual({ '--gr-page': '#ffffff' });
+    expect(root.getPropertyValue('--gr-composer-gap')).toBe('');
+
+    [...el.querySelectorAll<HTMLButtonElement>('gr-theme-editor .gr-link')]
+      .find((button) => button.textContent!.trim() === 'Reset all')!
+      .click();
+    await fixture.whenStable();
+    expect(kept.theme).toEqual({});
+    expect(root.getPropertyValue('--gr-page')).toBe('');
   });
 });

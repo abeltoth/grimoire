@@ -77,7 +77,8 @@ h2 {
 }
 
 /* The presets, below the settings: each a short entry, ruled off from the next. */
-.presets {
+.presets,
+.theme {
   margin-top: var(--gr-colophon-section-gap);
 }
 

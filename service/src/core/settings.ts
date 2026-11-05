@@ -9,6 +9,12 @@ import type { CommandRegistry } from '../registry';
 
 type Emit = <K extends EventName>(event: K, payload: EventPayload<K>) => void;
 
+/** The most tokens a theme may change: more than the theme has. */
+const MAX_TOKENS = 2000;
+const TOKEN = /^--gr-[a-z0-9-]+$/;
+/** A token's value: one declaration's worth, with nothing that would end it. */
+const TOKEN_VALUE = /^[^;{}]{1,300}$/;
+
 /** Whether a value is one a setting takes; anything else is left out. */
 const VALID: { [K in keyof GrimoireSettings]: (value: unknown) => boolean } = {
   wording: (value) => value === 'book' || value === 'plain',
@@ -19,6 +25,20 @@ const VALID: { [K in keyof GrimoireSettings]: (value: unknown) => boolean } = {
     return (
       start?.from === 'last-used' ||
       (start?.from === 'preset' && typeof start.preset === 'string' && start.preset !== '')
+    );
+  },
+  theme: (value) => {
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+    const tokens = Object.entries(value);
+    return (
+      tokens.length <= MAX_TOKENS &&
+      tokens.every(
+        ([name, token]) =>
+          TOKEN.test(name) &&
+          typeof token === 'string' &&
+          TOKEN_VALUE.test(token) &&
+          !!token.trim(),
+      )
     );
   },
 };
