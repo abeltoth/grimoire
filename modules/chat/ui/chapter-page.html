@@ -84,6 +84,7 @@
     [agent]="c.agent"
     [cwd]="c.settings.cwd"
     [first]="c.status === 'blank'"
+    [prompt]="c.status === 'blank' ? (c.prompt ?? '') : ''"
     [queued]="c.queued"
     [context]="c.context"
     [cache]="c.status === 'idle' ? c.cache : undefined"

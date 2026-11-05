@@ -60,6 +60,8 @@ export interface Chapter {
   error?: string;
   /** When a blank chapter was opened, in ms since the epoch. */
   begunAt?: number;
+  /** The first entry a blank chapter has written in, from its preset. */
+  prompt?: string;
 }
 
 const DEFAULT_AGENT = 'claude-code';
@@ -255,9 +257,9 @@ export class Chats {
   }
 
   /** Gives a blank chapter these settings, as a preset holds them. */
-  setUp(id: string, agent: AgentId, settings: NewChatSettings): void {
+  setUp(id: string, agent: AgentId, settings: NewChatSettings, prompt?: string): void {
     if (this.find(id)?.status !== 'blank') return;
-    this.update(id, (c) => ({ ...c, agent, settings }));
+    this.update(id, ({ prompt: _, ...c }) => ({ ...c, agent, settings, ...(prompt ? { prompt } : {}) }));
     this.remember({ agent, settings });
   }
 
@@ -265,18 +267,21 @@ export class Chats {
    * What a new chapter begins with, as the Colophon says: a preset's
    * settings, or those used last, if they were with the default agent.
    */
-  startOf(): { preset?: string; agent: AgentId; settings: NewChatSettings } {
+  startOf(): { preset?: string; agent: AgentId; settings: NewChatSettings; prompt?: string } {
     const { newChapter, defaultAgent } = this.settings.all();
     if (newChapter.from === 'preset') {
       const preset = this.presets.all().find((p) => p.name === newChapter.preset);
-      if (preset) return { preset: preset.name, agent: preset.agent, settings: preset.settings };
+      if (preset) return { ...preset, preset: preset.name };
     }
     const agent = defaultAgent ?? this.lastUsed?.agent ?? DEFAULT_AGENT;
     return this.lastUsed?.agent === agent ? this.lastUsed : { agent, settings: {} };
   }
 
-  /** Opens a blank chapter, with the settings given or what new chapters begin with, and turns to it. */
-  newChapter(from?: { agent: AgentId; settings: NewChatSettings }): void {
+  /**
+   * Opens a blank chapter, with the settings given or what new chapters
+   * begin with, and a preset's first entry written in, and turns to it.
+   */
+  newChapter(from?: { agent: AgentId; settings: NewChatSettings; prompt?: string }): void {
     const start = from ?? this.startOf();
     const blank: Chapter = {
       id: `blank-${this.nextBlank++}`,
@@ -293,6 +298,7 @@ export class Chats {
       tags: [],
       copied: [],
       begunAt: Date.now(),
+      ...(start.prompt ? { prompt: start.prompt } : {}),
     };
     this.all.update((all) => [...all, blank]);
     this.turnTo(blank.id);

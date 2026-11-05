@@ -57,7 +57,7 @@ export class Presets {
   /** Gives the chapter the preset's settings. */
   use(preset: Preset, chapter: Chapter): Promise<void> {
     if (chapter.status === 'blank') {
-      this.chats.setUp(chapter.id, preset.agent, preset.settings);
+      this.chats.setUp(chapter.id, preset.agent, preset.settings, preset.prompt);
       return Promise.resolve();
     }
     const { model, effort, mode } = this.spelledOut(preset.agent, preset.settings);

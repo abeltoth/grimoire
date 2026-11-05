@@ -58,6 +58,8 @@ export class Composer {
   readonly cwd = input<string>();
   /** A blank chapter's composer: it takes the first entry. */
   readonly first = input(false);
+  /** The first entry the chapter's preset has written in, until you change it. */
+  readonly prompt = input('');
   readonly queued = input<readonly QueuedEntry[]>([]);
   /** How full the context window is: the chapter's page allowance. */
   readonly context = input<ContextUsage>();
@@ -87,10 +89,18 @@ export class Composer {
 
   private readonly entry = viewChild.required<ElementRef<HTMLTextAreaElement>>('entry');
 
-  /** What you're writing; each chapter keeps its own until it's sent. */
-  protected readonly draft = linkedSignal({
-    source: this.chapterId,
-    computation: (id) => this.drafts.of(id).text,
+  /**
+   * What you're writing; each chapter keeps its own until it's sent. A
+   * preset's first entry is written in while there's nothing else, and
+   * another preset's takes its place until you change it.
+   */
+  protected readonly draft = linkedSignal<{ id: string; prompt: string }, string>({
+    source: () => ({ id: this.chapterId(), prompt: this.prompt() }),
+    computation: ({ id, prompt }, previous) => {
+      const kept = this.drafts.of(id).text;
+      const untouched = !kept || (previous?.source.id === id && kept === previous.source.prompt);
+      return untouched ? prompt : kept;
+    },
   });
   /** The pictures and files to send with it. */
   protected readonly enclosures = linkedSignal<string, readonly Enclosure[]>({

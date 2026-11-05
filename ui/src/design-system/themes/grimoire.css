@@ -441,6 +441,12 @@
   --gr-colophon-word-pad: 0 0 1px;
   --gr-colophon-word-rule: 1.5px solid var(--gr-rubric);
   --gr-colophon-word-rule-off: 1.5px solid transparent;
+  --gr-colophon-section-gap: 38px;
+  --gr-colophon-preset-row-gap: 8px;
+  --gr-colophon-preset-pad: 16px;
+  --gr-size-colophon-preset-name: 20px;
+  --gr-leading-colophon-preset-name: 1.2;
+  --gr-colophon-actions-gap: 14px;
 
   /* The Scriptorium: your shells, as leaves written in the book's inks */
   --gr-scriptorium-pad-bottom: 18px;

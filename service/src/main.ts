@@ -68,8 +68,11 @@ let server: ServiceServer | undefined;
 
 const db = openDatabase(values.ephemeral ? ':memory:' : path.join(dataDir, 'grimoire.db'));
 registerLayout(registry, new LayoutStore(db));
-registerPresets(registry, new PresetStore(db));
-registerSettings(registry, new SettingsStore(db), (event, payload) => server?.broadcast(event, payload));
+const settingsStore = new SettingsStore(db);
+const broadcast: Parameters<typeof registerSettings>[2] = (event, payload) =>
+  server?.broadcast(event, payload);
+registerPresets(registry, new PresetStore(db), settingsStore, broadcast);
+registerSettings(registry, settingsStore, broadcast);
 registerGit(registry, new Git());
 
 // The search worker, bundled beside the service, keeps its index beside Grimoire's data.
