@@ -1,0 +1,206 @@
+:host {
+  display: block;
+  max-width: var(--gr-contents-width);
+}
+
+.none {
+  margin: var(--gr-aside-gap) 0;
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+/* The tags to narrow the list by, as a line of small capitals; picked ones are in rubric. */
+.narrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--gr-tags-gap);
+  row-gap: var(--gr-aside-gap);
+  margin: 0 0 var(--gr-contents-narrow-gap);
+  padding-bottom: var(--gr-index-look-up-pad);
+  border-bottom: var(--gr-index-look-up-rule);
+}
+
+.narrow .label {
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.pick {
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-control);
+  letter-spacing: var(--gr-tracking-control);
+  color: var(--gr-ink-soft);
+  box-shadow: inset 0 calc(var(--gr-underline-active) * -1) 0 transparent;
+}
+
+.pick:hover {
+  color: var(--gr-ink);
+}
+
+.pick[aria-pressed='true'] {
+  color: var(--gr-rubric);
+  box-shadow: inset 0 calc(var(--gr-underline-active) * -1) 0 var(--gr-rubric);
+}
+
+.part + .part {
+  margin-top: var(--gr-contents-part-gap);
+}
+
+h3 {
+  margin: 0;
+  font-family: var(--gr-font-sc);
+  font-weight: 500;
+  font-size: var(--gr-size-index-head);
+  letter-spacing: var(--gr-tracking-index-head);
+  color: var(--gr-rubric);
+}
+
+h2 {
+  margin: var(--gr-index-head-gap) 0 var(--gr-contents-list-gap);
+  font-family: var(--gr-font-display);
+  font-weight: 400;
+  font-size: var(--gr-size-contents-part);
+  line-height: var(--gr-leading-schedule-name);
+  color: var(--gr-ink);
+}
+
+h2 code {
+  margin-left: var(--gr-index-gloss-gap);
+  font-size: var(--gr-size-index-gloss);
+  color: var(--gr-ink-soft);
+}
+
+ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-contents-row-gap);
+}
+
+/* A chapter: its title and tags, a dotted leader, and the day it was last written in. */
+li {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  font-size: var(--gr-size-outline);
+  line-height: var(--gr-leading-outline);
+}
+
+.chapter {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--gr-ink);
+  text-align: left;
+}
+
+.chapter:hover {
+  color: var(--gr-link-hover);
+}
+
+/* The chapter open on the left page. */
+li[aria-current='page'] .chapter {
+  color: var(--gr-rubric);
+}
+
+.tags {
+  flex: none;
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--gr-tags-gap);
+  margin-left: var(--gr-tags-gap);
+  white-space: nowrap;
+}
+
+/* A tag is a plain-text label; its cross shows when you point at it or reach it. */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gr-untag-gap);
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-control);
+  letter-spacing: var(--gr-tracking-control);
+  color: var(--gr-ink-soft);
+}
+
+.untag {
+  display: inline-grid;
+  place-items: center;
+  color: var(--gr-ink-soft);
+  opacity: 0;
+}
+
+.tag:hover .untag,
+.untag:focus-visible {
+  opacity: 1;
+}
+
+.untag:hover {
+  color: var(--gr-ink);
+}
+
+/*
+ * "+ Tag" shows on the chapter you point at or reach. It takes no room, so
+ * the leader starts after the title, and it's written over the leader's start.
+ */
+.add-at {
+  flex: none;
+  width: 0;
+  white-space: nowrap;
+}
+
+.add {
+  padding-right: var(--gr-outline-leader-gap);
+  background: var(--gr-page-facing);
+  opacity: 0;
+}
+
+li:hover .add,
+li:focus-within .add {
+  opacity: 1;
+}
+
+/* The new tag, written in pen. */
+.field {
+  field-sizing: content;
+  min-width: var(--gr-tag-field-min);
+  padding: 0;
+  border: 0;
+  border-bottom: var(--gr-rename-rule);
+  background: transparent;
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-control);
+  letter-spacing: var(--gr-tracking-control);
+  color: var(--gr-pen);
+  caret-color: var(--gr-pen);
+  outline: none;
+}
+
+.field::placeholder {
+  font-style: italic;
+  color: var(--gr-ink-placeholder);
+}
+
+.leader {
+  flex: 1;
+  min-width: var(--gr-outline-leader-min);
+  margin: 0 var(--gr-outline-leader-gap);
+  border-bottom: var(--gr-leader);
+  transform: translateY(var(--gr-outline-leader-lift));
+}
+
+.when {
+  flex: none;
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-index-where);
+  letter-spacing: var(--gr-tracking-index-where);
+  color: var(--gr-ink-soft);
+  white-space: nowrap;
+}

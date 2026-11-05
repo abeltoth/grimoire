@@ -74,6 +74,7 @@ export class ScheduledChats {
       ...(run.cwd ? { cwd: run.cwd } : {}),
       updatedAt: run.ranAt ?? run.dueAt,
       dogEars: [],
+      tags: [],
     });
   }
 

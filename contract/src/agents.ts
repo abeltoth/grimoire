@@ -133,6 +133,8 @@ export interface ChatSummary {
   updatedAt: number;
   /** Which of its dog-ears are folded. */
   dogEars: DogEar[];
+  /** Your tags for it, in the order you added them. */
+  tags: string[];
 }
 
 /** What a live chat is doing. Idle chats aren't running a turn. */
