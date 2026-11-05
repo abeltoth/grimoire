@@ -80,6 +80,7 @@ const MIGRATIONS = [
      key TEXT PRIMARY KEY,
      value TEXT NOT NULL
    );`,
+  `ALTER TABLE presets ADD COLUMN prompt TEXT;`,
 ];
 
 /**
