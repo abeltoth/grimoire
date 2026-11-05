@@ -64,3 +64,9 @@ A custom UI for Claude Code, built on the Claude Agent SDK.
 
 - Show remaining AI tokens (Claude first) in the thumb index menu.
 - Token statistics and optimizer: show where most of the resources are spent and help optimize it.
+
+## Design ideas
+
+- Thinking animation: the thinking text as words coming out of a symbol.
+- Focus mode as a papyrus roll, like an ancient text, instead of a book, so it fits the screen better.
+- Two design directions: a magic one, and one for company work that is more solid, with fewer effects and animations.
