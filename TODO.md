@@ -12,37 +12,37 @@ A custom UI for Claude Code, built on the Claude Agent SDK.
 
 ## To-do
 
-- [ ] Project setup: TypeScript, local Node backend, web UI, signed in with subscription
-- [ ] Chat view with live streaming, markdown and code
-- [ ] Tool cards: commands, output, file diffs
-- [ ] Approval dialogs (allow once / always allow / deny)
-- [ ] Forms for Claude's clarifying questions
-- [ ] Stop button, and sending messages while Claude is working
-- [ ] Model and permission-mode switcher
-- [ ] Session history: resume, rename, fork
-- [ ] Slash command and skill palette
-- [ ] Context meter
-- [ ] Undo file changes
+- [x] Project setup: TypeScript, local Node backend, web UI, signed in with subscription
+- [x] Chat view with live streaming, markdown and code
+- [x] Tool cards: commands, output, file diffs
+- [x] Approval dialogs (allow once / always allow / deny)
+- [x] Forms for Claude's clarifying questions
+- [x] Stop button, and sending messages while Claude is working
+- [x] Model and permission-mode switcher
+- [x] Session history: resume, rename, fork
+- [x] Slash command and skill palette
+- [x] Context meter
+- [x] Undo file changes
 - [ ] Open new chat windows quickly: tabs plus split panes
 - [ ] Status of all open chats, one approval inbox, notifications
 - [ ] AI workflow setup view: shows everything Claude loads (CLAUDE.md, memory, skills, subagents, hooks, MCP servers, plugins, permissions) and where each comes from, all one click away, editable
-- [ ] Custom styling
-- [ ] Animations
+- [x] Custom styling
+- [x] Animations
 - [ ] Chat presets: start a chat with a saved model, mode, folder and first prompt
 - [ ] Send one prompt to several chats at once
 - [ ] Run the same prompt on two models side by side
 - [ ] Pop a tab out into its own window
 - [ ] Full-text search across all past chats
-- [ ] Pin, star and tag chats by project
+- [x] Pin, star and tag chats by project
 - [ ] Memory graph: memories drawn as a graph of their `[[links]]`
 - [ ] MCP dashboard: connected or failing, toggle on and off, reconnect
 - [ ] A log of which hooks fired on each turn
 - [ ] Profiles to switch between work and personal setups
-- [ ] Live todo and progress panel for Claude's plan
+- [x] Live todo and progress panel for Claude's plan
 - [ ] Usage stats: tokens per chat and per day, most-used tools and skills
-- [ ] Paste screenshots straight into a chat
-- [ ] Git panel: branch and uncommitted changes, plus a separate worktree per chat so parallel chats don't collide
-- [ ] Scheduled chats, such as a morning summary of repo changes
+- [x] Paste screenshots straight into a chat
+- [x] Git panel: branch and uncommitted changes, plus a separate worktree per chat so parallel chats don't collide
+- [x] Scheduled chats, such as a morning summary of repo changes
 - [ ] Theme editor with live preview
 - [ ] Setting to toggle between the book names (Colophon, Ledger...) and plain labels (Settings, Usage...)
 - [ ] Animated status per chat: thinking, writing, waiting for you
