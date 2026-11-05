@@ -1,4 +1,4 @@
-import { mkdtempSync, utimesSync } from 'node:fs';
+import { mkdtempSync, rmSync, utimesSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import * as esbuild from 'esbuild';
@@ -46,6 +46,8 @@ afterAll(async () => {
     await waitUntilGone(pid);
   }
   clients.forEach((client) => client.close());
+  // The service has gone, and with it its hold on the log.
+  rmSync(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
 });
 
 describe('ensureService', () => {

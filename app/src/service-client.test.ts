@@ -1,4 +1,4 @@
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
@@ -8,10 +8,15 @@ import { LineDecoder, encodeMessage } from '@grimoire/contract/wire';
 import { ServiceClient, ServiceError } from './service-client';
 
 const servers: net.Server[] = [];
-afterEach(() => servers.splice(0).forEach((server) => server.close()));
+const dirs: string[] = [];
+afterEach(async () => {
+  await Promise.all(servers.splice(0).map((server) => new Promise((resolve) => server.close(resolve))));
+  dirs.splice(0).forEach((dir) => rmSync(dir, { recursive: true, force: true }));
+});
 
 function endpoint(): string {
   const dir = mkdtempSync(path.join(os.tmpdir(), 'grimoire-client-'));
+  dirs.push(dir);
   return process.platform === 'win32' ? `\\\\.\\pipe\\${path.basename(dir)}` : path.join(dir, 's.sock');
 }
 
