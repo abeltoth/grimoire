@@ -32,7 +32,7 @@ A custom UI for Claude Code, built on the Claude Agent SDK.
 - [ ] Send one prompt to several chats at once
 - [ ] Run the same prompt on two models side by side
 - [ ] Pop a tab out into its own window
-- [ ] Full-text search across all past chats
+- [x] Full-text search across all past chats
 - [x] Pin, star and tag chats by project
 - [ ] Memory graph: memories drawn as a graph of their `[[links]]`
 - [ ] MCP dashboard: connected or failing, toggle on and off, reconnect

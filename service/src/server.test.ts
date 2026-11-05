@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
@@ -12,13 +12,17 @@ import { AlreadyRunningError, startServer, type ServiceServer } from './server';
 
 const TOKEN = 'secret-token';
 const servers: ServiceServer[] = [];
+const dirs: string[] = [];
 
 afterEach(async () => {
   await Promise.all(servers.splice(0).map((server) => server.close()));
+  dirs.splice(0).forEach((dir) => rmSync(dir, { recursive: true, force: true }));
 });
 
 function tempEndpoint(): string {
-  return endpointFor(mkdtempSync(path.join(os.tmpdir(), `grimoire-test-${randomBytes(4).toString('hex')}-`)));
+  const dir = mkdtempSync(path.join(os.tmpdir(), `grimoire-test-${randomBytes(4).toString('hex')}-`));
+  dirs.push(dir);
+  return endpointFor(dir);
 }
 
 async function start(endpoint = tempEndpoint(), onShutdown = () => {}) {
