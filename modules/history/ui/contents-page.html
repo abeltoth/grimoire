@@ -1,4 +1,22 @@
+<div class="look-up">
+  <label for="gr-contents-look-up">Look up</label>
+  <input
+    #lookUpField
+    id="gr-contents-look-up"
+    type="text"
+    autocomplete="off"
+    spellcheck="false"
+    [value]="lookUp()"
+    (input)="look(lookUpField.value)"
+    (keydown.enter)="openFirst()"
+  />
+  <span class="count" aria-live="polite">{{ count() }}</span>
+</div>
+
 @if (failed(); as error) {
+  <p class="none" role="alert">{{ error }}</p>
+}
+@if (searchFailed(); as error) {
   <p class="none" role="alert">{{ error }}</p>
 }
 
@@ -72,13 +90,28 @@
             </span>
             <span class="leader" aria-hidden="true"></span>
             <span class="when">{{ dated(chat.updatedAt) }}</span>
+            @if (hitOf(chat); as hit) {
+              <p class="excerpt">
+                <span class="by">{{ byOf(hit) }}</span
+                >&ngsp;
+                @for (part of hit.excerpt; track $index) {
+                  @if (part.match) {
+                    <b>{{ part.text }}</b>
+                  } @else {
+                    <span>{{ part.text }}</span>
+                  }
+                }
+              </p>
+            }
           </li>
         }
       </ol>
     </section>
   } @empty {
     <p class="none">
-      @if (narrowedTo().length) {
+      @if (hits()) {
+        Nothing in the chapters matches “{{ lookUp() }}”.
+      } @else if (narrowedTo().length) {
         No chapter has every tag picked.
       } @else {
         No chapters yet. Each chat you begin is written in here.

@@ -13,17 +13,22 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
-import type { ChatId, ChatSummary } from '@grimoire/contract';
+import type { ChatId, ChatSummary, SearchHit } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { Chats } from '@ui/app/core/chats';
 import { Icon } from '@ui/design-system/icon';
 import { dated, keptTags, numeral, partTitle, partsOf, tagsOf, withTags } from './contents';
 
+/** How long the look-up waits for you to stop writing before it searches. */
+const LOOK_UP_DELAY_MS = 150;
+
 /**
  * The Table of contents: every chat you've had, in parts by the project it
  * ran in, each chapter with its tags and the day it was last written in.
- * Tags narrow the list, and "+ Tag" on a chapter adds one. A chapter's
- * title opens it on the left page, and the contents stay open beside it.
+ * Looking up words narrows the list to the chapters with them, each with the
+ * passage that has them; tags narrow it too, and "+ Tag" on a chapter adds
+ * one. A chapter's title, or Enter in the look-up, opens it on the left
+ * page, and the contents stay open beside it.
  */
 @Component({
   selector: 'gr-contents-page',
@@ -38,6 +43,7 @@ export class ContentsPage {
   private readonly injector = inject(Injector);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly field = viewChild<ElementRef<HTMLInputElement>>('field');
+  private readonly lookUpField = viewChild.required<ElementRef<HTMLInputElement>>('lookUpField');
 
   /** Every agent's chats; undefined until they've answered. */
   private readonly listed = signal<readonly ChatSummary[] | undefined>(undefined);
@@ -46,6 +52,16 @@ export class ContentsPage {
   /** The chapter a new tag is being written for. */
   protected readonly adding = signal<ChatId | null>(null);
   protected readonly failed = signal<string | null>(null);
+  /** What's looked up. */
+  protected readonly lookUp = signal('');
+  /** The chats with what's looked up, by chat; null while nothing is. */
+  protected readonly hits = signal<ReadonlyMap<ChatId, SearchHit> | null>(null);
+  protected readonly searching = signal(false);
+  protected readonly searchFailed = signal<string | null>(null);
+  /** The search waiting for you to stop writing. */
+  private waiting: { timer: ReturnType<typeof setTimeout>; done: () => void } | undefined;
+  /** Counts the searches, so an answer to an older one is dropped. */
+  private searches = 0;
 
   /** Every tag on a chapter, for the list to be narrowed by. */
   protected readonly tags = computed(() => tagsOf(this.listed() ?? []));
@@ -58,12 +74,21 @@ export class ContentsPage {
     const listed = this.listed();
     if (!listed) return undefined;
     const home = this.chats.folders().home;
-    return partsOf(withTags(listed, this.narrowedTo()), home).map((part, i) => ({
+    const hits = this.hits();
+    const found = hits ? listed.filter((chat) => hits.has(chat.id)) : listed;
+    return partsOf(withTags(found, this.narrowedTo()), home).map((part, i) => ({
       ...part,
       numeral: numeral(i + 1),
       title: partTitle(part.folder, home),
       folderName: this.chats.folderName(part.folder),
     }));
+  });
+
+  /** How many chapters have what's looked up, while something is. */
+  protected readonly count = computed(() => {
+    if (!this.hits()) return this.searching() ? 'Looking…' : '';
+    const count = this.parts()?.reduce((sum, part) => sum + part.chapters.length, 0) ?? 0;
+    return `${count} ${count === 1 ? 'chapter' : 'chapters'}`;
   });
 
   protected readonly dated = dated;
@@ -81,6 +106,45 @@ export class ContentsPage {
     ];
     inject(DestroyRef).onDestroy(() => stops.forEach((stop) => stop()));
     afterRenderEffect(() => this.field()?.nativeElement.focus());
+    afterNextRender(() => this.lookUpField().nativeElement.focus());
+    inject(DestroyRef).onDestroy(() => this.stopWaiting());
+  }
+
+  /** The passage a chapter has what's looked up in, unless that's its title. */
+  protected hitOf(chat: ChatSummary): SearchHit | undefined {
+    const hit = this.hits()?.get(chat.id);
+    return hit?.kind === 'title' ? undefined : hit;
+  }
+
+  /** Who wrote a passage: you, or the agent. */
+  protected byOf(hit: SearchHit): string {
+    return hit.kind === 'you' ? 'You' : this.chats.agentName(hit.agent);
+  }
+
+  /** Looks up what's written, once you stop writing; nothing written lists every chapter again. */
+  protected look(query: string): void {
+    this.lookUp.set(query);
+    this.stopWaiting();
+    this.searches++;
+    if (!query.trim()) {
+      this.hits.set(null);
+      this.searching.set(false);
+      this.searchFailed.set(null);
+      return;
+    }
+    this.searching.set(true);
+    const done = this.pending.add();
+    const timer = setTimeout(() => {
+      this.waiting = undefined;
+      void this.search(query).finally(done);
+    }, LOOK_UP_DELAY_MS);
+    this.waiting = { timer, done };
+  }
+
+  /** Enter in the look-up opens the first chapter listed. */
+  protected openFirst(): void {
+    const first = this.parts()?.[0]?.chapters[0];
+    if (first) this.open(first);
   }
 
   protected isPicked(tag: string): boolean {
@@ -122,6 +186,29 @@ export class ContentsPage {
       chat.tags.filter((kept) => kept !== tag),
     );
     this.focusAdd(chat.id);
+  }
+
+  private async search(query: string): Promise<void> {
+    const search = this.searches;
+    try {
+      const hits = (await this.bridge.invoke('search.chats', { query })) ?? [];
+      if (search !== this.searches) return;
+      this.hits.set(new Map(hits.map((hit) => [hit.chatId, hit])));
+      this.searchFailed.set(null);
+    } catch (error) {
+      if (search !== this.searches) return;
+      const reason = error instanceof Error ? error.message : String(error);
+      this.searchFailed.set(`The chapters couldn’t be looked through: ${reason}`);
+    } finally {
+      if (search === this.searches) this.searching.set(false);
+    }
+  }
+
+  private stopWaiting(): void {
+    if (!this.waiting) return;
+    clearTimeout(this.waiting.timer);
+    this.waiting.done();
+    this.waiting = undefined;
   }
 
   private async load(): Promise<void> {

@@ -19,6 +19,14 @@ export const builds = [
     format: 'esm',
     external: ['@anthropic-ai/claude-agent-sdk'],
   },
+  // The search worker (ADR-010), a process of its own that the service starts beside it.
+  {
+    ...common,
+    entryPoints: [at('service/src/search/worker-main.ts')],
+    outfile: at('service/dist/search-worker.mjs'),
+    format: 'esm',
+    external: ['@anthropic-ai/claude-agent-sdk'],
+  },
   { ...common, entryPoints: [at('app/src/main.ts')], outfile: at('app/dist/main.cjs'), format: 'cjs', external: ['electron'] },
   // Sandboxed preloads must be a single CommonJS file that only requires electron.
   { ...common, entryPoints: [at('app/src/preload.ts')], outfile: at('app/dist/preload.cjs'), format: 'cjs', external: ['electron'] },
