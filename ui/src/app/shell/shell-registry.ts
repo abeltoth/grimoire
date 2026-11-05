@@ -14,6 +14,7 @@ import { Chats } from '../core/chats';
 import { Wording } from '../core/wording';
 import { Facing } from './facing';
 import { Focus } from './focus';
+import { noteWaitingChapters } from './focus-notes';
 import type { Shortcut } from './shortcut';
 
 interface Entry {
@@ -183,5 +184,6 @@ export function provideShell(): EnvironmentProviders {
         if (id) void chats.close(id);
       },
     });
+    noteWaitingChapters(shell);
   });
 }
