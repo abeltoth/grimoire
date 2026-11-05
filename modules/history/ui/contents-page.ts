@@ -16,6 +16,7 @@ import {
 import type { ChatId, ChatSummary, SearchHit } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { Chats } from '@ui/app/core/chats';
+import { Wording } from '@ui/app/core/wording';
 import { Icon } from '@ui/design-system/icon';
 import { dated, keptTags, numeral, partTitle, partsOf, tagsOf, withTags } from './contents';
 
@@ -39,6 +40,7 @@ const LOOK_UP_DELAY_MS = 150;
 export class ContentsPage {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
   protected readonly chats = inject(Chats);
+  protected readonly wording = inject(Wording);
   private readonly pending = inject(PendingTasks);
   private readonly injector = inject(Injector);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
@@ -88,7 +90,8 @@ export class ContentsPage {
   protected readonly count = computed(() => {
     if (!this.hits()) return this.searching() ? 'Looking…' : '';
     const count = this.parts()?.reduce((sum, part) => sum + part.chapters.length, 0) ?? 0;
-    return `${count} ${count === 1 ? 'chapter' : 'chapters'}`;
+    const [one, many] = this.wording.plain() ? ['chat', 'chats'] : ['chapter', 'chapters'];
+    return `${count} ${count === 1 ? one : many}`;
   });
 
   protected readonly dated = dated;
@@ -198,7 +201,12 @@ export class ContentsPage {
     } catch (error) {
       if (search !== this.searches) return;
       const reason = error instanceof Error ? error.message : String(error);
-      this.searchFailed.set(`The chapters couldn’t be looked through: ${reason}`);
+      this.searchFailed.set(
+        this.wording.say(
+          `The chapters couldn’t be looked through: ${reason}`,
+          `The chats couldn’t be searched: ${reason}`,
+        ),
+      );
     } finally {
       if (search === this.searches) this.searching.set(false);
     }

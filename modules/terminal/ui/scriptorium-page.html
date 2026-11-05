@@ -1,7 +1,7 @@
 @if (scriptorium.failed(); as error) {
   <p class="none" role="alert">The shells couldn’t be reached: {{ error }}</p>
 } @else if (!scriptorium.read()) {
-  <p class="none">Lighting the lamps…</p>
+  <p class="none">{{ wording.say('Lighting the lamps…', 'Starting…') }}</p>
 } @else {
   @let shown = scriptorium.shown();
   @let labels = scriptorium.labels();
@@ -35,7 +35,8 @@
     </button>
     @if (shown) {
       <p class="about">
-        <span class="sc">{{ shown.shell }}</span>, begun at {{ time(shown.openedAt) }} in
+        <span class="sc">{{ shown.shell }}</span>, {{ wording.say('begun', 'started') }} at
+        {{ time(shown.openedAt) }} in
         <code>{{ chats.folderName(shown.cwd) }}</code>
       </p>
     }

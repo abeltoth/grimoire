@@ -1,8 +1,15 @@
 <gr-drawing class="headpiece" name="chapter-opening" />
-<p class="kicker">A new chapter</p>
-<p class="begun">Begun at {{ begun() }}, to be written by {{ agentName() }}</p>
+<p class="kicker">{{ wording.say('A new chapter', 'A new chat') }}</p>
+<p class="begun">
+  @if (wording.plain()) {
+    Started at {{ begun() }}, with {{ agentName() }}
+  } @else {
+    Begun at {{ begun() }}, to be written by {{ agentName() }}
+  }
+</p>
 <p class="note">
-  Write your first entry on the page below. {{ agentName() }} works in
+  {{ wording.say('Write your first entry on the page below.', 'Write your first message below.') }}
+  {{ agentName() }} works in
   @if (worktree()) {
     a worktree of its own, on a branch of its own, made from
   }

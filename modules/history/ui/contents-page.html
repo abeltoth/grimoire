@@ -1,5 +1,5 @@
 <div class="look-up">
-  <label for="gr-contents-look-up">Look up</label>
+  <label for="gr-contents-look-up">{{ wording.say('Look up', 'Search') }}</label>
   <input
     #lookUpField
     id="gr-contents-look-up"
@@ -22,7 +22,11 @@
 
 @if (parts(); as parts) {
   @if (tags().length) {
-    <p class="narrow" role="group" aria-label="Show chapters tagged">
+    <p
+      class="narrow"
+      role="group"
+      [attr.aria-label]="wording.say('Show chapters tagged', 'Show chats tagged')"
+    >
       <span class="label">Tagged</span>
       @for (tag of tags(); track tag) {
         <button type="button" class="pick" [attr.aria-pressed]="isPicked(tag)" (click)="pick(tag)">
@@ -30,7 +34,9 @@
         </button>
       }
       @if (narrowedTo().length) {
-        <button type="button" class="gr-link" (click)="showAll()">Show every chapter</button>
+        <button type="button" class="gr-link" (click)="showAll()">
+          {{ wording.say('Show every chapter', 'Show every chat') }}
+        </button>
       }
     </p>
   }
@@ -53,7 +59,7 @@
               [attr.title]="chat.title || null"
               (click)="open(chat)"
             >
-              {{ chat.title || 'Untitled chapter' }}
+              {{ chat.title || wording.untitled() }}
             </button>
             <span class="tags" role="group" aria-label="Tags">
               @for (tag of chat.tags; track tag) {
@@ -110,11 +116,16 @@
   } @empty {
     <p class="none">
       @if (hits()) {
-        Nothing in the chapters matches “{{ lookUp() }}”.
+        {{ wording.say('Nothing in the chapters matches', 'No chat matches') }} “{{ lookUp() }}”.
       } @else if (narrowedTo().length) {
-        No chapter has every tag picked.
+        {{ wording.say('No chapter has every tag picked.', 'No chat has every tag picked.') }}
       } @else {
-        No chapters yet. Each chat you begin is written in here.
+        {{
+          wording.say(
+            'No chapters yet. Each chat you begin is written in here.',
+            'No chats yet. Each chat you start is listed here.'
+          )
+        }}
       }
     </p>
   }

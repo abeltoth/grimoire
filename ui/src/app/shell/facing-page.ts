@@ -48,8 +48,11 @@ export class FacingPage {
   /** The label of the page the Index, a thumb tab's page or the seals turn back to. */
   protected readonly back = computed(() => {
     const page = this.shown();
-    return page ? this.wording.label(page) : 'facing page';
+    return page ? this.wording.label(page) : this.wording.say('facing page', 'right page');
   });
+
+  /** What the right-hand page is called. */
+  protected readonly facingPage = computed(() => this.wording.say('Facing page', 'Right page'));
 
   /** The thumb tab whose page shows, if any. */
   protected readonly thumb = computed(() => {

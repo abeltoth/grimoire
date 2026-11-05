@@ -9,7 +9,9 @@
     (input)="name.set($any($event.target).value)"
   />
 
-  <label class="label" for="gr-schedule-prompt">First entry</label>
+  <label class="label" for="gr-schedule-prompt">{{
+    wording.say('First entry', 'First message')
+  }}</label>
   <textarea
     id="gr-schedule-prompt"
     class="line"
@@ -90,7 +92,7 @@
   }
 
   <p class="note">
-    Each run begins a new chapter with <b>Full access</b>: it edits files and runs commands without
+    Each run begins a new {{ wording.say('chapter', 'chat') }} with <b>Full access</b>: it edits files and runs commands without
     asking, as no one is there to approve.
   </p>
 

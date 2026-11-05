@@ -1,5 +1,6 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, inject, input } from '@angular/core';
 import type { ApprovalMode } from '@grimoire/contract';
+import { Wording } from '@ui/app/core/wording';
 import { Drawing } from '@ui/design-system/drawing';
 
 /** How the agent works in each permission mode, as the opening page says it. */
@@ -31,6 +32,8 @@ export class ChapterOpening {
   readonly begunAt = input.required<number>();
   /** Why the chapter couldn't start. */
   readonly error = input<string>();
+
+  protected readonly wording = inject(Wording);
 
   protected readonly begun = computed(() =>
     new Date(this.begunAt()).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),

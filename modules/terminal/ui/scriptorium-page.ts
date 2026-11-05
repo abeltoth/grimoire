@@ -1,5 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { Chats } from '@ui/app/core/chats';
+import { Wording } from '@ui/app/core/wording';
 import { Icon } from '@ui/design-system/icon';
 import { Scriptorium } from './scriptorium';
 import { TerminalSheet } from './terminal-sheet';
@@ -19,6 +20,7 @@ const time = (at: number) => new Date(at).toLocaleTimeString([], { hour: 'numeri
 export class ScriptoriumPage {
   protected readonly scriptorium = inject(Scriptorium);
   protected readonly chats = inject(Chats);
+  protected readonly wording = inject(Wording);
 
   constructor() {
     void this.scriptorium.load();

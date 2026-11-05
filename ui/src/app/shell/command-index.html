@@ -1,22 +1,25 @@
 <gr-running-head>
   <div class="row">
-    <h2 class="title">Index</h2>
+    <h2 class="title">{{ wording.say('Index', 'Commands') }}</h2>
     <span class="hint">
-      <span>turned to by</span>
+      <span>{{ wording.say('turned to by', 'opened by') }}</span>
       <span class="gr-kbd">/</span>
-      <span>at the start of your entry</span>
+      <span>{{ wording.say('at the start of your entry', 'at the start of your message') }}</span>
     </span>
     <span class="spacer"></span>
     <button type="button" class="gr-link" (click)="commands.close()">
-      Back to the {{ backTo() }} <span class="gr-kbd">Esc</span>
+      {{ wording.back(backTo()) }} <span class="gr-kbd">Esc</span>
     </button>
   </div>
 </gr-running-head>
 
 <div class="index">
   <div class="look-up">
-    <label>Look up</label>
-    <span class="from"><span class="slash">/{{ commands.lookUp()?.query }}</span>in your entry</span>
+    <label>{{ wording.say('Look up', 'Search') }}</label>
+    <span class="from"
+      ><span class="slash">/{{ commands.lookUp()?.query }}</span
+      >{{ wording.say('in your entry', 'in your message') }}</span
+    >
     <span class="spacer"></span>
     <span class="count">{{ agentName() }}’s commands and skills · {{ count() }}</span>
   </div>
@@ -65,8 +68,8 @@
   </div>
 
   <p class="note">
-    Keep typing in your entry to narrow the list. Only {{ agentName() }}’s own commands and skills
-    are listed; another agent shows its own.
+    {{ wording.say('Keep typing in your entry', 'Keep typing in your message') }} to narrow the
+    list. Only {{ agentName() }}’s own commands and skills are listed; another agent shows its own.
   </p>
 </div>
 

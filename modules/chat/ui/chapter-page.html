@@ -6,8 +6,8 @@
         <input
           #titleField
           class="title rename"
-          aria-label="Chapter title"
-          placeholder="Untitled chapter"
+          [attr.aria-label]="wording.say('Chapter title', 'Chat title')"
+          [placeholder]="wording.untitled()"
           [value]="c.title"
           (keydown.enter)="finishRenaming(titleField, true, true)"
           (keydown.escape)="$event.preventDefault(); finishRenaming(titleField, false, true)"
@@ -15,14 +15,14 @@
         />
       } @else {
         <h1 class="title" [class.untitled]="!c.title" [attr.title]="c.title || null">
-          {{ c.title || 'Untitled chapter' }}
+          {{ c.title || wording.untitled() }}
         </h1>
         @if (canRename()) {
           <button
             #renameButton
             type="button"
             class="icon-button"
-            aria-label="Rename chapter"
+            [attr.aria-label]="wording.say('Rename chapter', 'Rename chat')"
             (click)="renaming.set(true)"
           >
             <gr-icon name="pen" />
@@ -33,7 +33,11 @@
       <gr-review-stamps />
     </div>
     <div class="row">
-      <div class="meta" role="group" aria-label="Chapter settings">
+      <div
+        class="meta"
+        role="group"
+        [attr.aria-label]="wording.say('Chapter settings', 'Chat settings')"
+      >
         @for (setting of settings(); track setting.key; let first = $first) {
           @if (!first) {
             <span aria-hidden="true">·</span>
@@ -89,12 +93,20 @@
   <gr-running-foot>
     <gr-status-indicators />
     <span class="spacer"></span>
-    <div class="edition" role="group" aria-label="Edition: transcript detail">
-      <button type="button" aria-pressed="true">Plain</button>
+    <div
+      class="edition"
+      role="group"
+      [attr.aria-label]="wording.say('Edition: transcript detail', 'Transcript detail')"
+    >
+      <button type="button" aria-pressed="true">{{ wording.say('Plain', 'Normal') }}</button>
       <span aria-hidden="true">·</span>
-      <button type="button" aria-pressed="false" aria-disabled="true">Annotated</button>
+      <button type="button" aria-pressed="false" aria-disabled="true">
+        {{ wording.say('Annotated', 'Thinking') }}
+      </button>
       <span aria-hidden="true">·</span>
-      <button type="button" aria-pressed="false" aria-disabled="true">Variorum</button>
+      <button type="button" aria-pressed="false" aria-disabled="true">
+        {{ wording.say('Variorum', 'Verbose') }}
+      </button>
     </div>
   </gr-running-foot>
 }

@@ -2440,7 +2440,7 @@ describe('App', () => {
       'Settings',
     ]);
     expect(texts('gr-thumb-page .title')).toEqual(['Settings']);
-    expect(texts('gr-thumb-page .row .gr-link')).toEqual(['Back to the Plan Esc']);
+    expect(texts('gr-thumb-page .row .gr-link')).toEqual(['Back to Plan Esc']);
     expect(texts('gr-colophon-page .label')[2]).toBe('Default agent for new chats');
     expect(texts('gr-ribbon.new b')).toEqual(['New chat']);
 
@@ -2509,5 +2509,90 @@ describe('App', () => {
     el.querySelector<HTMLButtonElement>('gr-ribbon.new button')!.click();
     await fixture.whenStable();
     expect(texts('[aria-current="page"] i')).toEqual(['Claude Code · blank page']);
+  });
+
+  it('speaks plainly everywhere once the Colophon says so', async () => {
+    const { bridge, answers } = fakeBridge();
+    answers['settings.get'] = (): GrimoireSettings => ({ ...DEFAULT_SETTINGS, wording: 'plain' });
+    const waiting = (id: string, title: string, command: string): OpenChat => ({
+      id,
+      agent: 'claude-code',
+      title,
+      settings: { cwd: 'C:/Users/me/git/grimoire' },
+      status: 'waiting',
+      entries: [{ kind: 'user', id: 'u1', text: 'Run the tests' }],
+      approvals: [{ id: `${id}-seal`, chatId: id, tool: 'Bash', input: { command }, at: 1 }],
+      queued: [],
+      plan: [],
+      withdrawn: [],
+      dogEars: [],
+      tags: [],
+      copied: [],
+    });
+    answers['agents.openChats'] = () => [waiting('c1', 'Fix flaky login test', 'npm test')];
+    answers['agents.chats'] = () => [
+      { id: 'c1', agent: 'claude-code', title: 'Fix flaky login test', updatedAt: 1, dogEars: [], tags: [] },
+    ];
+    answers['layout.get'] = () => ({ current: 'c1', lastUsed: null });
+    const { fixture, el, texts } = await render(bridge);
+    // The book's own words, which plain wording has none of; the TOOL names and code stay as they are.
+    const BOOK =
+      /\b(chapters?|entry|entries|seals?|sealed|sealing|slips?|facing page|index|outline|colophon|ledger|scriptorium|table of contents|front matter|memory map|annotated|variorum|look up|thumb|begun)\b/i;
+    const bookWords = () => {
+      const said = [
+        el.textContent!,
+        ...[...el.querySelectorAll('[aria-label], [placeholder], [title]')].flatMap((node) =>
+          ['aria-label', 'placeholder', 'title'].map((name) => node.getAttribute(name) ?? ''),
+        ),
+      ].join('\n');
+      return said.split('\n').filter((line) => BOOK.test(line)).map((line) => line.trim());
+    };
+    const thumb = (label: string) =>
+      [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
+        .find((tab) => tab.textContent!.trim() === label)!
+        .click();
+
+    expect(bookWords()).toEqual([]);
+    expect(texts('gr-ribbon.seals b')).toEqual(['Waiting for approval']);
+
+    el.querySelector<HTMLButtonElement>('gr-ribbon.seals button')!.click();
+    await fixture.whenStable();
+    expect(texts('gr-seals-page .title')).toEqual(['Waiting for approval']);
+    expect(texts('gr-seals-page .hint')).toEqual(['1 request from 1 chat, oldest first']);
+    expect(bookWords()).toEqual([]);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await fixture.whenStable();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }));
+    await fixture.whenStable();
+    await new Promise((resolve) => setTimeout(resolve));
+    await fixture.whenStable();
+    expect(texts('gr-index-page .title')).toEqual(['Command palette']);
+    expect(texts('gr-index-page h3')).toEqual(['Actions', 'Chats']);
+    expect(bookWords()).toEqual([]);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }));
+    await fixture.whenStable();
+
+    thumb('History');
+    await fixture.whenStable();
+    expect(texts('gr-thumb-page .title')).toEqual(['History']);
+    expect(bookWords()).toEqual([]);
+    for (const label of ['Scheduled chats', 'Terminal', 'Settings']) {
+      thumb(label);
+      await fixture.whenStable();
+      expect(texts('gr-thumb-page .title')).toEqual([label]);
+      expect(bookWords()).toEqual([]);
+    }
+    el.querySelector<HTMLButtonElement>('.meta button')!.click();
+    await fixture.whenStable();
+    expect(texts('gr-settings-card h2')).toEqual(['Settings for this chat']);
+    expect(bookWords()).toEqual([]);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }));
+    await fixture.whenStable();
+
+    el.querySelector<HTMLButtonElement>('gr-ribbon.new button')!.click();
+    await fixture.whenStable();
+    expect(texts('gr-chapter-opening .kicker')).toEqual(['A new chat']);
+    expect(bookWords()).toEqual([]);
   });
 });

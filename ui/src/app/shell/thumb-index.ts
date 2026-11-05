@@ -30,7 +30,7 @@ const SMALLEST = 0.7;
   styleUrl: './thumb-index.css',
   host: {
     role: 'navigation',
-    'aria-label': 'Thumb index',
+    '[attr.aria-label]': "wording.say('Thumb index', 'Pages')",
     '[style.--thumbs-space]': 'space()',
     '[style.--thumbs-type]': 'type()',
   },

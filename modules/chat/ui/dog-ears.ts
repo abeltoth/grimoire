@@ -1,6 +1,7 @@
 import { Component, inject, input } from '@angular/core';
 import type { DogEar } from '@grimoire/contract';
 import { type Chapter, Chats } from '@ui/app/core/chats';
+import { Wording } from '@ui/app/core/wording';
 
 /**
  * The page's dog-ears: fold the top corner down to pin the chapter, the
@@ -14,7 +15,11 @@ import { type Chapter, Chats } from '@ui/app/core/chats';
       class="dog pin"
       [class.folded]="folded('pin')"
       [attr.aria-disabled]="blank() ? true : null"
-      [attr.aria-label]="folded('pin') ? 'Pinned. Unfold to unpin' : 'Pin this chapter'"
+      [attr.aria-label]="
+        folded('pin')
+          ? wording.say('Pinned. Unfold to unpin', 'Pinned. Unpin')
+          : wording.say('Pin this chapter', 'Pin this chat')
+      "
       (click)="toggle('pin')"
     ></button>
     <button
@@ -22,7 +27,11 @@ import { type Chapter, Chats } from '@ui/app/core/chats';
       class="dog star"
       [class.folded]="folded('star')"
       [attr.aria-disabled]="blank() ? true : null"
-      [attr.aria-label]="folded('star') ? 'Starred. Unfold to unstar' : 'Star this chapter'"
+      [attr.aria-label]="
+        folded('star')
+          ? wording.say('Starred. Unfold to unstar', 'Starred. Unstar')
+          : wording.say('Star this chapter', 'Star this chat')
+      "
       (click)="toggle('star')"
     ></button>
   `,
@@ -30,6 +39,7 @@ import { type Chapter, Chats } from '@ui/app/core/chats';
 })
 export class DogEars {
   private readonly chats = inject(Chats);
+  protected readonly wording = inject(Wording);
   readonly chapter = input.required<Chapter>();
 
   protected blank(): boolean {

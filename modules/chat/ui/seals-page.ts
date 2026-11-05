@@ -1,6 +1,7 @@
 import { Component, ElementRef, computed, effect, inject, input } from '@angular/core';
 import type { Approval, ApprovalDecision } from '@grimoire/contract';
 import { type Chapter, Chats } from '@ui/app/core/chats';
+import { Wording } from '@ui/app/core/wording';
 import { Facing } from '@ui/app/shell/facing';
 import { RunningFoot } from '@ui/app/shell/running-foot';
 import { RunningHead } from '@ui/app/shell/running-head';
@@ -35,6 +36,7 @@ export class SealsPage {
 
   protected readonly chats = inject(Chats);
   protected readonly facing = inject(Facing);
+  protected readonly wording = inject(Wording);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
 
   protected readonly slips = computed<Slip[]>(() =>
@@ -49,7 +51,8 @@ export class SealsPage {
   protected readonly summary = computed(() => {
     const slips = this.slips();
     const chapters = new Set(slips.map((slip) => slip.chapter.id)).size;
-    return `${plural(slips.length, 'slip')} from ${plural(chapters, 'chapter')}, oldest first`;
+    const [slip, chapter] = this.wording.plain() ? ['request', 'chat'] : ['slip', 'chapter'];
+    return `${plural(slips.length, slip)} from ${plural(chapters, chapter)}, oldest first`;
   });
   /** The slip you start on. */
   protected readonly first = computed(() => {

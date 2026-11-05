@@ -72,7 +72,7 @@ export class IndexPage {
   private readonly registry = inject(ShellRegistry);
   private readonly chats = inject(Chats);
   private readonly presets = inject(Presets);
-  private readonly wording = inject(Wording);
+  protected readonly wording = inject(Wording);
   private readonly platform = inject(GRIMOIRE_BRIDGE).platform;
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly field = viewChild.required<ElementRef<HTMLInputElement>>('field');
@@ -91,7 +91,7 @@ export class IndexPage {
           label: preset.name,
           hint: `${this.presets.describe(preset)} ·`,
           folder: this.chats.folderName(preset.settings.cwd),
-          where: 'new chapter',
+          where: this.wording.say('new chapter', 'new chat'),
           run: () => this.chats.newChapter(preset),
         }),
       );
@@ -113,7 +113,7 @@ export class IndexPage {
       );
     const fromPreset: IndexEntry = {
       id: 'action-from-preset',
-      label: 'New chapter from preset',
+      label: this.wording.say('New chapter from preset', 'New chat from preset'),
       hint: 'pick a preset first',
       where: 'opens a list ›',
       opensList: true,
@@ -129,16 +129,19 @@ export class IndexPage {
     const chapters = [...this.pastChats()].sort((a, b) => pinned(b) - pinned(a)).map(
       (chat): IndexEntry => ({
         id: `chapter-${chat.id}`,
-        label: chat.title || 'Untitled chapter',
+        label: chat.title || this.wording.untitled(),
         hint: `${this.chats.agentName(chat.agent)} ·`,
         folder: this.chats.folderName(chat.cwd),
-        where: 'in Table of contents',
+        where: this.wording.say('in Table of contents', 'in History'),
         run: () => void this.chats.openChat(chat),
       }),
     );
     const sections: Section[] = [
       { title: 'Actions', entries: matching(actions, lookUp) },
-      { title: 'Chapters', entries: matching(chapters, lookUp).slice(0, MAX_CHAPTERS) },
+      {
+        title: this.wording.say('Chapters', 'Chats'),
+        entries: matching(chapters, lookUp).slice(0, MAX_CHAPTERS),
+      },
     ];
     return sections.filter((section) => section.entries.length);
   });
@@ -149,14 +152,26 @@ export class IndexPage {
   });
   protected readonly count = computed(() => {
     const count = this.listed().length;
-    return `${count} ${count === 1 ? 'entry' : 'entries'}`;
+    const [one, many] = this.wording.plain() ? ['result', 'results'] : ['entry', 'entries'];
+    return `${count} ${count === 1 ? one : many}`;
+  });
+
+  protected readonly entriesLabel = computed(() => {
+    const entries = this.wording.say('Index entries', 'Commands and chats');
+    return this.lookUp() ? `${entries} for ${this.lookUp()}` : entries;
   });
 
   /** Why nothing is listed. */
   protected readonly empty = computed(() =>
     this.listingPresets() && !this.presets.all().length
-      ? 'No saved presets yet. Save one on a chapter’s settings card.'
-      : `Nothing in the index matches “${this.lookUp()}”.`,
+      ? this.wording.say(
+          'No saved presets yet. Save one on a chapter’s settings card.',
+          'No saved presets yet. Save one in a chat’s settings.',
+        )
+      : this.wording.say(
+          `Nothing in the index matches “${this.lookUp()}”.`,
+          `Nothing matches “${this.lookUp()}”.`,
+        ),
   );
 
   constructor() {

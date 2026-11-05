@@ -1,5 +1,6 @@
 import { Component, computed, inject, input } from '@angular/core';
 import type { Approval } from '@grimoire/contract';
+import { Wording } from '@ui/app/core/wording';
 import { Facing } from '@ui/app/shell/facing';
 import { askOf } from './asks';
 
@@ -11,10 +12,10 @@ import { askOf } from './asks';
   selector: 'gr-seal-stub',
   template: `
     <span class="corner" aria-hidden="true"></span>
-    <b>¶ Awaiting your seal</b>
+    <b>{{ wording.say('¶ Awaiting your seal', 'Waiting for approval') }}</b>
     <code>{{ text() }}</code>
     <button type="button" (click)="facing.openSeals(approval().id)">
-      seal it on the facing page →
+      {{ wording.say('seal it on the facing page', 'answer it on the right') }} →
     </button>
   `,
   styleUrl: './seal-stub.css',
@@ -25,6 +26,7 @@ export class SealStub {
   readonly cwd = input<string>();
 
   protected readonly facing = inject(Facing);
+  protected readonly wording = inject(Wording);
   /** What the slip asks, in one line. */
   protected readonly text = computed(() => {
     const ask = askOf(this.approval(), this.cwd());
