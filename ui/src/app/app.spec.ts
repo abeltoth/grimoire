@@ -954,9 +954,9 @@ describe('App', () => {
   it('looks up actions and chapters in the Index, turned to with Ctrl+K', async () => {
     const { bridge, calls, answers } = fakeBridge();
     answers['agents.chats'] = () => [
-      { id: 'c7', agent: 'claude-code', title: 'Old notes', cwd: 'C:/Users/me', updatedAt: 0, dogEars: ['pin', 'star'] },
-      { id: 'c8', agent: 'claude-code', title: 'Fix flaky login test', cwd: 'C:/Users/me/git/grimoire', updatedAt: 1, dogEars: ['star'] },
-      { id: 'c9', agent: 'claude-code', title: 'New onboarding flow', cwd: 'C:/Users/me/git/breeder', updatedAt: 2, dogEars: [] },
+      { id: 'c7', agent: 'claude-code', title: 'Old notes', cwd: 'C:/Users/me', updatedAt: 0, dogEars: ['pin', 'star'], tags: [] },
+      { id: 'c8', agent: 'claude-code', title: 'Fix flaky login test', cwd: 'C:/Users/me/git/grimoire', updatedAt: 1, dogEars: ['star'], tags: [] },
+      { id: 'c9', agent: 'claude-code', title: 'New onboarding flow', cwd: 'C:/Users/me/git/breeder', updatedAt: 2, dogEars: [], tags: [] },
     ];
     answers['agents.open'] = (request: CommandRequest<'agents.open'>): OpenChat => ({
       id: request.chatId,
@@ -1044,6 +1044,112 @@ describe('App', () => {
     await fixture.whenStable();
     expect(el.querySelector('gr-index-page')).toBeNull();
     expect(notch.getAttribute('aria-current')).toBeNull();
+  });
+
+  it('lists every chapter in the Table of contents, in parts by project, narrowed and tagged there', async () => {
+    const { bridge, calls, answers, emit } = fakeBridge();
+    answers['agents.chats'] = () => [
+      { id: 'c1', agent: 'claude-code', title: 'Context meter', cwd: 'C:/Users/me/git/grimoire', updatedAt: 9, dogEars: [], tags: ['ui', 'bug'] },
+      { id: 'c2', agent: 'claude-code', title: 'Fix flaky login test', cwd: 'C:/Users/me/git/breeder', updatedAt: 8, dogEars: [], tags: ['bug'] },
+      { id: 'c3', agent: 'claude-code', title: 'Refactor storage migrations', cwd: 'C:/Users/me/git/grimoire/.claude/worktrees/storage', updatedAt: 7, dogEars: [], tags: [] },
+      { id: 'c4', agent: 'claude-code', title: 'Morning repo summary', cwd: 'C:/Users/me/git/grimoire', updatedAt: 1, dogEars: ['pin'], tags: [] },
+    ];
+    answers['agents.open'] = (request: CommandRequest<'agents.open'>): OpenChat => ({
+      id: request.chatId,
+      agent: request.agent,
+      title: 'Fix flaky login test',
+      settings: request.settings,
+      status: 'idle',
+      entries: [],
+      approvals: [],
+      queued: [],
+      plan: [],
+      withdrawn: [],
+      dogEars: [],
+      tags: ['bug'],
+      copied: [],
+    });
+    const { fixture, el, texts } = await render(bridge);
+    const tab = [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')].find(
+      (t) => t.textContent!.trim() === 'Table of contents',
+    )!;
+    tab.click();
+    await fixture.whenStable();
+
+    expect(texts('gr-thumb-page .title')).toEqual(['Table of contents']);
+    expect(texts('gr-contents-page h3')).toEqual(['Part I', 'Part II']);
+    expect(texts('gr-contents-page h2')).toEqual(['grimoire ~/git/grimoire', 'breeder ~/git/breeder']);
+    // A pinned chapter comes first in its part; a worktree's chapter is in its repository's.
+    expect(texts('gr-contents-page li .chapter')).toEqual([
+      'Morning repo summary',
+      'Context meter',
+      'Refactor storage migrations',
+      'Fix flaky login test',
+    ]);
+    expect(texts('gr-contents-page li .tag')).toEqual(['ui', 'bug', 'bug']);
+    expect(texts('gr-contents-page .pick')).toEqual(['bug', 'ui']);
+
+    const pick = (tag: string) =>
+      [...el.querySelectorAll<HTMLButtonElement>('gr-contents-page .pick')].find((b) => b.textContent!.trim() === tag)!;
+    pick('bug').click();
+    await fixture.whenStable();
+    expect(pick('bug').getAttribute('aria-pressed')).toBe('true');
+    expect(texts('gr-contents-page li .chapter')).toEqual(['Context meter', 'Fix flaky login test']);
+    pick('ui').click();
+    await fixture.whenStable();
+    expect(texts('gr-contents-page li .chapter')).toEqual(['Context meter']);
+    el.querySelector<HTMLButtonElement>('gr-contents-page .narrow .gr-link')!.click();
+    await fixture.whenStable();
+    expect(texts('gr-contents-page li .chapter')).toHaveLength(4);
+
+    // A tag is written in place on the chapter, and kept by the service.
+    const row = (id: string) => el.querySelector<HTMLElement>(`gr-contents-page li[data-chat="${id}"]`)!;
+    row('c3').querySelector<HTMLButtonElement>('.add')!.click();
+    await fixture.whenStable();
+    const field = row('c3').querySelector<HTMLInputElement>('.field')!;
+    expect(document.activeElement).toBe(field);
+    field.value = ' storage ';
+    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    await fixture.whenStable();
+    const tagCalls = () => calls.filter((c) => c.command === 'agents.tag').map((c) => c.request);
+    expect(tagCalls()).toEqual([{ chatId: 'c3', tags: ['storage'] }]);
+    expect(texts('gr-contents-page li[data-chat="c3"] .tag')).toEqual(['storage']);
+    expect(texts('gr-contents-page .pick')).toEqual(['bug', 'storage', 'ui']);
+    expect(document.activeElement).toBe(row('c3').querySelector('.add'));
+
+    row('c1').querySelector<HTMLButtonElement>('[aria-label="Remove tag ui"]')!.click();
+    await fixture.whenStable();
+    expect(tagCalls().at(-1)).toEqual({ chatId: 'c1', tags: ['bug'] });
+    expect(texts('gr-contents-page .pick')).toEqual(['bug', 'storage']);
+
+    // Tags and titles changed on a chapter itself show here too.
+    emit('agents.tags', { chatId: 'c2', tags: ['bug', 'login'] });
+    emit('agents.title', { chatId: 'c4', title: 'Morning summary' });
+    await fixture.whenStable();
+    expect(texts('gr-contents-page li[data-chat="c2"] .tag')).toEqual(['bug', 'login']);
+    expect(texts('gr-contents-page li[data-chat="c4"] .chapter')).toEqual(['Morning summary']);
+
+    // A title opens its chapter on the left page; the contents stay open beside it.
+    row('c2').querySelector<HTMLButtonElement>('.chapter')!.click();
+    await fixture.whenStable();
+    expect(calls.filter((c) => c.command === 'agents.open').map((c) => c.request)).toEqual([
+      { agent: 'claude-code', chatId: 'c2', settings: { cwd: 'C:/Users/me/git/breeder' } },
+    ]);
+    expect(texts('gr-running-head h1')).toEqual(['Fix flaky login test']);
+    expect(row('c2').getAttribute('aria-current')).toBe('page');
+    expect(el.querySelector('gr-contents-page')).not.toBeNull();
+  });
+
+  it('says so in the Table of contents when there are no chapters, or none with the tags picked', async () => {
+    const { bridge, answers } = fakeBridge();
+    answers['agents.chats'] = () => [];
+    const { fixture, el, texts } = await render(bridge);
+    [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
+      .find((t) => t.textContent!.trim() === 'Table of contents')!
+      .click();
+    await fixture.whenStable();
+    expect(texts('gr-contents-page .none')).toEqual(['No chapters yet. Each chat you begin is written in here.']);
+    expect(el.querySelector('gr-contents-page .narrow')).toBeNull();
   });
 
   it('turns the facing page to a thumb tab\'s page, blank until its feature is written', async () => {

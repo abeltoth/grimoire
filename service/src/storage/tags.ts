@@ -12,6 +12,16 @@ export class Tags {
     return rows.map((row) => row.tag);
   }
 
+  /** Every chat's tags, by chat. */
+  all(): Map<ChatId, string[]> {
+    const rows = this.db
+      .prepare('SELECT chat_id, tag FROM tags ORDER BY chat_id, position')
+      .all() as { chat_id: ChatId; tag: string }[];
+    const all = new Map<ChatId, string[]>();
+    for (const row of rows) all.set(row.chat_id, [...(all.get(row.chat_id) ?? []), row.tag]);
+    return all;
+  }
+
   set(chatId: ChatId, tags: readonly string[]): void {
     this.db.exec('BEGIN');
     try {

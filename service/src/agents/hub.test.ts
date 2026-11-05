@@ -563,6 +563,11 @@ describe('AgentHub', () => {
     hub.tag(id, [' ui ', 'bug', '', 'UI']);
     expect(sent).toEqual([{ event: 'agents.tags', payload: { chatId: id, tags: ['ui', 'bug'] } }]);
     expect((await hub.open('fake', id, settings)).tags).toEqual(['ui', 'bug']);
+    fake.chats = [
+      { id, agent: 'fake', title: 'Tagged', updatedAt: 0 },
+      { id: 'other', agent: 'fake', title: 'Plain', updatedAt: 1 },
+    ];
+    expect((await hub.listChats('fake')).map((chat) => chat.tags)).toEqual([['ui', 'bug'], []]);
     hub.tag(id, ['bug']);
 
     const restarted = new AgentHub(() => {}, 50, store);

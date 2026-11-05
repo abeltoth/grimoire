@@ -396,6 +396,14 @@
   --gr-ledger-section-gap: 32px;
   --gr-ledger-percent-col: 40px;
 
+  /* The Table of contents: every chapter, in parts by project */
+  --gr-contents-width: 680px;
+  --gr-contents-narrow-gap: 22px;
+  --gr-contents-part-gap: 28px;
+  --gr-contents-list-gap: 10px;
+  --gr-contents-row-gap: 7px;
+  --gr-size-contents-part: 22px;
+
   /* Scheduled chats: each schedule a dated journal entry */
   --gr-schedules-width: 620px;
   --gr-schedules-entry-gap: 22px;

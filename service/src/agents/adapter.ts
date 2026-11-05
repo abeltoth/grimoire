@@ -18,8 +18,8 @@ import type {
   SettingsChange,
 } from '@grimoire/contract';
 
-/** A chat as the agent lists it; its dog-ears are Grimoire's (ADR-009). */
-export type SavedChat = Omit<ChatSummary, 'dogEars'>;
+/** A chat as the agent lists it; its dog-ears and tags are Grimoire's (ADR-009). */
+export type SavedChat = Omit<ChatSummary, 'dogEars' | 'tags'>;
 
 /** One agent, such as Claude Code. The hub reaches agents only through this (ADR-006). */
 export interface AgentAdapter {
