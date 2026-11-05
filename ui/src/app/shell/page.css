@@ -19,3 +19,7 @@
     linear-gradient(to right, var(--gr-gutter-shade), transparent var(--gr-gutter-shade-w)),
     var(--gr-page-facing);
 }
+
+:host(.alone) {
+  background: var(--gr-page);
+}

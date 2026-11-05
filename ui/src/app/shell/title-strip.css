@@ -34,19 +34,3 @@ button {
   color: var(--gr-gilt);
   padding: var(--gr-book-title-pad);
 }
-
-.window-controls {
-  display: flex;
-}
-
-.window-controls button {
-  width: var(--gr-window-control-w);
-  height: var(--gr-window-control-h);
-  display: grid;
-  place-items: center;
-  color: var(--gr-chrome);
-}
-
-.window-controls button:hover {
-  background: var(--gr-window-control-hover);
-}

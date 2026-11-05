@@ -73,3 +73,22 @@
   width: 1px;
   background: var(--gr-spine-line);
 }
+
+/* Out of the cover: the leaves lie on the desk, their page blocks still at the edges. */
+:host(.bare) {
+  padding: 0;
+  background: none;
+  box-shadow: none;
+}
+
+:host(.bare)::before {
+  content: none;
+}
+
+:host(.bare) .spread {
+  box-shadow: var(--gr-shadow-focus-leaf);
+}
+
+:host(.single) .spread::after {
+  content: none;
+}

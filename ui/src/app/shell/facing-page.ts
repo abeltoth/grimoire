@@ -9,6 +9,7 @@ import { Page } from './page';
 import { RunningFoot } from './running-foot';
 import { RunningHead } from './running-head';
 import { Facing } from './facing';
+import { Focus } from './focus';
 import { ThumbPage } from './thumb-page';
 import { type FacingPageEntry, ShellRegistry } from './shell-registry';
 
@@ -39,14 +40,19 @@ export class FacingPage {
   protected readonly registry = inject(ShellRegistry);
   protected readonly facing = inject(Facing);
   protected readonly wording = inject(Wording);
+  protected readonly focus = inject(Focus);
 
   protected readonly shown = computed<FacingPageEntry | undefined>(() => {
     const pages = this.registry.facingPages.all().filter((page) => page.component);
     return pages.find((page) => page.id === this.facing.page()) ?? pages[0];
   });
 
-  /** The label of the page the Index, a thumb tab's page or the seals turn back to. */
+  /**
+   * The label of the page the Index, a thumb tab's page or the seals turn
+   * back to; in focus mode, the chapter's page alone.
+   */
   protected readonly back = computed(() => {
+    if (this.focus.on()) return this.wording.say('single page', 'focus');
     const page = this.shown();
     return page ? this.wording.label(page) : this.wording.say('facing page', 'right page');
   });

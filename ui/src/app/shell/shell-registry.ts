@@ -3,6 +3,7 @@ import {
   Injectable,
   type Type,
   computed,
+  effect,
   inject,
   provideAppInitializer,
   signal,
@@ -10,7 +11,9 @@ import {
 } from '@angular/core';
 import type { IconName } from '../../design-system/icon';
 import { Chats } from '../core/chats';
+import { Wording } from '../core/wording';
 import { Facing } from './facing';
+import { Focus } from './focus';
 import type { Shortcut } from './shortcut';
 
 interface Entry {
@@ -143,6 +146,32 @@ export function provideShell(): EnvironmentProviders {
       },
       shortcut: 'Mod+N',
       run: () => chats.newChapter(),
+    });
+    // Focus mode in the Index: in, or back out to two pages.
+    const focus = inject(Focus);
+    const wording = inject(Wording);
+    effect((onCleanup) => {
+      onCleanup(
+        focus.on()
+          ? shell.commands.add({
+              id: 'shell.twoPages',
+              label: 'Two pages',
+              plainLabel: 'Leave focus',
+              hint: () =>
+                wording.say(
+                  'the facing page, thumb index and ribbons again',
+                  'show everything again',
+                ),
+              run: () => focus.leave(),
+            })
+          : shell.commands.add({
+              id: 'shell.singlePage',
+              label: 'Single page',
+              plainLabel: 'Focus mode',
+              hint: () => wording.say('this chapter alone on the desk', 'only this chat'),
+              run: () => focus.enter(),
+            }),
+      );
     });
     shell.commands.add({
       id: 'chapters.close',

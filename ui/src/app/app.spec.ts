@@ -990,6 +990,7 @@ describe('App', () => {
       'New chapter',
       'New chapter from preset',
       'Close chapter',
+      'Single page',
       'Old notes',
       'New onboarding flow',
       'Fix flaky login test',
@@ -2750,5 +2751,64 @@ describe('App', () => {
     await fixture.whenStable();
     expect(kept.theme).toEqual({});
     expect(root.getPropertyValue('--gr-page')).toBe('');
+  });
+
+  it('lays the chapter alone on the desk at Single page, and brings everything back at Two pages', async () => {
+    const { bridge, calls } = fakeBridge();
+    const { fixture, el } = await render(bridge);
+
+    const shown = (selector: string) => el.querySelector(selector) !== null;
+
+    [...el.querySelectorAll<HTMLButtonElement>('gr-facing-page .gr-link')]
+      .find((link) => link.textContent!.includes('Single page'))!
+      .click();
+    await fixture.whenStable();
+    expect(el.classList).toContain('focus');
+    expect(el.classList).toContain('single');
+    expect(shown('gr-title-strip')).toBe(false);
+    expect(shown('gr-thumb-index')).toBe(false);
+    expect(shown('gr-ribbons')).toBe(false);
+    expect(shown('gr-facing-page')).toBe(false);
+    expect(shown('.desk.end gr-window-controls [aria-label="Close window"]')).toBe(true);
+    expect(calls).toContainEqual({ command: 'layout.set', request: { focus: true } });
+
+    // The Index comes back beside the chapter, and goes again with it.
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }));
+    await fixture.whenStable();
+    expect(el.classList).not.toContain('single');
+    expect(shown('gr-facing-page gr-index-page')).toBe(true);
+    expect(shown('gr-thumb-index')).toBe(false);
+    const labels = [...el.querySelectorAll('gr-index-page .entry .label')].map((n) => n.textContent!.trim());
+    expect(labels).toContain('Two pages');
+    expect(labels).not.toContain('Single page');
+    expect(el.querySelector('gr-index-page .gr-link')!.textContent).toContain('Back to the single page');
+    expect(el.querySelector('gr-index-page .hint')!.textContent).not.toContain('thumb notch');
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }));
+    await fixture.whenStable();
+    expect(el.classList).toContain('single');
+    expect(shown('gr-facing-page')).toBe(false);
+
+    [...el.querySelectorAll<HTMLButtonElement>('gr-running-head .gr-link')]
+      .find((link) => link.textContent!.includes('Two pages'))!
+      .click();
+    await fixture.whenStable();
+    expect(el.classList).not.toContain('focus');
+    expect(shown('gr-title-strip')).toBe(true);
+    expect(shown('gr-thumb-index')).toBe(true);
+    expect(shown('gr-ribbons')).toBe(true);
+    expect(shown('gr-facing-page')).toBe(true);
+    expect(shown('.desk')).toBe(false);
+    expect(calls).toContainEqual({ command: 'layout.set', request: { focus: false } });
+  });
+
+  it('opens at a single page when the book was left that way', async () => {
+    const { bridge, answers } = fakeBridge();
+    answers['layout.get'] = () => ({ current: null, lastUsed: null, focus: true });
+    const { fixture, el } = await render(bridge);
+    await new Promise((resolve) => setTimeout(resolve));
+    await fixture.whenStable();
+    expect(el.classList).toContain('focus');
+    expect(el.querySelector('gr-title-strip')).toBeNull();
+    expect(el.querySelector('gr-facing-page')).toBeNull();
   });
 });

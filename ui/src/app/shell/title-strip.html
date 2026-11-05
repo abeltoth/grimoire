@@ -11,17 +11,5 @@
 </button>
 
 <div class="side end">
-  @if (platform !== 'mac') {
-    <div class="window-controls">
-      <button type="button" aria-label="Minimize window" (click)="minimize()">
-        <gr-icon name="minimize" />
-      </button>
-      <button type="button" aria-label="Maximize window" (click)="toggleMaximize()">
-        <gr-icon name="maximize" />
-      </button>
-      <button type="button" aria-label="Close window" (click)="close()">
-        <gr-icon name="close" />
-      </button>
-    </div>
-  }
+  <gr-window-controls />
 </div>

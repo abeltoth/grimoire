@@ -56,6 +56,11 @@
         }
       </div>
       <span class="spacer"></span>
+      @if (focus.on()) {
+        <button type="button" class="gr-link" (click)="focus.leave()">
+          <gr-icon name="two-pages" />{{ wording.say('Two pages', 'Leave focus') }}
+        </button>
+      }
       <button type="button" class="gr-link" aria-disabled="true">
         <gr-icon name="pop-out" />Pop out
       </button>

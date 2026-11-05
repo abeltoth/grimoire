@@ -20,3 +20,44 @@
   flex: 1;
   min-height: 0;
 }
+
+/*
+ * Focus mode: the page lies in the middle of the desk, as tall as the window,
+ * set to a comfortable measure with a wider margin for the tool calls. The
+ * desk either side drags the window and holds its buttons.
+ */
+:host(.focus) .stage {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-columns:
+    minmax(var(--gr-focus-desk-min), 1fr)
+    minmax(0, var(--gr-focus-spread-w))
+    minmax(var(--gr-focus-desk-min), 1fr);
+  padding: 0;
+}
+
+:host(.focus.single) {
+  --gr-margin-col: var(--gr-focus-margin-col);
+}
+
+:host(.focus.single) .stage {
+  grid-template-columns:
+    minmax(var(--gr-focus-desk-min), 1fr)
+    minmax(0, var(--gr-focus-page-w))
+    minmax(var(--gr-focus-desk-min), 1fr);
+}
+
+:host(.focus) gr-book {
+  min-height: 0;
+  margin: var(--gr-focus-desk-pad) 0;
+}
+
+.desk {
+  -webkit-app-region: drag;
+}
+
+.desk.end {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+}
