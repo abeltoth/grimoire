@@ -10,6 +10,44 @@
   color: var(--gr-ink-soft);
 }
 
+/* The look-up, written in pen, as the Index's is. */
+.look-up {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-index-look-up-gap);
+  margin-bottom: var(--gr-contents-narrow-gap);
+  padding-bottom: var(--gr-index-look-up-pad);
+  border-bottom: var(--gr-index-look-up-rule);
+}
+
+.look-up label {
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-index-label);
+  letter-spacing: var(--gr-tracking-index-label);
+  color: var(--gr-ink-soft);
+  white-space: nowrap;
+}
+
+.look-up input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: var(--gr-size-contents-look-up);
+  color: var(--gr-pen);
+  caret-color: var(--gr-pen);
+  outline: none;
+}
+
+.count {
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+  white-space: nowrap;
+}
+
 /* The tags to narrow the list by, as a line of small capitals; picked ones are in rubric. */
 .narrow {
   display: flex;
@@ -85,6 +123,7 @@ ol {
 /* A chapter: its title and tags, a dotted leader, and the day it was last written in. */
 li {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   min-width: 0;
   font-size: var(--gr-size-outline);
@@ -194,6 +233,33 @@ li:focus-within .add {
   margin: 0 var(--gr-outline-leader-gap);
   border-bottom: var(--gr-leader);
   transform: translateY(var(--gr-outline-leader-lift));
+}
+
+/* The passage with what's looked up, under its chapter, cut short after two lines. */
+.excerpt {
+  flex-basis: 100%;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin: var(--gr-contents-excerpt-gap) 0 0;
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  line-height: var(--gr-leading-note);
+  color: var(--gr-ink-soft);
+}
+
+.excerpt .by {
+  margin-right: var(--gr-index-gloss-gap);
+  font-family: var(--gr-font-sc);
+  font-style: normal;
+  font-size: var(--gr-size-control);
+  letter-spacing: var(--gr-tracking-control);
+}
+
+.excerpt b {
+  font-weight: 600;
+  color: var(--gr-ink);
 }
 
 .when {

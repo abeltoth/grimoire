@@ -1140,6 +1140,88 @@ describe('App', () => {
     expect(el.querySelector('gr-contents-page')).not.toBeNull();
   });
 
+  it('looks up words through the chapters in the Table of contents, each with its passage', async () => {
+    const { bridge, calls, answers } = fakeBridge();
+    answers['agents.chats'] = () => [
+      { id: 'c1', agent: 'claude-code', title: 'Context meter', cwd: 'C:/Users/me/git/grimoire', updatedAt: 9, dogEars: [], tags: [] },
+      { id: 'c2', agent: 'claude-code', title: 'Fix flaky login test', cwd: 'C:/Users/me/git/breeder', updatedAt: 8, dogEars: [], tags: [] },
+      { id: 'c3', agent: 'claude-code', title: 'Refactor storage migrations', cwd: 'C:/Users/me/git/grimoire', updatedAt: 7, dogEars: [], tags: [] },
+    ];
+    answers['search.chats'] = ({ query }: CommandRequest<'search.chats'>) => {
+      if (query === 'boom') throw new Error('the worker stopped');
+      if (query !== 'timer') return [];
+      return [
+        {
+          chatId: 'c2',
+          agent: 'claude-code',
+          kind: 'agent',
+          excerpt: [{ text: '…the login test waited on a ' }, { text: 'timer', match: true }, { text: '; it now…' }],
+        },
+        { chatId: 'c1', agent: 'claude-code', kind: 'title', excerpt: [{ text: 'Context meter' }] },
+        // A chat the contents don't list yet is left out.
+        { chatId: 'new', agent: 'claude-code', kind: 'you', excerpt: [{ text: 'timer', match: true }] },
+      ];
+    };
+    answers['agents.open'] = (request: CommandRequest<'agents.open'>): OpenChat => ({
+      id: request.chatId,
+      agent: request.agent,
+      title: 'Context meter',
+      settings: request.settings,
+      status: 'idle',
+      entries: [],
+      approvals: [],
+      queued: [],
+      plan: [],
+      withdrawn: [],
+      dogEars: [],
+      tags: [],
+      copied: [],
+    });
+    const { fixture, el, texts } = await render(bridge);
+    [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
+      .find((t) => t.textContent!.trim() === 'Table of contents')!
+      .click();
+    await fixture.whenStable();
+    const field = el.querySelector<HTMLInputElement>('#gr-contents-look-up')!;
+    expect(document.activeElement).toBe(field);
+    const look = async (query: string) => {
+      field.value = query;
+      field.dispatchEvent(new Event('input'));
+      await fixture.whenStable();
+    };
+
+    await look('timer');
+    expect(calls.filter((c) => c.command === 'search.chats').map((c) => c.request)).toEqual([{ query: 'timer' }]);
+    expect(texts('gr-contents-page li .chapter')).toEqual(['Context meter', 'Fix flaky login test']);
+    // A passage is shown with who wrote it; a title that has the words shows as it is.
+    expect(texts('gr-contents-page .excerpt')).toEqual(['Claude Code …the login test waited on a timer; it now…']);
+    expect(texts('gr-contents-page .excerpt b')).toEqual(['timer']);
+    expect(texts('gr-contents-page .count')).toEqual(['2 chapters']);
+
+    // Enter opens the first chapter listed.
+    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    await fixture.whenStable();
+    expect(calls.filter((c) => c.command === 'agents.open').map((c) => c.request)).toEqual([
+      { agent: 'claude-code', chatId: 'c1', settings: { cwd: 'C:/Users/me/git/grimoire' } },
+    ]);
+
+    await look('zzz');
+    expect(texts('gr-contents-page .none')).toEqual(['Nothing in the chapters matches “zzz”.']);
+    expect(texts('gr-contents-page .count')).toEqual(['0 chapters']);
+
+    await look('boom');
+    expect(texts('gr-contents-page [role="alert"]')).toEqual([
+      'The chapters couldn’t be looked through: the worker stopped',
+    ]);
+
+    // Nothing looked up lists every chapter again, without asking.
+    await look('  ');
+    expect(texts('gr-contents-page li .chapter')).toHaveLength(3);
+    expect(texts('gr-contents-page .count')).toEqual(['']);
+    expect(el.querySelector('gr-contents-page [role="alert"]')).toBeNull();
+    expect(calls.filter((c) => c.command === 'search.chats')).toHaveLength(3);
+  });
+
   it('says so in the Table of contents when there are no chapters, or none with the tags picked', async () => {
     const { bridge, answers } = fakeBridge();
     answers['agents.chats'] = () => [];

@@ -6,5 +6,6 @@ export * from './terminal';
 export * from './layout';
 export * from './presets';
 export * from './schedules';
+export * from './search';
 export * from './bridge';
 export * from './protocol';

@@ -403,6 +403,8 @@
   --gr-contents-list-gap: 10px;
   --gr-contents-row-gap: 7px;
   --gr-size-contents-part: 22px;
+  --gr-size-contents-look-up: 18px;
+  --gr-contents-excerpt-gap: 2px;
 
   /* Scheduled chats: each schedule a dated journal entry */
   --gr-schedules-width: 620px;

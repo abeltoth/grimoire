@@ -10,6 +10,7 @@
 import { randomBytes } from 'node:crypto';
 import { appendFileSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { PROTOCOL_VERSION, SERVICE_INFO_FILE, type ServiceInfo } from '@grimoire/contract';
 import { ClaudeAdapter } from './agents/claude/claude-adapter';
@@ -27,6 +28,8 @@ import { AlreadyRunningError, startServer, type ServiceServer } from './server';
 import { registerSchedules } from './schedules/commands';
 import { Scheduler } from './schedules/scheduler';
 import { ScheduleStore } from './schedules/store';
+import { registerSearch } from './search/commands';
+import { SearchWorker, forkWorker } from './search/search-worker';
 import { openDatabase } from './storage/database';
 import { WorktreeRecords } from './storage/worktrees';
 import { registerTerminals } from './terminal/commands';
@@ -67,8 +70,23 @@ registerLayout(registry, new LayoutStore(db));
 registerPresets(registry, new PresetStore(db));
 registerGit(registry, new Git());
 
+// The search worker, bundled beside the service, keeps its index beside Grimoire's data.
+const search = new SearchWorker(
+  () =>
+    forkWorker(
+      fileURLToPath(new URL('./search-worker.mjs', import.meta.url)),
+      values.ephemeral ? ':memory:' : path.join(dataDir, 'search.db'),
+    ),
+  log,
+);
+registerSearch(registry, search);
+
 const hub = new AgentHub(
-  (event, payload) => server?.broadcast(event, payload),
+  (event, payload) => {
+    server?.broadcast(event, payload);
+    // A turn or a new title changes what a search finds.
+    if (event === 'agents.turnEnded' || event === 'agents.title') search.markStale();
+  },
   50,
   hubStore(db),
   new Worktrees(new WorktreeRecords(db), log),
@@ -97,6 +115,7 @@ const endpoint = endpointFor(dataDir);
 async function stop(): Promise<void> {
   hub.closeAll();
   terminals.closeAll();
+  search.close();
   await server?.close();
   db.close();
   removeInfoFileIfOurs();
@@ -120,6 +139,7 @@ renameSync(`${infoFile}.tmp`, infoFile);
 log(`Listening on ${endpoint}, build ${buildId}`);
 // Checked twice a minute, which also notices a time that passed while the computer slept.
 scheduler.checkEvery(30_000);
+search.warm();
 
 process.on('SIGTERM', () => void stop());
 process.on('SIGINT', () => void stop());
