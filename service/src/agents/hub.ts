@@ -39,6 +39,7 @@ import { Tags } from '../storage/tags';
 import { UsageReadings } from '../storage/usage-readings';
 import type { AgentAdapter, ChatEvents, LiveChat, Verdict } from './adapter';
 import { MemoryFiles } from './memory-files';
+import { MemoryWatcher } from './memory-watcher';
 import { SetupFiles } from './setup-files';
 import { SetupWatcher } from './setup-watcher';
 
@@ -129,6 +130,9 @@ export class AgentHub {
   private readonly setupWatcher = new SetupWatcher((agent, cwd) =>
     this.emit('agents.setupChanged', { agent, cwd }),
   );
+  private readonly memoryWatcher = new MemoryWatcher((agent, cwd) =>
+    this.emit('agents.memoriesChanged', { agent, cwd }),
+  );
 
   constructor(
     private readonly emit: Emit,
@@ -178,7 +182,9 @@ export class AgentHub {
 
   /** The memories the agent keeps for a folder, your home folder when there's none; null when it keeps none. */
   async memories(agent: AgentId, cwd?: string): Promise<AgentMemories | null> {
-    return (await this.adapter(agent).memories?.(cwd ?? homedir())) ?? null;
+    const memories = (await this.adapter(agent).memories?.(cwd ?? homedir())) ?? null;
+    if (memories) this.memoryWatcher.watch(agent, memories);
+    return memories;
   }
 
   /** One of the memories the agent keeps for the folder. */
@@ -504,6 +510,7 @@ export class AgentHub {
     for (const id of [...this.chats.keys()]) this.release(id);
     for (const adapter of this.adapters.values()) adapter.dispose?.();
     this.setupWatcher.dispose();
+    this.memoryWatcher.dispose();
   }
 
   private release(chatId: ChatId): void {

@@ -3453,4 +3453,76 @@ describe('App', () => {
     await fixture.whenStable();
     expect(el.querySelector('gr-memory-map-page textarea')).not.toBeNull();
   });
+
+  it('reads the Memory map again when the memories of its folder change, and the open one unless changed', async () => {
+    const { bridge, answers, calls, emit } = fakeBridge();
+    const folder = 'C:/Users/me/.claude/projects/C--Users-me/memory';
+    const memory = (name: string): Memory => ({
+      name,
+      path: `${folder}/${name}.md`,
+      type: 'feedback',
+      changedAt: 100,
+      links: [],
+      indexed: true,
+    });
+    let memories = [memory('tone')];
+    let text = 'Short answers.';
+    answers['agents.memories'] = (): AgentMemories => ({
+      cwd: 'C:/Users/me',
+      folder,
+      index: { path: `${folder}/MEMORY.md`, exists: true },
+      enabled: true,
+      memories,
+      problems: [],
+      elsewhere: [],
+      at: Date.now(),
+    });
+    answers['agents.openMemory'] = (request: CommandRequest<'agents.openMemory'>): SetupFile => ({
+      path: request.path,
+      text,
+      exists: true,
+      changedAt: 100,
+      editable: true,
+    });
+    const { fixture, el } = await render(bridge);
+    [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
+      .find((tab) => tab.textContent!.trim() === 'Memory map')!
+      .click();
+    await fixture.whenStable();
+    const settle = async () => {
+      await new Promise((resolve) => setTimeout(resolve));
+      await fixture.whenStable();
+    };
+    const names = () => [...el.querySelectorAll('gr-memory-map-page .card .name')].map((n) => n.textContent!.trim());
+    const reads = () => calls.filter((c) => c.command === 'agents.memories').length;
+    expect(names()).toEqual(['tone']);
+
+    // Another folder's memories changing reads nothing.
+    emit('agents.memoriesChanged', { agent: 'claude-code', cwd: 'D:/elsewhere' });
+    await settle();
+    expect(reads()).toBe(1);
+
+    memories = [memory('tone'), memory('commits')];
+    emit('agents.memoriesChanged', { agent: 'claude-code', cwd: 'C:/Users/me' });
+    await settle();
+    expect(names()).toEqual(['tone', 'commits']);
+
+    // The open memory is opened again as it is on disk, while you haven't changed it.
+    el.querySelector<HTMLButtonElement>('gr-memory-map-page [data-memory="tone"] .name button')!.click();
+    await settle();
+    const editor = () => el.querySelector<HTMLTextAreaElement>('gr-memory-map-page textarea')!;
+    text = 'Shorter answers.';
+    emit('agents.memoriesChanged', { agent: 'claude-code', cwd: 'C:/Users/me' });
+    await settle();
+    expect(editor().value).toBe('Shorter answers.');
+
+    // Not once you have.
+    editor().value = 'Mine.';
+    editor().dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    text = 'Theirs.';
+    emit('agents.memoriesChanged', { agent: 'claude-code', cwd: 'C:/Users/me' });
+    await settle();
+    expect(editor().value).toBe('Mine.');
+  });
 });
