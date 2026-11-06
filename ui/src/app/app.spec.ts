@@ -3031,6 +3031,20 @@ describe('App', () => {
     expect(editor()).not.toBeNull();
     expect(el.querySelector('gr-thumb-page')).not.toBeNull();
     expect(texts('gr-front-matter-page .note.alert')).toEqual(['Save your changes, or discard them, first.']);
+    // Nor by the link back, another thumb tab, or the Index.
+    [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-page .row .gr-link')]
+      .find((b) => b.textContent!.includes('Back to the'))!
+      .click();
+    await fixture.whenStable();
+    [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
+      .find((tab) => tab.textContent!.trim() === 'Ledger')!
+      .click();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }));
+    await fixture.whenStable();
+    expect(editor()!.value).toBe('# Mine\nUse tabs.');
+    expect(texts('gr-thumb-page .title')).toEqual(['Front matter']);
+    expect(el.querySelector('gr-index-page')).toBeNull();
+    expect(texts('gr-front-matter-page .note.alert')).toEqual(['Save your changes, or discard them, first.']);
 
     await press({ key: 's', ctrlKey: true });
     expect(calls).toContainEqual({
