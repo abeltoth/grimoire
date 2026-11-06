@@ -46,6 +46,12 @@ interface Told {
   setup: AgentSetup;
 }
 
+/** How many other folders are offered, the ones worked in last. */
+const OTHER_FOLDERS = 8;
+
+/** A folder to compare by: one kind of slash, no slash at the end, in one case. */
+const folderKey = (folder: string) => folder.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
+
 const SECTION_NAMES: Record<SetupSection, string> = {
   memory: 'Memory',
   skills: 'Skills',
@@ -91,6 +97,21 @@ export class FrontMatterPage {
   private readonly picked = signal<string | undefined>(undefined);
   protected readonly cwd = computed(() => this.picked() ?? this.chats.current()?.settings.cwd);
 
+  /** The folders your chats ran in that a setup can be read in, most recent first. */
+  private readonly worked = signal<string[]>([]);
+  /** The other folders to turn to: the open chapter's, then those worked in last. */
+  protected readonly others = computed(() => {
+    const home = this.chats.folders().home;
+    const seen = new Set([folderKey(this.cwd() ?? home)]);
+    return [this.chats.current()?.settings.cwd ?? home, ...this.worked()]
+      .filter((folder) => {
+        if (!folder || seen.has(folderKey(folder))) return false;
+        seen.add(folderKey(folder));
+        return true;
+      })
+      .slice(0, OTHER_FOLDERS);
+  });
+
   /** What the agents told; undefined until they've answered. */
   protected readonly told = signal<Told[] | undefined>(undefined);
   protected readonly reading = signal(false);
@@ -113,9 +134,26 @@ export class FrontMatterPage {
       if (this.chats.agents().length) untracked(() => void this.read(cwd));
     });
 
+    void this.loadFolders();
+
     // A file of the setup shown changed, or a new one appeared: read it again.
     const off = this.bridge.on('agents.setupChanged', ({ cwd }) => this.setupChanged(cwd));
     inject(DestroyRef).onDestroy(off);
+  }
+
+  private async loadFolders(): Promise<void> {
+    const done = this.pending.add();
+    try {
+      this.worked.set((await this.bridge.invoke('agents.setupFolders', {})) ?? []);
+    } catch {
+      // Offer none; another folder can still be picked.
+    } finally {
+      done();
+    }
+  }
+
+  protected show(folder: string): void {
+    this.picked.set(folder);
   }
 
   protected async read(cwd = this.cwd()): Promise<void> {

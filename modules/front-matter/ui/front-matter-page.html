@@ -23,6 +23,16 @@
       Read again
     </button>
   </p>
+  @if (others().length) {
+    <p class="elsewhere">
+      <span class="label">Other folders</span>
+      @for (folder of others(); track folder) {
+        <button type="button" class="gr-link" [attr.title]="folder" (click)="show(folder)">
+          {{ chats.folderName(folder) }}
+        </button>
+      }
+    </p>
+  }
   @if (trouble(); as trouble) {
     <p class="none alert" role="alert">{{ trouble }}</p>
   }

@@ -26,6 +26,22 @@
   margin: 0 var(--gr-space-1);
 }
 
+/* The other folders your chats ran in, to read the setup of. */
+.elsewhere {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--gr-front-matter-elsewhere-gap);
+  margin: 0 0 var(--gr-front-matter-elsewhere-space);
+}
+
+.label {
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-label);
+  letter-spacing: var(--gr-tracking-label);
+  color: var(--gr-ink-soft);
+}
+
 section + section {
   margin-top: var(--gr-front-matter-section-gap);
 }
