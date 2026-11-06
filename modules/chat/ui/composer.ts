@@ -23,6 +23,7 @@ import type {
 import { Icon } from '@ui/design-system/icon';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { Chats } from '@ui/app/core/chats';
+import { LEAF } from '@ui/app/core/leaf';
 import { Wording } from '@ui/app/core/wording';
 import { AgentCommands } from '@ui/app/shell/agent-commands';
 import { Focus } from '@ui/app/shell/focus';
@@ -53,6 +54,8 @@ export class Composer {
   private readonly pending = inject(PendingTasks);
   private readonly drafts = inject(Drafts);
   private readonly focus = inject(Focus);
+  /** In a loose leaf's window: no facing page, so its commands are listed above it. */
+  protected readonly leaf = !!inject(LEAF);
 
   readonly chapterId = input.required<string>();
   readonly agent = input.required<AgentId>();
@@ -88,12 +91,12 @@ export class Composer {
   });
   /**
    * Whether the entry can go to two models, the second on the facing page:
-   * not from the facing page, and from a chapter that has begun only when
-   * the agent can copy it.
+   * not from the facing page or a loose leaf, and from a chapter that has
+   * begun only when the agent can copy it.
    */
   protected readonly canParallel = computed(() => {
     const chapter = this.chats.all().find((c) => c.id === this.chapterId());
-    if (!chapter || this.beside() || !this.otherModels().length) return false;
+    if (!chapter || this.beside() || this.leaf || !this.otherModels().length) return false;
     return chapter.status === 'blank' || this.chats.can(this.agent(), 'fork');
   });
   /** Whether it can go now: a chapter that has begun is copied between turns. */

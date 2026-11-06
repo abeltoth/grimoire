@@ -13,11 +13,15 @@ import {
   viewChildren,
 } from '@angular/core';
 import { Icon } from '@ui/design-system/icon';
+import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { Chats, type Setting } from '@ui/app/core/chats';
+import { LEAF } from '@ui/app/core/leaf';
 import { effortName } from '@ui/app/core/efforts';
 import { modeName } from '@ui/app/core/modes';
 import { Presets } from '@ui/app/core/presets';
 import { Wording } from '@ui/app/core/wording';
+import { AgentCommands } from '@ui/app/shell/agent-commands';
+import { CommandIndex } from '@ui/app/shell/command-index';
 import { Facing } from '@ui/app/shell/facing';
 import { FacingTabs } from '@ui/app/shell/facing-tabs';
 import { Focus } from '@ui/app/shell/focus';
@@ -48,12 +52,17 @@ export const SECOND_CHAPTER = 'second-chapter';
  * On the facing page, beside the chapter you're on, it shows another one:
  * the facing page's tabs head it, and its settings, without the title's
  * pen, tags or dog-ears. Esc is the page's you're working in.
+ *
+ * Pop out puts a chapter that has begun in a window of its own, a loose
+ * leaf; there, Back in the book puts it back. A leaf has no facing page,
+ * so the agent's commands are listed on its own page, above the entry.
  */
 @Component({
   selector: 'gr-chapter-page',
   imports: [
     ChapterOpening,
     ChapterTags,
+    CommandIndex,
     Composer,
     DogEars,
     FacingTabs,
@@ -79,7 +88,11 @@ export class ChapterPage {
   private readonly presets = inject(Presets);
   protected readonly wording = inject(Wording);
   protected readonly focus = inject(Focus);
+  private readonly commands = inject(AgentCommands);
+  private readonly bridge = inject(GRIMOIRE_BRIDGE);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+  /** In a loose leaf's window, popped out of the book. */
+  protected readonly leaf = !!inject(LEAF);
 
   /** The chapter it shows; the one you're on when unset. */
   readonly chapterId = input<string>();
@@ -91,6 +104,10 @@ export class ChapterPage {
     return id === undefined ? this.chats.current() : this.chats.all().find((c) => c.id === id);
   });
   protected readonly composer = viewChild(Composer);
+  /** Whether a leaf's page lists the agent's commands, looked up from its entry. */
+  protected readonly lookingUp = computed(
+    () => this.leaf && this.commands.lookUp()?.chapterId === this.chapter()?.id,
+  );
   private readonly running = computed(() =>
     ['thinking', 'writing', 'waiting'].includes(this.chapter()?.status ?? ''),
   );
@@ -113,6 +130,11 @@ export class ChapterPage {
       field.focus();
       field.select();
     });
+  }
+
+  /** Puts a loose leaf back in the book: its window closes, and the book turns to it. */
+  protected backInTheBook(): void {
+    this.bridge.window.close();
   }
 
   /** Keeps the rewritten title, or not; Enter and Esc hand the focus back to the pen. */

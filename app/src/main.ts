@@ -2,10 +2,11 @@
  * The Electron app: windows only (ADR-010). All state lives in the
  * background service, which this process starts and relays to.
  */
-import { app, BrowserWindow, dialog, ipcMain, net, protocol, type WebFrameMain } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, net, protocol, screen, type WebFrameMain } from 'electron';
 import { existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import type { Layout, LooseLeaf } from '@grimoire/contract';
 import type { ServiceClient } from './service-client';
 import { ensureService } from './service-launcher';
 import { runCapture, runSmokeTest } from './smoke';
@@ -118,6 +119,78 @@ ipcMain.on('grimoire:window', (event, action: unknown) => {
   else if (action === 'close') win.close();
 });
 
+ipcMain.on('grimoire:popOut', (event, chatId: unknown) => {
+  if (!isTrusted(event.senderFrame) || typeof chatId !== 'string' || !chatId) return;
+  openLeaf({ chatId });
+});
+
+/** The book's window: the one that holds every chapter not popped out. */
+let book: BrowserWindow | undefined;
+/** The loose leaves' windows, by the chapter each holds. */
+const leaves = new Map<string, BrowserWindow>();
+/** The chapters popped out, as the layout keeps them so they open again with the book. */
+let loose: LooseLeaf[] = [];
+/** While the book closes or the app quits: the leaves close with it, and open again next time. */
+let keepLeaves = false;
+
+app.on('before-quit', () => (keepLeaves = true));
+
+function saveLoose(): void {
+  getService()
+    .then((client) => client.request('layout.set', { loose } satisfies Partial<Layout>))
+    .catch((error: unknown) => console.error(error));
+}
+
+/** Opens the chapters that were popped out when the book last closed, each where it was. */
+function reopenLeaves(): void {
+  getService()
+    .then((client) => client.request('layout.get', {}))
+    .then((layout) => {
+      const saved = (layout as Partial<Layout> | undefined)?.loose ?? [];
+      // Any popped out meanwhile stay out too.
+      loose = [...saved, ...loose.filter((kept) => !saved.some((leaf) => leaf.chatId === kept.chatId))];
+      for (const leaf of saved) openLeaf(leaf);
+    })
+    .catch((error: unknown) => console.error(error));
+}
+
+/** A popped-out chapter's window; one per chapter. */
+function openLeaf(leaf: LooseLeaf): void {
+  const open = leaves.get(leaf.chatId);
+  if (open) {
+    if (open.isMinimized()) open.restore();
+    open.focus();
+    return;
+  }
+  const win = createWindow(leaf);
+  leaves.set(leaf.chatId, win);
+  if (!loose.some((kept) => kept.chatId === leaf.chatId)) {
+    loose = [...loose, { chatId: leaf.chatId }];
+    saveLoose();
+  }
+  win.on('close', () => {
+    leaves.delete(leaf.chatId);
+    if (keepLeaves) {
+      // Closing with the book: it opens again where it is.
+      const bounds = win.getNormalBounds();
+      loose = loose.map((kept) => (kept.chatId === leaf.chatId ? { ...kept, bounds } : kept));
+    } else {
+      // Closed by itself: its chapter goes back into the book.
+      loose = loose.filter((kept) => kept.chatId !== leaf.chatId);
+      book?.webContents.send('grimoire:leafClosed', leaf.chatId);
+    }
+    saveLoose();
+  });
+}
+
+/** Where a new leaf goes: one page wide, at the side of the screen the book is on. */
+function leafPlace(): { width: number; height: number; x?: number; y?: number } {
+  const area = screen.getDisplayMatching(book?.getBounds() ?? screen.getPrimaryDisplay().bounds).workArea;
+  const width = Math.min(860, area.width);
+  const height = Math.min(960, area.height);
+  return { width, height, x: area.x + area.width - width, y: area.y + Math.round((area.height - height) / 2) };
+}
+
 /** Serves the built UI on app://grimoire, falling back to index.html. */
 function serveUi(request: Request): Promise<Response> {
   const relative = decodeURIComponent(new URL(request.url).pathname).replace(/^\/+/, '');
@@ -127,12 +200,18 @@ function serveUi(request: Request): Promise<Response> {
   return net.fetch(pathToFileURL(file).toString());
 }
 
-function createWindow(): BrowserWindow {
+/** The book's window, or a loose leaf's: a window on one chapter. */
+function createWindow(leaf?: LooseLeaf): BrowserWindow {
   const isMac = process.platform === 'darwin';
+  const size = leaf
+    ? (leaf.bounds ?? leafPlace())
+    : // Captures use the design's 1920×1080 frame.
+      capturePath
+      ? { width: 1920, height: 1080, useContentSize: true, enableLargerThanScreen: true }
+      : { width: 1600, height: 960 };
   const win = new BrowserWindow({
-    // Captures use the design's 1920×1080 frame.
-    ...(capturePath ? { width: 1920, height: 1080, useContentSize: true, enableLargerThanScreen: true } : { width: 1600, height: 960 }),
-    minWidth: 960,
+    ...size,
+    minWidth: leaf ? 560 : 960,
     minHeight: 600,
     show: false,
     title: 'Grimoire',
@@ -154,7 +233,24 @@ function createWindow(): BrowserWindow {
   });
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   if (!headless) win.once('ready-to-show', () => win.show());
-  void win.loadURL(devUrl ?? `${APP_ORIGIN}/index.html`);
+  const page = devUrl ?? `${APP_ORIGIN}/index.html`;
+  void win.loadURL(leaf ? `${page}?leaf=${encodeURIComponent(leaf.chatId)}` : page);
+  return win;
+}
+
+/** The book's window; its leaves open again with it, and close with it. */
+function openBook(): BrowserWindow {
+  keepLeaves = false;
+  const win = createWindow();
+  book = win;
+  win.on('close', () => {
+    keepLeaves = true;
+    for (const leaf of leaves.values()) leaf.close();
+  });
+  win.on('closed', () => {
+    if (book === win) book = undefined;
+  });
+  if (!headless) reopenLeaves();
   return win;
 }
 
@@ -162,7 +258,7 @@ if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   app.on('second-instance', () => {
-    const [win] = BrowserWindow.getAllWindows();
+    const win = book ?? BrowserWindow.getAllWindows()[0];
     if (win) {
       if (win.isMinimized()) win.restore();
       win.focus();
@@ -175,14 +271,14 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) openBook();
   });
 
   void app.whenReady().then(() => {
     if (!devUrl) protocol.handle('app', serveUi);
     // Start or reach the service right away, so the first command is fast.
     getService().catch((error: unknown) => console.error(error));
-    const win = createWindow();
+    const win = openBook();
     if (smoke) void runSmokeTest(win, stopService);
     else if (captureAt !== -1) void runCapture(win, capturePath, stopService);
   });

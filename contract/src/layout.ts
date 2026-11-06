@@ -10,6 +10,15 @@ export interface Layout {
   lastUsed: { agent: AgentId; settings: NewChatSettings } | null;
   /** Whether the book lies at a single page, the chapter alone on the desk. */
   focus: boolean;
+  /** The chapters popped out as loose leaves, each in a window of its own, and where. */
+  loose: LooseLeaf[];
+}
+
+/** A chapter popped out of the book into a window of its own. */
+export interface LooseLeaf {
+  chatId: ChatId;
+  /** Where its window was when it last closed with the book. */
+  bounds?: { x: number; y: number; width: number; height: number };
 }
 
 declare module './commands' {

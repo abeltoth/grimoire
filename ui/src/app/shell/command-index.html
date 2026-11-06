@@ -73,10 +73,12 @@
   </p>
 </div>
 
-<gr-running-foot>
-  <span class="spacer"></span>
-  <span class="caps"><span class="gr-kbd">↑</span><span class="gr-kbd">↓</span> move</span>
-  <span class="caps"><span class="gr-kbd">Tab</span> complete</span>
-  <span class="caps"><span class="gr-kbd">⏎</span> use</span>
-  <span class="caps"><span class="gr-kbd">Esc</span> back</span>
-</gr-running-foot>
+@if (foot()) {
+  <gr-running-foot>
+    <span class="spacer"></span>
+    <span class="caps"><span class="gr-kbd">↑</span><span class="gr-kbd">↓</span> move</span>
+    <span class="caps"><span class="gr-kbd">Tab</span> complete</span>
+    <span class="caps"><span class="gr-kbd">⏎</span> use</span>
+    <span class="caps"><span class="gr-kbd">Esc</span> back</span>
+  </gr-running-foot>
+}

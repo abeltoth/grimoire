@@ -27,6 +27,7 @@ import type {
 } from '@grimoire/contract';
 import { fitEffort } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from './bridge';
+import { LEAF } from './leaf';
 import { PresetList } from './preset-list';
 import { Settings } from './settings';
 
@@ -96,6 +97,8 @@ interface LastUsed {
 @Injectable({ providedIn: 'root' })
 export class Chats {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
+  /** The chapter this window holds as a loose leaf; null in the book. */
+  readonly leaf = inject(LEAF);
   private readonly settings = inject(Settings);
   private readonly presets = inject(PresetList);
   private nextBlank = 1;
@@ -115,6 +118,8 @@ export class Chats {
   readonly beside = computed(() => this.all().find((chapter) => chapter.id === this.besideId()));
 
   constructor() {
+    // A loose leaf's window closed: its chapter comes back into the book.
+    if (!this.leaf) this.bridge.onLeafClosed((chatId) => void this.comeBack(chatId));
     this.listen('agents.entry', ({ chatId, entry }) =>
       this.update(chatId, (c) => ({ ...c, entries: upsert(c.entries, entry) })),
     );
@@ -345,22 +350,51 @@ export class Chats {
 
   /**
    * Closes a chapter and turns to the next one, or to a blank page. The
-   * chat itself stays with the agent.
+   * chat itself stays with the agent. A loose leaf's window closes with it.
    */
   async close(id: string): Promise<void> {
+    const chapter = this.find(id);
+    if (!chapter) return;
+    this.takeOut(id);
+    if (chapter.status !== 'blank')
+      await this.bridge.invoke('agents.close', { chatId: id }).catch(() => {});
+    if (this.leaf) this.bridge.window.close();
+  }
+
+  /**
+   * Pops a chapter that has begun out of the book, into a window of its
+   * own: a loose leaf. It's out of the book until that window closes.
+   */
+  popOut(id: string): void {
+    const chapter = this.find(id);
+    if (!chapter || chapter.status === 'blank' || this.leaf) return;
+    this.takeOut(id);
+    this.bridge.popOut(id);
+  }
+
+  /** Takes a chapter out of the book; when it was open, turns to the next one, or a blank page. */
+  private takeOut(id: string): void {
     const all = this.all();
     const index = all.findIndex((chapter) => chapter.id === id);
     if (index === -1) return;
     const rest = all.filter((chapter) => chapter.id !== id);
     this.all.set(rest);
     if (this.besideId() === id) this.setAside();
-    if (this.currentId() === id) {
+    if (this.currentId() === id && !this.leaf) {
       const next = rest[Math.min(index, rest.length - 1)];
       if (next) this.turnTo(next.id);
       else this.newChapter();
     }
-    if (all[index]!.status !== 'blank')
-      await this.bridge.invoke('agents.close', { chatId: id }).catch(() => {});
+  }
+
+  /** A loose leaf's chapter comes back into the book, open, unless it was closed. */
+  private async comeBack(id: string): Promise<void> {
+    if (this.find(id)) return this.turnTo(id);
+    const open = await this.bridge.invoke('agents.openChats', {}).catch(() => []);
+    const chat = open?.find((c) => c.id === id);
+    if (!chat || this.find(id)) return;
+    this.all.update((all) => [...all, fromOpenChat(chat)]);
+    this.turnTo(id);
   }
 
   /**
@@ -481,11 +515,15 @@ export class Chats {
     return this.settle(id, this.bridge.invoke('agents.undo', { chatId: id, entryId }));
   }
 
-  /** Forks the chapter after the turn one of your entries began, and turns to the variant. */
+  /**
+   * Forks the chapter after the turn one of your entries began, and turns
+   * to the variant; from a loose leaf, it's popped out as one too.
+   */
   async fork(id: string, entryId: string): Promise<void> {
     this.update(id, ({ error: _, ...c }) => c);
     try {
       const chat = await this.bridge.invoke('agents.fork', { chatId: id, entryId });
+      if (this.leaf) return this.bridge.popOut(chat.id);
       this.all.update((all) => [...all.filter((c) => c.id !== chat.id), fromOpenChat(chat)]);
       this.turnTo(chat.id);
     } catch (error) {
@@ -570,6 +608,7 @@ export class Chats {
 
   /** Opens the chapters the hub has open, on the one you were on; else a blank page. */
   private async restore(): Promise<void> {
+    if (this.leaf) return this.restoreLeaf(this.leaf);
     try {
       // A blank page begins as the settings say, so they're asked for too.
       const [chats, layout] = await Promise.all([
@@ -578,7 +617,9 @@ export class Chats {
         this.settings.ready,
         this.presets.ready,
       ]);
-      this.all.set((chats ?? []).map(fromOpenChat));
+      // The chapters popped out are in windows of their own.
+      const loose = new Set((layout?.loose ?? []).map((leaf) => leaf.chatId));
+      this.all.set((chats ?? []).filter((chat) => !loose.has(chat.id)).map(fromOpenChat));
       this.lastUsed = layout?.lastUsed ?? null;
       const current = layout?.current;
       const beside = layout?.beside;
@@ -590,6 +631,15 @@ export class Chats {
     this.newChapter();
   }
 
+  /** A loose leaf's window holds its one chapter; it closes when the chapter isn't open. */
+  private async restoreLeaf(id: string): Promise<void> {
+    const chats = await this.bridge.invoke('agents.openChats', {}).catch(() => []);
+    const chat = chats?.find((c) => c.id === id);
+    if (!chat) return this.bridge.window.close();
+    this.all.set([fromOpenChat(chat)]);
+    this.currentId.set(id);
+  }
+
   /**
    * Turns to a chapter and remembers it, so the book opens there next time.
    * Turning to the chapter on the facing page swaps the two pages.
@@ -599,6 +649,7 @@ export class Chats {
     const was = this.currentId();
     if (id === this.besideId()) this.setBeside(was && was !== id && this.find(was) ? was : undefined);
     this.currentId.set(id);
+    if (this.leaf) return;
     const chapter = this.find(id);
     this.bridge
       .invoke('layout.set', { current: chapter && chapter.status !== 'blank' ? id : null })
