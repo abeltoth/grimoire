@@ -619,6 +619,10 @@
   --gr-composer-button-gap: 6px;
   --gr-composer-button-pad: 6px 8px;
   --gr-composer-button-hover: rgba(74, 48, 22, 0.07);
+  --gr-composer-button-on: rgba(165, 50, 30, 0.08);
+  --gr-parallel-models-gap: 2px;
+  --gr-parallel-model-pad: 1px 6px;
+  --gr-parallel-model-rule: 1.5px;
   --gr-queued-gap: 9px;
   --gr-queued-pad: 0 0 7px;
   --gr-queued-rule: rgba(74, 48, 22, 0.22);

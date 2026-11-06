@@ -73,6 +73,8 @@ describe('Worktrees', () => {
   it("won't make one outside a repository", async () => {
     const outside = mkdtempSync(path.join(tmpdir(), 'grimoire-nogit-'));
     try {
+      expect(await worktrees.inRepository(path.join(repo, 'ui'))).toBe(true);
+      expect(await worktrees.inRepository(outside)).toBe(false);
       await expect(worktrees.make(outside, 'Hello')).rejects.toThrow(/isn’t in a git repository/);
     } finally {
       rmSync(outside, { recursive: true, force: true });

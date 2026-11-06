@@ -83,6 +83,41 @@
   />
 }
 
+@if (second(); as model) {
+  <div class="parallel">
+    <span class="parallel-label"
+      ><gr-icon name="parallel" />{{ wording.say('Parallel texts', 'Parallel') }}</span
+    >
+    <span class="parallel-text">also to</span>
+    <span
+      class="parallel-models"
+      role="radiogroup"
+      [attr.aria-label]="wording.say('The second model', 'Second model')"
+    >
+      @for (other of otherModels(); track other.id) {
+        <button
+          type="button"
+          class="parallel-model"
+          role="radio"
+          [attr.aria-checked]="other.id === model.id"
+          [attr.title]="other.description ?? null"
+          (click)="parallel.set(other.id)"
+        >
+          {{ other.name }}
+        </button>
+      }
+    </span>
+    <span class="parallel-where">{{
+      first()
+        ? wording.say('a chapter of its own, on the facing page', 'a chat of its own, side by side')
+        : wording.say(
+            'a copy of this chapter, on the facing page',
+            'a copy of this chat, side by side'
+          )
+    }}</span>
+  </div>
+}
+
 <div class="controls">
   <button
     type="button"
@@ -112,19 +147,31 @@
       <span>{{ wording.say('of the chapter’s page allowance', 'of the context window') }}</span>
     </div>
   }
-  <button
-    type="button"
-    class="control"
-    [attr.aria-label]="
-      wording.say(
-        'Parallel texts: send to two models on facing pages',
-        'Parallel: send to two models side by side'
-      )
-    "
-    aria-disabled="true"
-  >
-    <gr-icon name="parallel" />Parallel
-  </button>
+  @if (canParallel()) {
+    <button
+      type="button"
+      class="control"
+      [attr.aria-label]="
+        wording.say(
+          'Parallel texts: send to two models on facing pages',
+          'Parallel: send to two models side by side'
+        )
+      "
+      [attr.aria-pressed]="!!second()"
+      [attr.aria-disabled]="parallelNow() ? null : 'true'"
+      [attr.title]="
+        parallelNow()
+          ? null
+          : wording.say(
+              'Once this turn ends, the chapter can be copied',
+              'Once this turn ends, the chat can be copied'
+            )
+      "
+      (click)="toggleParallel()"
+    >
+      <gr-icon name="parallel" />Parallel
+    </button>
+  }
   <button type="button" class="send" (click)="send(entry)">
     Send <span class="gr-kbd">⏎</span>
   </button>

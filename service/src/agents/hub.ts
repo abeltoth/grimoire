@@ -26,6 +26,7 @@ import type {
   EventPayload,
   NewChatSettings,
   OpenChat,
+  ParallelFrom,
   PlanStep,
   PlanUsage,
   QueuedEntry,
@@ -82,6 +83,8 @@ interface PendingApproval {
 
 /** Where chats that ask for a worktree of their own work (ADR-011). */
 export interface Workplaces {
+  /** Whether a chat in the folder can have a worktree of its own: it's in a git repository. */
+  inRepository(cwd: string): Promise<boolean>;
   /** Makes a new chat's worktree from the folder; gives the folder the chat works in. */
   make(cwd: string, name: string): Promise<string>;
   /** Whether the chat's folder is a worktree made for it; puts it back first if it's gone. */
@@ -329,12 +332,67 @@ export class AgentHub {
     enclosures: Enclosure[] = [],
   ): Promise<OpenChat> {
     let resolved: ChatSettings = { ...settings, cwd: settings.cwd ?? homedir() };
-    const adapter = this.adapter(agent);
     const named = title?.trim() || undefined;
     if (resolved.worktree) {
       if (!this.workplaces) throw new Error('Chats can’t have worktrees of their own here');
       resolved = { ...resolved, cwd: await this.workplaces.make(resolved.cwd, named ?? text) };
     }
+    return this.begin(agent, resolved, text, named, enclosures);
+  }
+
+  /**
+   * Sends one entry to a second model too, in a chat of its own: from a
+   * chat that has begun, a copy of it, after the entry goes to the chat
+   * itself; from a new chapter's settings, a chat begun afresh. The second
+   * works in a worktree of its own when the folder is in a git repository,
+   * so the two don't change each other's files; else in the same folder.
+   */
+  async parallel(from: ParallelFrom, model: string, text: string, enclosures: Enclosure[] = []): Promise<OpenChat> {
+    if (!text.trim() && !enclosures.length) throw new Error('Write something, or attach something, to send');
+    if (!('chatId' in from)) {
+      const cwd = from.settings.cwd ?? homedir();
+      const named = from.title?.trim();
+      const title = named ? await this.variantTitle(this.adapter(from.agent), named, cwd) : undefined;
+      const own = await this.ownPlace(cwd, title ?? text);
+      return this.begin(from.agent, { ...from.settings, cwd, model, ...own }, text, title, enclosures);
+    }
+    const chat = this.chat(from.chatId);
+    if (!chat.agent.fork) throw new Error(`${chat.agent.info.name} can't copy a chat to another model`);
+    if (chat.status !== 'idle') throw new Error('Wait for the turn to end, or stop it, to send to two models');
+    const last = chat.entries.findLast((entry) => entry.kind === 'user');
+    if (!last) throw new Error('This chat has nothing to copy yet');
+    const title = await this.variantTitle(chat.agent, chat.title, chat.settings.cwd);
+    const forkId = await chat.agent.fork(chat.id, chat.settings.cwd, last.id, title);
+    // The chat goes on at once; its copy follows once it has a place to work.
+    this.send(chat.id, text, enclosures);
+    const own = await this.ownPlace(chat.settings.cwd, title);
+    const variant = await this.open(chat.agent.info.id, forkId, { ...chat.settings, model, ...own });
+    // The copy's entries are copies, without the original's file checkpoints.
+    this.store.copied.add(
+      forkId,
+      variant.entries.filter((entry) => entry.kind === 'user').map((entry) => entry.id),
+    );
+    const copy = this.chat(forkId);
+    copy.copied = this.store.copied.list(forkId);
+    this.send(forkId, text, enclosures);
+    return this.snapshot(copy);
+  }
+
+  /** A worktree of its own for a chat in the folder, when it's in a git repository; else nothing changes. */
+  private async ownPlace(cwd: string, name: string): Promise<Partial<ChatSettings>> {
+    if (!this.workplaces || !(await this.workplaces.inRepository(cwd))) return {};
+    return { cwd: await this.workplaces.make(cwd, name), worktree: true };
+  }
+
+  /** Begins a chat with its first entry, where its settings say. */
+  private async begin(
+    agent: AgentId,
+    resolved: ChatSettings,
+    text: string,
+    named: string | undefined,
+    enclosures: Enclosure[],
+  ): Promise<OpenChat> {
+    const adapter = this.adapter(agent);
     if (!adapter.start) {
       const chat = this.track(randomUUID(), adapter, resolved, [], named ?? '');
       this.store.chapters.add({ chatId: chat.id, agent, settings: resolved });
@@ -418,7 +476,7 @@ export class AgentHub {
     const chat = this.chat(chatId);
     if (!chat.agent.fork) throw new Error(`${chat.agent.info.name} can't fork`);
     if (chat.status !== 'idle') throw new Error('Stop the turn before forking');
-    const title = await this.variantTitle(chat);
+    const title = await this.variantTitle(chat.agent, chat.title, chat.settings.cwd);
     const forkId = await chat.agent.fork(chat.id, chat.settings.cwd, entryId, title);
     const variant = await this.open(chat.agent.info.id, forkId, chat.settings);
     // The fork's entries are copies, without the original's file checkpoints.
@@ -432,10 +490,10 @@ export class AgentHub {
     return { ...variant, copied };
   }
 
-  /** The chat's title with the first free variant letter: "Context meter (a)", then "(b)". */
-  private async variantTitle(chat: ChatState): Promise<string> {
-    const base = chat.title.replace(/ \([a-z]\)$/, '') || 'Untitled chapter';
-    const taken = new Set((await chat.agent.listChats(chat.settings.cwd)).map((c) => c.title));
+  /** A title with the first variant letter free in the folder: "Context meter (a)", then "(b)". */
+  private async variantTitle(agent: AgentAdapter, title: string, cwd: string): Promise<string> {
+    const base = title.trim().replace(/ \([a-z]\)$/, '') || 'Untitled chapter';
+    const taken = new Set((await agent.listChats(cwd)).map((c) => c.title));
     const letter = [...'abcdefghijklmnopqrstuvwxyz'].find((l) => !taken.has(`${base} (${l})`));
     return `${base} (${letter ?? 'z'})`;
   }

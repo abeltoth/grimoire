@@ -19,6 +19,7 @@ import type {
   EventPayload,
   NewChatSettings,
   OpenChat,
+  ParallelFrom,
   PlanStep,
   PromptCache,
   QueuedEntry,
@@ -362,15 +363,20 @@ export class Chats {
       await this.bridge.invoke('agents.close', { chatId: id }).catch(() => {});
   }
 
-  /** Sends a message, with any pictures and files; a blank chapter's first one starts the chat. */
-  async send(id: string, text: string, enclosures: readonly Enclosure[] = []): Promise<void> {
+  /**
+   * Sends a message, with any pictures and files; a blank chapter's first
+   * one starts the chat. Gives the chat's ID, unless it couldn't be sent.
+   */
+  async send(id: string, text: string, enclosures: readonly Enclosure[] = []): Promise<string | undefined> {
     const enclosed = enclosures.length ? { enclosures: [...enclosures] } : {};
     const chapter = this.find(id);
-    if (!chapter) return;
+    if (!chapter) return undefined;
     this.update(id, ({ error: _, ...c }) => c);
     try {
-      if (chapter.status !== 'blank')
-        return await this.bridge.invoke('agents.send', { chatId: id, text, ...enclosed });
+      if (chapter.status !== 'blank') {
+        await this.bridge.invoke('agents.send', { chatId: id, text, ...enclosed });
+        return id;
+      }
       const chat = await this.bridge.invoke('agents.start', {
         agent: chapter.agent,
         settings: chapter.settings,
@@ -385,8 +391,50 @@ export class Chats {
       if (this.besideId() === id) this.setBeside(chat.id);
       this.remember({ agent: chapter.agent, settings: chapter.settings });
       if (tags.length) await this.tag(chat.id, tags);
+      return chat.id;
     } catch (error) {
       this.fail(id, error);
+      return undefined;
+    }
+  }
+
+  /**
+   * Sends a message to two models: to the chapter, and to a chat of its
+   * own on the second model, which goes on the facing page. A chapter that
+   * has begun is copied for it; a blank one starts first, then the second
+   * starts afresh.
+   */
+  async sendParallel(
+    id: string,
+    model: string,
+    text: string,
+    enclosures: readonly Enclosure[] = [],
+  ): Promise<void> {
+    const chapter = this.find(id);
+    if (!chapter) return;
+    let first = id;
+    let from: ParallelFrom = { chatId: id };
+    if (chapter.status === 'blank') {
+      const started = await this.send(id, text, enclosures);
+      if (!started) return;
+      first = started;
+      from = {
+        agent: chapter.agent,
+        settings: chapter.settings,
+        ...(chapter.title ? { title: chapter.title } : {}),
+      };
+    } else this.update(id, ({ error: _, ...c }) => c);
+    try {
+      const chat = await this.bridge.invoke('agents.parallel', {
+        from,
+        model,
+        text,
+        ...(enclosures.length ? { enclosures: [...enclosures] } : {}),
+      });
+      this.all.update((all) => [...all.filter((c) => c.id !== chat.id), fromOpenChat(chat)]);
+      this.setBeside(chat.id);
+    } catch (error) {
+      this.fail(first, error);
     }
   }
 

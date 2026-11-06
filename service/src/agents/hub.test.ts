@@ -269,6 +269,10 @@ describe('AgentHub', () => {
     let calls: string[];
     let made: Set<string>;
     const workplaces: Workplaces = {
+      inRepository: async (cwd) => {
+        calls.push(`inRepository ${cwd}`);
+        return cwd !== '/plain';
+      },
       make: async (cwd, name) => {
         calls.push(`make ${cwd} ${name}`);
         made.add('/work/.claude/worktrees/hello');
@@ -331,6 +335,72 @@ describe('AgentHub', () => {
       const chat = await hub.open('fake', 'c1', { cwd: tree });
       expect(calls).toEqual([`restore ${tree}`]);
       expect(chat.settings).toEqual({ cwd: tree, worktree: true });
+    });
+
+    describe('sending one entry to two models', () => {
+      const begun = async (cwd: string) => {
+        fake.transcripts.set('c1', [{ kind: 'user', id: 'u1', text: 'Add a meter' }, reply('r1', 'Added.')]);
+        fake.chats = [{ id: 'c1', agent: 'fake', title: 'Context meter', cwd, updatedAt: 1 }];
+        await hub.open('fake', 'c1', { cwd });
+        calls = [];
+      };
+
+      it('copies a chat onto the second model, in a worktree of its own, and sends the entry to both', async () => {
+        await begun('/work');
+        const copy = await hub.parallel({ chatId: 'c1' }, 'small', 'Colour it');
+        expect(calls).toEqual(['inRepository /work', 'make /work Context meter (a)', `restore ${tree}`]);
+        expect(copy).toMatchObject({
+          id: 'fork-2',
+          title: 'Context meter (a)',
+          settings: { cwd: tree, model: 'small', worktree: true },
+          status: 'thinking',
+          entries: [{ id: 'u1' }, { id: 'r1' }, { kind: 'user', text: 'Colour it' }],
+          copied: ['u1'],
+        });
+        expect(fake.runOf('c1')).toMatchObject({ resume: true, sent: ['Colour it'], settings: { cwd: '/work' } });
+        expect(fake.runOf('fork-2')).toMatchObject({
+          resume: true,
+          sent: ['Colour it'],
+          settings: { cwd: tree, model: 'small' },
+        });
+        expect((await hub.openChats()).map((chat) => chat.id)).toEqual(['c1', 'fork-2']);
+      });
+
+      it('shares the folder outside a git repository', async () => {
+        await begun('/plain');
+        const copy = await hub.parallel({ chatId: 'c1' }, 'small', 'Colour it');
+        expect(calls).toEqual(['inRepository /plain', 'restore /plain']);
+        expect(copy.settings).toEqual({ cwd: '/plain', model: 'small' });
+      });
+
+      it('waits for the turn to end', async () => {
+        await begun('/work');
+        hub.send('c1', 'Colour it');
+        await expect(hub.parallel({ chatId: 'c1' }, 'small', 'Bigger')).rejects.toThrow('Wait for the turn to end');
+        expect(calls).toEqual([]);
+      });
+
+      it('begins the second afresh for a new chapter, its title a variant of the first', async () => {
+        fake.chats = [{ id: 'c1', agent: 'fake', title: 'Login bug', cwd: '/work', updatedAt: 1 }];
+        const second = await hub.parallel(
+          { agent: 'fake', settings: { ...settings, mode: 'plan' }, title: 'Login bug' },
+          'small',
+          'Fix it',
+        );
+        expect(calls).toEqual(['inRepository /work', 'make /work Login bug (a)']);
+        expect(second).toMatchObject({
+          title: 'Login bug (a)',
+          settings: { cwd: tree, mode: 'plan', model: 'small', worktree: true },
+          status: 'thinking',
+          entries: [{ kind: 'user', text: 'Fix it' }],
+        });
+        expect(fake.runOf(second.id)).toMatchObject({ resume: false, sent: ['Fix it'] });
+
+        calls = [];
+        const untitled = await hub.parallel({ agent: 'fake', settings: { cwd: '/plain' } }, 'small', 'Fix it');
+        expect(calls).toEqual(['inRepository /plain']);
+        expect(untitled).toMatchObject({ title: '', settings: { cwd: '/plain', model: 'small' } });
+      });
     });
   });
 

@@ -51,6 +51,14 @@ export class Worktrees {
     private readonly script: RunScript = runScript,
   ) {}
 
+  /** Whether the folder is in a git repository, so a chat there can have a worktree of its own. */
+  async inRepository(cwd: string): Promise<boolean> {
+    return this.git(expand(cwd), 'rev-parse', '--show-toplevel').then(
+      () => true,
+      () => false,
+    );
+  }
+
   /** Makes a worktree for a new chat in the folder's repository; gives the folder the chat works in. */
   async make(cwd: string, name: string): Promise<string> {
     const folder = expand(cwd);
