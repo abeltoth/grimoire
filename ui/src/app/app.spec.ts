@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import type {
+  AgentSetup,
   CommandName,
   CommandRequest,
   EventName,
@@ -2882,5 +2883,92 @@ describe('App', () => {
     emit('agents.approvalSettled', { chatId: 'c3', approvalId: 's3' });
     await fixture.whenStable();
     expect(notes()).toEqual([]);
+  });
+
+  it("shows on the Front matter what Claude Code loads in the chapter's folder, and where each piece comes from", async () => {
+    const { bridge, answers, calls } = fakeBridge();
+    const empty = { memory: [], skills: [], agents: [], commands: [], hooks: [], mcpServers: [], plugins: [], permissions: [] };
+    answers['agents.setup'] = (request: CommandRequest<'agents.setup'>): AgentSetup => ({
+      cwd: request.cwd ?? 'C:/Users/me',
+      sections: {
+        ...empty,
+        memory: [
+          { name: '~/.claude/CLAUDE.md', detail: 'Your instructions, in every folder', source: 'user', path: 'C:/Users/me/.claude/CLAUDE.md', tokens: 310 },
+        ],
+        skills: [
+          { name: 'wrangler', detail: 'Cloudflare Workers CLI', source: 'user', tokens: 1148 },
+          { name: 'deploy', source: 'plugin', plugin: 'ship', tokens: 60 },
+        ],
+        mcpServers: [{ name: 'github', detail: 'Failed to connect', source: 'project', problem: 'spawn gh-mcp ENOENT' }],
+      },
+      settingsFiles: [
+        { source: 'user', path: 'C:/Users/me/.claude/settings.json', exists: true },
+        { source: 'project', path: 'C:/Users/me/git/new/.claude/settings.json', exists: false },
+      ],
+      at: Date.now(),
+    });
+    const { fixture, el, texts } = await render(bridge);
+    [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
+      .find((tab) => tab.textContent!.trim() === 'Front matter')!
+      .click();
+    await fixture.whenStable();
+
+    expect(texts('gr-thumb-page .title')).toEqual(['Front matter']);
+    expect(texts('gr-front-matter-page .sub')[0]).toMatch(/^In ~\s*·\s*Another folder\s*·\s*read at .+\s*·\s*Read again$/);
+    expect(texts('gr-front-matter-page h2')).toEqual(['Claude Code']);
+    expect(texts('gr-front-matter-page summary .part')).toEqual([
+      'Memory',
+      'Skills',
+      'Subagents',
+      'Commands',
+      'Hooks',
+      'MCP servers',
+      'Plugins',
+      'Permissions',
+      'Settings files',
+    ]);
+    expect(texts('gr-front-matter-page summary .n')).toEqual([
+      '1 · 310 tokens',
+      '2 · 1,208 tokens',
+      '0',
+      '0',
+      '0',
+      '1',
+      '0',
+      '0',
+      '2',
+    ]);
+    const section = (name: string) => `gr-front-matter-page [data-section="${name}"]`;
+    // Each row's cells: its name, whose it is, what it does, and its cost.
+    const rows = (name: string) =>
+      [...el.querySelectorAll(`${section(name)} li`)].map((row) =>
+        [...row.children].map((cell) => cell.textContent!.trim()).join(' | '),
+      );
+    expect(rows('skills')).toEqual([
+      'wrangler | Yours | Cloudflare Workers CLI | 1,148 tokens',
+      'deploy | ship |  | 60 tokens',
+    ]);
+    expect(el.querySelector(`${section('memory')} .name`)!.getAttribute('title')).toBe('C:/Users/me/.claude/CLAUDE.md');
+    expect(texts(`${section('mcpServers')} .problem`)).toEqual(['spawn gh-mcp ENOENT']);
+    expect(texts(`${section('hooks')} .none`)).toEqual(['None.']);
+    expect(rows('settings')).toEqual([
+      '~/.claude/settings.json | Yours |  | ',
+      '~/git/new/.claude/settings.json | Project | None yet | ',
+    ]);
+    expect(calls.filter((c) => c.command === 'agents.setup').map((c) => c.request)).toEqual([
+      { agent: 'claude-code' },
+    ]);
+
+    // Another folder reads it again there.
+    [...el.querySelectorAll<HTMLButtonElement>('gr-front-matter-page .sub .gr-link')]
+      .find((link) => link.textContent!.includes('Another folder'))!
+      .click();
+    await new Promise((resolve) => setTimeout(resolve));
+    await fixture.whenStable();
+    expect(calls.filter((c) => c.command === 'agents.setup').at(-1)!.request).toEqual({
+      agent: 'claude-code',
+      cwd: 'C:/Users/me/git/new',
+    });
+    expect(texts('gr-front-matter-page .sub')[0]).toMatch(/^In ~\/git\/new\s*·/);
   });
 });

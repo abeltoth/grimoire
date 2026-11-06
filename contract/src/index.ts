@@ -8,5 +8,6 @@ export * from './presets';
 export * from './schedules';
 export * from './search';
 export * from './settings';
+export * from './setup';
 export * from './bridge';
 export * from './protocol';

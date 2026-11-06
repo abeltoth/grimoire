@@ -472,6 +472,18 @@
   --gr-theme-name-col: 290px;
   --gr-theme-token-pad: 3px 0;
 
+  /* Front matter: what your agents load, and where each piece comes from */
+  --gr-front-matter-section-gap: 34px;
+  --gr-front-matter-head-gap: 10px;
+  --gr-front-matter-group-gap: 12px;
+  --gr-front-matter-col-gap: 12px;
+  --gr-front-matter-summary-pad: 7px 0;
+  --gr-front-matter-row-pad: 3px 0;
+  --gr-front-matter-name-col: 220px;
+  --gr-front-matter-from-col: 110px;
+  --gr-front-matter-rule: 1px solid var(--gr-hairline);
+  --gr-front-matter-leader: var(--gr-leader);
+
   /* The Scriptorium: your shells, as leaves written in the book's inks */
   --gr-scriptorium-pad-bottom: 18px;
   --gr-scriptorium-tabs-gap: 26px;

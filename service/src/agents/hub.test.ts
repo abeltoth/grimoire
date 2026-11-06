@@ -1,5 +1,5 @@
 import { homedir } from 'node:os';
-import type { AgentEntry, EventName, EventPayload } from '@grimoire/contract';
+import type { AgentEntry, AgentSetup, EventName, EventPayload } from '@grimoire/contract';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { openDatabase } from '../storage/database';
 import type { ChatEvents, LiveChat } from './adapter';
@@ -95,6 +95,24 @@ describe('AgentHub', () => {
 
   it('has no plan limits for an agent without a plan', async () => {
     expect(await hub.usage('fake')).toBeNull();
+  });
+
+  it('asks the agent what it loads in a folder, your home folder when none is given', async () => {
+    const asked: string[] = [];
+    const told = Object.assign(new FakeAdapter(), {
+      setup: async (cwd: string) => {
+        asked.push(cwd);
+        return { cwd, sections: {} as AgentSetup['sections'], settingsFiles: [], at: 1 };
+      },
+    });
+    hub.addAdapter(told);
+    expect(await hub.setup('fake', 'C:/work')).toMatchObject({ cwd: 'C:/work' });
+    await hub.setup('fake');
+    expect(asked).toEqual(['C:/work', homedir()]);
+  });
+
+  it("has no setup to show for an agent that can't say", async () => {
+    expect(await hub.setup('fake', 'C:/work')).toBeNull();
   });
 
   it('starts a chat with your first message', async () => {
