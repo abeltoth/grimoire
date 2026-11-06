@@ -81,18 +81,3 @@
   color: var(--gr-ink);
   border-bottom: var(--gr-card-anchor-rule) solid var(--gr-rubric);
 }
-
-.edition {
-  display: flex;
-  align-items: center;
-  gap: var(--gr-edition-gap);
-}
-
-.edition button {
-  padding: var(--gr-edition-pad);
-}
-
-.edition button[aria-pressed='true'] {
-  color: var(--gr-ink);
-  box-shadow: inset 0 calc(var(--gr-underline-edition) * -1) 0 var(--gr-rubric);
-}

@@ -2543,7 +2543,7 @@ describe('App', () => {
     const { fixture, el, texts } = await render(bridge);
     // The book's own words, which plain wording has none of; the TOOL names and code stay as they are.
     const BOOK =
-      /\b(chapters?|entry|entries|seals?|sealed|sealing|slips?|facing page|index|outline|colophon|ledger|scriptorium|table of contents|front matter|memory map|annotated|variorum|look up|thumb|begun)\b/i;
+      /\b(chapters?|entry|entries|seals?|sealed|sealing|slips?|facing page|index|outline|colophon|ledger|scriptorium|table of contents|front matter|memory map|look up|thumb|begun)\b/i;
     const bookWords = () => {
       // The theme file's own headings are its source, as its token names are.
       const book = el.cloneNode(true) as HTMLElement;

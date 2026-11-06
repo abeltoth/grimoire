@@ -625,9 +625,6 @@
   --gr-send-gap: 9px;
   --gr-send-pad: 7px 14px;
   --gr-tracking-send: 0.06em;
-  --gr-edition-gap: 2px;
-  --gr-edition-pad: 2px 6px;
-  --gr-underline-edition: 1.5px;
 
   /* Chat: markdown in replies */
   --gr-block-gap: 8px;
