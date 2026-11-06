@@ -38,7 +38,28 @@ export class Facing {
       this.seals() || this.index() !== null || this.commands() !== null || this.thumb() !== null,
   );
 
+  /** Asked before the facing page turns away from a thumb tab's page; false keeps it there. */
+  private leaving: (() => boolean) | null = null;
+
+  /**
+   * Lets a thumb tab's page keep the facing page from turning away, such
+   * as while it holds changes you haven't saved; the guard says why
+   * itself. Returns a function that takes the guard away.
+   */
+  guardLeaving(guard: () => boolean): () => void {
+    this.leaving = guard;
+    return () => {
+      if (this.leaving === guard) this.leaving = null;
+    };
+  }
+
+  /** Whether the facing page may turn away from the thumb tab's page it shows, if any. */
+  private mayLeave(): boolean {
+    return this.thumb() === null || !this.leaving || this.leaving();
+  }
+
   openSeals(approvalId?: string): void {
+    if (!this.mayLeave()) return;
     this.index.set(null);
     this.commands.set(null);
     this.thumb.set(null);
@@ -47,6 +68,7 @@ export class Facing {
   }
 
   openIndex(lookUp = ''): void {
+    if (!this.mayLeave()) return;
     this.seals.set(false);
     this.commands.set(null);
     this.thumb.set(null);
@@ -54,6 +76,7 @@ export class Facing {
   }
 
   openCommands(lookUp: CommandLookUp): void {
+    if (!this.mayLeave()) return;
     this.seals.set(false);
     this.index.set(null);
     this.thumb.set(null);
@@ -62,6 +85,7 @@ export class Facing {
 
   /** Turns the facing page back to its own pages, at this one. */
   showPage(id: string): void {
+    if (!this.mayLeave()) return;
     this.seals.set(false);
     this.index.set(null);
     this.commands.set(null);
@@ -70,6 +94,7 @@ export class Facing {
   }
 
   openThumb(id: string): void {
+    if (this.thumb() !== id && !this.mayLeave()) return;
     this.seals.set(false);
     this.index.set(null);
     this.commands.set(null);
@@ -77,6 +102,7 @@ export class Facing {
   }
 
   closeThumb(): void {
+    if (!this.mayLeave()) return;
     this.thumb.set(null);
   }
 

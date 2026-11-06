@@ -20,6 +20,7 @@ import {
 } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { Chats } from '@ui/app/core/chats';
+import { Facing } from '@ui/app/shell/facing';
 import { type Shortcut, ShortcutPipe, matchesShortcut } from '@ui/app/shell/shortcut';
 
 /** A file of the setup, open to read or change. */
@@ -126,7 +127,12 @@ export class FrontMatterPage {
 
     // A file of the setup shown changed, or a new one appeared: read it again.
     const off = this.bridge.on('agents.setupChanged', ({ cwd }) => this.setupChanged(cwd));
-    inject(DestroyRef).onDestroy(off);
+    // Changes can't be left behind unsaved by turning the facing page away.
+    const unguard = inject(Facing).guardLeaving(() => this.mayLeave());
+    inject(DestroyRef).onDestroy(() => {
+      off();
+      unguard();
+    });
   }
 
   protected async read(cwd = this.cwd()): Promise<void> {
@@ -211,12 +217,16 @@ export class FrontMatterPage {
     this.note.set(null);
   }
 
+  /** Whether the open file may be left: not while it holds changes to save or discard first. */
+  private mayLeave(): boolean {
+    if (!this.changed()) return true;
+    this.note.set({ text: 'Save your changes, or discard them, first.', alert: true });
+    return false;
+  }
+
   /** Back to the list, unless there are changes to save or discard first; read again after a save. */
   protected close(): void {
-    if (this.changed()) {
-      this.note.set({ text: 'Save your changes, or discard them, first.', alert: true });
-      return;
-    }
+    if (!this.mayLeave()) return;
     this.editing.set(null);
     this.note.set(null);
     if (this.stale) {
