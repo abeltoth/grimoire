@@ -2,6 +2,13 @@
   display: block;
 }
 
+/* While a memory is open, its editor fills the page. */
+:host(.editing) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
 .sub,
 .none {
   margin: var(--gr-aside-gap) 0 var(--gr-outline-sub-gap);
@@ -167,5 +174,66 @@ h3 {
 
 .flag {
   font-style: italic;
+  color: var(--gr-rubric);
+}
+
+/* A card's name opens it. */
+.name button {
+  padding: 0;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.name button:hover {
+  color: var(--gr-lapis);
+  text-decoration: underline;
+}
+
+/* The open memory's links, either way, each a turn to that memory. */
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--gr-memory-card-line-gap);
+  margin: 0 0 var(--gr-outline-sub-gap);
+  font-size: var(--gr-size-aside);
+}
+
+.links .dot {
+  margin: 0;
+}
+
+.to {
+  padding: 0;
+  font-family: var(--gr-font-text);
+  color: var(--gr-ink);
+}
+
+.to:hover {
+  color: var(--gr-lapis);
+  text-decoration: underline;
+}
+
+.nothing {
+  font-style: italic;
+  color: var(--gr-ink-soft);
+}
+
+/* Deleting sits beside Save, and asks first. */
+.delete {
+  display: contents;
+}
+
+.delete .dot {
+  margin: 0;
+}
+
+.ask {
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink);
+}
+
+.danger {
   color: var(--gr-rubric);
 }

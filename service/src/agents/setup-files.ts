@@ -1,15 +1,8 @@
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import path from 'node:path';
 import type { AgentId, AgentSetup, SetupFile, SetupSource } from '@grimoire/contract';
+import { fileAt, samePath as same, writeUnchanged } from './files';
 
 /** Sources whose files aren't changed here: your organization's, and those a plugin update would replace. */
 const READ_ONLY: readonly SetupSource[] = ['managed', 'plugin', 'built-in'];
-
-/** A path to compare by: absolute, and in one case on Windows. */
-function same(file: string): string {
-  const resolved = path.resolve(file);
-  return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
-}
 
 /**
  * Opens and saves the files of an agent's setup (ADR-009: Claude Code's
@@ -30,7 +23,7 @@ export class SetupFiles {
 
   async open(agent: AgentId, cwd: string, file: string): Promise<SetupFile> {
     const { editable } = await this.listed(agent, cwd, file);
-    return this.load(file, editable);
+    return fileAt(file, editable);
   }
 
   async save(
@@ -42,9 +35,6 @@ export class SetupFiles {
   ): Promise<SetupFile> {
     const { editable } = await this.listed(agent, cwd, file);
     if (!editable) throw new Error('This file can only be read here.');
-    if (this.changedAt(file) !== changedAt) {
-      throw new Error('It changed on disk since you opened it. Open it again to see the change.');
-    }
     if (file.toLowerCase().endsWith('.json')) {
       try {
         JSON.parse(text);
@@ -54,9 +44,7 @@ export class SetupFiles {
         );
       }
     }
-    mkdirSync(path.dirname(file), { recursive: true });
-    writeFileSync(file, text, 'utf8');
-    return this.load(file, true);
+    return writeUnchanged(file, text, changedAt);
   }
 
   /** Whether the setup lists the file, and may change it; asks again once when it isn't listed. */
@@ -80,20 +68,5 @@ export class SetupFiles {
     );
     if (!listed.length) return undefined;
     return { editable: listed.some((item) => !READ_ONLY.includes(item.source)) };
-  }
-
-  private changedAt(file: string): number {
-    return existsSync(file) ? statSync(file).mtimeMs : 0;
-  }
-
-  private load(file: string, editable: boolean): SetupFile {
-    const exists = existsSync(file);
-    return {
-      path: file,
-      text: exists ? readFileSync(file, 'utf8') : '',
-      exists,
-      changedAt: this.changedAt(file),
-      editable,
-    };
   }
 }

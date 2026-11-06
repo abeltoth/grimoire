@@ -38,6 +38,7 @@ import { EntryIds } from '../storage/entry-ids';
 import { Tags } from '../storage/tags';
 import { UsageReadings } from '../storage/usage-readings';
 import type { AgentAdapter, ChatEvents, LiveChat, Verdict } from './adapter';
+import { MemoryFiles } from './memory-files';
 import { SetupFiles } from './setup-files';
 import { SetupWatcher } from './setup-watcher';
 
@@ -124,6 +125,7 @@ export class AgentHub {
   private readonly chats = new Map<ChatId, ChatState>();
   private readonly approvals = new Map<string, PendingApproval>();
   private readonly setupFiles = new SetupFiles((agent, cwd) => this.setup(agent, cwd));
+  private readonly memoryFiles = new MemoryFiles((agent, cwd) => this.memories(agent, cwd));
   private readonly setupWatcher = new SetupWatcher((agent, cwd) =>
     this.emit('agents.setupChanged', { agent, cwd }),
   );
@@ -177,6 +179,32 @@ export class AgentHub {
   /** The memories the agent keeps for a folder, your home folder when there's none; null when it keeps none. */
   async memories(agent: AgentId, cwd?: string): Promise<AgentMemories | null> {
     return (await this.adapter(agent).memories?.(cwd ?? homedir())) ?? null;
+  }
+
+  /** One of the memories the agent keeps for the folder. */
+  openMemory(agent: AgentId, cwd: string | undefined, file: string): Promise<SetupFile> {
+    return this.memoryFiles.open(agent, cwd ?? homedir(), file);
+  }
+
+  /** Writes one of the memories the agent keeps for the folder, unless it changed since it was opened. */
+  saveMemory(
+    agent: AgentId,
+    cwd: string | undefined,
+    file: string,
+    text: string,
+    changedAt: number,
+  ): Promise<SetupFile> {
+    return this.memoryFiles.save(agent, cwd ?? homedir(), file, text, changedAt);
+  }
+
+  /** Deletes one of the memories the agent keeps for the folder, and its line in the index. */
+  deleteMemory(
+    agent: AgentId,
+    cwd: string | undefined,
+    file: string,
+    changedAt: number,
+  ): Promise<void> {
+    return this.memoryFiles.delete(agent, cwd ?? homedir(), file, changedAt);
   }
 
   /** One of the files the agent's setup in the folder lists. */

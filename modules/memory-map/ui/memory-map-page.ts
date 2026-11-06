@@ -12,15 +12,26 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
-import type { AgentInfo, AgentMemories, Memory } from '@grimoire/contract';
+import type { AgentInfo, AgentMemories, Memory, SetupFile } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { Chats } from '@ui/app/core/chats';
 import { Wording } from '@ui/app/core/wording';
+import { FileEditor } from '@ui/app/shell/file-editor';
 
 /** An agent that keeps memories, and those it keeps for the folder. */
 interface Kept {
   agent: AgentInfo;
   memories: AgentMemories;
+}
+
+/** A memory open to read, change or delete. */
+interface Editing {
+  agent: AgentInfo;
+  /** The folder the agent keeps it for. */
+  cwd: string;
+  file: SetupFile;
+  /** Its kind, as its column is titled. */
+  kind: string;
 }
 
 /** A column of the map: the memories of one kind. */
@@ -67,6 +78,8 @@ function resolve(memories: readonly Memory[], link: string): Memory | undefined 
  */
 @Component({
   selector: 'gr-memory-map-page',
+  imports: [FileEditor],
+  host: { '[class.editing]': 'editing() !== null' },
   templateUrl: './memory-map-page.html',
   styleUrl: './memory-map-page.css',
 })
@@ -91,6 +104,16 @@ export class MemoryMapPage {
   protected readonly pointed = signal<string | null>(null);
   protected readonly lines = signal<Line[]>([]);
   private readonly map = viewChild<ElementRef<HTMLElement>>('map');
+
+  /** The memory open to read, change or delete; null while the map shows. */
+  protected readonly editing = signal<Editing | null>(null);
+  private readonly editor = viewChild(FileEditor);
+  /** Whether you're asked to make sure of deleting the open memory. */
+  protected readonly deleting = signal(false);
+  /** Why a memory couldn't be opened. */
+  protected readonly trouble = signal<string | null>(null);
+  /** Whether a memory was saved, so the map is read again on the way back to it. */
+  private stale = false;
 
   constructor() {
     effect(() => {
@@ -131,13 +154,109 @@ export class MemoryMapPage {
       );
       afterNextRender(() => this.measure(), { injector: this.injector });
     } catch (error) {
-      if (ask === this.asked)
-        this.failed.set(error instanceof Error ? error.message : String(error));
+      if (ask === this.asked) this.failed.set(message(error));
     } finally {
       if (ask === this.asked) this.reading.set(false);
       done();
     }
   }
+
+  /** Opens a memory to read, change or delete, in place of the map. */
+  protected async open(agent: AgentInfo, cwd: string, memory: Memory, kind: string): Promise<void> {
+    const done = this.pending.add();
+    this.trouble.set(null);
+    try {
+      const file = await this.bridge.invoke('agents.openMemory', {
+        agent: agent.id,
+        cwd,
+        path: memory.path,
+      });
+      this.editing.set({ agent, cwd, file, kind });
+      this.deleting.set(false);
+      this.editor()?.tell(null);
+    } catch (error) {
+      this.trouble.set(`It couldn’t be opened: ${message(error)}`);
+    } finally {
+      done();
+    }
+  }
+
+  /** Turns from the open memory to one it's linked with, once there's nothing to save. */
+  protected turnTo(memory: Memory): void {
+    const edit = this.editing();
+    if (!edit || !this.editor()?.mayLeave()) return;
+    void this.open(edit.agent, edit.cwd, memory, this.kindOf(memory.type));
+  }
+
+  /** Writes the open memory over the file as it was opened. */
+  protected readonly writeMemory = (file: SetupFile, text: string): Promise<SetupFile> => {
+    const edit = this.editing()!;
+    return this.bridge.invoke('agents.saveMemory', {
+      agent: edit.agent.id,
+      cwd: edit.cwd,
+      path: file.path,
+      text,
+      changedAt: file.changedAt,
+    });
+  };
+
+  /** Keeps the memory as saved, and reads the map again on the way back to it. */
+  protected saved(file: SetupFile): void {
+    const edit = this.editing();
+    if (edit) this.editing.set({ ...edit, file });
+    this.stale = true;
+  }
+
+  /** Deletes the open memory and its line in the index, and turns back to the map. */
+  protected async remove(): Promise<void> {
+    const edit = this.editing();
+    if (!edit) return;
+    const done = this.pending.add();
+    try {
+      await this.bridge.invoke('agents.deleteMemory', {
+        agent: edit.agent.id,
+        cwd: edit.cwd,
+        path: edit.file.path,
+        changedAt: edit.file.changedAt,
+      });
+      this.editing.set(null);
+      this.stale = false;
+      void this.read();
+    } catch (error) {
+      this.editor()?.tell({ text: `It couldn’t be deleted: ${message(error)}`, alert: true });
+    } finally {
+      this.deleting.set(false);
+      done();
+    }
+  }
+
+  /** Back to the map, once the editor has nothing to save; read again after a save. */
+  protected close(): void {
+    this.editing.set(null);
+    this.deleting.set(false);
+    if (this.stale) {
+      this.stale = false;
+      void this.read();
+    } else {
+      afterNextRender(() => this.measure(), { injector: this.injector });
+    }
+  }
+
+  /** The memories the open one links to, the links that name none, and those that link to it. */
+  protected readonly related = computed(() => {
+    const edit = this.editing();
+    const all =
+      this.kept()?.find((one) => one.agent.id === edit?.agent.id)?.memories.memories ?? [];
+    const memory = all.find((one) => one.path === edit?.file.path);
+    if (!memory) return { to: [], missing: [], from: [] };
+    const to = [...new Set(memory.links.flatMap((link) => resolve(all, link) ?? []))].filter(
+      (one) => one !== memory,
+    );
+    const from = all.filter(
+      (one) => one !== memory && one.links.some((link) => resolve(all, link) === memory),
+    );
+    return { to, missing: this.missing(all, memory), from };
+  });
 
   protected async pickFolder(): Promise<void> {
     const folder = await this.bridge.chooseFolder();
@@ -158,9 +277,14 @@ export class MemoryMapPage {
     });
     return types.map((type) => ({
       type,
-      title: KINDS[type] ?? (type ? `${type.charAt(0).toUpperCase()}${type.slice(1)}` : 'Other'),
+      title: this.kindOf(type),
       memories: memories.filter((memory) => memory.type === type),
     }));
+  }
+
+  /** A kind as its column is titled. */
+  private kindOf(type: string): string {
+    return KINDS[type] ?? (type ? `${type.charAt(0).toUpperCase()}${type.slice(1)}` : 'Other');
   }
 
   /** The links of a memory that name no memory. */
@@ -225,6 +349,10 @@ export class MemoryMapPage {
     }
     this.lines.set(lines);
   }
+}
+
+function message(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 /**

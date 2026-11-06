@@ -7,6 +7,7 @@ import {
   inject,
   signal,
   untracked,
+  viewChild,
 } from '@angular/core';
 import {
   type AgentId,
@@ -20,8 +21,7 @@ import {
 } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { Chats } from '@ui/app/core/chats';
-import { Facing } from '@ui/app/shell/facing';
-import { type Shortcut, ShortcutPipe, matchesShortcut } from '@ui/app/shell/shortcut';
+import { FileEditor } from '@ui/app/shell/file-editor';
 
 /** A file of the setup, open to read or change. */
 interface Editing {
@@ -39,8 +39,6 @@ const READ_ONLY: Partial<Record<SetupSource, string>> = {
   plugin:
     'It comes with its plugin, which would put it back when it updates, so it’s only to read here.',
 };
-
-const SAVE: Shortcut = 'Mod+S';
 
 /** An agent that can say what it loads, and what it said. */
 interface Told {
@@ -77,7 +75,7 @@ const SOURCE_NAMES: Record<SetupSource, string> = {
  */
 @Component({
   selector: 'gr-front-matter-page',
-  imports: [ShortcutPipe],
+  imports: [FileEditor],
   host: { '[class.editing]': 'editing() !== null' },
   templateUrl: './front-matter-page.html',
   styleUrl: './front-matter-page.css',
@@ -86,7 +84,6 @@ export class FrontMatterPage {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
   protected readonly chats = inject(Chats);
   private readonly pending = inject(PendingTasks);
-  private readonly platform = this.bridge.platform;
 
   protected readonly sections = SETUP_SECTIONS;
 
@@ -103,18 +100,9 @@ export class FrontMatterPage {
   /** Why a file couldn't be opened. */
   protected readonly trouble = signal<string | null>(null);
 
-  protected readonly save = SAVE;
   /** The file open to read or change; null while the list shows. */
   protected readonly editing = signal<Editing | null>(null);
-  /** The file's text as you're changing it. */
-  protected readonly draft = signal('');
-  protected readonly changed = computed(() => {
-    const edit = this.editing();
-    return !!edit && this.draft() !== edit.file.text;
-  });
-  protected readonly saving = signal(false);
-  /** What came of the last save, or why the list can't be shown yet. */
-  protected readonly note = signal<{ text: string; alert?: boolean } | null>(null);
+  private readonly editor = viewChild(FileEditor);
   /** Whether a file was saved or changed, so the list is read again on the way back to it. */
   private stale = false;
 
@@ -127,12 +115,7 @@ export class FrontMatterPage {
 
     // A file of the setup shown changed, or a new one appeared: read it again.
     const off = this.bridge.on('agents.setupChanged', ({ cwd }) => this.setupChanged(cwd));
-    // Changes can't be left behind unsaved by turning the facing page away.
-    const unguard = inject(Facing).guardLeaving(() => this.mayLeave());
-    inject(DestroyRef).onDestroy(() => {
-      off();
-      unguard();
-    });
+    inject(DestroyRef).onDestroy(off);
   }
 
   protected async read(cwd = this.cwd()): Promise<void> {
@@ -178,8 +161,6 @@ export class FrontMatterPage {
         path: item.path,
       });
       this.editing.set({ agent: agent.id, cwd, file, source: item.source, from: this.from(item) });
-      this.draft.set(file.text);
-      this.note.set(null);
     } catch (error) {
       this.trouble.set(`It couldn’t be opened: ${message(error)}`);
     } finally {
@@ -187,48 +168,28 @@ export class FrontMatterPage {
     }
   }
 
-  protected async write(): Promise<void> {
+  /** Writes the open file of the setup over the file as it was opened. */
+  protected readonly writeFile = (file: SetupFile, text: string): Promise<SetupFile> => {
+    const edit = this.editing()!;
+    return this.bridge.invoke('agents.saveSetupFile', {
+      agent: edit.agent,
+      ...(edit.cwd ? { cwd: edit.cwd } : {}),
+      path: file.path,
+      text,
+      changedAt: file.changedAt,
+    });
+  };
+
+  /** Keeps the file as saved, and reads the list again on the way back to it. */
+  protected saved(file: SetupFile): void {
     const edit = this.editing();
-    if (!edit?.file.editable || this.saving()) return;
-    this.saving.set(true);
-    const done = this.pending.add();
-    try {
-      const file = await this.bridge.invoke('agents.saveSetupFile', {
-        agent: edit.agent,
-        ...(edit.cwd ? { cwd: edit.cwd } : {}),
-        path: edit.file.path,
-        text: this.draft(),
-        changedAt: edit.file.changedAt,
-      });
-      this.editing.set({ ...edit, file });
-      this.stale = true;
-      this.note.set({ text: 'Saved. Chats begun from now on load it.' });
-    } catch (error) {
-      this.note.set({ text: message(error), alert: true });
-    } finally {
-      this.saving.set(false);
-      done();
-    }
+    if (edit) this.editing.set({ ...edit, file });
+    this.stale = true;
   }
 
-  protected discard(): void {
-    const edit = this.editing();
-    if (edit) this.draft.set(edit.file.text);
-    this.note.set(null);
-  }
-
-  /** Whether the open file may be left: not while it holds changes to save or discard first. */
-  private mayLeave(): boolean {
-    if (!this.changed()) return true;
-    this.note.set({ text: 'Save your changes, or discard them, first.', alert: true });
-    return false;
-  }
-
-  /** Back to the list, unless there are changes to save or discard first; read again after a save. */
+  /** Back to the list, once the editor has nothing to save; read again after a save. */
   protected close(): void {
-    if (!this.mayLeave()) return;
     this.editing.set(null);
-    this.note.set(null);
     if (this.stale) {
       this.stale = false;
       void this.read();
@@ -248,7 +209,7 @@ export class FrontMatterPage {
       return;
     }
     this.stale = true;
-    if (!this.changed()) void this.reopen(edit);
+    if (!this.editor()?.changed()) void this.reopen(edit);
   }
 
   /** Opens the file again, as it is on disk now, while you haven't changed it. */
@@ -260,24 +221,12 @@ export class FrontMatterPage {
         ...(edit.cwd ? { cwd: edit.cwd } : {}),
         path: edit.file.path,
       });
-      if (this.editing()?.file.path !== file.path || this.changed()) return;
+      if (this.editing()?.file.path !== file.path || this.editor()?.changed()) return;
       this.editing.set({ ...edit, file });
-      this.draft.set(file.text);
     } catch {
       // Keep the file as it was opened; saving says if it changed.
     } finally {
       done();
-    }
-  }
-
-  /** Ctrl+S saves; Esc turns back to the list, not away from the Front matter. */
-  protected key(event: KeyboardEvent): void {
-    if (matchesShortcut(event, SAVE, this.platform)) {
-      event.preventDefault();
-      void this.write();
-    } else if (event.key === 'Escape') {
-      event.preventDefault();
-      this.close();
     }
   }
 

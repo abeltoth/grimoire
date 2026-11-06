@@ -3024,7 +3024,7 @@ describe('App', () => {
     expect(calls).toContainEqual({ command: 'agents.openSetupFile', request: { agent: 'claude-code', path: memory } });
     expect(editor()!.value).toBe('# Mine');
     expect(editor()!.readOnly).toBe(false);
-    expect(texts('gr-front-matter-page .editor .sub')[0]).toMatch(/^~\/.claude\/CLAUDE.md\s*·\s*Yours\s*·\s*Back to the list$/);
+    expect(texts('gr-front-matter-page gr-file-editor .sub')[0]).toMatch(/^~\/.claude\/CLAUDE.md\s*·\s*Yours\s*·\s*Back to the list$/);
     expect(link('Save').getAttribute('aria-disabled')).toBe('true');
 
     // Changes can't be left behind unsaved: Esc stays, and so does the Front matter.
@@ -3269,5 +3269,188 @@ describe('App', () => {
       'Claude Code keeps no memories here: memory is turned off in its settings.',
     ]);
     expect(el.querySelector('gr-memory-map-page .map')).toBeNull();
+  });
+
+  it('opens a memory from the Memory map to change, turn to its links, or delete', async () => {
+    const { bridge, answers, calls } = fakeBridge();
+    const folder = 'C:/Users/me/.claude/projects/C--Users-me/memory';
+    const memory = (name: string, type: string, links: string[]): Memory => ({
+      name,
+      path: `${folder}/${name}.md`,
+      description: `About ${name}`,
+      type,
+      changedAt: 100,
+      links,
+      indexed: true,
+    });
+    let memories = [
+      memory('angular-conventions', 'project', []),
+      memory('design-tokens', 'project', ['angular-conventions', 'gone']),
+      memory('testing-strategy', 'reference', ['design-tokens']),
+    ];
+    const texts_: Record<string, string> = {};
+    answers['agents.memories'] = (): AgentMemories => ({
+      cwd: 'C:/Users/me',
+      folder,
+      index: { path: `${folder}/MEMORY.md`, exists: true },
+      enabled: true,
+      memories,
+      problems: [],
+      elsewhere: [],
+      at: Date.now(),
+    });
+    answers['agents.openMemory'] = (request: CommandRequest<'agents.openMemory'>): SetupFile => ({
+      path: request.path,
+      text: texts_[request.path] ?? `Text of ${request.path.split('/').at(-1)}`,
+      exists: true,
+      changedAt: 100,
+      editable: true,
+    });
+    answers['agents.saveMemory'] = (request: CommandRequest<'agents.saveMemory'>): SetupFile => {
+      texts_[request.path] = request.text;
+      return { path: request.path, text: request.text, exists: true, changedAt: 200, editable: true };
+    };
+    answers['agents.deleteMemory'] = (request: CommandRequest<'agents.deleteMemory'>) => {
+      memories = memories.filter((one) => one.path !== request.path);
+    };
+    const { fixture, el, texts } = await render(bridge);
+    [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
+      .find((tab) => tab.textContent!.trim() === 'Memory map')!
+      .click();
+    await fixture.whenStable();
+    const link = (text: string) =>
+      [...el.querySelectorAll<HTMLButtonElement>('gr-memory-map-page .gr-link')].find(
+        (b) => b.textContent!.trim().startsWith(text),
+      )!;
+    const editor = () => el.querySelector<HTMLTextAreaElement>('gr-memory-map-page textarea');
+    const settle = async () => {
+      await new Promise((resolve) => setTimeout(resolve));
+      await fixture.whenStable();
+    };
+    const type = async (text: string) => {
+      editor()!.value = text;
+      editor()!.dispatchEvent(new Event('input'));
+      await fixture.whenStable();
+    };
+    const path = (name: string) => `${folder}/${name}.md`;
+
+    el.querySelector<HTMLButtonElement>('gr-memory-map-page [data-memory="design-tokens"] .name button')!.click();
+    await settle();
+    expect(calls).toContainEqual({
+      command: 'agents.openMemory',
+      request: { agent: 'claude-code', cwd: 'C:/Users/me', path: path('design-tokens') },
+    });
+    expect(editor()!.value).toBe('Text of design-tokens.md');
+    expect(el.querySelector('gr-memory-map-page .map')).toBeNull();
+    expect(texts('gr-memory-map-page gr-file-editor .sub')[0]).toMatch(
+      /^~\/.claude\/projects\/C--Users-me\/memory\/design-tokens.md\s*·\s*Projects\s*·\s*Back to the map$/,
+    );
+    expect(texts('gr-memory-map-page .links')[0]).toMatch(
+      /^Links to\s*angular-conventions\s*\[\[gone\]\] missing\s*·\s*Linked from\s*testing-strategy$/,
+    );
+
+    // Saved, it's kept as saved.
+    await type('Tokens only.');
+    link('Save').click();
+    await settle();
+    expect(calls).toContainEqual({
+      command: 'agents.saveMemory',
+      request: {
+        agent: 'claude-code',
+        cwd: 'C:/Users/me',
+        path: path('design-tokens'),
+        text: 'Tokens only.',
+        changedAt: 100,
+      },
+    });
+    expect(texts('gr-memory-map-page .note')).toEqual(['Saved.']);
+
+    // A link turns to that memory; not while there are changes to save.
+    [...el.querySelectorAll<HTMLButtonElement>('gr-memory-map-page .links .to')].find((b) => b.textContent!.trim() === 'angular-conventions')!.click();
+    await settle();
+    expect(editor()!.value).toBe('Text of angular-conventions.md');
+    expect(texts('gr-memory-map-page .links')[0]).toMatch(/Links to\s*none\s*·\s*Linked from\s*design-tokens$/);
+    await type('Changed.');
+    [...el.querySelectorAll<HTMLButtonElement>('gr-memory-map-page .links .to')].find((b) => b.textContent!.trim() === 'design-tokens')!.click();
+    await settle();
+    expect(editor()!.value).toBe('Changed.');
+    expect(texts('gr-memory-map-page .note.alert')).toEqual(['Save your changes, or discard them, first.']);
+    link('Discard changes').click();
+    await fixture.whenStable();
+
+    // Deleting asks first, and can be kept.
+    link('Delete').click();
+    await fixture.whenStable();
+    expect(texts('gr-memory-map-page .ask')).toEqual(['Delete it? Its file goes, and its line in the index.']);
+    link('Keep it').click();
+    await fixture.whenStable();
+    expect(el.querySelector('gr-memory-map-page .ask')).toBeNull();
+    expect(calls.some((c) => c.command === 'agents.deleteMemory')).toBe(false);
+
+    link('Delete').click();
+    await fixture.whenStable();
+    el.querySelector<HTMLButtonElement>('gr-memory-map-page .gr-link.danger')!.click();
+    await settle();
+    expect(calls).toContainEqual({
+      command: 'agents.deleteMemory',
+      request: { agent: 'claude-code', cwd: 'C:/Users/me', path: path('angular-conventions'), changedAt: 100 },
+    });
+    expect(editor()).toBeNull();
+    expect([...el.querySelectorAll('gr-memory-map-page .card .name')].map((n) => n.textContent!.trim())).toEqual([
+      'design-tokens',
+      'testing-strategy',
+    ]);
+  });
+
+  it('keeps an open memory with changes from being left by turning the facing page away', async () => {
+    const { bridge, answers } = fakeBridge();
+    const folder = 'C:/Users/me/.claude/projects/C--Users-me/memory';
+    answers['agents.memories'] = (): AgentMemories => ({
+      cwd: 'C:/Users/me',
+      folder,
+      index: { path: `${folder}/MEMORY.md`, exists: false },
+      enabled: true,
+      memories: [
+        {
+          name: 'tone',
+          path: `${folder}/tone.md`,
+          type: 'feedback',
+          changedAt: 100,
+          links: [],
+          indexed: false,
+        },
+      ],
+      problems: [],
+      elsewhere: [],
+      at: Date.now(),
+    });
+    answers['agents.openMemory'] = (request: CommandRequest<'agents.openMemory'>): SetupFile => ({
+      path: request.path,
+      text: 'Short answers.',
+      exists: true,
+      changedAt: 100,
+      editable: true,
+    });
+    const { fixture, el, texts } = await render(bridge);
+    [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
+      .find((tab) => tab.textContent!.trim() === 'Memory map')!
+      .click();
+    await fixture.whenStable();
+    el.querySelector<HTMLButtonElement>('gr-memory-map-page .name button')!.click();
+    await new Promise((resolve) => setTimeout(resolve));
+    await fixture.whenStable();
+    const editor = el.querySelector<HTMLTextAreaElement>('gr-memory-map-page textarea')!;
+    editor.value = 'Shorter answers.';
+    editor.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+
+    el.querySelector<HTMLButtonElement>('gr-thumb-page .row .gr-link')!.click();
+    await fixture.whenStable();
+    expect(el.querySelector('gr-memory-map-page textarea')).not.toBeNull();
+    expect(texts('gr-memory-map-page .note.alert')).toEqual(['Save your changes, or discard them, first.']);
+
+    editor.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    await fixture.whenStable();
+    expect(el.querySelector('gr-memory-map-page textarea')).not.toBeNull();
   });
 });

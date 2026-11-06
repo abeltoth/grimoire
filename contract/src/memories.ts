@@ -1,4 +1,5 @@
 import type { AgentId } from './agents';
+import type { SetupFile } from './setup';
 
 /** One of the memories an agent keeps on its own, in a file of its memory folder. */
 export interface Memory {
@@ -49,6 +50,21 @@ declare module './commands' {
     'agents.memories': {
       request: { agent: AgentId; cwd?: string };
       response: AgentMemories | null;
+    };
+    /** One of the memories the agent keeps for the folder, to read or change. */
+    'agents.openMemory': {
+      request: { agent: AgentId; cwd?: string; path: string };
+      response: SetupFile;
+    };
+    /** Writes one of the memories the agent keeps for the folder, unless it changed since it was opened. */
+    'agents.saveMemory': {
+      request: { agent: AgentId; cwd?: string; path: string; text: string; changedAt: number };
+      response: SetupFile;
+    };
+    /** Deletes one of the memories the agent keeps for the folder, and its line in the index, unless it changed since it was opened. */
+    'agents.deleteMemory': {
+      request: { agent: AgentId; cwd?: string; path: string; changedAt: number };
+      response: void;
     };
   }
 }

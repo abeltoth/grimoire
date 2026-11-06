@@ -1,51 +1,14 @@
 @if (editing(); as edit) {
-  <div class="editor" (keydown)="key($event)">
-    <p class="sub">
-      <span class="folder" [attr.title]="edit.file.path">{{
-        chats.folderName(edit.file.path)
-      }}</span>
-      <span class="dot" aria-hidden="true">·</span>
-      {{ edit.from }}
-      @if (!edit.file.exists) {
-        <span class="dot" aria-hidden="true">·</span>
-        a new file
-      }
-      <span class="dot" aria-hidden="true">·</span>
-      <button type="button" class="gr-link" (click)="close()">Back to the list</button>
-    </p>
-    <textarea
-      #text
-      class="text"
-      spellcheck="false"
-      [attr.aria-label]="chats.folderName(edit.file.path)"
-      [readOnly]="!edit.file.editable"
-      [value]="draft()"
-      (input)="draft.set(text.value)"
-    ></textarea>
-    <p class="actions">
-      @if (readOnly(edit); as why) {
-        <span class="why">{{ why }}</span>
-      } @else {
-        <button
-          type="button"
-          class="gr-link"
-          [attr.aria-disabled]="saving() || !changed() || null"
-          (click)="changed() && write()"
-        >
-          Save <span class="gr-kbd">{{ save | shortcut }}</span>
-        </button>
-        @if (changed()) {
-          <span class="dot" aria-hidden="true">·</span>
-          <button type="button" class="gr-link" (click)="discard()">Discard changes</button>
-        }
-      }
-      @if (note(); as note) {
-        <span class="note" [class.alert]="note.alert" [attr.role]="note.alert ? 'alert' : 'status'">
-          {{ note.text }}
-        </span>
-      }
-    </p>
-  </div>
+  <gr-file-editor
+    [file]="edit.file"
+    [from]="edit.from"
+    [readOnly]="readOnly(edit)"
+    backLabel="Back to the list"
+    savedNote="Saved. Chats begun from now on load it."
+    [write]="writeFile"
+    (saved)="saved($event)"
+    (back)="close()"
+  />
 } @else {
   <p class="sub">
     In <span class="folder" [attr.title]="cwd() ?? null">{{ chats.folderName(cwd()) }}</span>
