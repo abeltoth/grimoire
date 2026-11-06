@@ -1,4 +1,6 @@
-import { homedir } from 'node:os';
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { homedir, tmpdir } from 'node:os';
+import path from 'node:path';
 import type { AgentEntry, AgentSetup, EventName, EventPayload } from '@grimoire/contract';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { openDatabase } from '../storage/database';
@@ -458,6 +460,26 @@ describe('AgentHub', () => {
       { event: 'agents.settings', payload: { chatId: id, settings: { ...settings, model: 'small', mode: 'plan' } } },
     ]);
     expect(chapters.list()[0]?.settings).toEqual({ ...settings, model: 'small', mode: 'plan' });
+  });
+
+  it('lists the folders a setup can be read in: those still there, outside the temp folder', async () => {
+    const temp = mkdtempSync(path.join(tmpdir(), 'grimoire-temp-'));
+    const work = mkdtempSync(path.join(tmpdir(), 'grimoire-work-'));
+    const run = path.join(temp, 'test-run');
+    fake.chats = [
+      { id: 'a', agent: 'fake', title: '', cwd: work, updatedAt: 1 },
+      { id: 'b', agent: 'fake', title: '', cwd: path.join(work, 'gone'), updatedAt: 2 },
+      { id: 'c', agent: 'fake', title: '', cwd: temp, updatedAt: 3 },
+      { id: 'd', agent: 'fake', title: '', cwd: homedir(), updatedAt: 4 },
+    ];
+    try {
+      mkdirSync(run);
+      fake.chats.push({ id: 'e', agent: 'fake', title: '', cwd: run, updatedAt: 5 });
+      expect(await hub.setupFolders(temp)).toEqual([homedir(), work]);
+    } finally {
+      rmSync(temp, { recursive: true, force: true });
+      rmSync(work, { recursive: true, force: true });
+    }
   });
 
   it('lists the folders chats ran in, most recent first', async () => {

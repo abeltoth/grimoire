@@ -3525,4 +3525,38 @@ describe('App', () => {
     await settle();
     expect(editor().value).toBe('Mine.');
   });
+
+  it('offers the Front matter of the other folders your chats ran in', async () => {
+    const { bridge, answers, calls } = fakeBridge();
+    const empty = { memory: [], skills: [], agents: [], commands: [], hooks: [], mcpServers: [], plugins: [], permissions: [] };
+    answers['agents.setup'] = (request: CommandRequest<'agents.setup'>): AgentSetup => ({
+      cwd: request.cwd ?? 'C:/Users/me',
+      sections: empty,
+      settingsFiles: [],
+      at: Date.now(),
+    });
+    answers['agents.setupFolders'] = () => ['C:/Users/me/git/grimoire', 'C:/Users/me', 'C:/Users/me/git/breeder'];
+    const { fixture, el, texts } = await render(bridge);
+    [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
+      .find((tab) => tab.textContent!.trim() === 'Front matter')!
+      .click();
+    await fixture.whenStable();
+
+    // The folder shown isn't offered again.
+    expect(texts('gr-front-matter-page .sub')[0]).toMatch(/^In ~\s*·/);
+    expect(texts('gr-front-matter-page .elsewhere .gr-link')).toEqual(['~/git/grimoire', '~/git/breeder']);
+
+    [...el.querySelectorAll<HTMLButtonElement>('gr-front-matter-page .elsewhere .gr-link')]
+      .find((b) => b.textContent!.trim() === '~/git/breeder')!
+      .click();
+    await new Promise((resolve) => setTimeout(resolve));
+    await fixture.whenStable();
+    expect(calls.filter((c) => c.command === 'agents.setup').at(-1)!.request).toEqual({
+      agent: 'claude-code',
+      cwd: 'C:/Users/me/git/breeder',
+    });
+    expect(texts('gr-front-matter-page .sub')[0]).toMatch(/^In ~\/git\/breeder\s*·/);
+    // The open chapter's folder comes first, to turn back to.
+    expect(texts('gr-front-matter-page .elsewhere .gr-link')).toEqual(['~', '~/git/grimoire']);
+  });
 });

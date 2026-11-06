@@ -483,6 +483,8 @@
   --gr-front-matter-from-col: 110px;
   --gr-front-matter-rule: 1px solid var(--gr-hairline);
   --gr-front-matter-leader: var(--gr-leader);
+  --gr-front-matter-elsewhere-gap: 14px;
+  --gr-front-matter-elsewhere-space: 22px;
 
   /* File editor: a file opened on a thumb tab's page, on a sheet of the next page, ruled round */
   --gr-file-editor-min: 240px;

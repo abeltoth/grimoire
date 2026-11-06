@@ -75,6 +75,8 @@ declare module './commands' {
   interface CommandMap {
     /** What the agent loads in a folder, your home folder when there's none; null for agents that can't say. */
     'agents.setup': { request: { agent: AgentId; cwd?: string }; response: AgentSetup | null };
+    /** The folders your chats ran in that are still there, most recent first, leaving out those in the temp folder: where else a setup can be read. */
+    'agents.setupFolders': { request: Record<string, never>; response: string[] };
     /** One of the files the agent's setup in the folder lists; empty while it doesn't exist. */
     'agents.openSetupFile': {
       request: { agent: AgentId; cwd?: string; path: string };

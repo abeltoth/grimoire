@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import { homedir } from 'node:os';
+import { existsSync } from 'node:fs';
+import { homedir, tmpdir } from 'node:os';
+import path from 'node:path';
 import type {
   AgentCommand,
   AgentId,
@@ -38,6 +40,7 @@ import { EntryIds } from '../storage/entry-ids';
 import { Tags } from '../storage/tags';
 import { UsageReadings } from '../storage/usage-readings';
 import type { AgentAdapter, ChatEvents, LiveChat, Verdict } from './adapter';
+import { samePath } from './files';
 import { MemoryFiles } from './memory-files';
 import { MemoryWatcher } from './memory-watcher';
 import { SetupFiles } from './setup-files';
@@ -264,6 +267,18 @@ export class AgentHub {
       .sort((a, b) => b.updatedAt - a.updatedAt)
       .flatMap((chat) => (chat.cwd ? [chat.cwd] : []));
     return { home: homedir(), recent: [...new Set(recent)] };
+  }
+
+  /**
+   * The folders chats ran in that are still there, most recent first,
+   * leaving out those in the temp folder, such as a test run's.
+   */
+  async setupFolders(temp = tmpdir()): Promise<string[]> {
+    const inTemp = samePath(temp) + path.sep;
+    const { recent } = await this.folders();
+    return recent.filter(
+      (cwd) => existsSync(cwd) && !(samePath(cwd) + path.sep).startsWith(inTemp),
+    );
   }
 
   /** The chats open as chapters, in ribbon order. Those that no longer open are forgotten. */
