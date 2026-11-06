@@ -15,6 +15,7 @@ import type {
   PullRequest,
   ScheduleInfo,
   ScheduleRun,
+  SetupFile,
 } from '@grimoire/contract';
 import { DEFAULT_SETTINGS } from '@grimoire/contract';
 import { clock, dateline, upcoming, when } from '../../../modules/schedules/ui/wording';
@@ -2970,5 +2971,96 @@ describe('App', () => {
       cwd: 'C:/Users/me/git/new',
     });
     expect(texts('gr-front-matter-page .sub')[0]).toMatch(/^In ~\/git\/new\s*·/);
+  });
+
+  it('opens a file of the setup on the Front matter, to change and save in place', async () => {
+    const { bridge, answers, calls } = fakeBridge();
+    const empty = { memory: [], skills: [], agents: [], commands: [], hooks: [], mcpServers: [], plugins: [], permissions: [] };
+    const memory = 'C:/Users/me/.claude/CLAUDE.md';
+    const managed = 'C:/Program Files/ClaudeCode/managed-settings.json';
+    answers['agents.setup'] = (): AgentSetup => ({
+      cwd: 'C:/Users/me',
+      sections: { ...empty, memory: [{ name: '~/.claude/CLAUDE.md', source: 'user', path: memory, tokens: 310 }] },
+      settingsFiles: [{ source: 'managed', path: managed, exists: true }],
+      at: Date.now(),
+    });
+    let kept = '# Mine';
+    answers['agents.openSetupFile'] = (request: CommandRequest<'agents.openSetupFile'>): SetupFile => ({
+      path: request.path,
+      text: request.path === memory ? kept : '{ "permissions": {} }',
+      exists: true,
+      changedAt: 100,
+      editable: request.path === memory,
+    });
+    answers['agents.saveSetupFile'] = (request: CommandRequest<'agents.saveSetupFile'>): SetupFile => {
+      if (request.text.includes('oops')) throw new Error('It changed on disk since you opened it.');
+      kept = request.text;
+      return { path: request.path, text: kept, exists: true, changedAt: 200, editable: true };
+    };
+    const { fixture, el, texts } = await render(bridge);
+    [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
+      .find((tab) => tab.textContent!.trim() === 'Front matter')!
+      .click();
+    await fixture.whenStable();
+    const link = (text: string) =>
+      [...el.querySelectorAll<HTMLButtonElement>('gr-front-matter-page .gr-link')].find((b) =>
+        b.textContent!.includes(text),
+      )!;
+    const editor = () => el.querySelector<HTMLTextAreaElement>('gr-front-matter-page textarea');
+    const type = async (text: string) => {
+      editor()!.value = text;
+      editor()!.dispatchEvent(new Event('input'));
+      await fixture.whenStable();
+    };
+    const press = async (init: KeyboardEventInit) => {
+      editor()!.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init }));
+      await fixture.whenStable();
+    };
+
+    el.querySelector<HTMLButtonElement>('gr-front-matter-page [data-section="memory"] button.name')!.click();
+    await fixture.whenStable();
+    expect(calls).toContainEqual({ command: 'agents.openSetupFile', request: { agent: 'claude-code', path: memory } });
+    expect(editor()!.value).toBe('# Mine');
+    expect(editor()!.readOnly).toBe(false);
+    expect(texts('gr-front-matter-page .editor .sub')[0]).toMatch(/^~\/.claude\/CLAUDE.md\s*·\s*Yours\s*·\s*Back to the list$/);
+    expect(link('Save').getAttribute('aria-disabled')).toBe('true');
+
+    // Changes can't be left behind unsaved: Esc stays, and so does the Front matter.
+    await type('# Mine\nUse tabs.');
+    await press({ key: 'Escape' });
+    expect(editor()).not.toBeNull();
+    expect(el.querySelector('gr-thumb-page')).not.toBeNull();
+    expect(texts('gr-front-matter-page .note.alert')).toEqual(['Save your changes, or discard them, first.']);
+
+    await press({ key: 's', ctrlKey: true });
+    expect(calls).toContainEqual({
+      command: 'agents.saveSetupFile',
+      request: { agent: 'claude-code', path: memory, text: '# Mine\nUse tabs.', changedAt: 100 },
+    });
+    expect(texts('gr-front-matter-page .note')).toEqual(['Saved. Chats begun from now on load it.']);
+    expect(link('Save').getAttribute('aria-disabled')).toBe('true');
+
+    await type('# Mine\noops');
+    link('Save').click();
+    await fixture.whenStable();
+    expect(texts('gr-front-matter-page .note.alert')).toEqual(['It changed on disk since you opened it.']);
+    link('Discard changes').click();
+    await fixture.whenStable();
+    expect(editor()!.value).toBe('# Mine\nUse tabs.');
+
+    // Back to the list, read again after the save.
+    const reads = () => calls.filter((c) => c.command === 'agents.setup').length;
+    const before = reads();
+    await press({ key: 'Escape' });
+    expect(editor()).toBeNull();
+    expect(el.querySelector('gr-thumb-page')).not.toBeNull();
+    expect(reads()).toBe(before + 1);
+
+    // The managed settings open only to read.
+    el.querySelector<HTMLButtonElement>('gr-front-matter-page [data-section="settings"] button.name')!.click();
+    await fixture.whenStable();
+    expect(editor()!.readOnly).toBe(true);
+    expect(texts('gr-front-matter-page .why')).toEqual(['Your organization’s settings, only to read here.']);
+    expect(el.querySelector('gr-front-matter-page .actions .gr-link')).toBeNull();
   });
 });

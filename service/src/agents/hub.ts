@@ -6,6 +6,7 @@ import type {
   AgentInfo,
   AgentModels,
   AgentSetup,
+  SetupFile,
   Answer,
   Approval,
   ApprovalDecision,
@@ -36,6 +37,7 @@ import { EntryIds } from '../storage/entry-ids';
 import { Tags } from '../storage/tags';
 import { UsageReadings } from '../storage/usage-readings';
 import type { AgentAdapter, ChatEvents, LiveChat, Verdict } from './adapter';
+import { SetupFiles } from './setup-files';
 
 export type Emit = <K extends EventName>(event: K, payload: EventPayload<K>) => void;
 
@@ -119,6 +121,7 @@ export class AgentHub {
   private readonly adapters = new Map<AgentId, AgentAdapter>();
   private readonly chats = new Map<ChatId, ChatState>();
   private readonly approvals = new Map<string, PendingApproval>();
+  private readonly setupFiles = new SetupFiles((agent, cwd) => this.setup(agent, cwd));
 
   constructor(
     private readonly emit: Emit,
@@ -158,7 +161,25 @@ export class AgentHub {
 
   /** What the agent loads in a folder, your home folder when there's none; null when it can't say. */
   async setup(agent: AgentId, cwd?: string): Promise<AgentSetup | null> {
-    return (await this.adapter(agent).setup?.(cwd ?? homedir())) ?? null;
+    const setup = (await this.adapter(agent).setup?.(cwd ?? homedir())) ?? null;
+    if (setup) this.setupFiles.remember(agent, setup);
+    return setup;
+  }
+
+  /** One of the files the agent's setup in the folder lists. */
+  openSetupFile(agent: AgentId, cwd: string | undefined, file: string): Promise<SetupFile> {
+    return this.setupFiles.open(agent, cwd ?? homedir(), file);
+  }
+
+  /** Writes one of the files the agent's setup in the folder lists, unless it changed since it was opened. */
+  saveSetupFile(
+    agent: AgentId,
+    cwd: string | undefined,
+    file: string,
+    text: string,
+    changedAt: number,
+  ): Promise<SetupFile> {
+    return this.setupFiles.save(agent, cwd ?? homedir(), file, text, changedAt);
   }
 
   /** The agent's plan limits, read now and kept; null when it has no plan. */
