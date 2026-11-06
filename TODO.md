@@ -34,7 +34,7 @@ A custom UI for Claude Code, built on the Claude Agent SDK.
 - [ ] Pop a tab out into its own window
 - [x] Full-text search across all past chats
 - [x] Pin, star and tag chats by project
-- [ ] Memory graph: memories drawn as a graph of their `[[links]]`
+- [x] Memory graph: memories drawn as a graph of their `[[links]]`
 - [ ] MCP dashboard: connected or failing, toggle on and off, reconnect
 - [ ] A log of which hooks fired on each turn
 - [ ] Profiles to switch between work and personal setups

@@ -12,7 +12,7 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
-import type { AgentInfo, AgentMemories, Memory, SetupFile } from '@grimoire/contract';
+import type { AgentId, AgentInfo, AgentMemories, Memory, SetupFile } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { Chats } from '@ui/app/core/chats';
 import { Wording } from '@ui/app/core/wording';
@@ -130,7 +130,14 @@ export class MemoryMapPage {
       observer = new ResizeObserver(() => this.measure());
       observer.observe(map);
     });
-    inject(DestroyRef).onDestroy(() => observer?.disconnect());
+    // A memory shown changed, appeared or went: read them again.
+    const off = this.bridge.on('agents.memoriesChanged', ({ agent, cwd }) =>
+      this.memoriesChanged(agent, cwd),
+    );
+    inject(DestroyRef).onDestroy(() => {
+      observer?.disconnect();
+      off();
+    });
   }
 
   protected async read(cwd = this.cwd()): Promise<void> {
@@ -226,6 +233,36 @@ export class MemoryMapPage {
       this.editor()?.tell({ text: `It couldn’t be deleted: ${message(error)}`, alert: true });
     } finally {
       this.deleting.set(false);
+      done();
+    }
+  }
+
+  /**
+   * Reads the memories again when they're those of the folder shown, so
+   * the map, or the open memory's links, keep up. The open memory is
+   * opened again as it is on disk, unless you've changed it.
+   */
+  private memoriesChanged(agent: AgentId, cwd: string): void {
+    if (!this.kept()?.some((one) => one.agent.id === agent && one.memories.cwd === cwd)) return;
+    void this.read();
+    const edit = this.editing();
+    if (edit && !this.editor()?.changed()) void this.reopen(edit);
+  }
+
+  /** Opens the memory again, as it is on disk now, while you haven't changed it. */
+  private async reopen(edit: Editing): Promise<void> {
+    const done = this.pending.add();
+    try {
+      const file = await this.bridge.invoke('agents.openMemory', {
+        agent: edit.agent.id,
+        cwd: edit.cwd,
+        path: edit.file.path,
+      });
+      if (this.editing()?.file.path !== file.path || this.editor()?.changed()) return;
+      this.editing.set({ ...this.editing()!, file });
+    } catch {
+      // It went, or can't be read: keep it as it was opened; saving says what's wrong.
+    } finally {
       done();
     }
   }

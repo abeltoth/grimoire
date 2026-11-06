@@ -68,3 +68,10 @@ declare module './commands' {
     };
   }
 }
+
+declare module './events' {
+  interface EventMap {
+    /** A memory the agent keeps for the folder changed, appeared or went: read them again. */
+    'agents.memoriesChanged': { agent: AgentId; cwd: string };
+  }
+}
