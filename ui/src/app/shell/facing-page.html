@@ -5,7 +5,7 @@
     <gr-index-page [backTo]="back()" />
     <gr-drawing class="sigil" name="empty-page" />
   </gr-page>
-} @else if (facing.commands()) {
+} @else if (commandsHere()) {
   <gr-page
     side="right"
     [attr.aria-label]="facingPage() + ': ' + wording.say('Index', 'Command palette') + ', commands and skills'"
@@ -26,26 +26,15 @@
     <ng-container *ngComponentOutlet="seals; inputs: { backTo: back() }" />
     <gr-drawing class="sigil" name="empty-page" />
   </gr-page>
+} @else if (page?.whole && page.component) {
+  <gr-page side="right" [attr.aria-label]="facingPage() + ': ' + wording.label(page)">
+    <ng-container *ngComponentOutlet="page.component" />
+  </gr-page>
 } @else {
 <gr-page side="right" [attr.aria-label]="page ? facingPage() + ': ' + wording.label(page) : facingPage()">
   <gr-running-head>
     <div class="row">
-      <nav class="tabs" [attr.aria-label]="wording.say('Facing page shows', 'Right page shows')">
-        @for (entry of registry.facingPages.all(); track entry.id) {
-          <button
-            type="button"
-            [attr.aria-pressed]="entry.id === page?.id"
-            [attr.aria-disabled]="entry.component ? null : true"
-            (click)="show(entry)"
-          >
-            {{ wording.label(entry) }}
-          </button>
-        }
-      </nav>
-      <span class="spacer"></span>
-      <button type="button" class="gr-link" (click)="focus.enter()">
-        <gr-icon name="single-page" />{{ wording.say('Single page', 'Focus') }}
-      </button>
+      <gr-facing-tabs [current]="page?.id" />
     </div>
   </gr-running-head>
 

@@ -43,6 +43,11 @@
   z-index: var(--gr-ribbon-z-current);
 }
 
+/* So does the ribbon of the chapter open on the facing page beside it. */
+:host(.beside) {
+  --ribbon-len: var(--gr-ribbon-len-long);
+}
+
 :host(:hover),
 :host(:focus-within) {
   z-index: var(--gr-ribbon-z-lifted);

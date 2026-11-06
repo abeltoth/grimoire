@@ -67,6 +67,10 @@ export class Composer {
   readonly cache = input<PromptCache>();
   /** What you wrote in this chapter, oldest first, for Up to bring back. */
   readonly sent = input<readonly string[]>([]);
+  /** The entry field's ID, one for each page's entry. */
+  readonly entryId = input('gr-next-entry');
+  /** On the facing page, so its commands are looked up on the left page. */
+  readonly beside = input(false);
 
   /** The time, kept to the minute, for when the cache runs out. */
   private readonly now = signal(Date.now());

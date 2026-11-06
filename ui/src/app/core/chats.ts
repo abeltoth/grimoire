@@ -109,6 +109,9 @@ export class Chats {
   readonly all = signal<readonly Chapter[]>([]);
   readonly currentId = signal<string | undefined>(undefined);
   readonly current = computed(() => this.all().find((chapter) => chapter.id === this.currentId()));
+  /** The chapter on the facing page, beside the one you're on; none until you put one there. */
+  readonly besideId = signal<string | undefined>(undefined);
+  readonly beside = computed(() => this.all().find((chapter) => chapter.id === this.besideId()));
 
   constructor() {
     this.listen('agents.entry', ({ chatId, entry }) =>
@@ -216,7 +219,7 @@ export class Chats {
   }
 
   openSettings(id: string, on: Setting): void {
-    if (this.currentId() !== id) this.turnTo(id);
+    if (this.currentId() !== id && this.besideId() !== id) this.turnTo(id);
     this.settingsCard.set({ id, on });
     void this.loadFolders();
   }
@@ -282,6 +285,26 @@ export class Chats {
    * begin with, and a preset's first entry written in, and turns to it.
    */
   newChapter(from?: { agent: AgentId; settings: NewChatSettings; prompt?: string }): void {
+    this.turnTo(this.blank(from).id);
+  }
+
+  /** Opens a blank chapter on the facing page, beside the one you're on. */
+  newBeside(): void {
+    this.setBeside(this.blank().id);
+  }
+
+  /** Puts an open chapter on the facing page, beside the one you're on, which stays. */
+  putBeside(id: string): void {
+    if (id !== this.currentId() && this.find(id)) this.setBeside(id);
+  }
+
+  /** Takes the chapter off the facing page; it stays open, a ribbon away. */
+  setAside(): void {
+    this.setBeside(undefined);
+  }
+
+  /** A blank chapter, with the settings given or what new chapters begin with, added to the book. */
+  private blank(from?: { agent: AgentId; settings: NewChatSettings; prompt?: string }): Chapter {
     const start = from ?? this.startOf();
     const blank: Chapter = {
       id: `blank-${this.nextBlank++}`,
@@ -301,7 +324,7 @@ export class Chats {
       ...(start.prompt ? { prompt: start.prompt } : {}),
     };
     this.all.update((all) => [...all, blank]);
-    this.turnTo(blank.id);
+    return blank;
   }
 
   open(id: string): void {
@@ -329,6 +352,7 @@ export class Chats {
     if (index === -1) return;
     const rest = all.filter((chapter) => chapter.id !== id);
     this.all.set(rest);
+    if (this.besideId() === id) this.setAside();
     if (this.currentId() === id) {
       const next = rest[Math.min(index, rest.length - 1)];
       if (next) this.turnTo(next.id);
@@ -358,6 +382,7 @@ export class Chats {
       const tags = this.find(id)?.tags ?? [];
       this.all.update((all) => all.map((c) => (c.id === id ? fromOpenChat(chat) : c)));
       if (this.currentId() === id) this.turnTo(chat.id);
+      if (this.besideId() === id) this.setBeside(chat.id);
       this.remember({ agent: chapter.agent, settings: chapter.settings });
       if (tags.length) await this.tag(chat.id, tags);
     } catch (error) {
@@ -508,6 +533,8 @@ export class Chats {
       this.all.set((chats ?? []).map(fromOpenChat));
       this.lastUsed = layout?.lastUsed ?? null;
       const current = layout?.current;
+      const beside = layout?.beside;
+      if (beside && beside !== current && this.find(beside)) this.besideId.set(beside);
       if (current && this.find(current)) return this.currentId.set(current);
     } catch {
       // The service is unreachable: start on a blank page.
@@ -515,13 +542,28 @@ export class Chats {
     this.newChapter();
   }
 
-  /** Turns to a chapter and remembers it, so the book opens there next time. */
+  /**
+   * Turns to a chapter and remembers it, so the book opens there next time.
+   * Turning to the chapter on the facing page swaps the two pages.
+   */
   private turnTo(id: string): void {
     if (this.settingsCard()?.id !== id) this.closeSettings();
+    const was = this.currentId();
+    if (id === this.besideId()) this.setBeside(was && was !== id && this.find(was) ? was : undefined);
     this.currentId.set(id);
     const chapter = this.find(id);
     this.bridge
       .invoke('layout.set', { current: chapter && chapter.status !== 'blank' ? id : null })
+      .catch(() => {});
+  }
+
+  /** Puts a chapter on the facing page, or none, and remembers it. */
+  private setBeside(id: string | undefined): void {
+    if (this.settingsCard()?.id === this.besideId() && id !== this.besideId()) this.closeSettings();
+    this.besideId.set(id);
+    const chapter = id ? this.find(id) : undefined;
+    this.bridge
+      .invoke('layout.set', { beside: chapter && chapter.status !== 'blank' ? chapter.id : null })
       .catch(() => {});
   }
 

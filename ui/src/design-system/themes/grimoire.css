@@ -214,6 +214,14 @@
   --gr-facing-tabs-gap: 22px;
   --gr-size-facing-tab: 22px;
   --gr-leading-facing-tab: 1.1;
+  --gr-facing-tab-max: 260px;
+
+  /* Second chapter: the open chapters to put on the facing page */
+  --gr-second-ask-gap: 14px;
+  --gr-second-list-gap: 16px;
+  --gr-second-col-gap: 12px;
+  --gr-second-row-pad: 7px 0;
+  --gr-second-rule: 1px solid var(--gr-hairline);
   --gr-underline-active: 2px;
   --gr-size-section-head: 15px;
   --gr-tracking-section-head: 0.14em;

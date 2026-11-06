@@ -112,7 +112,11 @@ export class Ribbons {
       chapter.status === 'blank'
         ? this.wording.say('blank page', 'new chat')
         : STATUS_TEXT[chapter.status];
-    return `${this.chapters.agentName(chapter.agent)} · ${status}`;
+    const beside =
+      chapter.id === this.chapters.besideId()
+        ? this.wording.say(' · on the facing page', ' · on the right page')
+        : '';
+    return `${this.chapters.agentName(chapter.agent)} · ${status}${beside}`;
   }
 
   protected sealLabel(): string {

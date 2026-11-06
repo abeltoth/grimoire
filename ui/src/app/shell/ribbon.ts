@@ -22,6 +22,7 @@ export type RibbonTone = 'open' | 'thinking' | 'waiting' | 'idle' | 'seal' | 'ne
     '[attr.data-tone]': 'tone()',
     '[class.right]': "side() === 'right'",
     '[class.current]': 'current()',
+    '[class.beside]': 'beside()',
     '[class.sheen]': "current() && tone() === 'open'",
   },
 })
@@ -33,6 +34,8 @@ export class Ribbon {
   readonly meta = input.required<string>();
   /** The chapter on the open spread. */
   readonly current = input(false, { transform: booleanAttribute });
+  /** The chapter on the facing page, beside the open one. */
+  readonly beside = input(false, { transform: booleanAttribute });
   /** Read out instead of the heading and meta. */
   readonly label = input<string>();
   /** The number pressed into a wax seal on the ribbon; none at 0. */

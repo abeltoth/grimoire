@@ -17,11 +17,5 @@ export function providePlaceholders(): EnvironmentProviders {
     );
 
     shell.facingPages.add({ id: 'files', label: 'Files', order: 20 });
-    shell.facingPages.add({
-      id: 'second-chapter',
-      label: 'Second chapter',
-      plainLabel: 'Second chat',
-      order: 40,
-    });
   });
 }

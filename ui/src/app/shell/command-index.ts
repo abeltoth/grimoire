@@ -80,7 +80,7 @@ export class CommandIndex {
   protected where(command: AgentCommand): { text: string; folder?: true } {
     if (command.kind === 'skill') return { text: 'skill' };
     const lookUp = this.commands.lookUp();
-    const context = this.chats.current()?.context;
+    const context = this.chats.all().find((chapter) => chapter.id === lookUp?.chapterId)?.context;
     if (command.name === 'compact' && context?.limit)
       return { text: `${Math.round((context.used / context.limit) * 100)}% used` };
     if (command.name === 'init') return { text: this.chats.folderName(lookUp?.cwd), folder: true };
