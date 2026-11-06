@@ -91,3 +91,10 @@ declare module './commands' {
     };
   }
 }
+
+declare module './events' {
+  interface EventMap {
+    /** A file of the agent's setup in the folder changed, or a new one appeared: read it again. */
+    'agents.setupChanged': { agent: AgentId; cwd: string };
+  }
+}

@@ -3063,4 +3063,76 @@ describe('App', () => {
     expect(texts('gr-front-matter-page .why')).toEqual(['Your organization’s settings, only to read here.']);
     expect(el.querySelector('gr-front-matter-page .actions .gr-link')).toBeNull();
   });
+
+  it('reads the Front matter again when a file of its setup changes, and the open file too', async () => {
+    const { bridge, answers, calls, emit } = fakeBridge();
+    const empty = { memory: [], skills: [], agents: [], commands: [], hooks: [], mcpServers: [], plugins: [], permissions: [] };
+    const memory = 'C:/Users/me/.claude/CLAUDE.md';
+    let skills = 1;
+    answers['agents.setup'] = (): AgentSetup => ({
+      cwd: 'C:/Users/me',
+      sections: {
+        ...empty,
+        memory: [{ name: '~/.claude/CLAUDE.md', source: 'user', path: memory }],
+        skills: Array.from({ length: skills }, (_, i) => ({ name: `skill-${i}`, source: 'user' as const })),
+      },
+      settingsFiles: [],
+      at: Date.now(),
+    });
+    let onDisk = '# Mine';
+    answers['agents.openSetupFile'] = (request: CommandRequest<'agents.openSetupFile'>): SetupFile => ({
+      path: request.path,
+      text: onDisk,
+      exists: true,
+      changedAt: onDisk.length,
+      editable: true,
+    });
+    const { fixture, el, texts } = await render(bridge);
+    [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
+      .find((tab) => tab.textContent!.trim() === 'Front matter')!
+      .click();
+    await fixture.whenStable();
+    const settle = async () => {
+      await new Promise((resolve) => setTimeout(resolve));
+      await fixture.whenStable();
+    };
+    const skillCount = () => texts('gr-front-matter-page [data-section="skills"] summary .n')[0];
+    expect(skillCount()).toBe('1');
+
+    // A change in another folder isn't this page's.
+    skills = 2;
+    emit('agents.setupChanged', { agent: 'claude-code', cwd: 'D:/elsewhere' });
+    await settle();
+    expect(skillCount()).toBe('1');
+    emit('agents.setupChanged', { agent: 'claude-code', cwd: 'C:/Users/me' });
+    await settle();
+    expect(skillCount()).toBe('2');
+
+    // The open file is opened again as it is now, while you haven't changed it.
+    el.querySelector<HTMLButtonElement>('gr-front-matter-page [data-section="memory"] button.name')!.click();
+    await fixture.whenStable();
+    const editor = () => el.querySelector<HTMLTextAreaElement>('gr-front-matter-page textarea')!;
+    onDisk = '# Changed elsewhere';
+    skills = 3;
+    emit('agents.setupChanged', { agent: 'claude-code', cwd: 'C:/Users/me' });
+    await settle();
+    expect(editor().value).toBe('# Changed elsewhere');
+
+    editor().value = '# Mine again';
+    editor().dispatchEvent(new Event('input'));
+    onDisk = '# Changed once more';
+    emit('agents.setupChanged', { agent: 'claude-code', cwd: 'C:/Users/me' });
+    await settle();
+    expect(editor().value).toBe('# Mine again');
+
+    // Back at the list, it's read again.
+    [...el.querySelectorAll<HTMLButtonElement>('gr-front-matter-page .gr-link')]
+      .find((b) => b.textContent!.includes('Discard changes'))!
+      .click();
+    await fixture.whenStable();
+    editor().dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    await settle();
+    expect(skillCount()).toBe('3');
+    expect(calls.filter((c) => c.command === 'agents.setup')).toHaveLength(3);
+  });
 });

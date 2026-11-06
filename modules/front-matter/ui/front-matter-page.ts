@@ -1,5 +1,6 @@
 import {
   Component,
+  DestroyRef,
   PendingTasks,
   computed,
   effect,
@@ -113,8 +114,8 @@ export class FrontMatterPage {
   protected readonly saving = signal(false);
   /** What came of the last save, or why the list can't be shown yet. */
   protected readonly note = signal<{ text: string; alert?: boolean } | null>(null);
-  /** Whether a file was saved, so the list is read again on the way back to it. */
-  private saved = false;
+  /** Whether a file was saved or changed, so the list is read again on the way back to it. */
+  private stale = false;
 
   constructor() {
     // Read once the agents are known, and again for another folder.
@@ -122,6 +123,10 @@ export class FrontMatterPage {
       const cwd = this.cwd();
       if (this.chats.agents().length) untracked(() => void this.read(cwd));
     });
+
+    // A file of the setup shown changed, or a new one appeared: read it again.
+    const off = this.bridge.on('agents.setupChanged', ({ cwd }) => this.setupChanged(cwd));
+    inject(DestroyRef).onDestroy(off);
   }
 
   protected async read(cwd = this.cwd()): Promise<void> {
@@ -190,7 +195,7 @@ export class FrontMatterPage {
         changedAt: edit.file.changedAt,
       });
       this.editing.set({ ...edit, file });
-      this.saved = true;
+      this.stale = true;
       this.note.set({ text: 'Saved. Chats begun from now on load it.' });
     } catch (error) {
       this.note.set({ text: message(error), alert: true });
@@ -214,9 +219,44 @@ export class FrontMatterPage {
     }
     this.editing.set(null);
     this.note.set(null);
-    if (this.saved) {
-      this.saved = false;
+    if (this.stale) {
+      this.stale = false;
       void this.read();
+    }
+  }
+
+  /**
+   * Reads the list again when it shows the folder that changed. While a
+   * file is open it's read again on the way back, and the open file is
+   * opened again unless you've changed it.
+   */
+  private setupChanged(cwd: string): void {
+    if (!this.told()?.some((one) => one.setup.cwd === cwd)) return;
+    const edit = this.editing();
+    if (!edit) {
+      void this.read();
+      return;
+    }
+    this.stale = true;
+    if (!this.changed()) void this.reopen(edit);
+  }
+
+  /** Opens the file again, as it is on disk now, while you haven't changed it. */
+  private async reopen(edit: Editing): Promise<void> {
+    const done = this.pending.add();
+    try {
+      const file = await this.bridge.invoke('agents.openSetupFile', {
+        agent: edit.agent,
+        ...(edit.cwd ? { cwd: edit.cwd } : {}),
+        path: edit.file.path,
+      });
+      if (this.editing()?.file.path !== file.path || this.changed()) return;
+      this.editing.set({ ...edit, file });
+      this.draft.set(file.text);
+    } catch {
+      // Keep the file as it was opened; saving says if it changed.
+    } finally {
+      done();
     }
   }
 

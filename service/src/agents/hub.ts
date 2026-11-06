@@ -38,6 +38,7 @@ import { Tags } from '../storage/tags';
 import { UsageReadings } from '../storage/usage-readings';
 import type { AgentAdapter, ChatEvents, LiveChat, Verdict } from './adapter';
 import { SetupFiles } from './setup-files';
+import { SetupWatcher } from './setup-watcher';
 
 export type Emit = <K extends EventName>(event: K, payload: EventPayload<K>) => void;
 
@@ -122,6 +123,9 @@ export class AgentHub {
   private readonly chats = new Map<ChatId, ChatState>();
   private readonly approvals = new Map<string, PendingApproval>();
   private readonly setupFiles = new SetupFiles((agent, cwd) => this.setup(agent, cwd));
+  private readonly setupWatcher = new SetupWatcher((agent, cwd) =>
+    this.emit('agents.setupChanged', { agent, cwd }),
+  );
 
   constructor(
     private readonly emit: Emit,
@@ -162,7 +166,10 @@ export class AgentHub {
   /** What the agent loads in a folder, your home folder when there's none; null when it can't say. */
   async setup(agent: AgentId, cwd?: string): Promise<AgentSetup | null> {
     const setup = (await this.adapter(agent).setup?.(cwd ?? homedir())) ?? null;
-    if (setup) this.setupFiles.remember(agent, setup);
+    if (setup) {
+      this.setupFiles.remember(agent, setup);
+      this.setupWatcher.watch(agent, setup);
+    }
     return setup;
   }
 
@@ -462,6 +469,7 @@ export class AgentHub {
   closeAll(): void {
     for (const id of [...this.chats.keys()]) this.release(id);
     for (const adapter of this.adapters.values()) adapter.dispose?.();
+    this.setupWatcher.dispose();
   }
 
   private release(chatId: ChatId): void {
