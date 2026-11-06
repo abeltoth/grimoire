@@ -35,6 +35,12 @@ const bridge: GrimoireBridge = {
     toggleMaximize: () => ipcRenderer.send('grimoire:window', 'toggleMaximize'),
     close: () => ipcRenderer.send('grimoire:window', 'close'),
   },
+  popOut: (chatId) => ipcRenderer.send('grimoire:popOut', chatId),
+  onLeafClosed: (listener) => {
+    const handler = (_: IpcRendererEvent, chatId: string) => listener(chatId);
+    ipcRenderer.on('grimoire:leafClosed', handler);
+    return () => ipcRenderer.removeListener('grimoire:leafClosed', handler);
+  },
 };
 
 contextBridge.exposeInMainWorld('grimoire', bridge);

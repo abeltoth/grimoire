@@ -2,7 +2,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import type { Layout } from '@grimoire/contract';
 import type { CommandRegistry } from '../registry';
 
-const DEFAULTS: Layout = { current: null, beside: null, lastUsed: null, focus: false };
+const DEFAULTS: Layout = { current: null, beside: null, lastUsed: null, focus: false, loose: [] };
 
 /** How you left the book, kept in SQLite. */
 export class LayoutStore {

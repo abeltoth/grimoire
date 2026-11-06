@@ -26,5 +26,7 @@ function outsideTheApp(): GrimoireBridge {
     chooseFiles: () => Promise.resolve([]),
     pathOf: () => '',
     window: { minimize() {}, toggleMaximize() {}, close() {} },
+    popOut: () => {},
+    onLeafClosed: () => () => {},
   };
 }

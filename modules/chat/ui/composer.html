@@ -63,11 +63,13 @@
   ></textarea>
   @if (lookingUp()) {
     <span class="slash-hint"
-      >{{ chats.agentName(agent()) }}’s commands and skills are on the
-      @if (beside()) {
-        {{ wording.say('facing page', 'left') }} ←
+      >{{ chats.agentName(agent()) }}’s commands and skills are
+      @if (leaf) {
+        listed above ↑
+      } @else if (beside()) {
+        on the {{ wording.say('facing page', 'left') }} ←
       } @else {
-        {{ wording.say('facing page', 'right') }} →
+        on the {{ wording.say('facing page', 'right') }} →
       }
     </span>
   }

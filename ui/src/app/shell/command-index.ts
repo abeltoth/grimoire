@@ -34,6 +34,8 @@ interface Section {
 export class CommandIndex {
   /** The label of the page it turns back to. */
   readonly backTo = input('facing page');
+  /** With its running foot; not on a page that has one of its own. */
+  readonly foot = input(true);
 
   protected readonly commands = inject(AgentCommands);
   private readonly chats = inject(Chats);

@@ -1,13 +1,13 @@
-@if (!focus.on()) {
+@if (!bare()) {
   <gr-title-strip [profile]="profile" />
 }
 
 <div class="stage">
-  @if (focus.on()) {
+  @if (bare()) {
     <!-- The desk either side of the page drags the window; on a Mac its buttons sit in this corner. -->
     <div class="desk" aria-hidden="true"></div>
   }
-  <gr-book [bare]="focus.on()" [single]="single()">
+  <gr-book [bare]="bare()" [single]="single()">
     <gr-page
       side="left"
       [alone]="single()"
@@ -27,11 +27,11 @@
     @if (!single()) {
       <gr-facing-page />
     }
-    @if (!focus.on()) {
+    @if (!bare()) {
       <gr-thumb-index />
     }
   </gr-book>
-  @if (focus.on()) {
+  @if (bare()) {
     <div class="desk end"><gr-window-controls /></div>
   } @else {
     <gr-ribbons />

@@ -1,3 +1,4 @@
+import type { ChatId } from './agents';
 import type { CommandName, CommandRequest, CommandResponse } from './commands';
 import type { EventName, EventPayload } from './events';
 
@@ -19,6 +20,16 @@ export interface GrimoireBridge {
   /** Where a dropped file is on disk; empty when it isn't a file on disk, such as a picture dragged from a web page. */
   pathOf(file: File): string;
   readonly window: WindowControls;
+  /**
+   * Pops a chapter out of the book into a window of its own, a loose leaf,
+   * or brings its window to the front when it's out already.
+   */
+  popOut(chatId: ChatId): void;
+  /**
+   * Tells the book when a loose leaf's window closes, so its chapter comes
+   * back. Returns a function that stops listening.
+   */
+  onLeafClosed(listener: (chatId: ChatId) => void): () => void;
 }
 
 /** For the window controls Grimoire draws itself (Windows and Linux). */
