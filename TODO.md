@@ -30,7 +30,7 @@ A custom UI for Claude Code, built on the Claude Agent SDK.
 - [x] Animations
 - [x] Chat presets: start a chat with a saved model, mode, folder and first prompt
 - [ ] Send one prompt to several chats at once
-- [ ] Run the same prompt on two models side by side
+- [x] Run the same prompt on two models side by side
 - [ ] Pop a tab out into its own window
 - [x] Full-text search across all past chats
 - [x] Pin, star and tag chats by project
