@@ -15,7 +15,9 @@
         wording.say('Chapter: ', 'Chat: ') + (chapters.current()?.title || wording.untitled())
       "
     >
-      @if (registry.chapterPage(); as chapterPage) {
+      @if (commandsHere()) {
+        <gr-command-index [backTo]="wording.say('chapter', 'chat')" />
+      } @else if (registry.chapterPage(); as chapterPage) {
         <ng-container *ngComponentOutlet="chapterPage" />
       } @else {
         <div class="chapter"></div>

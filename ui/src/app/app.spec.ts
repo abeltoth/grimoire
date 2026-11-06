@@ -2147,7 +2147,7 @@ describe('App', () => {
   it('shows the first facing page that can be picked', async () => {
     const { el, texts } = await render(fakeBridge().bridge);
     expect(texts('.tabs [aria-pressed="true"]')).toEqual(['Outline']);
-    expect(texts('.tabs [aria-disabled="true"]')).toEqual(['Files', 'Second chapter']);
+    expect(texts('.tabs [aria-disabled="true"]')).toEqual(['Files']);
     expect(el.querySelector('gr-outline')).not.toBeNull();
   });
 
@@ -3558,5 +3558,174 @@ describe('App', () => {
     expect(texts('gr-front-matter-page .sub')[0]).toMatch(/^In ~\/git\/breeder\s*·/);
     // The open chapter's folder comes first, to turn back to.
     expect(texts('gr-front-matter-page .elsewhere .gr-link')).toEqual(['~', '~/git/grimoire']);
+  });
+
+  describe('a second chapter on the facing page', () => {
+    const chat = (id: string, title: string): OpenChat => ({
+      id,
+      agent: 'claude-code',
+      title,
+      settings: { cwd: `C:/work/${id}` },
+      status: 'idle',
+      entries: [{ kind: 'user', id: `u-${id}`, text: `Hello ${title}` }],
+      approvals: [],
+      queued: [],
+      plan: [],
+      withdrawn: [],
+      dogEars: [],
+      tags: [],
+      copied: [],
+    });
+    const tab = (el: HTMLElement, label: string) =>
+      [...el.querySelectorAll<HTMLButtonElement>('gr-facing-tabs .tabs button')].find(
+        (b) => b.textContent!.trim() === label,
+      )!;
+    const beside = (el: HTMLElement) => el.querySelector<HTMLElement>('gr-chapter-page[beside]');
+    const layouts = (calls: { command: string; request: unknown }[]) =>
+      calls.filter((c) => c.command === 'layout.set').map((c) => c.request as Record<string, unknown>);
+
+    it('puts another open chapter there, to work in as on the left page', async () => {
+      const { bridge, answers, calls } = fakeBridge();
+      answers['agents.openChats'] = () => [chat('c1', 'Context meter'), chat('c2', 'Fix flaky login test')];
+      answers['layout.get'] = () => ({ current: 'c1' });
+      const { fixture, el, texts } = await render(bridge);
+
+      tab(el, 'Second chapter').click();
+      await fixture.whenStable();
+      expect(texts('gr-second-chapter .ask')).toEqual([
+        'Which chapter goes on this page, beside the one you’re on?',
+      ]);
+      expect(texts('gr-second-chapter .pick')).toEqual(['Fix flaky login test']);
+      expect(texts('gr-second-chapter .meta')).toEqual(['Claude Code · C:/work/c2']);
+
+      el.querySelector<HTMLButtonElement>('gr-second-chapter .pick')!.click();
+      await fixture.whenStable();
+      expect(layouts(calls)).toContainEqual({ beside: 'c2' });
+      // Both pages are chapters: the left one stays, the other heads the facing page with its title.
+      expect(texts('gr-running-head h1')).toEqual(['Context meter']);
+      expect(texts('gr-facing-tabs .tabs [aria-pressed="true"]')).toEqual(['Fix flaky login test']);
+      expect(beside(el)!.querySelector('.meta')!.textContent).toContain('C:/work/c2');
+      expect(texts('gr-ribbon.beside b')).toEqual(['Fix flaky login test']);
+      expect(texts('gr-ribbon.beside i')).toEqual(['Claude Code · idle · on the facing page']);
+
+      // Its entry goes to its own chat.
+      const entry = el.querySelector<HTMLTextAreaElement>('#gr-next-entry-beside')!;
+      entry.value = 'Run the tests again';
+      entry.dispatchEvent(new Event('input'));
+      await fixture.whenStable();
+      beside(el)!.querySelector<HTMLButtonElement>('gr-composer .send')!.click();
+      await fixture.whenStable();
+      expect(calls).toContainEqual({ command: 'agents.send', request: { chatId: 'c2', text: 'Run the tests again' } });
+
+      // Its settings open on it, without turning the left page.
+      beside(el)!.querySelector<HTMLButtonElement>('.meta button')!.click();
+      await fixture.whenStable();
+      expect(beside(el)!.querySelector('gr-settings-card')).not.toBeNull();
+      expect(texts('gr-running-head h1')).toEqual(['Context meter']);
+      // Esc there closes them, and leaves the left page alone.
+      beside(el)!
+        .querySelector('.meta button')!
+        .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+      await fixture.whenStable();
+      expect(el.querySelector('gr-settings-card')).toBeNull();
+
+      // Its ribbon swaps the two pages.
+      el.querySelector<HTMLButtonElement>('gr-ribbon.beside .tail')!.click();
+      await fixture.whenStable();
+      expect(texts('gr-running-head h1')).toEqual(['Fix flaky login test']);
+      expect(texts('gr-facing-tabs .tabs [aria-pressed="true"]')).toEqual(['Context meter']);
+      expect(layouts(calls).slice(-2)).toEqual([{ beside: 'c1' }, { current: 'c2' }]);
+
+      // Another chapter takes it off the page; it stays open.
+      [...beside(el)!.querySelectorAll<HTMLButtonElement>('.gr-link')]
+        .find((b) => b.textContent!.trim() === 'Another chapter')!
+        .click();
+      await fixture.whenStable();
+      expect(beside(el)).toBeNull();
+      expect(texts('gr-second-chapter .pick')).toEqual(['Context meter']);
+      expect(layouts(calls).at(-1)).toEqual({ beside: null });
+      expect(texts('gr-ribbon.chapter b')).toEqual(['Context meter', 'Fix flaky login test']);
+    });
+
+    it('opens a new chapter there, and keeps it there once it begins', async () => {
+      const { bridge, answers, calls } = fakeBridge();
+      answers['agents.openChats'] = () => [chat('c1', 'Context meter')];
+      answers['layout.get'] = () => ({ current: 'c1' });
+      answers['agents.start'] = () => chat('c9', '');
+      const { fixture, el, texts } = await render(bridge);
+      tab(el, 'Second chapter').click();
+      await fixture.whenStable();
+      expect(texts('gr-second-chapter .none')).toEqual(['No other chapter is open.']);
+
+      [...el.querySelectorAll<HTMLButtonElement>('gr-second-chapter .gr-link')]
+        .find((b) => b.textContent!.trim() === 'A new chapter')!
+        .click();
+      await fixture.whenStable();
+      expect(beside(el)!.querySelector('gr-chapter-opening')).not.toBeNull();
+      expect(texts('gr-running-head h1')).toEqual(['Context meter']);
+
+      const entry = el.querySelector<HTMLTextAreaElement>('#gr-next-entry-beside')!;
+      entry.value = 'Write the ribbon tests';
+      entry.dispatchEvent(new Event('input'));
+      await fixture.whenStable();
+      beside(el)!.querySelector<HTMLButtonElement>('gr-composer .send')!.click();
+      await fixture.whenStable();
+      expect(calls.filter((c) => c.command === 'agents.start')).toHaveLength(1);
+      expect(layouts(calls)).toContainEqual({ beside: 'c9' });
+      expect(beside(el)!.querySelector('gr-transcript')).not.toBeNull();
+      expect(texts('gr-running-head h1')).toEqual(['Context meter']);
+    });
+
+    it('opens the book with the chapter that was beside the one you were on', async () => {
+      const { bridge, answers } = fakeBridge();
+      answers['agents.openChats'] = () => [chat('c1', 'Context meter'), chat('c2', 'Fix flaky login test')];
+      answers['layout.get'] = () => ({ current: 'c1', beside: 'c2' });
+      const { el, texts } = await render(bridge);
+      expect(texts('gr-running-head h1')).toEqual(['Context meter']);
+      expect(texts('gr-facing-tabs .tabs [aria-pressed="true"]')).toEqual(['Fix flaky login test']);
+      expect(beside(el)).not.toBeNull();
+    });
+
+    it('lists the agent\'s commands for its entry on the left page', async () => {
+      const { bridge, answers } = fakeBridge();
+      answers['agents.openChats'] = () => [chat('c1', 'Context meter'), chat('c2', 'Fix flaky login test')];
+      answers['layout.get'] = () => ({ current: 'c1', beside: 'c2' });
+      answers['agents.commands'] = () => [{ name: 'compact', description: 'Free up context', kind: 'command' }];
+      const { fixture, el, texts } = await render(bridge);
+      const entry = el.querySelector<HTMLTextAreaElement>('#gr-next-entry-beside')!;
+      entry.value = '/';
+      entry.dispatchEvent(new Event('input'));
+      await fixture.whenStable();
+
+      expect(el.querySelector('gr-page:not(.facing) gr-command-index')).not.toBeNull();
+      expect(el.querySelector('gr-page.facing gr-command-index')).toBeNull();
+      expect(el.querySelector('#gr-next-entry-beside')).toBe(entry);
+      expect(texts('gr-command-index .entry .label')).toEqual(['/compact']);
+      expect(texts('gr-composer .slash-hint')).toEqual([
+        'Claude Code’s commands and skills are on the facing page ←',
+      ]);
+      expect(texts('gr-command-index .gr-link')[0]).toMatch(/^Back to the chapter/);
+
+      entry.value = '';
+      entry.dispatchEvent(new Event('input'));
+      await fixture.whenStable();
+      expect(el.querySelector('gr-command-index')).toBeNull();
+      expect(texts('gr-running-head h1')).toEqual(['Context meter']);
+    });
+
+    it('forgets the chapter beside once it closes', async () => {
+      const { bridge, answers, calls } = fakeBridge();
+      answers['agents.openChats'] = () => [chat('c1', 'Context meter'), chat('c2', 'Fix flaky login test')];
+      answers['layout.get'] = () => ({ current: 'c1', beside: 'c2' });
+      const { fixture, el, texts } = await render(bridge);
+      [...beside(el)!.querySelectorAll<HTMLButtonElement>('.gr-link')]
+        .find((b) => b.textContent!.trim() === 'Close')!
+        .click();
+      await fixture.whenStable();
+      expect(beside(el)).toBeNull();
+      expect(texts('gr-second-chapter .none')).toEqual(['No other chapter is open.']);
+      expect(layouts(calls).at(-1)).toEqual({ beside: null });
+      expect(texts('gr-running-head h1')).toEqual(['Context meter']);
+    });
   });
 });

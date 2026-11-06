@@ -42,6 +42,10 @@ export interface FacingPageEntry extends Entry, Labelled {
   component?: Type<unknown>;
   /** A line for the running foot while it shows, such as "3 of 5 done". */
   foot?: () => string;
+  /** What its tab says for now, such as the title of the chapter it shows; its label when none. */
+  heading?: () => string | undefined;
+  /** It draws the whole page itself, its running head with the tabs and its foot. */
+  whole?: boolean;
 }
 
 /** A status in the chapter's running foot, such as the git branch. */

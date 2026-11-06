@@ -38,13 +38,13 @@
   </div>
 }
 
-<label class="sr-only" for="gr-next-entry">{{
+<label class="sr-only" [attr.for]="entryId()">{{
   first() ? wording.say('First entry', 'First message') : wording.say('Next entry', 'Next message')
 }}</label>
 <div class="writing">
   <textarea
     #entry
-    id="gr-next-entry"
+    [id]="entryId()"
     class="entry"
     rows="2"
     [class.slash]="lookingUp()"
@@ -64,8 +64,12 @@
   @if (lookingUp()) {
     <span class="slash-hint"
       >{{ chats.agentName(agent()) }}’s commands and skills are on the
-      {{ wording.say('facing page', 'right') }} →</span
-    >
+      @if (beside()) {
+        {{ wording.say('facing page', 'left') }} ←
+      } @else {
+        {{ wording.say('facing page', 'right') }} →
+      }
+    </span>
   }
 </div>
 

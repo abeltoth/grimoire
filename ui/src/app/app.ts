@@ -6,6 +6,7 @@ import { Chats } from './core/chats';
 import { ServiceStatus } from './core/service-status';
 import { Wording } from './core/wording';
 import { Book } from './shell/book';
+import { CommandIndex } from './shell/command-index';
 import { FacingPage } from './shell/facing-page';
 import { Facing } from './shell/facing';
 import { Focus } from './shell/focus';
@@ -22,13 +23,16 @@ import { WindowControls } from './shell/window-controls';
 /**
  * The window: the title strip, and the open book on the desk with its
  * ribbons. The left page shows the open chapter through the page the chat
- * module registers. Registered commands run from their shortcuts. In focus
- * mode the chapter's page lies alone in the middle of the desk.
+ * module registers, or the agent's commands while they're looked up from
+ * the chapter on the facing page. Registered commands run from their
+ * shortcuts. In focus mode the chapter's page lies alone in the middle of
+ * the desk.
  */
 @Component({
   selector: 'gr-root',
   imports: [
     Book,
+    CommandIndex,
     FacingPage,
     NgComponentOutlet,
     Page,
@@ -63,6 +67,11 @@ export class App {
    * which bring it back beside the chapter while they show.
    */
   protected readonly single = computed(() => this.focus.on() && !this.facing.turned());
+  /** Whether the agent's commands show on this page: those looked up from the chapter on the facing page. */
+  protected readonly commandsHere = computed(() => {
+    const lookUp = this.facing.commands();
+    return !!lookUp && lookUp.chapterId === this.chapters.besideId();
+  });
   private readonly platform = inject(GRIMOIRE_BRIDGE).platform;
 
   // Mock until profiles exist.

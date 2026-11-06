@@ -4,8 +4,10 @@ import {
   Injector,
   afterNextRender,
   afterRenderEffect,
+  booleanAttribute,
   computed,
   inject,
+  input,
   linkedSignal,
   viewChild,
   viewChildren,
@@ -17,6 +19,7 @@ import { modeName } from '@ui/app/core/modes';
 import { Presets } from '@ui/app/core/presets';
 import { Wording } from '@ui/app/core/wording';
 import { Facing } from '@ui/app/shell/facing';
+import { FacingTabs } from '@ui/app/shell/facing-tabs';
 import { Focus } from '@ui/app/shell/focus';
 import { RunningFoot } from '@ui/app/shell/running-foot';
 import { ReviewStamps } from '@ui/app/shell/review-stamps';
@@ -29,6 +32,9 @@ import { DogEars } from './dog-ears';
 import { SettingsCard } from './settings-card';
 import { Transcript } from './transcript';
 
+/** The facing page's own page that shows a second chapter. */
+export const SECOND_CHAPTER = 'second-chapter';
+
 /**
  * The open chapter on the left page: its running head with the chat's
  * settings, the transcript (or a blank chapter's opening page), the next
@@ -38,6 +44,10 @@ import { Transcript } from './transcript';
  * queued messages back on the next page. While the facing page shows the
  * slips, Esc is theirs. The pen beside the title rewrites it in place, for
  * agents that can rename their chats.
+ *
+ * On the facing page, beside the chapter you're on, it shows another one:
+ * the facing page's tabs head it, and its settings, without the title's
+ * pen, tags or dog-ears. Esc is the page's you're working in.
  */
 @Component({
   selector: 'gr-chapter-page',
@@ -46,6 +56,7 @@ import { Transcript } from './transcript';
     ChapterTags,
     Composer,
     DogEars,
+    FacingTabs,
     Icon,
     ReviewStamps,
     RunningFoot,
@@ -68,7 +79,17 @@ export class ChapterPage {
   private readonly presets = inject(Presets);
   protected readonly wording = inject(Wording);
   protected readonly focus = inject(Focus);
-  protected readonly chapter = this.chats.current;
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+
+  /** The chapter it shows; the one you're on when unset. */
+  readonly chapterId = input<string>();
+  /** On the facing page, beside the chapter you're on. */
+  readonly beside = input(false, { transform: booleanAttribute });
+  protected readonly secondChapter = SECOND_CHAPTER;
+  protected readonly chapter = computed(() => {
+    const id = this.chapterId();
+    return id === undefined ? this.chats.current() : this.chats.all().find((c) => c.id === id);
+  });
   protected readonly composer = viewChild(Composer);
   private readonly running = computed(() =>
     ['thinking', 'writing', 'waiting'].includes(this.chapter()?.status ?? ''),
@@ -159,8 +180,15 @@ export class ChapterPage {
     event.dataTransfer.dropEffect = 'copy';
   }
 
+  /**
+   * Esc on the page you're working in: the one it was pressed in, or the
+   * left page when it was pressed on neither.
+   */
   protected escape(event: Event): void {
     if (event.defaultPrevented) return;
+    const target = event.target instanceof Element ? event.target : null;
+    const page = target?.closest('gr-chapter-page');
+    if (page ? page !== this.host : this.beside()) return;
     const card = this.card();
     if (card) {
       event.preventDefault();

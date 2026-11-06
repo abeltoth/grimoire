@@ -3,6 +3,7 @@
     <gr-ribbon
       class="chapter"
       side="left"
+      [beside]="chapter.id === chapters.besideId()"
       [tone]="tone(chapter)"
       [heading]="title(chapter)"
       [meta]="meta(chapter)"
@@ -40,6 +41,7 @@
       class="chapter"
       side="right"
       [style.--stack]="right().length - $index"
+      [beside]="chapter.id === chapters.besideId()"
       [tone]="tone(chapter)"
       [heading]="title(chapter)"
       [meta]="meta(chapter)"

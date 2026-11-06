@@ -8,24 +8,6 @@
   gap: var(--gr-head-row-gap);
 }
 
-.tabs {
-  display: flex;
-  align-items: baseline;
-  gap: var(--gr-facing-tabs-gap);
-}
-
-.tabs button {
-  font-family: var(--gr-font-display);
-  font-size: var(--gr-size-facing-tab);
-  line-height: var(--gr-leading-facing-tab);
-  color: var(--gr-ink-soft);
-}
-
-.tabs button[aria-pressed='true'] {
-  color: var(--gr-ink);
-  box-shadow: inset 0 calc(var(--gr-underline-active) * -1) 0 var(--gr-rubric);
-}
-
 .spacer {
   flex: 1;
 }

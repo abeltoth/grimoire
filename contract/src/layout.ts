@@ -4,6 +4,8 @@ import type { AgentId, ChatId, NewChatSettings } from './agents';
 export interface Layout {
   /** The chapter you were on; null for a blank page. */
   current: ChatId | null;
+  /** The chapter on the facing page beside it; null for none, or a blank page. */
+  beside: ChatId | null;
   /** The settings you last picked or began a chapter with; a new chapter takes them. */
   lastUsed: { agent: AgentId; settings: NewChatSettings } | null;
   /** Whether the book lies at a single page, the chapter alone on the desk. */
