@@ -60,9 +60,34 @@ export interface AgentSetup {
   at: number;
 }
 
+/** A file of an agent's setup, opened to read or change. */
+export interface SetupFile {
+  path: string;
+  text: string;
+  exists: boolean;
+  /** When it last changed, in ms since the epoch; 0 while it doesn't exist. */
+  changedAt: number;
+  /** Whether it may be changed here: not the managed settings, nor a plugin's own files. */
+  editable: boolean;
+}
+
 declare module './commands' {
   interface CommandMap {
     /** What the agent loads in a folder, your home folder when there's none; null for agents that can't say. */
     'agents.setup': { request: { agent: AgentId; cwd?: string }; response: AgentSetup | null };
+    /** One of the files the agent's setup in the folder lists; empty while it doesn't exist. */
+    'agents.openSetupFile': {
+      request: { agent: AgentId; cwd?: string; path: string };
+      response: SetupFile;
+    };
+    /**
+     * Writes one of the files the agent's setup in the folder lists, as long
+     * as it hasn't changed since it was opened at `changedAt`; settings files
+     * must hold valid JSON. Answers with the file as written.
+     */
+    'agents.saveSetupFile': {
+      request: { agent: AgentId; cwd?: string; path: string; text: string; changedAt: number };
+      response: SetupFile;
+    };
   }
 }

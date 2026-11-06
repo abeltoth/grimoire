@@ -13,6 +13,12 @@ export function registerAgentCommands(registry: CommandRegistry, hub: AgentHub):
   registry.register('agents.commands', ({ agent, cwd }) => hub.commands(agent, cwd));
   registry.register('agents.usage', ({ agent }) => hub.usage(agent));
   registry.register('agents.setup', ({ agent, cwd }) => hub.setup(agent, cwd));
+  registry.register('agents.openSetupFile', ({ agent, cwd, path }) =>
+    hub.openSetupFile(agent, cwd, path),
+  );
+  registry.register('agents.saveSetupFile', ({ agent, cwd, path, text, changedAt }) =>
+    hub.saveSetupFile(agent, cwd, path, text, changedAt),
+  );
   registry.register('agents.folders', () => hub.folders());
   registry.register('agents.configure', ({ chatId, change }) => hub.configure(chatId, change));
   registry.register('agents.start', ({ agent, settings, text, title, enclosures }) =>
