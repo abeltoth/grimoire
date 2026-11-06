@@ -4,6 +4,7 @@ export * from './agents';
 export * from './git';
 export * from './terminal';
 export * from './layout';
+export * from './memories';
 export * from './presets';
 export * from './schedules';
 export * from './search';

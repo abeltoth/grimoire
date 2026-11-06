@@ -13,6 +13,7 @@ import type {
 import type {
   AgentCommand,
   AgentInfo,
+  AgentMemories,
   AgentModels,
   AgentSetup,
   ApprovalMode,
@@ -25,6 +26,7 @@ import type {
 import type { AgentAdapter, ChatEvents, ChatHistory, LiveChat, SavedChat } from '../adapter';
 import { CacheTracker, type ReplyUsage } from './cache';
 import { readUserSettings } from './effort';
+import { memorySettings, readMemories } from './memories';
 import { MessageQueue } from './message-queue';
 import { toAgentModels } from './models';
 import { ASK_TOOL, alwaysAllowOf, toClaudeAnswers, toQuestions } from './permissions';
@@ -155,6 +157,24 @@ export class ClaudeAdapter implements AgentAdapter {
 
   usage(): Promise<PlanUsage> {
     return readUsage();
+  }
+
+  /** The memories Claude Code keeps on its own for a folder, where its settings say. */
+  async memories(cwd: string): Promise<AgentMemories> {
+    const home = homedir();
+    const settings = settingsFilesIn(cwd, home, process.platform).map((file) => readSettingsFile(file));
+    return readMemories({
+      cwd,
+      home,
+      settings: memorySettings(
+        settings.map(({ source, settings: own }) => ({
+          source: source as 'user' | 'project' | 'local' | 'managed',
+          settings: own,
+        })),
+        home,
+      ),
+      at: Date.now(),
+    });
   }
 
   /** What Claude Code loads in a folder: its memory, skills, subagents, commands, hooks, MCP servers, plugins and permissions. */

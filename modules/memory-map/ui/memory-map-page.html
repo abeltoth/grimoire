@@ -1,0 +1,114 @@
+<p class="sub">
+  In <span class="folder" [attr.title]="cwd() ?? null">{{ chats.folderName(cwd()) }}</span>
+  <span class="dot" aria-hidden="true">·</span>
+  <button type="button" class="gr-link" (click)="pickFolder()">Another folder</button>
+  @if (kept()?.[0]; as first) {
+    <span class="dot" aria-hidden="true">·</span>
+    read at {{ time(first.memories.at) }}
+  }
+  <span class="dot" aria-hidden="true">·</span>
+  <button type="button" class="gr-link" [attr.aria-disabled]="reading() || null" (click)="read()">
+    Read again
+  </button>
+</p>
+
+@if (failed(); as error) {
+  <p class="none" role="alert">The memories couldn’t be read: {{ error }}</p>
+} @else if (kept(); as kept) {
+  @if (kept[0]; as one) {
+    @let all = one.memories.memories;
+    <p class="none">
+      {{ one.agent.name }} keeps them in
+      <span class="folder" [attr.title]="one.memories.folder">{{
+        chats.folderName(one.memories.folder)
+      }}</span>
+      @if (one.memories.index.exists) {
+        and reads its index in every chat.
+      } @else {
+        with no index yet.
+      }
+    </p>
+
+    @if (one.memories.elsewhere.length) {
+      <p class="elsewhere">
+        <span class="label">Also kept for</span>
+        @for (folder of one.memories.elsewhere; track folder.cwd ?? $index) {
+          @if (folder.cwd; as cwd) {
+            <button type="button" class="gr-link" [attr.title]="cwd" (click)="show(cwd)">
+              {{ chats.folderName(cwd) }} <span class="count">{{ folder.count }}</span>
+            </button>
+          }
+        }
+      </p>
+    }
+
+    @if (!one.memories.enabled) {
+      <p class="none alert">
+        {{ one.agent.name }} keeps no memories here: memory is turned off in its settings.
+      </p>
+    }
+
+    @if (one.memories.problems.length) {
+      <section class="errata" aria-labelledby="gr-memory-errata">
+        <h2 id="gr-memory-errata">{{ wording.say('Errata', 'Problems') }}</h2>
+        <ul>
+          @for (problem of one.memories.problems; track $index) {
+            <li>{{ problem }}</li>
+          }
+        </ul>
+      </section>
+    }
+
+    @if (all.length) {
+      <div
+        #map
+        class="map"
+        role="list"
+        [attr.aria-label]="one.agent.name + ' memories'"
+        [style.--columns]="columns(all).length"
+      >
+        <svg class="threads" aria-hidden="true">
+          @for (line of lines(); track $index) {
+            <path class="thread" [class.lit]="lit(line)" [attr.d]="line.d" />
+            <circle class="end" [class.lit]="lit(line)" [attr.cx]="line.x" [attr.cy]="line.y" />
+          }
+        </svg>
+        @for (column of columns(all); track column.type) {
+          <div class="column" role="listitem">
+            <h3>{{ column.title }}</h3>
+            @for (memory of column.memories; track memory.path) {
+              <article
+                class="card"
+                [attr.data-memory]="memory.name"
+                [class.faded]="faded(memory.name)"
+                [attr.title]="memory.path"
+                (mouseenter)="pointed.set(memory.name)"
+                (mouseleave)="pointed.set(null)"
+              >
+                <h4 class="name">{{ memory.name }}</h4>
+                @if (memory.description) {
+                  <p class="description">{{ memory.description }}</p>
+                }
+                <p class="meta">
+                  {{ date(memory.changedAt) }}
+                  @if (!memory.indexed && one.memories.index.exists) {
+                    <span class="flag">not in the index</span>
+                  }
+                  @for (link of missing(all, memory); track link) {
+                    <span class="flag">[[{{ link }}]] missing</span>
+                  }
+                </p>
+              </article>
+            }
+          </div>
+        }
+      </div>
+    } @else if (one.memories.enabled) {
+      <p class="none">No memories kept for this folder yet.</p>
+    }
+  } @else {
+    <p class="none">None of your agents keeps memories of its own.</p>
+  }
+} @else {
+  <p class="none">Asking your agents…</p>
+}

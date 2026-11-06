@@ -111,6 +111,24 @@ describe('AgentHub', () => {
     expect(asked).toEqual(['C:/work', homedir()]);
   });
 
+  it('asks the agent for the memories it keeps in a folder, and has none for one that keeps none', async () => {
+    expect(await hub.memories('fake', 'C:/work')).toBeNull();
+    const keeping = Object.assign(new FakeAdapter(), {
+      memories: async (cwd: string) => ({
+        cwd,
+        folder: 'C:/mem',
+        index: { path: 'C:/mem/MEMORY.md', exists: false },
+        enabled: true,
+        memories: [],
+        problems: [],
+        elsewhere: [],
+        at: 1,
+      }),
+    });
+    hub.addAdapter(keeping);
+    expect(await hub.memories('fake')).toMatchObject({ cwd: homedir(), folder: 'C:/mem' });
+  });
+
   it("has no setup to show for an agent that can't say", async () => {
     expect(await hub.setup('fake', 'C:/work')).toBeNull();
   });

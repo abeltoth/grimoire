@@ -1,6 +1,7 @@
 import type {
   AgentCommand,
   AgentInfo,
+  AgentMemories,
   AgentModels,
   AgentSetup,
   Answer,
@@ -46,6 +47,8 @@ export interface AgentAdapter {
   usage?(): Promise<PlanUsage>;
   /** What the agent loads in a folder, and where each piece comes from. Agents that can't say leave it out. */
   setup?(cwd: string): Promise<AgentSetup>;
+  /** The memories the agent keeps on its own for a folder. Agents that keep none leave it out. */
+  memories?(cwd: string): Promise<AgentMemories>;
   /**
    * Starts the agent's process for a chat: a new chat under the given ID,
    * or, with `resume`, an existing one. Messages go in through send().
