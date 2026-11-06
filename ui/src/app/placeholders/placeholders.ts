@@ -8,11 +8,10 @@ import { provideShellEntries } from '../shell/shell-registry';
  */
 export function providePlaceholders(): EnvironmentProviders {
   return provideShellEntries((shell) => {
-    // The Table of contents, at 0, Scheduled chats, at 40, the Ledger, at 50, the Scriptorium, at
-    // 55, and the Colophon, at 60, are modules of their own, as are the Git page, the branch in the
-    // running foot and the next scheduled run.
+    // The Table of contents, at 0, the Front matter, at 10, Scheduled chats, at 40, the Ledger, at
+    // 50, the Scriptorium, at 55, and the Colophon, at 60, are modules of their own, as are the Git
+    // page, the branch in the running foot and the next scheduled run.
     const thumbs: [label: string, plainLabel: string, order: number][] = [
-      ['Front matter', 'Workflow setup', 10],
       ['Kanban', 'Kanban', 20],
       ['Memory map', 'Memories', 30],
     ];

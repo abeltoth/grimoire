@@ -5,6 +5,7 @@ import type {
   AgentId,
   AgentInfo,
   AgentModels,
+  AgentSetup,
   Answer,
   Approval,
   ApprovalDecision,
@@ -153,6 +154,11 @@ export class AgentHub {
   /** The agent's commands and skills in a folder; none when it has no such thing. */
   async commands(agent: AgentId, cwd?: string): Promise<AgentCommand[]> {
     return (await this.adapter(agent).commands?.(cwd ?? homedir())) ?? [];
+  }
+
+  /** What the agent loads in a folder, your home folder when there's none; null when it can't say. */
+  async setup(agent: AgentId, cwd?: string): Promise<AgentSetup | null> {
+    return (await this.adapter(agent).setup?.(cwd ?? homedir())) ?? null;
   }
 
   /** The agent's plan limits, read now and kept; null when it has no plan. */

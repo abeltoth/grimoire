@@ -28,7 +28,7 @@ A custom UI for Claude Code, built on the Claude Agent SDK.
 - [ ] AI workflow setup view: shows everything Claude loads (CLAUDE.md, memory, skills, subagents, hooks, MCP servers, plugins, permissions) and where each comes from, all one click away, editable
 - [x] Custom styling
 - [x] Animations
-- [ ] Chat presets: start a chat with a saved model, mode, folder and first prompt
+- [x] Chat presets: start a chat with a saved model, mode, folder and first prompt
 - [ ] Send one prompt to several chats at once
 - [ ] Run the same prompt on two models side by side
 - [ ] Pop a tab out into its own window
@@ -46,7 +46,7 @@ A custom UI for Claude Code, built on the Claude Agent SDK.
 - [x] Theme editor with live preview
 - [x] Setting to toggle between the book names (Colophon, Ledger...) and plain labels (Settings, Usage...)
 - [ ] Animated status per chat: thinking, writing, waiting for you
-- [ ] Focus mode that hides everything except the active chat
+- [x] Focus mode that hides everything except the active chat
 - [ ] Transcript detail levels: normal, thinking, verbose
 - [ ] Next-prompt suggestion you accept with Tab
 - [ ] Suggested follow-up tasks as cards that open new chats

@@ -1,6 +1,7 @@
 import { type ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideChat } from '../../../modules/chat/ui/chat.providers';
 import { provideColophon } from '../../../modules/colophon/ui/colophon.providers';
+import { provideFrontMatter } from '../../../modules/front-matter/ui/front-matter.providers';
 import { provideGit } from '../../../modules/git/ui/git.providers';
 import { provideTableOfContents } from '../../../modules/history/ui/history.providers';
 import { provideLedger } from '../../../modules/ledger/ui/ledger.providers';
@@ -17,6 +18,7 @@ export const appConfig: ApplicationConfig = {
     provideChat(),
     provideGit(),
     provideTableOfContents(),
+    provideFrontMatter(),
     provideLedger(),
     provideScheduledChats(),
     provideScriptorium(),

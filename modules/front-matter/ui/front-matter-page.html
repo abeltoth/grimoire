@@ -1,0 +1,79 @@
+<p class="sub">
+  In <span class="folder" [attr.title]="cwd() ?? null">{{ chats.folderName(cwd()) }}</span>
+  <span class="dot" aria-hidden="true">·</span>
+  <button type="button" class="gr-link" (click)="pickFolder()">Another folder</button>
+  @if (told()?.[0]; as first) {
+    <span class="dot" aria-hidden="true">·</span>
+    read at {{ time(first.setup.at) }}
+  }
+  <span class="dot" aria-hidden="true">·</span>
+  <button type="button" class="gr-link" [attr.aria-disabled]="reading() || null" (click)="read()">
+    Read again
+  </button>
+</p>
+
+@if (failed(); as error) {
+  <p class="none" role="alert">The setup couldn’t be read: {{ error }}</p>
+} @else if (told(); as told) {
+  @for (one of told; track one.agent.id) {
+    <section [attr.aria-label]="one.agent.name + ' setup'">
+      <h2>{{ one.agent.name }}</h2>
+      @for (section of sections; track section) {
+        @let items = one.setup.sections[section];
+        <details class="group" [attr.data-section]="section">
+          <summary>
+            <span class="part">{{ name(section) }}</span>
+            <span class="leader" aria-hidden="true"></span>
+            <span class="n">
+              {{ items.length }}
+              @if (cost(items); as cost) {
+                · {{ cost }}
+              }
+            </span>
+          </summary>
+          @if (items.length) {
+            <ul>
+              @for (item of items; track $index) {
+                <li [class.trouble]="item.problem">
+                  <span class="name" [attr.title]="item.path ?? item.name">{{ item.name }}</span>
+                  <span class="from">{{ from(item) }}</span>
+                  <span class="detail" [attr.title]="item.detail ?? null">{{ item.detail }}</span>
+                  <span class="n">{{ tokens(item.tokens) }}</span>
+                  @if (item.problem) {
+                    <span class="problem">{{ item.problem }}</span>
+                  }
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="none">None.</p>
+          }
+        </details>
+      }
+      <details class="group" data-section="settings">
+        <summary>
+          <span class="part">Settings files</span>
+          <span class="leader" aria-hidden="true"></span>
+          <span class="n">{{ one.setup.settingsFiles.length }}</span>
+        </summary>
+        <ul>
+          @for (file of one.setup.settingsFiles; track file.path) {
+            <li [class.trouble]="file.problem">
+              <span class="name" [attr.title]="file.path">{{ chats.folderName(file.path) }}</span>
+              <span class="from">{{ from(file) }}</span>
+              <span class="detail">{{ file.exists ? '' : 'None yet' }}</span>
+              <span class="n"></span>
+              @if (file.problem) {
+                <span class="problem">{{ file.problem }}</span>
+              }
+            </li>
+          }
+        </ul>
+      </details>
+    </section>
+  } @empty {
+    <p class="none">None of your agents can show what it loads.</p>
+  }
+} @else {
+  <p class="none">Asking your agents…</p>
+}

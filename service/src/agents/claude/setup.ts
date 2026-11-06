@@ -1,0 +1,387 @@
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import path from 'node:path';
+import type {
+  AgentSetup,
+  SettingsFile,
+  SetupItem,
+  SetupSection,
+  SetupSource,
+} from '@grimoire/contract';
+
+/**
+ * What a Claude Code process that never gets a message tells of its setup,
+ * in the shapes the SDK answers with; only the parts read here.
+ */
+export interface ProbeAnswers {
+  usage: {
+    memoryFiles: { path: string; type: string; tokens: number }[];
+    mcpTools: { serverName: string; tokens: number }[];
+    mcpInstructions?: { serverName: string; tokens: number }[];
+    agents: {
+      agentType: string;
+      source: string;
+      pluginId?: string;
+      path?: string;
+      tokens: number;
+    }[];
+    skills?: {
+      skillFrontmatter: {
+        name: string;
+        source: string;
+        pluginName?: string;
+        path?: string;
+        tokens: number;
+      }[];
+    };
+  };
+  mcpServers: {
+    name: string;
+    status: string;
+    scope?: string;
+    source?: string;
+    error?: string;
+    tools?: unknown[];
+  }[];
+  agents: { name: string; description: string }[];
+  commands: { name: string; description: string; builtin?: boolean }[];
+  skills: { name: string; description: string }[];
+  plugins: { name: string; path: string; source?: string; version?: string }[];
+}
+
+/** A settings file as read: what it holds, or why it couldn't be read. */
+export interface ReadSettings extends SettingsFile {
+  settings?: unknown;
+  problem?: string;
+  /** The plugin whose hooks file it is. */
+  plugin?: string;
+}
+
+/** Where Claude Code's own settings for every user of the machine are kept. */
+export function managedSettingsPath(platform: NodeJS.Platform): string {
+  if (platform === 'win32') return 'C:\\Program Files\\ClaudeCode\\managed-settings.json';
+  if (platform === 'darwin') return '/Library/Application Support/ClaudeCode/managed-settings.json';
+  return '/etc/claude-code/managed-settings.json';
+}
+
+/**
+ * The settings files Claude Code reads in a folder, yours first. In your
+ * home folder the project's settings file is your own, so it's listed once.
+ */
+export function settingsFilesIn(
+  cwd: string,
+  home: string,
+  platform: NodeJS.Platform,
+): { source: SetupSource; path: string }[] {
+  const files: { source: SetupSource; path: string }[] = [
+    { source: 'user', path: path.join(home, '.claude', 'settings.json') },
+    { source: 'project', path: path.join(cwd, '.claude', 'settings.json') },
+    { source: 'local', path: path.join(cwd, '.claude', 'settings.local.json') },
+    { source: 'managed', path: managedSettingsPath(platform) },
+  ];
+  const seen = new Set<string>();
+  return files.filter((file) => {
+    const key = path.resolve(file.path).toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+/** Reads a settings file; a missing one holds nothing. */
+export function readSettingsFile(
+  file: { source: SetupSource; path: string },
+  plugin?: string,
+): ReadSettings {
+  const read: ReadSettings = {
+    ...file,
+    exists: existsSync(file.path),
+    ...(plugin ? { plugin } : {}),
+  };
+  if (!read.exists) return read;
+  try {
+    return { ...read, settings: JSON.parse(readFileSync(file.path, 'utf8')) as unknown };
+  } catch (error) {
+    return {
+      ...read,
+      problem: `Couldn't be read: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+/**
+ * Your own commands, by the name Claude Code gives them: a file's path in
+ * a commands folder, without ".md", a subfolder's name joined with ":".
+ */
+export function commandFiles(folders: readonly string[]): Map<string, string> {
+  const found = new Map<string, string>();
+  const walk = (folder: string, prefix: string) => {
+    let names: string[];
+    try {
+      names = readdirSync(folder);
+    } catch {
+      return;
+    }
+    for (const name of names) {
+      const full = path.join(folder, name);
+      if (name.endsWith('.md')) {
+        const command = `${prefix}${name.slice(0, -3)}`;
+        if (!found.has(command)) found.set(command, full);
+      } else if (!name.includes('.')) {
+        walk(full, `${prefix}${name}:`);
+      }
+    }
+  };
+  folders.forEach((folder) => walk(folder, ''));
+  return found;
+}
+
+/** Where Claude Code says something comes from, such as "userSettings", "syncedSkills" or "built-in". */
+export function sourceOf(said: string | undefined): SetupSource {
+  const s = (said ?? '').toLowerCase();
+  if (s.includes('plugin')) return 'plugin';
+  if (s.includes('policy') || s.includes('managed') || s.includes('enterprise')) return 'managed';
+  if (s.includes('local')) return 'local';
+  if (s.includes('project')) return 'project';
+  if (s.includes('user')) return 'user';
+  if (s.includes('synced') || s.includes('claude.ai') || s.includes('claudeai')) return 'account';
+  return 'built-in';
+}
+
+/** A command's description without the "(user)" or "(claude.ai sync)" Claude Code ends it with, and that source. */
+function splitDescription(description: string): { text: string; source?: SetupSource } {
+  const end = /\s*\(([^()]+)\)$/.exec(description);
+  if (!end) return { text: description };
+  return { text: description.slice(0, end.index).trim(), source: sourceOf(end[1]) };
+}
+
+const MEMORY: Record<string, string> = {
+  User: 'Your instructions, in every folder',
+  Project: 'The project’s instructions',
+  Local: 'Your instructions for this project',
+  Managed: 'Your organization’s instructions',
+  AutoMem: 'What Claude remembers on its own',
+};
+
+const MCP_STATUS: Record<string, string> = {
+  connected: 'Connected',
+  pending: 'Still connecting',
+  disabled: 'Turned off',
+  failed: 'Failed to connect',
+  'needs-auth': 'Needs signing in',
+};
+
+const VERDICTS = [
+  ['deny', 'Denied'],
+  ['ask', 'Asks first'],
+  ['allow', 'Allowed without asking'],
+] as const;
+
+const record = (value: unknown): Record<string, unknown> | undefined =>
+  value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
+
+const strings = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+
+/** A name the way Claude Code writes an MCP server's into its tools' names. */
+const normal = (name: string) => name.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+/** A path from the folder when it's inside it, else from your home folder as "~/…". */
+function shortPath(file: string, cwd: string, home: string): string {
+  const inside = (folder: string) => {
+    const relative = path.relative(folder, file);
+    return relative && !relative.startsWith('..') && !path.isAbsolute(relative)
+      ? relative
+      : undefined;
+  };
+  const fromCwd = path.resolve(cwd) === path.resolve(home) ? undefined : inside(cwd);
+  if (fromCwd) return fromCwd;
+  const fromHome = inside(home);
+  return fromHome ? `~${path.sep}${fromHome}` : file;
+}
+
+/** A settings file's hooks, one item a hook, named by its event and what it matches. */
+export function hooksOf(file: ReadSettings): SetupItem[] {
+  const hooks = record(record(file.settings)?.['hooks']);
+  if (!hooks) return [];
+  return Object.entries(hooks).flatMap(([event, groups]) =>
+    (Array.isArray(groups) ? groups : []).flatMap((group) => {
+      const matcher = record(group)?.['matcher'];
+      return (
+        Array.isArray(record(group)?.['hooks']) ? (record(group)!['hooks'] as unknown[]) : []
+      ).map((hook): SetupItem => {
+        const own = record(hook) ?? {};
+        const does = [own['command'], own['prompt'], own['url'], own['type']].find(
+          (value): value is string => typeof value === 'string' && value !== '',
+        );
+        return {
+          name: typeof matcher === 'string' && matcher ? `${event} · ${matcher}` : event,
+          ...(does ? { detail: does } : {}),
+          source: file.source,
+          ...(file.plugin ? { plugin: file.plugin } : {}),
+          path: file.path,
+        };
+      });
+    }),
+  );
+}
+
+/** A settings file's permission rules, denials first, then its default mode and extra folders. */
+export function permissionsOf(file: ReadSettings): SetupItem[] {
+  const permissions = record(record(file.settings)?.['permissions']);
+  if (!permissions) return [];
+  const at = { source: file.source, path: file.path };
+  const items: SetupItem[] = VERDICTS.flatMap(([key, verdict]) =>
+    strings(permissions[key]).map((rule) => ({ name: rule, detail: verdict, ...at })),
+  );
+  const mode = permissions['defaultMode'];
+  if (typeof mode === 'string') items.push({ name: 'Default mode', detail: mode, ...at });
+  for (const folder of strings(permissions['additionalDirectories'])) {
+    items.push({ name: folder, detail: 'An extra folder it can work in', ...at });
+  }
+  return items;
+}
+
+/** Everything Claude Code loads in a folder, by section, from what it told and what its settings files hold. */
+export function toSetup(input: {
+  cwd: string;
+  home: string;
+  answers: ProbeAnswers;
+  settings: readonly ReadSettings[];
+  /** The plugins' hooks files. */
+  pluginHooks: readonly ReadSettings[];
+  commandFiles: ReadonlyMap<string, string>;
+  at: number;
+}): AgentSetup {
+  const { cwd, home, answers, settings } = input;
+  const { usage } = answers;
+
+  const memory = usage.memoryFiles.map((file): SetupItem => ({
+    name: shortPath(file.path, cwd, home),
+    ...(MEMORY[file.type] ? { detail: MEMORY[file.type] } : { detail: file.type }),
+    source: sourceOf(file.type === 'AutoMem' ? 'user' : file.type),
+    path: file.path,
+    tokens: file.tokens,
+  }));
+
+  const skillText = new Map(
+    answers.skills.map((skill) => [skill.name, splitDescription(skill.description).text]),
+  );
+  const skillList = usage.skills?.skillFrontmatter ?? [];
+  const skills = skillList.map((skill): SetupItem => ({
+    name: skill.name,
+    ...(skillText.get(skill.name) ? { detail: skillText.get(skill.name)! } : {}),
+    source: sourceOf(skill.source),
+    ...(skill.pluginName ? { plugin: skill.pluginName } : {}),
+    ...(skill.path ? { path: skill.path } : {}),
+    tokens: skill.tokens,
+  }));
+
+  const agentText = new Map(answers.agents.map((agent) => [agent.name, agent.description]));
+  const custom = new Set(usage.agents.map((agent) => agent.agentType));
+  const agents: SetupItem[] = [
+    ...usage.agents.map((agent): SetupItem => ({
+      name: agent.agentType,
+      ...(agentText.get(agent.agentType) ? { detail: agentText.get(agent.agentType)! } : {}),
+      source: sourceOf(agent.source),
+      ...(agent.pluginId ? { plugin: agent.pluginId } : {}),
+      ...(agent.path ? { path: agent.path } : {}),
+      tokens: agent.tokens,
+    })),
+    ...answers.agents
+      .filter((agent) => !custom.has(agent.name))
+      .map((agent): SetupItem => ({
+        name: agent.name,
+        detail: agent.description,
+        source: 'built-in',
+      })),
+  ];
+
+  const skillNames = new Set([
+    ...skillList.map((skill) => skill.name),
+    ...answers.skills.map((s) => s.name),
+  ]);
+  const commands = answers.commands
+    .filter(
+      (command) =>
+        !command.builtin && !skillNames.has(command.name) && !command.name.startsWith('__'),
+    )
+    .map((command): SetupItem => {
+      const { text, source } = splitDescription(command.description);
+      const file = input.commandFiles.get(command.name);
+      return {
+        name: command.name,
+        ...(text ? { detail: text } : {}),
+        source: source ?? (command.name.includes(':') ? 'plugin' : 'user'),
+        ...(file ? { path: file } : {}),
+      };
+    });
+
+  const toolTokens = new Map<string, number>();
+  for (const tool of usage.mcpTools) {
+    toolTokens.set(tool.serverName, (toolTokens.get(tool.serverName) ?? 0) + tool.tokens);
+  }
+  const mcpServers = answers.mcpServers.map((server): SetupItem => {
+    const tokens =
+      (toolTokens.get(normal(server.name)) ?? toolTokens.get(server.name) ?? 0) +
+      (usage.mcpInstructions?.find((own) => own.serverName === server.name)?.tokens ?? 0);
+    const said = MCP_STATUS[server.status] ?? server.status;
+    const tools = server.tools?.length;
+    const scope = server.scope ?? server.source;
+    return {
+      name: server.name,
+      detail:
+        server.status === 'connected' && tools !== undefined
+          ? `${said} · ${tools} ${tools === 1 ? 'tool' : 'tools'}`
+          : said,
+      source: scope === 'sdk' || scope === 'dynamic' ? 'built-in' : sourceOf(scope),
+      ...(scope === 'project' ? { path: path.join(cwd, '.mcp.json') } : {}),
+      ...(tokens ? { tokens } : {}),
+      ...(server.status === 'failed'
+        ? { problem: server.error || said }
+        : server.status === 'needs-auth'
+          ? { problem: said }
+          : {}),
+    };
+  });
+
+  const plugins = answers.plugins.map((plugin): SetupItem => {
+    const builtIn = plugin.path === 'builtin';
+    const from = builtIn ? 'Comes with Claude Code' : plugin.source?.split('@')[1];
+    const detail = [
+      plugin.version ? `Version ${plugin.version}` : '',
+      from ? (builtIn ? from : `From ${from}`) : '',
+    ]
+      .filter(Boolean)
+      .join(' · ');
+    return {
+      name: plugin.name,
+      ...(detail ? { detail } : {}),
+      source: builtIn ? 'built-in' : 'plugin',
+    };
+  });
+
+  const read = [...settings, ...input.pluginHooks];
+  const sections: Record<SetupSection, SetupItem[]> = {
+    memory,
+    skills,
+    agents,
+    commands,
+    hooks: read.flatMap(hooksOf),
+    mcpServers,
+    plugins,
+    permissions: settings.flatMap(permissionsOf),
+  };
+  return {
+    cwd,
+    sections,
+    settingsFiles: settings.map(({ source, path: file, exists, problem }) => ({
+      source,
+      path: file,
+      exists,
+      ...(problem ? { problem } : {}),
+    })),
+    at: input.at,
+  };
+}

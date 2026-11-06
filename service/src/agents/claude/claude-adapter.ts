@@ -1,4 +1,6 @@
 import { randomUUID, type UUID } from 'node:crypto';
+import { homedir } from 'node:os';
+import path from 'node:path';
 import type {
   CanUseTool,
   ModelInfo,
@@ -12,6 +14,7 @@ import type {
   AgentCommand,
   AgentInfo,
   AgentModels,
+  AgentSetup,
   ApprovalMode,
   ChatId,
   ChatSettings,
@@ -26,6 +29,7 @@ import { MessageQueue } from './message-queue';
 import { toAgentModels } from './models';
 import { ASK_TOOL, alwaysAllowOf, toClaudeAnswers, toQuestions } from './permissions';
 import { withReferences } from './references';
+import { commandFiles, readSettingsFile, settingsFilesIn, toSetup } from './setup';
 import { ClaudeTranscript, turnEnd } from './transcript';
 import { toPlanUsage } from './usage';
 
@@ -151,6 +155,11 @@ export class ClaudeAdapter implements AgentAdapter {
 
   usage(): Promise<PlanUsage> {
     return readUsage();
+  }
+
+  /** What Claude Code loads in a folder: its memory, skills, subagents, commands, hooks, MCP servers, plugins and permissions. */
+  setup(cwd: string): Promise<AgentSetup> {
+    return readSetup(cwd);
   }
 
   run(
@@ -370,6 +379,59 @@ async function readUsage(): Promise<PlanUsage> {
       skipBehaviors: true,
     });
     return toPlanUsage(usage, Date.now());
+  } finally {
+    input.end();
+    probe.close();
+  }
+}
+
+/** How long to wait for MCP servers to connect before listing what they bring. */
+const MCP_SETTLE_MS = 5_000;
+
+/**
+ * Asks a Claude Code process in the folder that never gets a message what
+ * it loads, waiting a moment for its MCP servers to connect, and reads the
+ * hooks and permission rules from the settings files it reads.
+ */
+async function readSetup(cwd: string): Promise<AgentSetup> {
+  const { query } = await sdk();
+  const input = new MessageQueue<SDKUserMessage>();
+  const probe = query({ prompt: input, options: { cwd, permissionMode: MODES.ask, env: ENV } });
+  try {
+    const since = Date.now();
+    let mcpServers = await probe.mcpServerStatus();
+    while (mcpServers.some((server) => server.status === 'pending') && Date.now() - since < MCP_SETTLE_MS) {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      mcpServers = await probe.mcpServerStatus();
+    }
+    const usage = await probe.getContextUsage({ detail: 'full' });
+    const agents = await probe.supportedAgents();
+    const commands = await probe.supportedCommands();
+    const { skills } = await probe.reloadSkills();
+    const { plugins } = await probe.reloadPlugins();
+    const home = homedir();
+    const settings = settingsFilesIn(cwd, home, process.platform).map((file) => readSettingsFile(file));
+    const pluginHooks = plugins
+      .filter((plugin) => plugin.path !== 'builtin')
+      .map((plugin) =>
+        readSettingsFile(
+          { source: 'plugin', path: path.join(plugin.path, 'hooks', 'hooks.json') },
+          plugin.name,
+        ),
+      )
+      .filter((file) => file.exists);
+    return toSetup({
+      cwd,
+      home,
+      answers: { usage, mcpServers, agents, commands, skills, plugins },
+      settings,
+      pluginHooks,
+      commandFiles: commandFiles([
+        path.join(cwd, '.claude', 'commands'),
+        path.join(home, '.claude', 'commands'),
+      ]),
+      at: Date.now(),
+    });
   } finally {
     input.end();
     probe.close();
