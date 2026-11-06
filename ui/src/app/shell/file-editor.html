@@ -1,0 +1,47 @@
+<p class="sub">
+  <span class="folder" [attr.title]="file().path">{{ chats.folderName(file().path) }}</span>
+  @if (from()) {
+    <span class="dot" aria-hidden="true">·</span>
+    {{ from() }}
+  }
+  @if (!file().exists) {
+    <span class="dot" aria-hidden="true">·</span>
+    a new file
+  }
+  <span class="dot" aria-hidden="true">·</span>
+  <button type="button" class="gr-link" (click)="close()">{{ backLabel() }}</button>
+</p>
+<ng-content />
+<textarea
+  #text
+  class="text"
+  spellcheck="false"
+  [attr.aria-label]="chats.folderName(file().path)"
+  [readOnly]="readOnly() !== null"
+  [value]="draft()"
+  (input)="draft.set(text.value)"
+></textarea>
+<p class="actions">
+  @if (readOnly(); as why) {
+    <span class="why">{{ why }}</span>
+  } @else {
+    <button
+      type="button"
+      class="gr-link"
+      [attr.aria-disabled]="saving() || !changed() || null"
+      (click)="keep()"
+    >
+      Save <span class="gr-kbd">{{ save | shortcut }}</span>
+    </button>
+    @if (changed()) {
+      <span class="dot" aria-hidden="true">·</span>
+      <button type="button" class="gr-link" (click)="discard()">Discard changes</button>
+    }
+  }
+  <ng-content select="[actions]" />
+  @if (note(); as note) {
+    <span class="note" [class.alert]="note.alert" [attr.role]="note.alert ? 'alert' : 'status'">
+      {{ note.text }}
+    </span>
+  }
+</p>

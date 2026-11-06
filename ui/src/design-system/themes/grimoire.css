@@ -483,13 +483,15 @@
   --gr-front-matter-from-col: 110px;
   --gr-front-matter-rule: 1px solid var(--gr-hairline);
   --gr-front-matter-leader: var(--gr-leader);
-  /* The editor a file of the setup opens in: a sheet of the next page, ruled round */
-  --gr-front-matter-editor-min: 240px;
-  --gr-front-matter-editor-pad: 12px 14px;
-  --gr-front-matter-editor-paper: var(--gr-page-next);
-  --gr-front-matter-editor-radius: var(--gr-radius-control);
-  --gr-front-matter-actions-gap: 14px;
-  --gr-front-matter-actions-pad: 10px 0 18px;
+
+  /* File editor: a file opened on a thumb tab's page, on a sheet of the next page, ruled round */
+  --gr-file-editor-min: 240px;
+  --gr-file-editor-pad: 12px 14px;
+  --gr-file-editor-rule: 1px solid var(--gr-hairline);
+  --gr-file-editor-paper: var(--gr-page-next);
+  --gr-file-editor-radius: var(--gr-radius-control);
+  --gr-file-editor-actions-gap: 14px;
+  --gr-file-editor-actions-pad: 10px 0 18px;
 
   /* Memory map: the agent's memories as index cards, their links drawn as threads of ink */
   --gr-memory-section-gap: 22px;
