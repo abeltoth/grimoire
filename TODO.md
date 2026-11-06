@@ -47,7 +47,6 @@ A custom UI for Claude Code, built on the Claude Agent SDK.
 - [x] Setting to toggle between the book names (Colophon, Ledger...) and plain labels (Settings, Usage...)
 - [ ] Animated status per chat: thinking, writing, waiting for you
 - [x] Focus mode that hides everything except the active chat
-- [ ] Transcript detail levels: normal, thinking, verbose
 - [ ] Next-prompt suggestion you accept with Tab
 - [ ] Suggested follow-up tasks as cards that open new chats
 - [ ] @mention files or drag them into a chat
