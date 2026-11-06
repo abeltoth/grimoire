@@ -25,6 +25,7 @@ import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { Chats } from '@ui/app/core/chats';
 import { Wording } from '@ui/app/core/wording';
 import { AgentCommands } from '@ui/app/shell/agent-commands';
+import { Focus } from '@ui/app/shell/focus';
 import { Drafts } from './drafts';
 import { Enclosures } from './enclosures';
 import { readPicture } from './pictures';
@@ -51,6 +52,7 @@ export class Composer {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
   private readonly pending = inject(PendingTasks);
   private readonly drafts = inject(Drafts);
+  private readonly focus = inject(Focus);
 
   readonly chapterId = input.required<string>();
   readonly agent = input.required<AgentId>();
@@ -71,6 +73,41 @@ export class Composer {
   readonly entryId = input('gr-next-entry');
   /** On the facing page, so its commands are looked up on the left page. */
   readonly beside = input(false);
+
+  /** The model the entry goes to as well, in parallel; none until Parallel is pressed. */
+  protected readonly parallel = linkedSignal<string, string | null>({
+    source: this.chapterId,
+    computation: () => null,
+  });
+  /** The agent's other models, which a parallel text could be on. */
+  protected readonly otherModels = computed(() => {
+    const listed = this.chats.models()[this.agent()];
+    const chapter = this.chats.all().find((c) => c.id === this.chapterId());
+    const own = chapter?.settings.model ?? listed?.default;
+    return (listed?.models ?? []).filter((model) => model.id !== own);
+  });
+  /**
+   * Whether the entry can go to two models, the second on the facing page:
+   * not from the facing page, and from a chapter that has begun only when
+   * the agent can copy it.
+   */
+  protected readonly canParallel = computed(() => {
+    const chapter = this.chats.all().find((c) => c.id === this.chapterId());
+    if (!chapter || this.beside() || !this.otherModels().length) return false;
+    return chapter.status === 'blank' || this.chats.can(this.agent(), 'fork');
+  });
+  /** Whether it can go now: a chapter that has begun is copied between turns. */
+  protected readonly parallelNow = computed(() => {
+    const status = this.chats.all().find((c) => c.id === this.chapterId())?.status;
+    return status === 'blank' || status === 'idle';
+  });
+  /** The second model, while Parallel is on and the entry can go to it. */
+  protected readonly second = computed(() => {
+    const picked = this.parallel();
+    if (picked === null || !this.canParallel() || !this.parallelNow()) return undefined;
+    const others = this.otherModels();
+    return others.find((model) => model.id === picked) ?? others[0];
+  });
 
   /** The time, kept to the minute, for when the cache runs out. */
   private readonly now = signal(Date.now());
@@ -261,7 +298,21 @@ export class Composer {
     entry.value = '';
     this.draft.set('');
     this.enclosures.set([]);
-    void this.chats.send(this.chapterId(), text, enclosures);
+    const second = this.second();
+    if (!second) {
+      void this.chats.send(this.chapterId(), text, enclosures);
+      return;
+    }
+    this.parallel.set(null);
+    // The second chapter goes on the facing page, so both pages show.
+    this.focus.leave();
+    void this.chats.sendParallel(this.chapterId(), second.id, text, enclosures);
+  }
+
+  /** Turns Parallel on, on the first of the other models, or off. */
+  protected toggleParallel(): void {
+    if (!this.parallelNow()) return;
+    this.parallel.set(this.second() ? null : (this.otherModels()[0]?.id ?? null));
   }
 
   /** Asks for files with the system's picker. */

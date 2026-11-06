@@ -190,8 +190,70 @@
   border-radius: var(--gr-radius-control);
 }
 
-.control:hover {
+.control:hover:not([aria-disabled]) {
   background: var(--gr-composer-button-hover);
+}
+
+.control[aria-pressed='true'] {
+  background: var(--gr-composer-button-on);
+  color: var(--gr-rubric);
+}
+
+.control[aria-disabled] {
+  color: var(--gr-ink-faint);
+  cursor: default;
+}
+
+/* Parallel texts: the second model the entry goes to as well. */
+.parallel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--gr-queued-gap);
+  padding: var(--gr-queued-pad);
+  border-bottom: 1px dashed var(--gr-queued-rule);
+}
+
+.parallel-label {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: var(--gr-queued-label-gap);
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-label);
+  letter-spacing: var(--gr-tracking-queued);
+  color: var(--gr-rubric);
+  white-space: nowrap;
+}
+
+.parallel-text,
+.parallel-where {
+  font-style: italic;
+  font-size: var(--gr-size-label);
+  color: var(--gr-ink-soft);
+}
+
+.parallel-models {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--gr-parallel-models-gap);
+}
+
+.parallel-model {
+  padding: var(--gr-parallel-model-pad);
+  border-radius: var(--gr-radius-control);
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.parallel-model:hover {
+  background: var(--gr-composer-button-hover);
+}
+
+.parallel-model[aria-checked='true'] {
+  color: var(--gr-ink);
+  font-weight: 500;
+  box-shadow: inset 0 calc(var(--gr-parallel-model-rule) * -1) 0 var(--gr-rubric);
 }
 
 .send {

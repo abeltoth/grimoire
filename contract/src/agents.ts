@@ -54,6 +54,10 @@ export interface ChatSettings {
 /** Settings for a new chat; the folder defaults to your home folder. */
 export type NewChatSettings = Omit<ChatSettings, 'cwd'> & { cwd?: string };
 
+/** What a second model's chat comes from: a chat that has begun, or a new chapter's settings. */
+export type ParallelFrom =
+  { chatId: ChatId } | { agent: AgentId; settings: NewChatSettings; title?: string };
+
 /** The settings you can change once a chat has begun. */
 export type SettingsChange = Pick<ChatSettings, 'model' | 'mode' | 'effort'>;
 
@@ -386,6 +390,17 @@ declare module './commands' {
      * chapter, and the original stays as it was.
      */
     'agents.fork': { request: { chatId: ChatId; entryId: string }; response: OpenChat };
+    /**
+     * Sends one entry to a second model too, in a chat of its own, which
+     * works in a worktree of its own when the folder is in a git
+     * repository. From a chat that has begun, the second is a copy of it,
+     * and the entry goes to both. From a new chapter's settings, the second
+     * starts afresh; start the first with agents.start, before this.
+     */
+    'agents.parallel': {
+      request: { from: ParallelFrom; model: string; text: string; enclosures?: Enclosure[] };
+      response: OpenChat;
+    };
     /** Folds a chat's dog-ear down, or unfolds it: pins or stars the chat, or takes that back. */
     'agents.dogEar': {
       request: { chatId: ChatId; dogEar: DogEar; folded: boolean };

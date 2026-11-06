@@ -94,7 +94,7 @@ export class ClaudeAdapter implements AgentAdapter {
     const { getSessionMessages } = await sdk();
     const transcript = new ClaudeTranscript(false);
     const cache = new CacheTracker();
-    for (const message of await getSessionMessages(chatId, { dir: cwd })) {
+    for (const message of await getSessionMessages(chatId, await this.savedIn(chatId, cwd))) {
       // Claude Code saves when each message came, though the SDK's type leaves it out.
       const at = Date.parse((message as { timestamp?: string }).timestamp ?? '');
       transcript.apply(message, at);
@@ -110,9 +110,10 @@ export class ClaudeAdapter implements AgentAdapter {
 
   async fork(chatId: ChatId, cwd: string, entryId: string, title: string): Promise<ChatId> {
     const { forkSession, getSessionMessages } = await sdk();
-    const upToMessageId = turnEnd(await getSessionMessages(chatId, { dir: cwd }), entryId);
+    const saved = await this.savedIn(chatId, cwd);
+    const upToMessageId = turnEnd(await getSessionMessages(chatId, saved), entryId);
     const { sessionId } = await forkSession(chatId, {
-      dir: cwd,
+      ...saved,
       title,
       ...(upToMessageId ? { upToMessageId } : {}),
     });
@@ -121,13 +122,24 @@ export class ClaudeAdapter implements AgentAdapter {
 
   async rename(chatId: ChatId, cwd: string, title: string): Promise<void> {
     const { renameSession } = await sdk();
-    await renameSession(chatId, title, { dir: cwd });
+    await renameSession(chatId, title, await this.savedIn(chatId, cwd));
   }
 
   async title(chatId: ChatId, cwd: string): Promise<string> {
     const { getSessionInfo } = await sdk();
-    const info = await getSessionInfo(chatId, { dir: cwd });
+    const info = await getSessionInfo(chatId, await this.savedIn(chatId, cwd));
     return info?.customTitle ?? info?.summary ?? '';
+  }
+
+  /**
+   * Where to look for a saved chat: its folder, or every folder when it was
+   * saved under another. A chat forked into a worktree is saved under the
+   * folder it was forked from; Claude Code looks there from the worktree's
+   * top, but not from a folder inside it.
+   */
+  private async savedIn(chatId: ChatId, cwd: string): Promise<{ dir?: string }> {
+    const { getSessionInfo } = await sdk();
+    return (await getSessionInfo(chatId, { dir: cwd })) ? { dir: cwd } : {};
   }
 
   /**
