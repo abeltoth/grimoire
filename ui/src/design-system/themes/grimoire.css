@@ -491,6 +491,28 @@
   --gr-front-matter-actions-gap: 14px;
   --gr-front-matter-actions-pad: 10px 0 18px;
 
+  /* Memory map: the agent's memories as index cards, their links drawn as threads of ink */
+  --gr-memory-section-gap: 22px;
+  --gr-memory-elsewhere-gap: 14px;
+  --gr-memory-errata-indent: 18px;
+  --gr-memory-column-gap: 44px;
+  --gr-memory-card-gap: 12px;
+  --gr-memory-card-pad: 10px 12px;
+  --gr-memory-card-rule: 1px solid var(--gr-hairline);
+  --gr-memory-card-radius: var(--gr-radius-control);
+  --gr-memory-card-paper: var(--gr-page-next);
+  --gr-memory-card-line-gap: 6px;
+  --gr-memory-card-leading: 1.35;
+  --gr-memory-description-lines: 3;
+  --gr-memory-thread: var(--gr-ink-soft);
+  --gr-memory-thread-width: 1.2px;
+  --gr-memory-thread-lit: var(--gr-rubric);
+  --gr-memory-end-r: 3px;
+  /* How far a card stands back while you point at a memory it isn't linked with */
+  --gr-memory-faded: 0.35;
+  --gr-memory-dur: 160ms;
+  --gr-memory-ease: var(--gr-ease-ink);
+
   /* The Scriptorium: your shells, as leaves written in the book's inks */
   --gr-scriptorium-pad-bottom: 18px;
   --gr-scriptorium-tabs-gap: 26px;

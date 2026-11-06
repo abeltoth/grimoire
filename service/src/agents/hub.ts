@@ -4,6 +4,7 @@ import type {
   AgentCommand,
   AgentId,
   AgentInfo,
+  AgentMemories,
   AgentModels,
   AgentSetup,
   SetupFile,
@@ -171,6 +172,11 @@ export class AgentHub {
       this.setupWatcher.watch(agent, setup);
     }
     return setup;
+  }
+
+  /** The memories the agent keeps for a folder, your home folder when there's none; null when it keeps none. */
+  async memories(agent: AgentId, cwd?: string): Promise<AgentMemories | null> {
+    return (await this.adapter(agent).memories?.(cwd ?? homedir())) ?? null;
   }
 
   /** One of the files the agent's setup in the folder lists. */

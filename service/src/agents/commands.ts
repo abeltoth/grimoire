@@ -13,6 +13,7 @@ export function registerAgentCommands(registry: CommandRegistry, hub: AgentHub):
   registry.register('agents.commands', ({ agent, cwd }) => hub.commands(agent, cwd));
   registry.register('agents.usage', ({ agent }) => hub.usage(agent));
   registry.register('agents.setup', ({ agent, cwd }) => hub.setup(agent, cwd));
+  registry.register('agents.memories', ({ agent, cwd }) => hub.memories(agent, cwd));
   registry.register('agents.openSetupFile', ({ agent, cwd, path }) =>
     hub.openSetupFile(agent, cwd, path),
   );

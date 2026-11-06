@@ -5,6 +5,7 @@ import { provideFrontMatter } from '../../../modules/front-matter/ui/front-matte
 import { provideGit } from '../../../modules/git/ui/git.providers';
 import { provideTableOfContents } from '../../../modules/history/ui/history.providers';
 import { provideLedger } from '../../../modules/ledger/ui/ledger.providers';
+import { provideMemoryMap } from '../../../modules/memory-map/ui/memory-map.providers';
 import { provideScheduledChats } from '../../../modules/schedules/ui/schedules.providers';
 import { provideScriptorium } from '../../../modules/terminal/ui/terminal.providers';
 import { providePlaceholders } from './placeholders/placeholders';
@@ -19,6 +20,7 @@ export const appConfig: ApplicationConfig = {
     provideGit(),
     provideTableOfContents(),
     provideFrontMatter(),
+    provideMemoryMap(),
     provideLedger(),
     provideScheduledChats(),
     provideScriptorium(),
