@@ -25,7 +25,7 @@ A custom UI for Claude Code, built on the Claude Agent SDK.
 - [x] Undo file changes
 - [ ] Open new chat windows quickly: tabs plus split panes
 - [ ] Status of all open chats, one approval inbox, notifications
-- [ ] AI workflow setup view: shows everything Claude loads (CLAUDE.md, memory, skills, subagents, hooks, MCP servers, plugins, permissions) and where each comes from, all one click away, editable
+- [x] AI workflow setup view: shows everything Claude loads (CLAUDE.md, memory, skills, subagents, hooks, MCP servers, plugins, permissions) and where each comes from, all one click away, editable
 - [x] Custom styling
 - [x] Animations
 - [x] Chat presets: start a chat with a saved model, mode, folder and first prompt
