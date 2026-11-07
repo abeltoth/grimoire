@@ -78,6 +78,16 @@ export interface TokenTotals {
   folders: (TokenTotal & { cwd: string })[];
   /** The chats that weighed most, most first. */
   chats: (TokenTotal & { id: ChatId; agent: AgentId; title: string; cwd?: string })[];
+  /** The tools the agents called most in the chats, not their subagents, most first. */
+  tools: Used[];
+  /** The skills the agents ran most, and the commands and skills you wrote most as /name, most first. */
+  skills: Used[];
+}
+
+/** Something used, and how many times. */
+export interface Used {
+  name: string;
+  uses: number;
 }
 
 /** What Claude Code's own scan of its transcripts says took a share of your plan's usage. */

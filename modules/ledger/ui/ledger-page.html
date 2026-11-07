@@ -252,6 +252,25 @@
           </li>
         }
       </ul>
+
+      @if (totals.tools.length) {
+        <h4>The tools used most</h4>
+        <ul class="limits" data-used="tools">
+          @for (tool of totals.tools; track tool.name) {
+            <ng-container *ngTemplateOutlet="used; context: { used: tool, of: totals.tools }" />
+          }
+        </ul>
+      }
+
+      @if (totals.skills.length) {
+        <h4>The skills used most</h4>
+        <p class="sub">Those the agent ran, and the commands and skills you wrote as /name.</p>
+        <ul class="limits" data-used="skills">
+          @for (skill of totals.skills; track skill.name) {
+            <ng-container *ngTemplateOutlet="used; context: { used: skill, of: totals.skills }" />
+          }
+        </ul>
+      }
     } @else {
       <p class="none">No chat spent any tokens over this span.</p>
     }
@@ -277,5 +296,25 @@
       <span class="used" [style.width.%]="shareOf(total)"></span>
     </span>
     <b>{{ round(shareOf(total)) }}%</b>
+  </li>
+</ng-template>
+
+<ng-template #used let-used="used" let-of="of">
+  <li>
+    <span class="head">
+      <span class="name">{{ used.name }}</span>
+      <span class="resets">{{ uses(used.uses) }}</span>
+    </span>
+    <span
+      class="ticks"
+      role="meter"
+      [attr.aria-label]="used.name + ', uses against the most used'"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      [attr.aria-valuenow]="round(againstMost(used, of))"
+    >
+      <span class="used" [style.width.%]="againstMost(used, of)"></span>
+    </span>
+    <b>{{ used.uses.toLocaleString() }}</b>
   </li>
 </ng-template>

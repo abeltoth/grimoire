@@ -9,6 +9,7 @@ import {
   type TokenTotal,
   type TokenTotals,
   type TokenUse,
+  type Used,
   addTokens,
   weighTokens,
 } from '@grimoire/contract';
@@ -34,6 +35,14 @@ export interface TurnUse extends TokenUse {
   at: number;
 }
 
+/** A tool the agent called, or a skill it ran or you wrote as /name, in one of a chat's turns. */
+export interface ToolUse {
+  /** When, in ms since the epoch. */
+  at: number;
+  kind: 'tool' | 'skill';
+  name: string;
+}
+
 /** A turn's tokens for one model, as the totals read them, with its chat's details. */
 type TurnRow = {
   id: ChatId;
@@ -51,10 +60,12 @@ type TurnRow = {
 };
 
 /** Bump to rebuild every index: it's a cache, so it's dropped rather than migrated. */
-const VERSION = 2;
+const VERSION = 3;
 
 /** The most chats the totals list. */
 const MAX_CHATS = 10;
+/** The most tools, and skills, the totals list. */
+const MAX_USED = 10;
 
 const SCHEMA = `
   CREATE TABLE chats (
@@ -75,6 +86,14 @@ const SCHEMA = `
     cache_read INTEGER NOT NULL,
     output INTEGER NOT NULL
   );
+  CREATE TABLE uses (
+    chat_id TEXT NOT NULL,
+    at INTEGER NOT NULL,
+    kind TEXT NOT NULL,
+    name TEXT NOT NULL
+  );
+  CREATE INDEX uses_at ON uses (at);
+  CREATE INDEX uses_chat ON uses (chat_id);
   CREATE INDEX turns_at ON turns (at);
   CREATE INDEX turns_chat ON turns (chat_id);
   CREATE VIRTUAL TABLE passages USING fts5(
@@ -107,7 +126,7 @@ export class SearchIndex {
     };
     if (version !== VERSION) {
       this.db.exec(
-        'DROP TABLE IF EXISTS chats; DROP TABLE IF EXISTS passages; DROP TABLE IF EXISTS turns;',
+        'DROP TABLE IF EXISTS chats; DROP TABLE IF EXISTS passages; DROP TABLE IF EXISTS turns; DROP TABLE IF EXISTS uses;',
       );
       this.db.exec(SCHEMA);
       this.db.exec(`PRAGMA user_version = ${VERSION}`);
@@ -129,11 +148,17 @@ export class SearchIndex {
     );
   }
 
-  /** Indexes a chat's passages and what its turns spent, in place of the ones it had. */
-  put(chat: IndexedChat, passages: readonly Passage[], turns: readonly TurnUse[] = []): void {
+  /** Indexes a chat's passages, what its turns spent and the tools and skills used, in place of the ones it had. */
+  put(
+    chat: IndexedChat,
+    passages: readonly Passage[],
+    turns: readonly TurnUse[] = [],
+    uses: readonly ToolUse[] = [],
+  ): void {
     this.inTransaction(() => {
       this.db.prepare('DELETE FROM passages WHERE chat_id = ?').run(chat.id);
       this.db.prepare('DELETE FROM turns WHERE chat_id = ?').run(chat.id);
+      this.db.prepare('DELETE FROM uses WHERE chat_id = ?').run(chat.id);
       this.db
         .prepare(
           'INSERT OR REPLACE INTO chats (chat_id, agent, updated_at, title, cwd) VALUES (?, ?, ?, ?, ?)',
@@ -160,6 +185,8 @@ export class SearchIndex {
           turn.output,
         );
       }
+      const used = this.db.prepare('INSERT INTO uses (chat_id, at, kind, name) VALUES (?, ?, ?, ?)');
+      for (const use of uses) used.run(chat.id, use.at, use.kind, use.name);
     });
   }
 
@@ -167,11 +194,15 @@ export class SearchIndex {
     this.inTransaction(() => {
       this.db.prepare('DELETE FROM passages WHERE chat_id = ?').run(chatId);
       this.db.prepare('DELETE FROM turns WHERE chat_id = ?').run(chatId);
+      this.db.prepare('DELETE FROM uses WHERE chat_id = ?').run(chatId);
       this.db.prepare('DELETE FROM chats WHERE chat_id = ?').run(chatId);
     });
   }
 
-  /** Where the tokens went in the turns begun since a time: by day, model, folder and chat. */
+  /**
+   * Where the tokens went in the turns begun since a time: by day, model,
+   * folder and chat; and the tools and skills used most.
+   */
   tokens(since: number): TokenTotals {
     const rows = this.db
       .prepare(
@@ -219,7 +250,23 @@ export class SearchIndex {
           };
         }),
       ).slice(0, MAX_CHATS),
+      tools: this.used('tool', since),
+      skills: this.used('skill', since),
     };
+  }
+
+  /** The tools, or skills, used most since a time, of chats still indexed; most first, then by name. */
+  private used(kind: ToolUse['kind'], since: number): Used[] {
+    return this.db
+      .prepare(
+        `SELECT uses.name AS name, COUNT(*) AS uses
+         FROM uses JOIN chats ON chats.chat_id = uses.chat_id
+         WHERE uses.kind = ? AND uses.at >= ?
+         GROUP BY uses.name
+         ORDER BY uses DESC, uses.name
+         LIMIT ?`,
+      )
+      .all(kind, since, MAX_USED) as unknown as Used[];
   }
 
   /** The chats with a passage that has every word looked for, best first, each with that passage. */

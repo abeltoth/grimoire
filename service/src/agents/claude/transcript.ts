@@ -368,14 +368,26 @@ function byModel(spent: Spent): TokenUse[] {
   return [...uses.values()];
 }
 
+/** The tool Claude Code runs a skill with; its input names the skill. */
+const SKILL_TOOL = 'Skill';
+
 function toBlock(block: ApiBlock): Block | undefined {
   switch (block.type) {
     case 'text':
       return { kind: 'text', text: block.text ?? '' };
     case 'thinking':
       return { kind: 'thinking', text: block.thinking ?? '' };
-    case 'tool_use':
-      return { kind: 'tool', id: block.id ?? '', tool: block.name ?? '', input: block.input ?? {} };
+    case 'tool_use': {
+      const input = block.input ?? {};
+      const skill = block.name === SKILL_TOOL ? (input as { skill?: unknown }).skill : undefined;
+      return {
+        kind: 'tool',
+        id: block.id ?? '',
+        tool: block.name ?? '',
+        input,
+        ...(typeof skill === 'string' && skill ? { skill } : {}),
+      };
+    }
     default:
       return undefined;
   }

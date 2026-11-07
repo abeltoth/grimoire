@@ -9,6 +9,7 @@ import type {
   UsageCredits,
   UsageSpan,
   UsageWindow,
+  Used,
 } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { Chats } from '@ui/app/core/chats';
@@ -74,7 +75,7 @@ export function money(minor: number, currency: string): string {
  * The Ledger: how much of each agent's subscription limits is used, read
  * from the agent when the page opens, each limit with when it resets; and
  * where the tokens went, as the agent's own scan says and by Grimoire's
- * count from the chats' transcripts.
+ * count from the chats' transcripts, with the tools and skills used most.
  */
 @Component({
   selector: 'gr-ledger-page',
@@ -186,6 +187,17 @@ export class LedgerPage {
   protected shareOf(total: TokenTotal): number {
     const all = this.totals()?.total.weight ?? 0;
     return all ? (total.weight / all) * 100 : 0;
+  }
+
+  /** How many times something was used, such as "12 uses". */
+  protected uses(n: number): string {
+    return `${n.toLocaleString()} ${n === 1 ? 'use' : 'uses'}`;
+  }
+
+  /** Its uses against those of the most used in its list, 0-100. */
+  protected againstMost(used: Used, of: readonly Used[]): number {
+    const most = Math.max(0, ...of.map((each) => each.uses));
+    return most ? (used.uses / most) * 100 : 0;
   }
 
   protected modelName(model: string, subagent: boolean): string {

@@ -252,6 +252,8 @@ export interface ToolBlock {
   id: string;
   tool: string;
   input: unknown;
+  /** The skill it runs, when the tool is the one that runs skills. */
+  skill?: string;
   /** Missing while the tool runs. */
   result?: ToolResult;
 }
