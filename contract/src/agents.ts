@@ -483,6 +483,13 @@ declare module './commands' {
     /** Answers an approval's questions, one answer per question, in order. */
     'agents.answer': { request: { approvalId: string; answers: Answer[] }; response: void };
     /**
+     * What a helper did: a subagent the agent handed a task to with one of
+     * its tool calls, working in a transcript of its own. Its task is the
+     * tool call's input, and its last reply the call's result. Empty when the
+     * agent keeps no record of it. The chat must be open.
+     */
+    'agents.helper': { request: { chatId: ChatId; toolId: string }; response: Entry[] };
+    /**
      * Closes a chat's chapter and stops its agent process. The chat itself
      * stays with the agent.
      */
@@ -497,6 +504,8 @@ declare module './events' {
     'agents.account': AgentSignIn;
     /** A new or changed entry, complete. */
     'agents.entry': { chatId: ChatId; entry: Entry };
+    /** A new or changed entry in the run of a helper the chat's tool call `toolId` started, complete. */
+    'agents.helperEntry': { chatId: ChatId; toolId: string; entry: Entry };
     /** Text streamed into a block of an entry since the last event, batched. */
     'agents.text': { chatId: ChatId; entryId: string; block: number; text: string };
     'agents.approval': { approval: Approval };

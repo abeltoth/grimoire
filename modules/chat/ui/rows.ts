@@ -39,6 +39,8 @@ export interface Note {
   withdrawn?: boolean;
   /** The details, folded out only when you ask. */
   fold?: Fold;
+  /** The tool call, when it handed a task to a helper, whose run can be shown on its own page. */
+  helper?: ToolBlock;
 }
 
 /** A run of notes, summed up on one line that folds out to them. */
@@ -291,6 +293,7 @@ function toNote(key: string, block: ToolBlock, mark: string, cwd?: string): Note
     running: !block.result,
     failed: block.result?.isError === true,
     ...detailsOf(block, target || verb, cwd),
+    ...(did === 'helped' ? { helper: block } : {}),
   };
 }
 

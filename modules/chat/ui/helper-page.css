@@ -1,0 +1,62 @@
+:host {
+  display: contents;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--gr-head-row-gap);
+}
+
+.spacer {
+  flex: 1;
+}
+
+/* The task the helper was handed: what it's for, who asked, and the prompt in full when you read it. */
+.task {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--gr-helper-task-gap);
+  margin: var(--gr-facing-pad-top) var(--page-inset-end) 0 var(--page-inset-start);
+  padding-bottom: var(--gr-helper-task-pad-bottom);
+  border-bottom: var(--gr-helper-task-rule);
+}
+
+.title {
+  max-width: 100%;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--gr-font-display);
+  font-weight: 400;
+  font-size: var(--gr-size-colophon-word);
+  color: var(--gr-ink);
+}
+
+.meta,
+.none {
+  margin: 0;
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.prompt {
+  align-self: stretch;
+  max-height: var(--gr-helper-task-max);
+  margin: 0;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  font-size: var(--gr-size-aside);
+  line-height: var(--gr-leading-entry);
+  color: var(--gr-ink-soft);
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--gr-facing-pad-top) var(--page-inset-end) 0 var(--page-inset-start);
+}

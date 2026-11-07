@@ -275,6 +275,33 @@ describe('AgentHub', () => {
     expect(sent.at(-1)).toMatchObject({ event: 'agents.entry', payload: { entry: { id: yours.id, tokens: { uses } } } });
   });
 
+  it("keeps what a helper does as it goes, apart from the chat's transcript, and tells every window", async () => {
+    const { id } = await hub.start('fake', settings, 'Hello');
+    const run = fake.runOf(id);
+    run.events.helperEntry('toolu_1', reply('h1', 'Looking'));
+    run.events.helperEntry('toolu_1', reply('h1', 'Looking around'));
+    run.events.helperEntry('toolu_1', reply('h2', 'Found it'));
+
+    expect(await hub.helper(id, 'toolu_1')).toMatchObject([
+      { id: 'h1', blocks: [{ text: 'Looking around' }] },
+      { id: 'h2', blocks: [{ text: 'Found it' }] },
+    ]);
+    expect((await hub.open('fake', id, settings)).entries.map((entry) => entry.id)).not.toContain('h1');
+    expect(sent.at(-1)).toMatchObject({
+      event: 'agents.helperEntry',
+      payload: { chatId: id, toolId: 'toolu_1', entry: { id: 'h2' } },
+    });
+  });
+
+  it("reads a saved helper's run from the agent, and has none it kept no record of", async () => {
+    fake.helpers.set('toolu_9', [reply('h9', 'Done earlier')]);
+    await hub.open('fake', 'c1', settings);
+
+    expect(await hub.helper('c1', 'toolu_9')).toMatchObject([{ id: 'h9' }]);
+    expect(await hub.helper('c1', 'toolu_0')).toEqual([]);
+    await expect(hub.helper('closed', 'toolu_9')).rejects.toThrow('This chat is not open');
+  });
+
   it('waits for your decision on an approval', async () => {
     const { id } = await hub.start('fake', settings, 'Make a file');
     const { events: agent } = fake.runOf(id);

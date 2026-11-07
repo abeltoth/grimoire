@@ -27,7 +27,7 @@
               <span class="time">{{ time(row.at) }}</span>
             }
             <span class="spacer"></span>
-            @if (row.undoable) {
+            @if (row.undoable && !helper()) {
               <button
                 type="button"
                 class="gr-link"
@@ -37,14 +37,16 @@
                 Undo
               </button>
             }
-            <button
-              type="button"
-              class="gr-link"
-              [attr.aria-disabled]="canFork() ? null : true"
-              (click)="fork(row)"
-            >
-              Fork
-            </button>
+            @if (!helper()) {
+              <button
+                type="button"
+                class="gr-link"
+                [attr.aria-disabled]="canFork() ? null : true"
+                (click)="fork(row)"
+              >
+                Fork
+              </button>
+            }
           </header>
           @if (row.text) {
             <p>
@@ -210,9 +212,9 @@
     type="button"
     class="note"
     [attr.title]="note.target || null"
-    [attr.aria-disabled]="note.fold ? null : true"
-    [attr.aria-expanded]="note.fold ? isOpen(note.key) : null"
-    (click)="note.fold && toggle(note.key)"
+    [attr.aria-disabled]="note.fold || showsHelper(note) ? null : true"
+    [attr.aria-expanded]="note.fold && !showsHelper(note) ? isOpen(note.key) : null"
+    (click)="press(note)"
   >
     <span class="note-head"
       ><span class="mark">{{ note.mark }}</span
@@ -236,7 +238,7 @@
 <!-- The details of the notes you folded out, across the text and the margin. -->
 <ng-template #foldsTemplate let-notes>
   @for (note of notes; track note.key) {
-    @if (note.fold && isOpen(note.key)) {
+    @if (note.fold && isOpen(note.key) && !showsHelper(note)) {
       @if (note.fold.kind === 'corrections') {
         <gr-corrections
           class="wide"

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { type ClaudeMessage, ClaudeTranscript, turnEnd } from './transcript';
+import { type ClaudeMessage, ClaudeTranscript, helperAgentId, helperAgentIdIn, turnEnd } from './transcript';
 
 // Shaped after real Claude Code output: a tool call, its result, then a reply
 // with a thinking block and a text block.
@@ -248,13 +248,64 @@ describe('ClaudeTranscript', () => {
     expect(() => turnEnd(messages, 'gone')).toThrow('not in the chat');
   });
 
-  it('leaves out what a subagent does inside a tool call', () => {
-    const transcript = new ClaudeTranscript(false);
-    transcript.apply({
-      ...assistant('msg_sub', { type: 'text', text: 'inside' }),
-      parent_tool_use_id: 'toolu_1',
+  it("passes on what a subagent does inside a tool call as its helper's run, apart from the chat", () => {
+    const helped: [string, unknown][] = [];
+    const transcript = new ClaudeTranscript(true, {
+      entry: () => {},
+      text: () => {},
+      status: () => {},
+      plan: () => {},
+      helperEntry: (toolId, entry) => helped.push([toolId, structuredClone(entry)]),
     });
+    const inside = (message: ClaudeMessage, toolId = 'toolu_1'): ClaudeMessage => ({
+      ...message,
+      parent_tool_use_id: toolId,
+    });
+    transcript.apply(inside(assistant('msg_sub', { ...toolUse, id: 'toolu_s1' })));
+    transcript.apply(
+      inside({
+        ...toolResult,
+        message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'toolu_s1', content: 'hi' }] },
+      }),
+    );
+    transcript.apply(inside(assistant('msg_sub2', { type: 'text', text: 'Done' })));
+    // A helper's helper has a run of its own.
+    transcript.apply(inside(assistant('msg_deep', { type: 'text', text: 'Deeper' }), 'toolu_s2'));
+
     expect(transcript.entries).toEqual([]);
+    expect(helped.map(([toolId, entry]) => [toolId, (entry as { id: string }).id])).toEqual([
+      ['toolu_1', 'msg_sub'],
+      ['toolu_1', 'msg_sub'],
+      ['toolu_1', 'msg_sub'],
+      ['toolu_1', 'msg_sub2'],
+      ['toolu_1', 'msg_sub2'],
+      ['toolu_s2', 'msg_deep'],
+      ['toolu_s2', 'msg_deep'],
+    ]);
+    expect(helped[2]![1]).toMatchObject({
+      blocks: [{ kind: 'tool', id: 'toolu_s1', result: { text: 'hi', isError: false } }],
+    });
+  });
+
+  it('reads a saved helper’s run on its own', () => {
+    const run = new ClaudeTranscript(false);
+    run.applyRun({ ...assistant('msg_sub', { type: 'text', text: 'Done' }), parent_tool_use_id: 'toolu_1' });
+    expect(run.entries).toMatchObject([{ kind: 'agent', id: 'msg_sub', blocks: [{ text: 'Done' }] }]);
+  });
+
+  it("finds the saved run a helper's tool call started from its result", () => {
+    const result = (toolId: string, text: string): ClaudeMessage => ({
+      type: 'user',
+      parent_tool_use_id: null,
+      message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: toolId, content: [{ type: 'text', text }] }] },
+    });
+    const messages = [
+      result('toolu_1', 'Read sdk.d.ts\nagentId: string;'),
+      result('toolu_2', 'All done.\nagentId: ae05a781070d8c49e (internal ID - do not mention to user.)'),
+    ];
+    expect(helperAgentIdIn(messages, 'toolu_2')).toBe('ae05a781070d8c49e');
+    expect(helperAgentIdIn(messages, 'toolu_3')).toBeUndefined();
+    expect(helperAgentId('No helper here')).toBeUndefined();
   });
 
   describe('tokens', () => {

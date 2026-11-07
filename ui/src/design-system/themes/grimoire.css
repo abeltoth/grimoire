@@ -222,6 +222,12 @@
   --gr-second-col-gap: 12px;
   --gr-second-row-pad: 7px 0;
   --gr-second-rule: 1px solid var(--gr-hairline);
+
+  /* Helper: what a subagent did, on the facing page */
+  --gr-helper-task-gap: 6px;
+  --gr-helper-task-pad-bottom: 12px;
+  --gr-helper-task-rule: 1px solid var(--gr-hairline);
+  --gr-helper-task-max: 220px;
   --gr-underline-active: 2px;
   --gr-size-section-head: 15px;
   --gr-tracking-section-head: 0.14em;

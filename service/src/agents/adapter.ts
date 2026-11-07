@@ -41,6 +41,12 @@ export interface AgentAdapter {
   fork?(chatId: ChatId, cwd: string, entryId: string, title: string): Promise<ChatId>;
   /** Gives a saved chat a new title. Agents that can't rename chats leave it out. */
   rename?(chatId: ChatId, cwd: string, title: string): Promise<void>;
+  /**
+   * A saved helper's run: what the subagent the chat's tool call `toolId`
+   * started did, your task left out. Empty when there's no record of it.
+   * Agents without helpers leave it out.
+   */
+  helper?(chatId: ChatId, cwd: string, toolId: string): Promise<Entry[]>;
   /** The chat's title; empty until the agent names it. */
   title(chatId: ChatId, cwd: string): Promise<string>;
   models(): Promise<AgentModels>;
@@ -144,6 +150,8 @@ export interface ChatEvents {
   entry(entry: Entry): void;
   /** Text streamed into a block of an entry the hub already has. */
   text(entryId: string, block: number, text: string): void;
+  /** A new or changed entry in the run of the helper the tool call `toolId` started, complete. */
+  helperEntry(toolId: string, entry: Entry): void;
   /** Asks for a decision. `signal` aborts when the agent stops waiting for it. */
   approval(request: ApprovalRequest, signal: AbortSignal): Promise<Verdict>;
   /** The agent named or renamed the chat. */

@@ -3,6 +3,7 @@ import {
   Component,
   ElementRef,
   afterRenderEffect,
+  booleanAttribute,
   computed,
   effect,
   inject,
@@ -25,13 +26,18 @@ import { Output } from '@ui/design-system/output';
 import { QuestionsForm } from './questions-form';
 import { SealStub } from './seal-stub';
 import { duration } from './duration';
-import { type TurnSpent, toRows } from './rows';
+import { Helpers } from './helpers';
+import { type Note, type TurnSpent, toRows } from './rows';
 import { tokenCount, usesInWords } from '@ui/app/core/tokens';
 
 /**
  * The chapter's transcript: your entries, the agent's replies, its tools
  * as margin notes, and Stop while a turn runs. It keeps the newest text
- * in view unless you scrolled back.
+ * in view unless you scrolled back. A note for a task handed to a helper
+ * turns the facing page to what the helper did, where there's one.
+ *
+ * As a helper's run, it only reads: its replies are signed `by`, and it
+ * has no Stop, Undo or Fork.
  */
 @Component({
   selector: 'gr-transcript',
@@ -53,11 +59,16 @@ import { tokenCount, usesInWords } from '@ui/app/core/tokens';
 })
 export class Transcript {
   private readonly chats = inject(Chats);
+  private readonly helpers = inject(Helpers);
   protected readonly shell = inject(ShellRegistry);
   protected readonly facing = inject(Facing);
   private readonly element = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
 
   readonly chapter = input.required<Chapter>();
+  /** A helper's run, which only reads. */
+  readonly helper = input(false, { transform: booleanAttribute });
+  /** Who signs the replies; the chapter's agent when unset. */
+  readonly by = input<string>();
   readonly stop = output<void>();
 
   protected readonly rows = computed(() =>
@@ -66,7 +77,7 @@ export class Transcript {
       copied: new Set(this.chapter().copied),
     }),
   );
-  protected readonly agentName = computed(() => this.chats.agentName(this.chapter().agent));
+  protected readonly agentName = computed(() => this.by() ?? this.chats.agentName(this.chapter().agent));
   protected readonly running = computed(() =>
     ['thinking', 'writing', 'waiting'].includes(this.chapter().status),
   );
@@ -84,8 +95,8 @@ export class Transcript {
     return starts;
   });
   /** Stop shows while the agent works; while it waits for you, you answer instead. */
-  protected readonly stoppable = computed(() =>
-    ['thinking', 'writing'].includes(this.chapter().status),
+  protected readonly stoppable = computed(
+    () => !this.helper() && ['thinking', 'writing'].includes(this.chapter().status),
   );
   protected readonly endsInReply = computed(() => this.rows().at(-1)?.kind === 'reply');
   /** Your entry that began the running turn, and when you wrote it. */
@@ -176,6 +187,16 @@ export class Transcript {
   protected onScroll(): void {
     const { scrollTop, clientHeight, scrollHeight } = this.element;
     this.following = scrollTop + clientHeight >= scrollHeight - 24;
+  }
+
+  /** Whether a note turns the facing page to its helper's run, rather than folding out. */
+  protected showsHelper(note: Note): boolean {
+    return !!note.helper && this.helpers.canShow();
+  }
+
+  protected press(note: Note): void {
+    if (this.showsHelper(note)) this.helpers.show(this.chapter().id, note.helper!);
+    else if (note.fold) this.toggle(note.key);
   }
 
   protected isOpen(key: string): boolean {

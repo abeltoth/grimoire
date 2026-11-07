@@ -46,6 +46,7 @@ export function registerAgentCommands(registry: CommandRegistry, hub: AgentHub):
     hub.send(chatId, text, enclosures),
   );
   registry.register('agents.undo', ({ chatId, entryId }) => hub.undo(chatId, entryId));
+  registry.register('agents.helper', ({ chatId, toolId }) => hub.helper(chatId, toolId));
   registry.register('agents.fork', ({ chatId, entryId }) => hub.fork(chatId, entryId));
   registry.register('agents.parallel', ({ from, model, text, enclosures }) =>
     hub.parallel(from, model, text, enclosures),

@@ -83,6 +83,27 @@ export interface TranscriptListener {
   plan(plan: PlanStep[]): void;
   /** What the running turn has spent so far, by model. */
   tokens?(uses: TokenUse[]): void;
+  /** A new or changed entry in the run of the helper the tool call `toolId` started. */
+  helperEntry?(toolId: string, entry: Entry): void;
+}
+
+/**
+ * The ID Claude Code keeps a helper's saved run by, from the result of the
+ * tool call that started it; undefined when it names none.
+ */
+export function helperAgentId(result: string): string | undefined {
+  return /^agentId: ([\w-]+)/m.exec(result)?.[1];
+}
+
+/** The ID of the helper the tool call `toolId` started, from the messages that hold its result. */
+export function helperAgentIdIn(messages: readonly ClaudeMessage[], toolId: string): string | undefined {
+  for (const message of messages) {
+    const content = (message.message as ApiMessage | undefined)?.content;
+    if (message.type !== 'user' || !Array.isArray(content)) continue;
+    const block = content.find((b) => b.type === 'tool_result' && b.tool_use_id === toolId);
+    if (block) return helperAgentId(toolResult(block).text);
+  }
+  return undefined;
 }
 
 /** A turn's replies' tokens by API message ID; Claude Code repeats a reply's on each of its blocks. */
@@ -116,6 +137,8 @@ export class ClaudeTranscript {
   private readonly turns: SavedTurn[] = [];
   /** What the live turn has spent so far. */
   private spent: Spent = new Map();
+  /** The runs of the helpers the chat's tool calls started, by tool call. */
+  private readonly helpers = new Map<string, ClaudeTranscript>();
 
   /**
    * @param live Your own messages aren't echoed back live; the hub adds them as you send.
@@ -137,8 +160,32 @@ export class ClaudeTranscript {
     if (message.type === 'assistant')
       this.count(message.message as ApiMessage, !!message.parent_tool_use_id, this.turn);
     else if (message.type === 'result' && this.live) this.spent = new Map();
-    // Messages inside a subagent's run belong to its tool call, not the chat.
-    if (message.parent_tool_use_id) return;
+    // Messages inside a subagent's run belong to its tool call's helper, not the chat.
+    if (message.parent_tool_use_id) return this.helperRun(message.parent_tool_use_id).take(message);
+    this.take(message, at);
+  }
+
+  /** A message from a saved helper's run, read on its own: its entries are the run's. */
+  applyRun(message: ClaudeMessage): void {
+    this.take(message);
+  }
+
+  /** The transcript of the helper the tool call `toolId` started, its entries passed on as the helper's. */
+  private helperRun(toolId: string): ClaudeTranscript {
+    let run = this.helpers.get(toolId);
+    if (!run) {
+      run = new ClaudeTranscript(this.live, {
+        entry: (entry) => this.listener?.helperEntry?.(toolId, entry),
+        text: () => {},
+        status: () => {},
+        plan: () => {},
+      });
+      this.helpers.set(toolId, run);
+    }
+    return run;
+  }
+
+  private take(message: ClaudeMessage, at?: number): void {
     const entries = this.entries.length;
     if (message.type === 'stream_event') this.applyStreamEvent(message.event as StreamEvent);
     else if (message.type === 'assistant') this.applyAssistant(message.message as ApiMessage);

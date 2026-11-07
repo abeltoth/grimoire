@@ -1,0 +1,49 @@
+<gr-running-head>
+  <div class="row">
+    <gr-facing-tabs [current]="page" />
+  </div>
+</gr-running-head>
+@if (run(); as chapter) {
+  <header class="task">
+    <h2 class="title" [attr.title]="task().description || null">
+      {{ task().description || wording.say('A helper’s task', 'A subagent’s task') }}
+    </h2>
+    <p class="meta">{{ meta() }}</p>
+    @if (task().prompt) {
+      <button type="button" class="gr-link" [attr.aria-expanded]="reading()" (click)="reading.set(!reading())">
+        {{ reading() ? 'Put the task away' : 'Read the task' }}
+      </button>
+      @if (reading()) {
+        <p class="prompt">{{ task().prompt }}</p>
+      }
+    }
+  </header>
+  @if (helpers.loading()) {
+    <p class="body none">{{ wording.say('Reading what the helper did…', 'Loading what the subagent did…') }}</p>
+  } @else if (chapter.entries.length) {
+    <gr-transcript [chapter]="chapter" [by]="wording.say('Helper', 'Subagent')" helper />
+  } @else {
+    <p class="body none">
+      {{
+        helpers.running()
+          ? wording.say('The helper has only just begun.', 'The subagent has only just started.')
+          : wording.say('No record was kept of what the helper did.', 'There’s no record of what the subagent did.')
+      }}
+    </p>
+  }
+} @else {
+  <div class="body">
+    <p class="none">
+      {{
+        wording.say(
+          'Pick “Asked a helper” in a chapter’s margin to read here what the helper did.',
+          'Click “Asked a helper” next to a reply to see what the subagent did.'
+        )
+      }}
+    </p>
+  </div>
+}
+<gr-running-foot>
+  <span class="spacer"></span>
+  <span>{{ state() }}</span>
+</gr-running-foot>

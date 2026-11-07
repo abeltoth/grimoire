@@ -39,7 +39,7 @@ import { commandFiles, readSettingsFile, settingsFilesIn, toSetup } from './setu
 import { type AgentToolInput, type PickerSources, RATER_PROMPT, pickFor, readRating } from './subagents';
 import { AUTO_PROMPT, autoPick, entryForRater } from './auto-model';
 import { readAccount, signIn } from './sign-in';
-import { ClaudeTranscript, turnEnd } from './transcript';
+import { ClaudeTranscript, helperAgentIdIn, turnEnd } from './transcript';
 import { toPlanUsage, toUsageBreakdown } from './usage';
 
 // Loaded on first use: it's large, and the service starts without it.
@@ -130,6 +130,24 @@ export class ClaudeAdapter implements AgentAdapter {
       plan: transcript.plan,
       ...(cache.cache ? { cache: cache.cache } : {}),
     };
+  }
+
+  async helper(chatId: ChatId, cwd: string, toolId: string): Promise<Entry[]> {
+    const { getSessionMessages, getSubagentMessages, listSubagents } = await sdk();
+    const saved = await this.savedIn(chatId, cwd);
+    // The tool call's result names the run; a helper's helper is started from inside its run.
+    let agentId = helperAgentIdIn(await getSessionMessages(chatId, saved), toolId);
+    if (!agentId) {
+      for (const id of await listSubagents(chatId, saved)) {
+        agentId = helperAgentIdIn(await getSubagentMessages(chatId, id, saved), toolId);
+        if (agentId) break;
+      }
+    }
+    if (!agentId) return [];
+    const run = new ClaudeTranscript(false);
+    for (const message of await getSubagentMessages(chatId, agentId, saved)) run.applyRun(message);
+    // Its task is the tool call's input; what it was sent later isn't yours.
+    return run.entries.filter((entry) => entry.kind === 'agent');
   }
 
   async fork(chatId: ChatId, cwd: string, entryId: string, title: string): Promise<ChatId> {

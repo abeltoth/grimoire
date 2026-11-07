@@ -78,6 +78,8 @@ interface ChatState {
   processes: number;
   /** The agent was signed in to another account during a turn: the process starts again once it ends. */
   restart: boolean;
+  /** What the helpers its tool calls started did while it was live, by tool call. */
+  helpers: Map<string, Entry[]>;
   /** Streamed text not sent to windows yet, per entry and block. */
   pendingText: Map<string, { entryId: string; block: number; text: string }>;
   flushTimer?: NodeJS.Timeout;
@@ -562,6 +564,17 @@ export class AgentHub {
   }
 
   /**
+   * What the helper the chat's tool call `toolId` started did: as it went,
+   * while the chat was live, or else as the agent saved it.
+   */
+  async helper(chatId: ChatId, toolId: string): Promise<Entry[]> {
+    const chat = this.chat(chatId);
+    const live = chat.helpers.get(toolId);
+    if (live) return structuredClone(live);
+    return chat.agent.helper ? chat.agent.helper(chat.id, chat.settings.cwd, toolId) : [];
+  }
+
+  /**
    * Restores the files to how they were before one of your entries, starting
    * the agent's process when the chat has none. That entry's edits, and those
    * of every entry after it, are withdrawn.
@@ -737,6 +750,7 @@ export class AgentHub {
       copied: [],
       processes: 0,
       restart: false,
+      helpers: new Map(),
       pendingText: new Map(),
     };
     this.chats.set(id, chat);
@@ -822,6 +836,17 @@ export class AgentHub {
       },
       text: (entryId, block, text) => {
         if (current()) this.appendText(chat, entryId, block, text);
+      },
+      helperEntry: (toolId, update) => {
+        if (!current()) return;
+        const entry = structuredClone(update);
+        const run = chat.helpers.get(toolId) ?? [];
+        const index = run.findIndex((existing) => existing.id === entry.id);
+        entry.at ??= run[index]?.at ?? Date.now();
+        if (index === -1) run.push(entry);
+        else run[index] = entry;
+        chat.helpers.set(toolId, run);
+        this.emit('agents.helperEntry', { chatId: chat.id, toolId, entry });
       },
       approval: (request, signal) =>
         new Promise<Verdict>((resolve) => {

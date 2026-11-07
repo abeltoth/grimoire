@@ -3,6 +3,8 @@ import { Chats } from '@ui/app/core/chats';
 import { Facing } from '@ui/app/shell/facing';
 import { provideShellEntries } from '@ui/app/shell/shell-registry';
 import { ChapterPage, SECOND_CHAPTER } from './chapter-page';
+import { HelperPage } from './helper-page';
+import { HELPER_PAGE, Helpers } from './helpers';
 import { Outline, outlineFoot } from './outline';
 import { SealsPage } from './seals-page';
 import { SecondChapter } from './second-chapter';
@@ -10,8 +12,9 @@ import { SecondChapter } from './second-chapter';
 /**
  * The chat module (ADR-008): it fills the left page with the open chapter,
  * the facing page's Outline with its plan, its Second chapter with
- * another chapter beside it, and the facing page with the slips awaiting
- * your seal when it's turned there.
+ * another chapter beside it, its Helper with what a subagent one of a
+ * chapter's tool calls started did, and the facing page with the slips
+ * awaiting your seal when it's turned there.
  */
 export function provideChat(): EnvironmentProviders {
   return provideShellEntries((shell) => {
@@ -33,6 +36,19 @@ export function provideChat(): EnvironmentProviders {
       order: 40,
       component: SecondChapter,
       heading: () => chats.beside()?.title || undefined,
+      whole: true,
+    });
+    const helpers = inject(Helpers);
+    shell.facingPages.add({
+      id: HELPER_PAGE,
+      label: 'Helper',
+      plainLabel: 'Subagent',
+      order: 45,
+      component: HelperPage,
+      heading: () => {
+        const input = helpers.block()?.input as { description?: unknown } | undefined;
+        return typeof input?.description === 'string' && input.description ? input.description : undefined;
+      },
       whole: true,
     });
 

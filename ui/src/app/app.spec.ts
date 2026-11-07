@@ -538,6 +538,61 @@ describe('App', () => {
     expect(el.querySelector('gr-corrections')).toBeNull();
   });
 
+  it('turns the facing page to what a helper did, from its note, and keeps it current as it works', async () => {
+    const { bridge, emit, answers, calls } = fakeBridge();
+    answers['agents.helper'] = () => [
+      {
+        kind: 'agent',
+        id: 'h1',
+        blocks: [
+          { kind: 'tool', id: 'ht1', tool: 'Grep', input: { pattern: 'meter' }, result: { text: 'meter.ts', isError: false } },
+          { kind: 'text', text: 'Found the meter.' },
+        ],
+      },
+    ];
+    const { fixture, el, texts } = await render(bridge);
+    await write(fixture, el, 'Find the meter');
+    const helperCall = {
+      kind: 'tool' as const,
+      id: 't1',
+      tool: 'Agent',
+      input: { description: 'Find the meter', prompt: 'Look for the context meter.', subagent_type: 'Explore' },
+    };
+    emit('agents.entry', { chatId: 'chat-1', entry: { kind: 'agent', id: 'a1', blocks: [helperCall] } });
+    await fixture.whenStable();
+
+    const note = [...el.querySelectorAll<HTMLButtonElement>('gr-chapter-page .note')].find((n) =>
+      n.textContent!.includes('Asked a helper'),
+    )!;
+    note.click();
+    await fixture.whenStable();
+    expect(calls.at(-1)).toEqual({ command: 'agents.helper', request: { chatId: 'chat-1', toolId: 't1' } });
+    expect(texts('gr-facing-tabs .tabs [aria-pressed="true"]')).toEqual(['Find the meter']);
+    expect(texts('gr-helper-page .title')).toEqual(['Find the meter']);
+    expect(texts('gr-helper-page .meta')).toEqual(['Asked by Claude Code · Untitled chapter · Explore']);
+    expect(texts('gr-helper-page gr-transcript .reply .who')).toEqual(['Helper']);
+    expect(texts('gr-helper-page gr-transcript .note > *')).toEqual(['*Searched', 'meter']);
+    expect(el.querySelector('gr-helper-page gr-transcript .stop')).toBeNull();
+    expect(texts('gr-helper-page gr-running-foot')).toEqual(['Working…']);
+
+    el.querySelector<HTMLButtonElement>('gr-helper-page .task .gr-link')!.click();
+    await fixture.whenStable();
+    expect(texts('gr-helper-page .prompt')).toEqual(['Look for the context meter.']);
+
+    emit('agents.helperEntry', {
+      chatId: 'chat-1',
+      toolId: 't1',
+      entry: { kind: 'agent', id: 'h2', blocks: [{ kind: 'text', text: 'It is in meter.ts.' }] },
+    });
+    emit('agents.entry', {
+      chatId: 'chat-1',
+      entry: { kind: 'agent', id: 'a1', blocks: [{ ...helperCall, result: { text: 'It is in meter.ts.', isError: false } }] },
+    });
+    await fixture.whenStable();
+    expect(texts('gr-helper-page gr-transcript .reply gr-markdown')).toEqual(['Found the meter.', 'It is in meter.ts.']);
+    expect(texts('gr-helper-page gr-running-foot')).toEqual(['Done']);
+  });
+
   it('says why a chapter could not start', async () => {
     const { bridge } = fakeBridge();
     const answer = bridge.invoke;
