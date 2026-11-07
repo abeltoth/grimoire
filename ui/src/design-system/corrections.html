@@ -3,7 +3,9 @@
   <span class="detail">corrections, {{ caption() }}</span>
   <span class="spacer"></span>
   <span class="detail">+{{ inserted() }} −{{ removed() }}</span>
-  <button type="button" class="gr-link" aria-disabled="true">Open in Files</button>
+  @if (openable()) {
+    <button type="button" class="gr-link" (click)="open.emit()">Open in Files</button>
+  }
 </div>
 <div #body class="body" tabindex="0">
   @for (line of marked(); track line.key) {

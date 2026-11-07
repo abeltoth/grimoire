@@ -148,6 +148,8 @@ export class CodeEditor {
       this.editor = focused;
     }
     if (state) focused.restoreViewState(state);
+    // Opened on its changes, it starts at the first of them.
+    else if ('revealFirstDiff' in this.editor) this.editor.revealFirstDiff();
     focused.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => this.save.emit());
   }
 

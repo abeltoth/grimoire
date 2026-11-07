@@ -3,7 +3,7 @@ import { type DiffLine, type FileChange, fileChange } from './diff';
 
 /** What a margin note folds out: a file's corrections or what a tool printed. */
 export type Fold =
-  | { kind: 'corrections'; file: string; lines: DiffLine[] }
+  | { kind: 'corrections'; file: string; path: string; lines: DiffLine[] }
   | { kind: 'output'; title: string; text: string };
 
 /** What a tool did, to sum up a run of notes. */
@@ -262,7 +262,12 @@ function detailsOf(
       counts: `+${added} −${removed}`,
       added,
       removed,
-      fold: { kind: 'corrections', file: relativeTo(cwd, change.file), lines: change.lines },
+      fold: {
+        kind: 'corrections',
+        file: relativeTo(cwd, change.file),
+        path: change.file,
+        lines: change.lines,
+      },
     };
   }
   return block.result?.text ? { fold: { kind: 'output', title, text: block.result.text } } : {};

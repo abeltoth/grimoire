@@ -119,6 +119,32 @@ describe('Files', () => {
     await expect(files.open(repo, '../elsewhere.txt')).rejects.toThrow('outside the folder');
   });
 
+  it('opens, saves and watches a file outside the folder when it’s written in full', async () => {
+    const elsewhere = realpathSync(mkdtempSync(path.join(tmpdir(), 'grimoire-elsewhere-')));
+    try {
+      const notes = path.join(elsewhere, 'notes.md');
+      writeFileSync(notes, '# Notes\n');
+      const shown = notes.replaceAll('\\', '/');
+      const opened = await files.open(repo, notes);
+      expect(opened).toEqual({
+        path: shown,
+        text: '# Notes\n',
+        changedAt: statSync(notes).mtimeMs,
+      });
+      // Inside the folder, written in full, it's named from the folder.
+      expect((await files.open(repo, path.join(repo, 'README.md'))).path).toBe('README.md');
+
+      await files.save(repo, shown, '# Mine\n', opened.changedAt);
+      await new Promise((resolve) => setTimeout(resolve, 30));
+      writeFileSync(notes, '# The agent’s\n');
+      await until(() => told.length > 0);
+      expect(told[0]).toMatchObject({ path: shown });
+      await files.close(repo, shown);
+    } finally {
+      rmSync(elsewhere, { recursive: true, force: true });
+    }
+  });
+
   it('saves a file, unless it changed on disk since it was opened', async () => {
     const opened = await files.open(repo, 'src/meter.ts');
     const saved = await files.save(

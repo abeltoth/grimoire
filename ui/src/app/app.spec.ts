@@ -4021,7 +4021,12 @@ describe('App', () => {
   describe('the Files page', () => {
     /** The VS Code editor, faked as a text box for each side it shows. */
     function fakeMonaco() {
-      const made: { editors: number; diffs: number; themes: string[] } = { editors: 0, diffs: 0, themes: [] };
+      const made: { editors: number; diffs: number; themes: string[]; revealed: number } = {
+        editors: 0,
+        diffs: 0,
+        themes: [],
+        revealed: 0,
+      };
       const modelOf = (text: string, language: string) => {
         const listeners = new Set<() => void>();
         let value = text;
@@ -4090,6 +4095,7 @@ describe('App', () => {
                 sides = [original, modified];
               },
               getModifiedEditor: () => modified!,
+              revealFirstDiff: () => void made.revealed++,
               dispose: () => sides.forEach((side) => side.dispose()),
             };
           },
@@ -4135,7 +4141,18 @@ describe('App', () => {
                 ? entries('ui/src', ['ribbon.ts', 'seal.ts'])
                 : [],
       });
-      answers['files.open'] = (request: CommandRequest<'files.open'>) => disk[request.path];
+      disk['C:/Users/me/.claude/CLAUDE.md'] = {
+        path: 'C:/Users/me/.claude/CLAUDE.md',
+        text: '# Mine\n',
+        changedAt: 1,
+      };
+      // Written in full inside the folder, a file is named from it, as the service does.
+      answers['files.open'] = (request: CommandRequest<'files.open'>) =>
+        disk[request.path.replace(/^C:\/(Users\/me\/git|work)\/grimoire\//, '')];
+      answers['git.diff'] = () => [
+        { kind: 'removed', text: 'export const ribbon = 1;' },
+        { kind: 'inserted', text: 'export const ribbon = 2;' },
+      ];
       answers['files.save'] = (request: CommandRequest<'files.save'>) =>
         (disk[request.path] = { ...disk[request.path]!, text: request.text, changedAt: 2 });
       answers['files.find'] = (request: CommandRequest<'files.find'>) =>
@@ -4220,7 +4237,7 @@ describe('App', () => {
       expect(texts('gr-files-page .sub .path')).toEqual(['README.md']);
       expect(editor()!.value).toBe('# Grimoire\n');
       expect(editor()!.dataset['language']).toBe('markdown');
-      expect(made).toEqual({ editors: 1, diffs: 0, themes: ['grimoire'] });
+      expect(made).toEqual({ editors: 1, diffs: 0, themes: ['grimoire'], revealed: 0 });
       // Not changed since the last commit: nothing to show beside it.
       expect(el.querySelector('gr-files-page .show')).toBeNull();
       expect(button('.gr-link', 'Save Ctrl+S').getAttribute('aria-disabled')).toBe('true');
@@ -4356,6 +4373,148 @@ describe('App', () => {
       expect(editor()!.value).toBe('export const seal = 1;\n');
       // Opened from the search, it shows the file alone.
       expect(texts('gr-files-page .show [aria-checked="true"]')).toEqual(['The file']);
+    });
+
+    describe('Open in Files', () => {
+      const ribbonEdit = {
+        kind: 'tool' as const,
+        id: 't1',
+        tool: 'Edit',
+        input: {
+          file_path: 'C:/work/grimoire/ui/src/ribbon.ts',
+          old_string: 'export const ribbon = 1;',
+          new_string: 'export const ribbon = 2;',
+        },
+        result: { text: 'Updated.', isError: false },
+      };
+      /** The book with the VS Code editor faked, and the corrections' link. */
+      async function book(bridge: GrimoireBridge) {
+        const monaco = fakeMonaco();
+        const rendered = await render(bridge, [{ provide: MONACO, useValue: monaco.load }]);
+        const openIn = (where = '') =>
+          [...rendered.el.querySelectorAll<HTMLButtonElement>(`${where} gr-corrections .gr-link`)].find(
+            (b) => b.textContent!.trim() === 'Open in Files',
+          );
+        const foldOut = async (name: string) => {
+          rendered.el.querySelector<HTMLButtonElement>('.note.summary')?.click();
+          await rendered.fixture.whenStable();
+          [...rendered.el.querySelectorAll<HTMLButtonElement>('.note')]
+            .find((note) => note.textContent!.includes(name) && !note.classList.contains('summary'))!
+            .click();
+          await rendered.fixture.whenStable();
+        };
+        return { ...rendered, made: monaco.made, openIn, foldOut };
+      }
+
+      it('opens a file the agent edited on its changes, from its corrections', async () => {
+        const { bridge, emit, calls } = repository();
+        const { fixture, el, texts, made, openIn, foldOut } = await book(bridge);
+        await write(fixture, el, 'Fix the ribbon');
+        emit('agents.entry', { chatId: 'chat-1', entry: { kind: 'agent', id: 'a1', blocks: [ribbonEdit] } });
+        await fixture.whenStable();
+        await foldOut('ribbon.ts');
+
+        openIn()!.click();
+        await fixture.whenStable();
+        expect(texts('.tabs [aria-pressed="true"]')).toEqual(['Files']);
+        expect(calls.filter((c) => c.command === 'files.open').map((c) => c.request)).toEqual([
+          { cwd: 'C:/work/grimoire', path: 'C:/work/grimoire/ui/src/ribbon.ts' },
+        ]);
+        expect(texts('gr-files-page .sub .path')).toEqual(['ui/src/ribbon.ts']);
+        expect(texts('gr-files-page .show [aria-checked="true"]')).toEqual(['Its changes since the last commit']);
+        expect(el.querySelector<HTMLTextAreaElement>('gr-files-page .fake-editor.committed')!.value).toBe(
+          'export const ribbon = 1;\n',
+        );
+        // It starts at the first change.
+        expect(made.revealed).toBe(1);
+      });
+
+      it('opens a change on the Git page in Files', async () => {
+        const { bridge, calls } = repository();
+        const { fixture, el, texts, openIn } = await book(bridge);
+        [...el.querySelectorAll<HTMLButtonElement>('.tabs button')]
+          .find((tab) => tab.textContent!.trim() === 'Git')!
+          .click();
+        await fixture.whenStable();
+        el.querySelector<HTMLButtonElement>('gr-git-page .change')!.click();
+        await fixture.whenStable();
+
+        openIn('gr-git-page')!.click();
+        await fixture.whenStable();
+        expect(texts('.tabs [aria-pressed="true"]')).toEqual(['Files']);
+        expect(calls.filter((c) => c.command === 'files.open').map((c) => c.request)).toEqual([
+          { cwd: 'C:/Users/me', path: 'C:/Users/me/git/grimoire/ui/src/ribbon.ts' },
+        ]);
+        expect(texts('gr-files-page .sub .path')).toEqual(['ui/src/ribbon.ts']);
+      });
+
+      it('opens a file outside the folder from an edit only proposed, as it is now', async () => {
+        const { bridge, emit } = repository();
+        const { fixture, el, texts, openIn } = await book(bridge);
+        await write(fixture, el, 'Remember this');
+        emit('agents.approval', {
+          approval: {
+            id: 'ap1',
+            chatId: 'chat-1',
+            tool: 'Edit',
+            input: { file_path: 'C:/Users/me/.claude/CLAUDE.md', old_string: '# Mine', new_string: '# Ours' },
+            alwaysAllow: { scope: 'chat' },
+          },
+        });
+        await fixture.whenStable();
+
+        openIn('gr-approval-slip')!.click();
+        await fixture.whenStable();
+        expect(texts('.tabs [aria-pressed="true"]')).toEqual(['Files']);
+        expect(texts('gr-files-page .sub .path')).toEqual(['~/.claude/CLAUDE.md']);
+        expect(el.querySelector<HTMLTextAreaElement>('gr-files-page .fake-editor')!.value).toBe('# Mine\n');
+        // Not in a repository: nothing to show beside it.
+        expect(el.querySelector('gr-files-page .show')).toBeNull();
+      });
+
+      it('keeps a file with changes not saved open, and asks to save or discard them first', async () => {
+        const { bridge, emit, calls } = repository();
+        const { fixture, el, texts, openIn, foldOut } = await book(bridge);
+        await write(fixture, el, 'Fix the ribbon');
+        [...el.querySelectorAll<HTMLButtonElement>('.tabs button')]
+          .find((tab) => tab.textContent!.trim() === 'Files')!
+          .click();
+        await fixture.whenStable();
+        [...el.querySelectorAll<HTMLButtonElement>('gr-files-page .entry')]
+          .find((entry) => entry.textContent!.trim() === 'README.md')!
+          .click();
+        await fixture.whenStable();
+        const editor = el.querySelector<HTMLTextAreaElement>('gr-files-page .fake-editor')!;
+        editor.value = '# Mine\n';
+        editor.dispatchEvent(new Event('input'));
+        await fixture.whenStable();
+
+        emit('agents.entry', { chatId: 'chat-1', entry: { kind: 'agent', id: 'a1', blocks: [ribbonEdit] } });
+        await fixture.whenStable();
+        await foldOut('ribbon.ts');
+        openIn()!.click();
+        await fixture.whenStable();
+        expect(texts('gr-files-page .sub .path')).toEqual(['README.md']);
+        expect(texts('gr-files-page .note.alert')).toEqual(['Save your changes, or discard them, first.']);
+        expect(calls.filter((c) => c.command === 'files.open')).toHaveLength(1);
+      });
+
+      it('leaves Open in Files out in focus mode, where there is no facing page', async () => {
+        const { bridge, emit } = repository();
+        const { fixture, el, openIn, foldOut } = await book(bridge);
+        await write(fixture, el, 'Fix the ribbon');
+        emit('agents.entry', { chatId: 'chat-1', entry: { kind: 'agent', id: 'a1', blocks: [ribbonEdit] } });
+        await fixture.whenStable();
+        await foldOut('ribbon.ts');
+        expect(openIn()).toBeDefined();
+
+        [...el.querySelectorAll<HTMLButtonElement>('gr-facing-page .gr-link')]
+          .find((link) => link.textContent!.includes('Single page'))!
+          .click();
+        await fixture.whenStable();
+        expect(el.querySelector('gr-corrections')).not.toBeNull();
+        expect(openIn()).toBeUndefined();
+      });
     });
 
     it("says when a file can't be shown", async () => {

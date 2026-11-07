@@ -236,6 +236,8 @@
           [file]="note.fold.file"
           [lines]="note.fold.lines"
           [caption]="'as marked by ' + agentName()"
+          [openable]="!!shell.openFile()"
+          (open)="shell.openFile()?.(note.fold.path)"
         />
       } @else {
         <gr-output class="wide" [title]="note.fold.title" [text]="note.fold.text" />

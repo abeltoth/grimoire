@@ -1,6 +1,7 @@
 import { Injectable, PendingTasks, computed, inject, signal } from '@angular/core';
 import type { FolderEntry, OpenFile } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
+import { Chats } from '@ui/app/core/chats';
 
 /** How long typing has to pause before files are looked for, in ms. */
 const FIND_AFTER_MS = 150;
@@ -10,6 +11,8 @@ export interface FilesNote {
   text: string;
   alert?: boolean;
 }
+
+const UNSAVED: FilesNote = { text: 'Save your changes, or discard them, first.', alert: true };
 
 /** A folder's Files page as you left it, kept while the facing page shows another. */
 export class FilesView {
@@ -56,7 +59,11 @@ export class FilesView {
 export class FilesViews {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
   private readonly pending = inject(PendingTasks);
+  private readonly chats = inject(Chats);
   private readonly views = new Map<string, FilesView>();
+
+  /** The folder the page shows: the open chapter's; your home folder until you pick another. */
+  readonly cwd = computed(() => this.chats.current()?.settings.cwd ?? this.chats.folders().home);
 
   constructor() {
     this.bridge.on('files.changed', ({ root, path }) => {
@@ -127,11 +134,20 @@ export class FilesViews {
     }, FIND_AFTER_MS);
   }
 
-  /** Opens a file, with its changes since the last commit if asked and it has any. */
+  /**
+   * Opens a file, with its changes since the last commit if asked and it
+   * has any; not over one that holds changes to save or discard first.
+   */
   async open(view: FilesView, path: string, changes = false): Promise<void> {
+    if (view.changed()) {
+      view.note.set(UNSAVED);
+      return;
+    }
+    const before = view.file();
     const done = this.pending.add();
     try {
       const file = await this.bridge.invoke('files.open', { cwd: view.cwd, path });
+      if (before && before.path !== file.path) this.unwatch(view, before.path);
       view.file.set(file);
       view.draft.set(file.text);
       view.changes.set(changes);
@@ -177,15 +193,18 @@ export class FilesViews {
     const file = view.file();
     if (!file) return;
     if (view.changed()) {
-      view.note.set({ text: 'Save your changes, or discard them, first.', alert: true });
+      view.note.set(UNSAVED);
       return;
     }
     view.file.set(null);
     view.draft.set('');
     view.note.set(null);
-    void this.bridge
-      .invoke('files.close', { cwd: view.cwd, path: file.path })
-      .catch(() => undefined);
+    this.unwatch(view, file.path);
+  }
+
+  /** Stops watching a file the page no longer shows. */
+  private unwatch(view: FilesView, path: string): void {
+    void this.bridge.invoke('files.close', { cwd: view.cwd, path }).catch(() => undefined);
   }
 
   /** The file as it is on disk now, over what's shown, changes and all. */

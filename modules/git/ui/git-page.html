@@ -78,7 +78,13 @@
             @if (open() === change.path) {
               @if (diff(); as lines) {
                 @if (lines.length) {
-                  <gr-corrections [file]="change.path" [lines]="lines" caption="not committed yet" />
+                  <gr-corrections
+                    [file]="change.path"
+                    [lines]="lines"
+                    caption="not committed yet"
+                    [openable]="!!shell.openFile()"
+                    (open)="shell.openFile()?.(status.root + '/' + change.path)"
+                  />
                 } @else {
                   <p class="none">No lines to show: it isn’t text, or it’s too long.</p>
                 }

@@ -1,9 +1,10 @@
 @let v = view();
 @if (v.file(); as file) {
+  @let shown = shownPath(file.path);
   <p class="sub">
     <span class="path" [attr.title]="file.path"
-      ><span class="folder">{{ folderOf(file.path) }}</span
-      >{{ nameOf(file.path) }}</span
+      ><span class="folder">{{ folderOf(shown) }}</span
+      >{{ nameOf(shown) }}</span
     >
     <span class="dot" aria-hidden="true">·</span>
     <button type="button" class="gr-link" (click)="close()">{{ wording.back('files') }}</button>

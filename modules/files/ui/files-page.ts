@@ -38,9 +38,7 @@ export class FilesPage {
   protected readonly saveKey: Shortcut = 'Mod+S';
 
   /** The open chapter's folder; your home folder until you pick another. */
-  protected readonly cwd = computed(
-    () => this.chats.current()?.settings.cwd ?? this.chats.folders().home,
-  );
+  protected readonly cwd = this.views.cwd;
   protected readonly view = computed(() => this.views.of(this.cwd()));
   /** What isn't committed yet, as git tells it; none outside a repository. */
   protected readonly changes = signal<readonly GitChange[]>([]);
@@ -88,6 +86,15 @@ export class FilesPage {
 
   protected showChanges(changes: boolean): void {
     this.view().changes.set(changes);
+  }
+
+  /** A file's path as the page names it: from the folder, or in full, from your home folder when it's in it. */
+  protected shownPath(path: string): string {
+    if (!/^([a-zA-Z]:)?\//.test(path)) return path;
+    const home = this.chats.folders().home.replaceAll('\\', '/').replace(/\/$/, '');
+    return home && path.toLowerCase().startsWith(`${home.toLowerCase()}/`)
+      ? `~${path.slice(home.length)}`
+      : path;
   }
 
   /** The folder a file is in, with a slash; empty at the top. */

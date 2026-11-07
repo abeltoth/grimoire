@@ -110,6 +110,7 @@ describe('toRows', () => {
         fold: {
           kind: 'corrections',
           file: 'a.ts',
+          path: '/repo/a.ts',
           lines: [
             { kind: 'inserted', text: 'one' },
             { kind: 'inserted', text: 'two' },
