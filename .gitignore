@@ -1,3 +1,4 @@
 /design
 node_modules/
 dist/
+/ui/vendor/

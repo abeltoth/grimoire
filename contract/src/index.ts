@@ -2,6 +2,7 @@ export * from './commands';
 export * from './events';
 export * from './agents';
 export * from './git';
+export * from './files';
 export * from './terminal';
 export * from './layout';
 export * from './memories';

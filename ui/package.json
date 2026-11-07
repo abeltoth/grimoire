@@ -3,8 +3,8 @@
   "private": true,
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
-    "build": "ng build",
+    "start": "node tools/copy-monaco.mjs && ng serve",
+    "build": "node tools/copy-monaco.mjs && ng build",
     "test": "ng test"
   },
   "dependencies": {
@@ -21,6 +21,7 @@
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/xterm": "^6.0.0",
     "marked": "^18.1.2",
+    "monaco-editor": "^0.57.0",
     "rxjs": "~7.8.0",
     "shiki": "^4.5.0",
     "tslib": "^2.3.0"

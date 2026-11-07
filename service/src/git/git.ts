@@ -126,6 +126,40 @@ export class Git {
     }
   }
 
+  /**
+   * A file as last committed, when it has changed since: null for a file
+   * that's new. Undefined when it hasn't changed, or outside a repository.
+   * The path is from the repository's top folder.
+   */
+  async committed(cwd: string, file: string): Promise<string | null | undefined> {
+    const root = await this.root(cwd);
+    if (!root) return undefined;
+    const status = await this.git(root, 'status', '--porcelain', '-z', '--untracked-files=all', '--', file).catch(
+      () => '',
+    );
+    if (!status) return undefined;
+    if (status.startsWith('??') || status.startsWith('A')) return null;
+    return this.git(root, 'show', `HEAD:${file}`).catch(() => null);
+  }
+
+  /** Which of the paths, from the repository's top folder, git ignores. */
+  async ignored(root: string, paths: string[]): Promise<Set<string>> {
+    const found = new Set<string>();
+    // A few at a time, to stay inside the command line's limit.
+    for (let i = 0; i < paths.length; i += 100) {
+      const some = paths.slice(i, i + 100);
+      const out = await this.git(root, '-c', 'core.quotePath=false', 'check-ignore', '--', ...some).catch(() => '');
+      for (const file of out.split(/\r?\n/)) if (file) found.add(file);
+    }
+    return found;
+  }
+
+  /** The repository's files that git doesn't ignore, committed or not, from its top folder. */
+  async files(root: string): Promise<string[]> {
+    const out = await this.git(root, 'ls-files', '-z', '--cached', '--others', '--exclude-standard');
+    return [...new Set(out.split('\0').filter(Boolean))];
+  }
+
   /** The pull request for the folder's branch, as gh sees it; kept for half a minute. */
   pullRequest(cwd: string): Promise<PullRequest | null> {
     const folder = expand(cwd);

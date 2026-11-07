@@ -1,0 +1,200 @@
+@let v = view();
+@if (v.file(); as file) {
+  <p class="sub">
+    <span class="path" [attr.title]="file.path"
+      ><span class="folder">{{ folderOf(file.path) }}</span
+      >{{ nameOf(file.path) }}</span
+    >
+    <span class="dot" aria-hidden="true">·</span>
+    <button type="button" class="gr-link" (click)="close()">{{ wording.back('files') }}</button>
+  </p>
+  @if (file.unshown) {
+    <p class="none">
+      @if (file.unshown === 'binary') {
+        It isn’t text, so it can’t be shown here.
+      } @else {
+        It’s too large to open here.
+      }
+    </p>
+  } @else {
+    @if (file.committed !== undefined) {
+      <p class="show" role="radiogroup" aria-label="Show">
+        <button
+          type="button"
+          role="radio"
+          [attr.aria-checked]="!v.showsChanges()"
+          (click)="showChanges(false)"
+        >
+          The file
+        </button>
+        <button
+          type="button"
+          role="radio"
+          [attr.aria-checked]="v.showsChanges()"
+          (click)="showChanges(true)"
+        >
+          {{
+            file.committed === null
+              ? 'All new since the last commit'
+              : 'Its changes since the last commit'
+          }}
+        </button>
+      </p>
+    }
+    @for (path of [file.path]; track path) {
+      <gr-code-editor
+        [path]="path"
+        [text]="v.draft()"
+        (textChange)="v.draft.set($event)"
+        [committed]="file.committed"
+        [changes]="v.showsChanges()"
+        (save)="save()"
+      />
+    }
+    <p class="actions">
+      <button
+        type="button"
+        class="gr-link"
+        [attr.aria-disabled]="v.saving() || !v.changed() || null"
+        (click)="save()"
+      >
+        Save <span class="gr-kbd">{{ saveKey | shortcut }}</span>
+      </button>
+      @if (v.changed()) {
+        <span class="dot" aria-hidden="true">·</span>
+        <button type="button" class="gr-link" (click)="discard()">Discard changes</button>
+      }
+      @if (v.note(); as note) {
+        <span class="note" [class.alert]="note.alert" [attr.role]="note.alert ? 'alert' : 'status'">
+          {{ note.text }}
+        </span>
+      }
+    </p>
+  }
+} @else {
+  <h2>{{ chats.folderName(v.root() ?? cwd()) }}</h2>
+  <div class="look-up">
+    <label for="gr-files-look-up">{{ wording.say('Look up', 'Find') }}</label>
+    <input
+      #lookUpField
+      id="gr-files-look-up"
+      type="text"
+      autocomplete="off"
+      spellcheck="false"
+      placeholder="a file, by name"
+      [value]="v.query()"
+      (input)="find(lookUpField.value)"
+    />
+  </div>
+  @if (v.note(); as note) {
+    <p class="none" [class.alert]="note.alert" role="alert">{{ note.text }}</p>
+  }
+
+  @if (v.found(); as found) {
+    <section aria-labelledby="files-found">
+      <h3 id="files-found">Found</h3>
+      @if (found.length) {
+        <ul class="list">
+          @for (path of found; track path) {
+            <li>
+              <button type="button" class="file" (click)="open(path)">
+                <span class="path"
+                  ><span class="folder">{{ folderOf(path) }}</span
+                  >{{ nameOf(path) }}</span
+                >
+              </button>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="none">No file’s path has those words in it.</p>
+      }
+    </section>
+  } @else {
+    @if (changes().length) {
+      <section aria-labelledby="files-changed">
+        <h3 id="files-changed">Not committed yet</h3>
+        <ul class="list">
+          @for (change of changes(); track change.path) {
+            <li>
+              @if (change.kind === 'deleted') {
+                <span class="file gone">
+                  <span class="path"
+                    ><span class="folder">{{ folderOf(change.path) }}</span
+                    >{{ nameOf(change.path) }}</span
+                  >
+                  <span class="leader" aria-hidden="true"></span>
+                  <span class="kind"> deleted </span>
+                </span>
+              } @else {
+                <button type="button" class="file" (click)="open(change.path, true)">
+                  <span class="path"
+                    ><span class="folder">{{ folderOf(change.path) }}</span
+                    >{{ nameOf(change.path) }}</span
+                  >
+                  <span class="leader" aria-hidden="true"></span>
+                  <span class="kind" [class.alert]="change.kind === 'conflicted'">
+                    {{ change.kind }}
+                  </span>
+                </button>
+              }
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
+    <section aria-labelledby="files-all">
+      <h3 id="files-all">All its files</h3>
+      @if (v.unread(); as why) {
+        <p class="none" role="alert">{{ why }}</p>
+      } @else if (v.entries().has('')) {
+        <ng-container *ngTemplateOutlet="folder; context: { $implicit: '' }" />
+      } @else {
+        <p class="none">Reading the folder…</p>
+      }
+    </section>
+  }
+}
+
+<ng-template #folder let-path>
+  @let entries = view().entries().get(path) ?? [];
+  @if (entries.length) {
+    <ul class="tree">
+      @for (entry of entries; track entry.path) {
+        <li>
+          @if (entry.kind === 'folder') {
+            @let unfolded = view().unfolded().has(entry.path);
+            <button
+              type="button"
+              class="entry folder-entry"
+              [class.ignored]="entry.ignored"
+              [attr.aria-expanded]="unfolded"
+              (click)="toggle(entry.path)"
+            >
+              <gr-icon name="chevron-down" [class.folded]="!unfolded" />{{ entry.name }}/
+            </button>
+            @if (unfolded) {
+              @if (view().entries().has(entry.path)) {
+                <ng-container *ngTemplateOutlet="folder; context: { $implicit: entry.path }" />
+              } @else {
+                <p class="none">Reading…</p>
+              }
+            }
+          } @else {
+            <button
+              type="button"
+              class="entry"
+              [class.ignored]="entry.ignored"
+              (click)="open(entry.path)"
+            >
+              {{ entry.name }}
+            </button>
+          }
+        </li>
+      }
+    </ul>
+  } @else {
+    <p class="none">Empty.</p>
+  }
+</ng-template>

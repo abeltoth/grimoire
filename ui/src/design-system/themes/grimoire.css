@@ -583,6 +583,50 @@
   --gr-git-last-indent: 20px;
   --gr-git-fold-gap: 8px;
 
+  /* Files: the Files page on the facing page */
+  --gr-files-width: 640px;
+  --gr-files-gap: 8px;
+  --gr-files-section-gap: 24px;
+  --gr-files-head-gap: 10px;
+  --gr-files-pad-bottom: 18px;
+  --gr-files-tree-gap: 5px;
+  --gr-files-tree-indent: 4px;
+  --gr-files-tree-pad: 12px;
+  --gr-files-twist-gap: 6px;
+  /* The folder's twist and the gap after it, so files line up with the folders' names */
+  --gr-files-twist-w: 16px;
+  --gr-files-folded-turn: -90deg;
+  --gr-files-twist-dur: 120ms;
+  --gr-files-show-gap: 16px;
+  --gr-files-actions-pad: 10px 0 0;
+
+  /* Files: the VS Code editor, in the book's paper, ink and code colours */
+  --gr-editor-page: var(--gr-page-facing);
+  --gr-editor-rule: 1px solid var(--gr-hairline);
+  --gr-editor-ink: var(--gr-code-text);
+  --gr-editor-keyword: var(--gr-code-keyword);
+  --gr-editor-string: var(--gr-code-string);
+  --gr-editor-comment: var(--gr-code-comment);
+  --gr-editor-type: var(--gr-code-type);
+  --gr-editor-number: var(--gr-gilt-ink);
+  --gr-editor-punctuation: var(--gr-ink-soft);
+  --gr-editor-line-number: var(--gr-ink-faint);
+  --gr-editor-line-number-current: var(--gr-ink-soft);
+  --gr-editor-current-line: rgba(74, 48, 22, 0.045);
+  --gr-editor-selection: rgba(184, 145, 63, 0.3);
+  --gr-editor-cursor: var(--gr-pen);
+  --gr-editor-guide: rgba(74, 48, 22, 0.14);
+  --gr-editor-widget: var(--gr-page-next);
+  --gr-editor-widget-rule: var(--gr-hairline);
+  --gr-editor-scrollbar: var(--gr-scrollbar-thumb);
+  --gr-editor-inserted: rgba(47, 106, 85, 0.2);
+  --gr-editor-inserted-line: rgba(47, 106, 85, 0.08);
+  --gr-editor-removed: rgba(165, 50, 30, 0.18);
+  --gr-editor-removed-line: rgba(165, 50, 30, 0.07);
+  --gr-editor-font: var(--gr-font-mono);
+  --gr-editor-size: 13px;
+  --gr-editor-line: 20px;
+
   /* Review stamps in the chapter's running head */
   --gr-stamps-gap: 8px;
   --gr-stamp-pad: 1px 6px;

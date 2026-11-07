@@ -1,0 +1,49 @@
+/*
+ * The editor's look, from the theme. book-theme.ts reads these and hands
+ * them to the VS Code editor, which draws with colours and sizes, not CSS.
+ */
+gr-code-editor {
+  --page: var(--gr-editor-page);
+  --ink: var(--gr-editor-ink);
+  --keyword: var(--gr-editor-keyword);
+  --string: var(--gr-editor-string);
+  --comment: var(--gr-editor-comment);
+  --type: var(--gr-editor-type);
+  --number: var(--gr-editor-number);
+  --punctuation: var(--gr-editor-punctuation);
+  --line-number: var(--gr-editor-line-number);
+  --line-number-current: var(--gr-editor-line-number-current);
+  --current-line: var(--gr-editor-current-line);
+  --selection: var(--gr-editor-selection);
+  --cursor: var(--gr-editor-cursor);
+  --guide: var(--gr-editor-guide);
+  --widget: var(--gr-editor-widget);
+  --widget-rule: var(--gr-editor-widget-rule);
+  --scrollbar: var(--gr-editor-scrollbar);
+  --inserted: var(--gr-editor-inserted);
+  --inserted-line: var(--gr-editor-inserted-line);
+  --removed: var(--gr-editor-removed);
+  --removed-line: var(--gr-editor-removed-line);
+  --font: var(--gr-editor-font);
+  --size: var(--gr-editor-size);
+  --line: var(--gr-editor-line);
+
+  flex: 1;
+  min-height: var(--gr-file-editor-min);
+  display: flex;
+  flex-direction: column;
+  border-top: var(--gr-editor-rule);
+  border-bottom: var(--gr-editor-rule);
+}
+
+gr-code-editor .surface {
+  flex: 1;
+  min-height: 0;
+}
+
+gr-code-editor .none {
+  margin: var(--gr-aside-gap) 0 0;
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}

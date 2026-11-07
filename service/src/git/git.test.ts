@@ -88,6 +88,21 @@ describe('Git', () => {
 
   it("won't read a file outside the repository", async () => {
     expect(await new Git().diff(repo, '../outside.txt')).toEqual([]);
+    expect(await new Git().committed(repo, '../outside.txt')).toBeUndefined();
+  });
+
+  it('gives a changed file as last committed, null for a new one, and nothing for one unchanged', async () => {
+    mkdirSync(path.join(repo, 'sub'));
+    write('sub/d.txt', 'dee\n');
+    git('add', 'sub/d.txt');
+    commit('Sub');
+    write('sub/d.txt', 'deer\n');
+    write('a.txt', 'one\n2\nthree\n');
+    write('c.txt', 'sea\n');
+    expect(await new Git().committed(repo, 'a.txt')).toBe('one\ntwo\nthree\n');
+    expect(await new Git().committed(repo, 'sub/d.txt')).toBe('dee\n');
+    expect(await new Git().committed(repo, 'c.txt')).toBeNull();
+    expect(await new Git().committed(repo, 'b.txt')).toBeUndefined();
   });
 
   it('lists the branches against the trunk, the trunk first', async () => {
