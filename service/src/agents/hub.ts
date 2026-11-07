@@ -43,7 +43,7 @@ import { openDatabase } from '../storage/database';
 import { DogEars } from '../storage/dog-ears';
 import { EntryIds } from '../storage/entry-ids';
 import { Tags } from '../storage/tags';
-import { UsageReadings } from '../storage/usage-readings';
+import { UsageReadings, sameAccount } from '../storage/usage-readings';
 import type { AgentAdapter, ChatEvents, LiveChat, SignInRun, Verdict } from './adapter';
 import { samePath } from './files';
 import { MemoryFiles } from './memory-files';
@@ -324,9 +324,9 @@ export class AgentHub {
     this.signIns.get(agent)?.run.cancel();
   }
 
-  /** Each reading of the agent's plan limits kept since a time, oldest first. */
+  /** Each reading of the agent's plan limits kept since a time, oldest first: those of the account signed in now. */
   usageHistory(agent: AgentId, since: number): UsageReading[] {
-    return this.store.usage.since(agent, since);
+    return sameAccount(this.store.usage.since(agent, since));
   }
 
   /** What the agent's own scan says took the plan's usage; null when it can't say. */

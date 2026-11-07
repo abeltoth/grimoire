@@ -1,10 +1,12 @@
 <figure class="chart">
   <figcaption>{{ caption() }}</figcaption>
-  <ul class="legend">
-    @for (each of series(); track each.name) {
-      <li><span class="swatch" [style.background]="each.color"></span>{{ each.name }}</li>
-    }
-  </ul>
+  @if (series().length > 1) {
+    <ul class="legend">
+      @for (each of series(); track each.name) {
+        <li><span class="swatch" [style.background]="each.color"></span>{{ each.name }}</li>
+      }
+    </ul>
+  }
 
   @let drawn = layout();
   <div class="plot">
@@ -60,43 +62,49 @@
       @let at = tipAt(each.center);
       <div class="tip" [class.flip]="at.flip" [style.left.%]="at.left" aria-hidden="true">
         <span class="tip-head">{{ each.column.name }}</span>
-        <span class="tip-row"
-          ><strong>{{ format()(each.total) }}</strong> in all</span
-        >
-        @for (one of series(); track one.name; let s = $index) {
-          <span class="tip-row">
-            <span class="key" [style.background]="one.color"></span>
-            <strong>{{ format()(each.column.parts[s] ?? 0) }}</strong>
-            <span class="tip-name">{{ one.name }}</span>
-          </span>
+        @if (series().length > 1) {
+          <span class="tip-row"
+            ><strong>{{ format()(each.total) }}</strong> in all</span
+          >
+          @for (one of series(); track one.name; let s = $index) {
+            <span class="tip-row">
+              <span class="key" [style.background]="one.color"></span>
+              <strong>{{ format()(each.column.parts[s] ?? 0) }}</strong>
+              <span class="tip-name">{{ one.name }}</span>
+            </span>
+          }
+        } @else {
+          <strong>{{ format()(each.total) }}</strong>
         }
       </div>
     }
   </div>
 
-  <details class="table-view">
-    <summary>As a table</summary>
-    <table>
-      <thead>
-        <tr>
-          <th scope="col"></th>
-          @for (each of series(); track each.name) {
-            <th scope="col">{{ each.name }}</th>
-          }
-          <th scope="col">All</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (each of drawn.columns; track each.i) {
+  @if (tabled()) {
+    <details class="table-view">
+      <summary>As a table</summary>
+      <table>
+        <thead>
           <tr>
-            <th scope="row">{{ each.column.name }}</th>
-            @for (part of each.column.parts; track $index) {
-              <td>{{ format()(part) }}</td>
+            <th scope="col"></th>
+            @for (each of series(); track each.name) {
+              <th scope="col">{{ each.name }}</th>
             }
-            <td>{{ format()(each.total) }}</td>
+            <th scope="col">All</th>
           </tr>
-        }
-      </tbody>
-    </table>
-  </details>
+        </thead>
+        <tbody>
+          @for (each of drawn.columns; track each.i) {
+            <tr>
+              <th scope="row">{{ each.column.name }}</th>
+              @for (part of each.column.parts; track $index) {
+                <td>{{ format()(part) }}</td>
+              }
+              <td>{{ format()(each.total) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </details>
+  }
 </figure>

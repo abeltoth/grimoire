@@ -82,16 +82,30 @@
             }
           </ul>
           @if (plan.chart; as chart) {
-            <gr-ledger-lines
-              caption="Over the last 7 days"
-              [series]="chart.series"
-              [from]="chart.from"
-              [to]="chart.to"
-              [ticks]="chart.ticks"
-              [marks]="chart.marks"
-              [breakAfter]="readingsApart"
-              [when]="readingName"
-            />
+            @if (chart.week.length) {
+              <gr-ledger-lines
+                caption="The week’s limit over the last 7 days"
+                [series]="chart.week"
+                [from]="chart.from"
+                [to]="chart.to"
+                [ticks]="chart.ticks"
+                [marks]="chart.marks"
+                [breakAfter]="weekApart"
+                [step]="true"
+                [table]="chart.table"
+                [when]="readingName"
+              />
+            }
+            @if (chart.sessions.length) {
+              <gr-ledger-columns
+                caption="How full each session got"
+                [series]="sessionSeries"
+                [columns]="chart.sessions"
+                [format]="percent"
+                [max]="100"
+                [tabled]="false"
+              />
+            }
           }
         } @else {
           <p class="none">

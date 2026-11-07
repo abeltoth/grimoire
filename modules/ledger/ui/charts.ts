@@ -16,9 +16,22 @@ export interface Column {
   parts: readonly number[];
 }
 
+/** A point of a line: a reading, and what it belongs with, such as its week; a line breaks between two. */
+export interface LinePoint {
+  at: number;
+  value: number;
+  run?: number;
+}
+
 /** A series of a line chart: its points, oldest first. */
 export interface LineSeries extends ChartSeries {
-  points: readonly { at: number; value: number }[];
+  points: readonly LinePoint[];
+}
+
+/** What a chart shows as a table in place of each of its numbers: a row a line, named. */
+export interface ChartTable {
+  head: readonly string[];
+  rows: readonly { name: string; cells: readonly string[] }[];
 }
 
 /** A moment marked on a line chart's time axis. */
@@ -80,6 +93,10 @@ export class LedgerColumns {
   readonly series = input.required<readonly ChartSeries[]>();
   readonly columns = input.required<readonly Column[]>();
   readonly format = input<(n: number) => string>((n) => n.toLocaleString());
+  /** A fixed top for the scale, such as 100 for percent; by default, past the tallest column. */
+  readonly max = input<number | null>(null);
+  /** Off where another chart's table already has the numbers. */
+  readonly tabled = input(true);
 
   protected readonly width = W;
   protected readonly height = H;
@@ -90,7 +107,10 @@ export class LedgerColumns {
   protected readonly layout = computed(() => {
     const columns = this.columns();
     const totals = columns.map((column) => column.parts.reduce((sum, part) => sum + part, 0));
-    const ticks = niceTicks(Math.max(0, ...totals));
+    const max = this.max();
+    const ticks = max
+      ? [0, 1, 2, 3, 4].map((n) => (n * max) / 4)
+      : niceTicks(Math.max(0, ...totals));
     const top = ticks[ticks.length - 1]!;
     const y = (value: number) => BASE - (value / top) * PLOT_H;
     const band = (W - LEFT) / Math.max(columns.length, 1);
@@ -158,6 +178,10 @@ export class LedgerLines {
   readonly marks = input<readonly ChartTick[]>([]);
   /** How far apart two readings may be and still be joined by a line, in ms. */
   readonly breakAfter = input.required<number>();
+  /** Each reading holds until the next, as a limit's share does, rather than sloping to it. */
+  readonly step = input(false);
+  /** A table in place of every reading's numbers. */
+  readonly table = input<ChartTable | null>(null);
   readonly max = input(100);
   readonly format = input<(n: number) => string>((n) => `${Math.round(n)}%`);
   /** A reading's moment, for the tooltip and the table. */
@@ -195,16 +219,21 @@ export class LedgerLines {
     const max = this.max();
     const gap = this.breakAfter();
     const lines = this.series().map((series) => {
-      const runs: { at: number; value: number }[][] = [];
+      const runs: LinePoint[][] = [];
       for (const point of series.points) {
         const run = runs[runs.length - 1];
         const last = run?.[run.length - 1];
-        if (run && last && point.at - last.at <= gap) run.push(point);
+        if (run && last && point.at - last.at <= gap && point.run === last.run) run.push(point);
         else runs.push([point]);
       }
-      const path = (run: readonly { at: number; value: number }[]) =>
+      const step = this.step();
+      const path = (run: readonly LinePoint[]) =>
         run
-          .map((p, i) => `${i ? 'L' : 'M'}${x(p.at).toFixed(1)},${y(p.value).toFixed(1)}`)
+          .map((p, i) => {
+            const px = x(p.at).toFixed(1);
+            const py = y(p.value).toFixed(1);
+            return i === 0 ? `M${px},${py}` : step ? `H${px}V${py}` : `L${px},${py}`;
+          })
           .join('');
       const end = series.points[series.points.length - 1];
       return {
@@ -246,7 +275,9 @@ export class LedgerLines {
       at,
       x: this.x()(at),
       rows: this.series().map((series) => {
-        const point = series.points.find((p) => p.at === at) ?? nearest(series.points, at, gap);
+        const point =
+          series.points.find((p) => p.at === at) ??
+          (this.step() ? latestBy(series.points, at, gap) : nearest(series.points, at, gap));
         return { series, point, y: point ? this.y()(point.value) : 0 };
       }),
     };
@@ -314,6 +345,17 @@ export class LedgerLines {
   protected tipAt(x: number): { left: number; flip: boolean } {
     return { left: (x / W) * 100, flip: x > W / 2 };
   }
+}
+
+/** The latest point at or before a moment, within a span of it: what held then. */
+function latestBy<T extends { at: number }>(
+  points: readonly T[],
+  at: number,
+  within: number,
+): T | undefined {
+  let best: T | undefined;
+  for (const point of points) if (point.at <= at && at - point.at <= within) best = point;
+  return best;
 }
 
 /** The point nearest a moment, within a span of it; none when there's none so near. */

@@ -118,6 +118,7 @@ describe('AgentHub', () => {
       usage: async () => ({
         plan: 'max',
         windows: [{ span: 'session' as const, used: used++, resetsAt: 5000 }],
+        account: 'me@example.com',
         at: Date.now(),
       }),
     });

@@ -128,24 +128,45 @@
   <details class="table-view">
     <summary>As a table</summary>
     <table>
-      <thead>
-        <tr>
-          <th scope="col"></th>
-          @for (each of series(); track each.name) {
-            <th scope="col">{{ each.name }}</th>
-          }
-        </tr>
-      </thead>
-      <tbody>
-        @for (at of moments(); track at) {
+      @if (table(); as table) {
+        <thead>
           <tr>
-            <th scope="row">{{ when()(at) }}</th>
-            @for (each of series(); track each.name) {
-              <td>{{ valueAt(each, at) }}</td>
+            <th scope="col"></th>
+            @for (head of table.head; track $index) {
+              <th scope="col">{{ head }}</th>
             }
           </tr>
-        }
-      </tbody>
+        </thead>
+        <tbody>
+          @for (row of table.rows; track $index) {
+            <tr>
+              <th scope="row">{{ row.name }}</th>
+              @for (cell of row.cells; track $index) {
+                <td>{{ cell }}</td>
+              }
+            </tr>
+          }
+        </tbody>
+      } @else {
+        <thead>
+          <tr>
+            <th scope="col"></th>
+            @for (each of series(); track each.name) {
+              <th scope="col">{{ each.name }}</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (at of moments(); track at) {
+            <tr>
+              <th scope="row">{{ when()(at) }}</th>
+              @for (each of series(); track each.name) {
+                <td>{{ valueAt(each, at) }}</td>
+              }
+            </tr>
+          }
+        </tbody>
+      }
     </table>
   </details>
 </figure>

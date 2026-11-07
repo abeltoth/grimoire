@@ -114,6 +114,8 @@ export interface UsageWindow {
 export interface UsageReading extends UsageWindow {
   /** When it was read, in ms since the epoch. */
   at: number;
+  /** The email of the account it was read for; absent for readings kept before Grimoire noted it. */
+  account?: string;
 }
 
 /**
@@ -143,6 +145,8 @@ export interface PlanUsage {
   windows: UsageWindow[];
   /** While usage credits are turned on. */
   credits?: UsageCredits;
+  /** The email of the account the limits are of, when the agent says. */
+  account?: string;
   /** When it was read, in ms since the epoch. */
   at: number;
 }
@@ -403,7 +407,7 @@ declare module './commands' {
     'agents.commands': { request: { agent: AgentId; cwd?: string }; response: AgentCommand[] };
     /** The agent's subscription limits and how much of them is used; null when it has none. */
     'agents.usage': { request: { agent: AgentId }; response: PlanUsage | null };
-    /** Each reading of the agent's plan limits kept since a time, oldest first. */
+    /** Each reading of the agent's plan limits kept since a time, oldest first: those of the account signed in now. */
     'agents.usageHistory': { request: { agent: AgentId; since: number }; response: UsageReading[] };
     /** Who the agent is signed in as, and any sign-in under way. */
     'agents.account': { request: { agent: AgentId }; response: AgentSignIn };

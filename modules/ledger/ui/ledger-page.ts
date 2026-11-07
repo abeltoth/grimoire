@@ -18,10 +18,12 @@ import { Chats } from '@ui/app/core/chats';
 import { countsInWords, modelLabel, tokenCount } from '@ui/app/core/tokens';
 import {
   type ChartSeries,
+  type ChartTable,
   type ChartTick,
   type Column,
   LedgerColumns,
   LedgerLines,
+  type LinePoint,
   type LineSeries,
 } from './charts';
 
@@ -35,11 +37,16 @@ interface Plan {
 
 /** A plan's limits over the last week, drawn. */
 interface LimitsChart {
-  series: LineSeries[];
+  /** The week's limit, and any week kept for one model: a step line each, broken where a week starts afresh. */
+  week: LineSeries[];
+  /** How full each five-hour session got. */
+  sessions: Column[];
   from: number;
   to: number;
   ticks: ChartTick[];
   marks: ChartTick[];
+  /** A row a day: the busiest session, and the week's share at the day's end. */
+  table: ChartTable;
 }
 
 /** Where the tokens went over the span, a column or point for each day or hour. */
@@ -96,11 +103,13 @@ const TOKEN_SERIES: (ChartSeries & { weigh: (counts: TokenCounts) => number })[]
 ];
 const TOKEN_LEGEND: ChartSeries[] = TOKEN_SERIES.map(({ name, color }) => ({ name, color }));
 
-/** The plan's limits drawn on the chart, in this order: the session, the week, then a week kept for one model. */
-const LIMIT_COLORS = ['var(--gr-chart-3)', 'var(--gr-chart-4)', 'var(--gr-chart-1)', 'var(--gr-chart-2)'];
+/** The week's limits drawn as lines, in this order: all models, then each week kept for one model. */
+const WEEK_COLORS = ['var(--gr-chart-4)', 'var(--gr-chart-1)', 'var(--gr-chart-2)'];
+const SESSION_SERIES: ChartSeries[] = [{ name: 'Peak of the session', color: 'var(--gr-chart-3)' }];
 
-/** The limits are read every 15 minutes: readings further apart than this aren't joined. */
-const READINGS_APART = 40 * 60_000;
+/** A five-hour session, and how near together two readings of when it resets may be and still be the same one. */
+const SESSION = 5 * HOUR;
+const SAME_RESET = 10 * 60_000;
 
 /** The start of the local day or hour a time falls in. */
 function startOf(at: number, unit: 'day' | 'hour'): Date {
@@ -260,7 +269,10 @@ export class LedgerPage {
   protected readonly readingName = (at: number): string =>
     `${weekday(at)} ${new Date(at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
 
-  protected readonly readingsApart = READINGS_APART;
+  protected readonly sessionSeries = SESSION_SERIES;
+  /** A week's line holds across the hours nothing was read: its share only grows until it starts afresh. */
+  protected readonly weekApart = 7 * DAY;
+  protected readonly percent = (n: number): string => `${Math.round(n)}%`;
   protected readonly tokenFormat = (n: number): string => tokenCount(n);
 
   constructor() {
@@ -443,47 +455,93 @@ export class LedgerPage {
   }
 
   /**
-   * A plan's limits over the last week: a line for the session and one for
-   * the week, and for each week kept for one model, with each time the week
-   * started afresh marked. Null with too little read to draw.
+   * A plan's limits over the last week: the week's share as a step line,
+   * each new week marked, and how full each five-hour session got. Null
+   * with too little read to draw.
    */
   private limitsChart(history: readonly UsageReading[], now: number): LimitsChart | null {
     const from = now - 7 * DAY;
-    const limits = new Map<string, { window: UsageReading; points: LineSeries['points'][number][] }>();
-    const order = (r: UsageReading) => (r.span === 'session' ? 0 : r.model ? 2 : 1);
-    for (const reading of [...history].sort((a, b) => order(a) - order(b) || a.at - b.at)) {
-      const key = `${reading.span} ${reading.model ?? ''}`;
-      const limit = limits.get(key) ?? { window: reading, points: [] };
-      limits.set(key, limit);
-      if (reading.used !== null && reading.at >= from) limit.points.push({ at: reading.at, value: reading.used });
+    const shown = history.filter((r) => r.at >= from && r.used !== null);
+    // Two readings a minute apart may say 14:59 or 15:00: a reset is to the hour.
+    const toHour = (at: number) => Math.round(at / HOUR) * HOUR;
+
+    const weeks = new Map<string, { window: UsageReading; points: LinePoint[] }>();
+    const byModel = (a: UsageReading, b: UsageReading) => Number(!!a.model) - Number(!!b.model) || a.at - b.at;
+    for (const r of shown.filter((r) => r.span === 'week').sort(byModel)) {
+      const key = r.model ?? '';
+      const limit = weeks.get(key) ?? { window: r, points: [] };
+      weeks.set(key, limit);
+      limit.points.push({ at: r.at, value: r.used!, ...(r.resetsAt === null ? {} : { run: toHour(r.resetsAt) }) });
     }
-    // Past four limits the colours would repeat: the rest stay in the list above.
-    const series = [...limits.values()]
-      .filter((limit) => limit.points.length)
-      .slice(0, LIMIT_COLORS.length)
-      .map((limit, i) => ({
-        name: this.label(limit.window),
-        color: LIMIT_COLORS[i]!,
-        points: limit.points.sort((a, b) => a.at - b.at),
-      }));
-    if (series.reduce((sum, each) => sum + each.points.length, 0) < 2) return null;
+    // Past three the colours would repeat: the rest stay in the list above.
+    const week = [...weeks.values()].slice(0, WEEK_COLORS.length).map((limit, i) => ({
+      name: this.label(limit.window),
+      color: WEEK_COLORS[i]!,
+      points: limit.points,
+    }));
+
+    const peaks = new Map<number, { end: number; peak: number }>();
+    for (const r of shown) {
+      if (r.span !== 'session' || r.resetsAt === null) continue;
+      const key = Math.round(r.resetsAt / SAME_RESET);
+      const session = peaks.get(key) ?? { end: r.resetsAt, peak: 0 };
+      session.peak = Math.max(session.peak, r.used!);
+      peaks.set(key, session);
+    }
+    let labelled = -Infinity;
+    let lastDay = '';
+    const sessions = [...peaks.values()]
+      .filter((session) => session.peak > 0)
+      .sort((a, b) => a.end - b.end)
+      .map((session, i): Column => {
+        const start = session.end - SESSION;
+        const day = dayKey(new Date(start));
+        // A day's first session names the day, unless the one just named is too near.
+        const named = day !== lastDay && i - labelled >= 2;
+        lastDay = day;
+        if (named) labelled = i;
+        return {
+          label: named ? dayTick(start) : '',
+          name: `${weekday(start)} ${time(start)} to ${time(session.end)}`,
+          parts: [session.peak],
+        };
+      });
+    if (!week.some((each) => each.points.length > 1) && !sessions.length) return null;
+
     const ticks: ChartTick[] = [];
+    const rows: { name: string; cells: string[] }[] = [];
+    const allModels = shown.filter((r) => r.span === 'week' && !r.model);
     for (const day = startOf(from, 'day'); day.getTime() <= now; day.setDate(day.getDate() + 1)) {
-      const noon = day.getTime() + 12 * HOUR;
+      const start = day.getTime();
+      const noon = start + 12 * HOUR;
       if (noon >= from && noon <= now) ticks.push({ at: noon, label: dayTick(noon) });
+      const end = new Date(start);
+      end.setDate(end.getDate() + 1);
+      const inDay = (r: UsageReading) => r.at >= start && r.at < end.getTime();
+      const busiest = Math.max(-1, ...shown.filter((r) => r.span === 'session' && inDay(r)).map((r) => r.used!));
+      const last = allModels.filter(inDay).at(-1);
+      // A day nothing was read, such as one the app was closed, has no row.
+      if (busiest >= 0 || last) {
+        rows.push({
+          name: this.dayName(dayKey(day)),
+          cells: [busiest < 0 ? '–' : this.percent(busiest), last ? this.percent(last.used!) : '–'],
+        });
+      }
     }
     const resets = new Set(
-      history
-        .filter((r) => r.span === 'week' && !r.model && r.resetsAt !== null)
-        .map((r) => r.resetsAt!)
+      allModels
+        .filter((r) => r.resetsAt !== null)
+        .map((r) => toHour(r.resetsAt!))
         .filter((at) => at > from && at <= now),
     );
     return {
-      series,
+      week,
+      sessions,
       from,
       to: now,
       ticks,
       marks: [...resets].sort((a, b) => a - b).map((at) => ({ at, label: 'New week' })),
+      table: { head: ['Busiest session', 'Week at the day’s end'], rows },
     };
   }
 

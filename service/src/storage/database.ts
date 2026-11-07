@@ -81,6 +81,7 @@ const MIGRATIONS = [
      value TEXT NOT NULL
    );`,
   `ALTER TABLE presets ADD COLUMN prompt TEXT;`,
+  `ALTER TABLE usage_readings ADD COLUMN account TEXT NOT NULL DEFAULT '';`,
 ];
 
 /**

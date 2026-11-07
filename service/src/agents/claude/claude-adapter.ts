@@ -590,10 +590,13 @@ async function readUsage(): Promise<PlanUsage> {
   const probe = query({ prompt: input, options: { permissionMode: MODES.ask } });
   try {
     // Experimental in the SDK: its name and answer may change in any release.
-    const usage = await probe.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET({
-      skipBehaviors: true,
-    });
-    return toPlanUsage(usage, Date.now());
+    const [usage, account] = await Promise.all([
+      probe.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET({ skipBehaviors: true }),
+      // Whose limits they are, so each account's history is kept apart.
+      probe.accountInfo().catch(() => undefined),
+    ]);
+    const plan = toPlanUsage(usage, Date.now());
+    return account?.email ? { ...plan, account: account.email } : plan;
   } finally {
     input.end();
     probe.close();

@@ -1522,29 +1522,31 @@ describe('App', () => {
     expect(calls.filter((call) => call.command === 'agents.usage')).toHaveLength(2);
   });
 
-  it('draws the plan limits over the last week in the Ledger, a line broken where nothing was read', async () => {
+  it("draws the week's limit as steps and each session's peak in the Ledger, with a row a day", async () => {
     const { bridge, answers, calls } = fakeBridge();
     const now = Date.now();
     const minutes = (n: number) => now - n * 60_000;
-    const weekReset = minutes(3 * 24 * 60);
+    const lastWeek = minutes(3 * 24 * 60);
+    const nextWeek = now + 4 * 24 * 60 * 60_000;
+    const firstSession = minutes(100);
+    const secondSession = now + 270 * 60_000;
     answers['agents.usage'] = () => ({
       plan: 'max',
       windows: [
-        { span: 'session', used: 40, resetsAt: null },
-        { span: 'week', used: 20, resetsAt: null },
+        { span: 'session', used: 40, resetsAt: secondSession },
+        { span: 'week', used: 20, resetsAt: nextWeek },
       ],
       at: now,
     });
     answers['agents.usageHistory'] = (): UsageReading[] => [
-      { at: minutes(300), span: 'session', used: 10, resetsAt: null },
-      { at: minutes(300), span: 'week', used: 15, resetsAt: weekReset },
-      { at: minutes(285), span: 'session', used: 20, resetsAt: null },
-      { at: minutes(285), span: 'week', used: 16, resetsAt: weekReset },
-      // Two hours with nothing read: the line breaks.
-      { at: minutes(30), span: 'session', used: 35, resetsAt: null },
-      { at: minutes(30), span: 'week', used: 19, resetsAt: null },
-      { at: minutes(15), span: 'session', used: 40, resetsAt: null },
-      { at: minutes(15), span: 'week', used: 20, resetsAt: null },
+      { at: minutes(4 * 24 * 60), span: 'week', used: 90, resetsAt: lastWeek },
+      { at: minutes(300), span: 'session', used: 10, resetsAt: firstSession },
+      { at: minutes(300), span: 'week', used: 15, resetsAt: nextWeek },
+      // A reset read a few seconds off is the same session.
+      { at: minutes(285), span: 'session', used: 60, resetsAt: firstSession + 30_000 },
+      { at: minutes(30), span: 'session', used: 35, resetsAt: secondSession },
+      { at: minutes(15), span: 'session', used: 40, resetsAt: secondSession },
+      { at: minutes(15), span: 'week', used: 20, resetsAt: nextWeek },
     ];
     const { fixture, el, texts } = await render(bridge);
     [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
@@ -1554,32 +1556,45 @@ describe('App', () => {
 
     const since = (calls.find((c) => c.command === 'agents.usageHistory')!.request as { since: number }).since;
     expect(now - since).toBeGreaterThan(7 * 24 * 60 * 60_000 - 60_000);
-    expect(texts('gr-ledger-page .plan gr-ledger-lines figcaption')).toEqual(['Over the last 7 days']);
-    expect(texts('gr-ledger-page .plan .legend li')).toEqual(['Current session', 'This week, all models']);
-    // Two runs of readings for each limit, and the week starting afresh marked.
-    expect(el.querySelectorAll('gr-ledger-page .plan path.line')).toHaveLength(4);
-    expect(texts('gr-ledger-page .plan .mark-label')).toEqual(['New week']);
-    expect(texts('gr-ledger-page .plan .end-label')).toEqual(['40%', '20%']);
-    const cells = (selector: string) =>
-      [...el.querySelectorAll(`${selector} tbody tr`)].map((row) =>
-        [...row.querySelectorAll('td')].map((cell) => cell.textContent!.trim()),
-      );
-    expect(cells('gr-ledger-page .plan')).toEqual([
-      ['10%', '15%'],
-      ['20%', '16%'],
-      ['35%', '19%'],
-      ['40%', '20%'],
+    expect(texts('gr-ledger-page .plan figcaption')).toEqual([
+      'The week\u2019s limit over the last 7 days',
+      'How full each session got',
     ]);
+    // One series each: the caption names it, with no legend.
+    expect(el.querySelector('gr-ledger-page .plan .legend')).toBeNull();
+    // Last week's reading stands apart from this week's steps, with the new week marked.
+    const steps = [...el.querySelectorAll('gr-ledger-page .plan path.line')].map((p) => p.getAttribute('d')!);
+    expect(steps).toHaveLength(1);
+    expect(steps[0]).toMatch(/^M[\d.]+,[\d.]+H[\d.]+V[\d.]+$/);
+    expect(texts('gr-ledger-page .plan .mark-label')).toEqual(['New week']);
+    expect(texts('gr-ledger-page .plan .end-label')).toEqual(['20%']);
+
+    // A row a day, in place of every reading.
+    const rows = [...el.querySelectorAll('gr-ledger-page .plan tbody tr')].map((row) =>
+      [...row.querySelectorAll('td')].map((cell) => cell.textContent!.trim()),
+    );
+    // Only the days anything was read.
+    expect(rows.length).toBeGreaterThanOrEqual(2);
+    expect(rows.length).toBeLessThanOrEqual(3);
+    expect(rows[0]).toEqual(['\u2013', '90%']);
+    expect(rows.some(([, week]) => week === '20%')).toBe(true);
+
+    // Two sessions, each at its peak.
+    const sessions = el.querySelectorAll('gr-ledger-page .plan gr-ledger-columns rect.hit');
+    expect(sessions).toHaveLength(2);
+    sessions[0]!.dispatchEvent(new MouseEvent('mouseenter'));
+    await fixture.whenStable();
+    expect(texts('gr-ledger-page .plan gr-ledger-columns .tip strong')).toEqual(['60%']);
 
     // Focus puts the crosshair on the latest reading; the arrow keys step back.
-    const plot = el.querySelector<SVGRectElement>('gr-ledger-page .plan rect.hit')!;
+    const plot = el.querySelector<SVGRectElement>('gr-ledger-page .plan gr-ledger-lines rect.hit')!;
     plot.dispatchEvent(new FocusEvent('focus'));
     await fixture.whenStable();
-    expect(texts('gr-ledger-page .plan .tip strong')).toEqual(['40%', '20%']);
+    expect(texts('gr-ledger-page .plan gr-ledger-lines .tip strong')).toEqual(['20%']);
     plot.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' }));
     await fixture.whenStable();
-    expect(texts('gr-ledger-page .plan .tip strong')).toEqual(['35%', '19%']);
-    expect(plot.getAttribute('aria-label')).toMatch(/Current session 35%, This week, all models 19%$/);
+    expect(texts('gr-ledger-page .plan gr-ledger-lines .tip strong')).toEqual(['15%']);
+    expect(plot.getAttribute('aria-label')).toMatch(/This week, all models 15%$/);
   });
 
   it('draws the tokens and the share served from the cache by day and by hour in the Ledger', async () => {
