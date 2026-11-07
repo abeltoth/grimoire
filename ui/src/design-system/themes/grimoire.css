@@ -425,6 +425,31 @@
   /* Where the tokens went: its heads, and the spans to show it over */
   --gr-ledger-head-gap: 22px;
   --gr-ledger-spans-gap: 14px;
+  /*
+   * The Ledger's charts. The series' inks, in a fixed order, checked to stay
+   * apart for colour-blind eyes on each light paper (the night sets its own):
+   * read from the cache, written to it, fresh input, output.
+   */
+  --gr-chart-1: #158561;
+  --gr-chart-2: #976712;
+  --gr-chart-3: #2f5492;
+  --gr-chart-4: #883a2c;
+  --gr-chart-grid: rgba(74, 48, 22, 0.14);
+  --gr-chart-axis: rgba(74, 48, 22, 0.4);
+  --gr-chart-tick-size: 11.5px;
+  /* A line's width, a key's height, and the ring of the page's colour round a dot. */
+  --gr-chart-stroke: 2px;
+  --gr-chart-swatch-radius: 2px;
+  --gr-chart-fade: 120ms;
+  --gr-chart-tip-gap: 2px;
+  --gr-chart-tip-radius: 3px;
+  --gr-chart-cell-pad: 2px 8px 2px 0;
+  --gr-chart-legend-gap: 4px 14px;
+  --gr-chart-swatch: 10px;
+  --gr-chart-key: 12px;
+  --gr-chart-tip-pad: 6px 9px;
+  --gr-chart-tip-offset: 10px;
+  --gr-chart-tip-shadow: 0 2px 6px rgba(60, 35, 10, 0.18);
 
   /* The Table of contents: every chapter, in parts by project */
   --gr-contents-width: 680px;

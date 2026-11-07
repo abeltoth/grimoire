@@ -1,0 +1,222 @@
+:host {
+  display: block;
+}
+
+.chart {
+  margin: var(--gr-ledger-head-gap) 0 0;
+  max-width: var(--gr-ledger-width);
+}
+
+figcaption {
+  font-weight: 500;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+/* The series, each keyed by the mark it draws: a swatch for a column's part, a stroke for a line. */
+.legend {
+  list-style: none;
+  margin: var(--gr-aside-gap) 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gr-chart-legend-gap);
+  font-size: var(--gr-size-foot);
+  color: var(--gr-ink-soft);
+}
+
+.legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gr-space-1);
+}
+
+.swatch {
+  width: var(--gr-chart-swatch);
+  height: var(--gr-chart-swatch);
+  border-radius: var(--gr-chart-swatch-radius);
+}
+
+.line-key,
+.key {
+  width: var(--gr-chart-key);
+  height: var(--gr-chart-stroke);
+  border-radius: 1px;
+}
+
+.plot {
+  position: relative;
+  margin-top: var(--gr-aside-gap);
+}
+
+svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  font-family: var(--gr-font-text);
+}
+
+.grid,
+.axis,
+.mark,
+.crosshair {
+  vector-effect: non-scaling-stroke;
+  stroke-width: 1px;
+}
+
+.grid {
+  stroke: var(--gr-chart-grid);
+}
+
+.axis {
+  stroke: var(--gr-chart-axis);
+}
+
+/* A moment marked across the chart, such as when the week started afresh. */
+.mark {
+  stroke: var(--gr-chart-grid);
+}
+
+.crosshair {
+  stroke: var(--gr-ink-soft);
+}
+
+.y-tick,
+.x-tick,
+.end-label,
+.mark-label {
+  font-size: var(--gr-chart-tick-size);
+  fill: var(--gr-ink-soft);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.y-tick {
+  text-anchor: end;
+}
+
+.x-tick {
+  text-anchor: middle;
+}
+
+.mark-label {
+  font-style: italic;
+}
+
+.end-label {
+  fill: var(--gr-ink);
+}
+
+.column path {
+  transition: opacity var(--gr-chart-fade);
+}
+
+/* The column under the pointer stands out; the rest step back. */
+.column.dim path {
+  opacity: 0.45;
+}
+
+.line {
+  fill: none;
+  stroke-width: var(--gr-chart-stroke);
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* A ring of the page's colour keeps a dot clear of the lines it sits on. */
+.dot {
+  stroke: var(--gr-page);
+  stroke-width: var(--gr-chart-stroke);
+  vector-effect: non-scaling-stroke;
+}
+
+.hit {
+  fill: transparent;
+  outline: none;
+}
+
+.hit:focus-visible {
+  stroke: var(--gr-ink-soft);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+
+.tip {
+  position: absolute;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-chart-tip-gap);
+  min-width: max-content;
+  padding: var(--gr-chart-tip-pad);
+  margin-left: var(--gr-chart-tip-offset);
+  background: var(--gr-slip);
+  border: 1px solid var(--gr-page-edge);
+  border-radius: var(--gr-chart-tip-radius);
+  box-shadow: var(--gr-chart-tip-shadow);
+  font-size: var(--gr-size-foot);
+  color: var(--gr-ink-soft);
+  pointer-events: none;
+}
+
+/* Past the middle, the tooltip opens to the left of the column or crosshair. */
+.tip.flip {
+  transform: translateX(-100%);
+  margin-left: calc(-1 * var(--gr-chart-tip-offset));
+}
+
+.tip-head {
+  font-style: italic;
+}
+
+.tip-row {
+  display: flex;
+  align-items: center;
+  gap: var(--gr-space-1);
+}
+
+.tip strong {
+  font-weight: 600;
+  color: var(--gr-ink);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.table-view {
+  margin-top: var(--gr-aside-gap);
+  font-size: var(--gr-size-foot);
+  color: var(--gr-ink-soft);
+}
+
+.table-view summary {
+  cursor: pointer;
+  font-style: italic;
+}
+
+table {
+  margin-top: var(--gr-aside-gap);
+  border-collapse: collapse;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+th,
+td {
+  padding: var(--gr-chart-cell-pad);
+  text-align: right;
+  font-weight: 400;
+}
+
+th[scope='row'],
+thead th:first-child {
+  text-align: left;
+}
+
+thead th {
+  font-style: italic;
+  border-bottom: 1px solid var(--gr-chart-grid);
+}
+
+td {
+  color: var(--gr-ink);
+}

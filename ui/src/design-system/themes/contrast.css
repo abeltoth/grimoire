@@ -78,6 +78,8 @@
   --gr-composer-button-on: rgba(138, 18, 0, 0.16);
   --gr-queued-rule: rgba(0, 0, 0, 0.5);
   --gr-allowance-ticks: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.6) 0 1px, transparent 1px 4px);
+  --gr-chart-grid: rgba(0, 0, 0, 0.25);
+  --gr-chart-axis: rgba(0, 0, 0, 0.7);
   --gr-seal-button-hover: rgba(138, 18, 0, 0.14);
   --gr-slip-choice-hover: rgba(0, 0, 0, 0.12);
   --gr-fold-rule: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0));

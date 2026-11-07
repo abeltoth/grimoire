@@ -1,10 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { AgentId, PlanUsage, UsageWindow } from '@grimoire/contract';
-
-/** A plan limit as it was read at one moment. */
-export interface UsageReading extends UsageWindow {
-  at: number;
-}
+import type { AgentId, PlanUsage, UsageReading, UsageWindow } from '@grimoire/contract';
 
 /**
  * Each reading of how much of the plan's limits is used, kept so their

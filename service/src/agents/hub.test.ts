@@ -134,6 +134,8 @@ describe('AgentHub', () => {
       { span: 'session', used: 11 },
       { span: 'session', used: 12 },
     ]);
+    const [, second] = store.usage.since('fake', 0);
+    expect(hub.usageHistory('fake', second!.at).map(({ used }) => used)).toEqual([11, 12]);
   });
 
   it('has no plan limits for an agent without a plan', async () => {

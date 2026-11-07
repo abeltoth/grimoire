@@ -1,0 +1,102 @@
+<figure class="chart">
+  <figcaption>{{ caption() }}</figcaption>
+  <ul class="legend">
+    @for (each of series(); track each.name) {
+      <li><span class="swatch" [style.background]="each.color"></span>{{ each.name }}</li>
+    }
+  </ul>
+
+  @let drawn = layout();
+  <div class="plot">
+    <svg
+      [attr.viewBox]="'0 0 ' + width + ' ' + height"
+      role="group"
+      [attr.aria-label]="caption()"
+      (mouseleave)="show(null)"
+    >
+      @for (tick of drawn.ticks; track tick.value) {
+        <line
+          class="grid"
+          [attr.x1]="left"
+          [attr.x2]="width"
+          [attr.y1]="tick.y"
+          [attr.y2]="tick.y"
+        />
+        <text class="y-tick" [attr.x]="left - 6" [attr.y]="tick.y" dy="0.32em">
+          {{ format()(tick.value) }}
+        </text>
+      }
+      @for (each of drawn.columns; track each.i) {
+        <g class="column" [class.dim]="hovered() !== null && hovered() !== each.i">
+          @for (part of each.parts; track $index) {
+            <path [attr.d]="part.d" [style.fill]="part.color" />
+          }
+        </g>
+        @if (each.column.label) {
+          <text class="x-tick" [attr.x]="each.center" [attr.y]="base + 16">
+            {{ each.column.label }}
+          </text>
+        }
+        <rect
+          class="hit"
+          [attr.x]="each.hit"
+          y="0"
+          [attr.width]="each.band"
+          [attr.height]="base"
+          tabindex="0"
+          role="img"
+          [attr.aria-label]="spoken(each.column, each.total)"
+          (mouseenter)="show(each.i)"
+          (focus)="show(each.i)"
+          (blur)="show(null)"
+        />
+      }
+      <line class="axis" [attr.x1]="left" [attr.x2]="width" [attr.y1]="base" [attr.y2]="base" />
+    </svg>
+
+    @let i = hovered();
+    @if (i !== null) {
+      @let each = drawn.columns[i]!;
+      @let at = tipAt(each.center);
+      <div class="tip" [class.flip]="at.flip" [style.left.%]="at.left" aria-hidden="true">
+        <span class="tip-head">{{ each.column.name }}</span>
+        <span class="tip-row"
+          ><strong>{{ format()(each.total) }}</strong> in all</span
+        >
+        @for (one of series(); track one.name; let s = $index) {
+          <span class="tip-row">
+            <span class="key" [style.background]="one.color"></span>
+            <strong>{{ format()(each.column.parts[s] ?? 0) }}</strong>
+            <span class="tip-name">{{ one.name }}</span>
+          </span>
+        }
+      </div>
+    }
+  </div>
+
+  <details class="table-view">
+    <summary>As a table</summary>
+    <table>
+      <thead>
+        <tr>
+          <th scope="col"></th>
+          @for (each of series(); track each.name) {
+            <th scope="col">{{ each.name }}</th>
+          }
+          <th scope="col">All</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (each of drawn.columns; track each.i) {
+          <tr>
+            <th scope="row">{{ each.column.name }}</th>
+            @for (part of each.column.parts; track $index) {
+              <td>{{ format()(part) }}</td>
+            }
+            <td>{{ format()(each.total) }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </details>
+</figure>

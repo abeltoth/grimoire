@@ -81,6 +81,18 @@
               </li>
             }
           </ul>
+          @if (plan.chart; as chart) {
+            <gr-ledger-lines
+              caption="Over the last 7 days"
+              [series]="chart.series"
+              [from]="chart.from"
+              [to]="chart.to"
+              [ticks]="chart.ticks"
+              [marks]="chart.marks"
+              [breakAfter]="readingsApart"
+              [when]="readingName"
+            />
+          }
         } @else {
           <p class="none">
             No limits to show: {{ plan.agent.name }} isn’t signed in with a Claude subscription.
@@ -149,6 +161,26 @@
             <span class="name">{{ count(totals.total.weight) }} tokens</span>
             <span class="detail">{{ inWords(totals.total) }}</span>
           </p>
+
+          @if (tokensCharts(); as charts) {
+            <gr-ledger-columns
+              [caption]="charts.caption"
+              [series]="tokenSeries"
+              [columns]="charts.columns"
+              [format]="tokenFormat"
+            />
+            @if (charts.cache[0]!.points.length) {
+              <gr-ledger-lines
+                caption="Served from the cache"
+                [series]="charts.cache"
+                [from]="charts.from"
+                [to]="charts.to"
+                [ticks]="charts.ticks"
+                [breakAfter]="charts.bucket * 1.5"
+                [when]="bucketName"
+              />
+            }
+          }
 
           <p class="sub">
             <span class="groups" role="radiogroup" aria-label="Group by">

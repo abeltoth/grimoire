@@ -104,6 +104,11 @@ describe('SearchIndex', () => {
       ['2026-11-05', 200],
       ['2026-11-06', 1_520],
     ]);
+    expect(totals.hours.map(({ hour, weight }) => [hour, weight])).toEqual([
+      [day(5), 200],
+      [day(6, 9), 20],
+      [day(6, 23), 1_500],
+    ]);
     expect(totals.models.map(({ model, subagent, weight }) => [model, subagent, weight])).toEqual([
       ['claude-haiku-4-5', false, 1_500],
       ['claude-opus-5-5', false, 170],

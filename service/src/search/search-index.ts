@@ -216,12 +216,14 @@ export class SearchIndex {
       )
       .all(since) as TurnRow[];
     const days = new Map<string, TokenCounts[]>();
+    const hours = new Map<number, TokenCounts[]>();
     const models = new Map<string, TokenCounts[]>();
     const folders = new Map<string, TokenCounts[]>();
     const chats = new Map<ChatId, TokenCounts[]>();
     const about = new Map<ChatId, { agent: AgentId; title: string; cwd: string | null }>();
     for (const row of rows) {
       add(days, dayOf(row.at), row);
+      add(hours, hourOf(row.at), row);
       add(models, `${row.subagent ? 'subagent' : 'chat'} ${row.model}`, row);
       if (row.cwd) add(folders, row.cwd, row);
       add(chats, row.id, row);
@@ -231,6 +233,7 @@ export class SearchIndex {
       since,
       total: totalOf(rows),
       days: [...days].map(([day, counts]) => ({ day, ...totalOf(counts) })),
+      hours: [...hours].map(([hour, counts]) => ({ hour, ...totalOf(counts) })),
       models: heaviest(
         [...models].map(([key, counts]) => {
           const [kind, ...model] = key.split(' ');
@@ -340,6 +343,13 @@ function dayOf(at: number): string {
   const date = new Date(at);
   const two = (n: number) => String(n).padStart(2, '0');
   return `${date.getFullYear()}-${two(date.getMonth() + 1)}-${two(date.getDate())}`;
+}
+
+/** The start of the local hour a time falls in, in ms since the epoch. */
+function hourOf(at: number): number {
+  const date = new Date(at);
+  date.setMinutes(0, 0, 0);
+  return date.getTime();
 }
 
 /**

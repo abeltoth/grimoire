@@ -1,12 +1,14 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, PendingTasks, effect, inject, signal, untracked } from '@angular/core';
+import { Component, PendingTasks, computed, effect, inject, signal, untracked } from '@angular/core';
 import type {
   AgentInfo,
   PlanUsage,
+  TokenCounts,
   TokenTotal,
   TokenTotals,
   UsageBreakdown,
   UsageCredits,
+  UsageReading,
   UsageSpan,
   UsageWindow,
   Used,
@@ -14,11 +16,43 @@ import type {
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { Chats } from '@ui/app/core/chats';
 import { countsInWords, modelLabel, tokenCount } from '@ui/app/core/tokens';
+import {
+  type ChartSeries,
+  type ChartTick,
+  type Column,
+  LedgerColumns,
+  LedgerLines,
+  type LineSeries,
+} from './charts';
 
-/** An agent with a plan, and how much of its limits is used. */
+/** An agent with a plan, how much of its limits is used, and how much was over the last week. */
 interface Plan {
   agent: AgentInfo;
   usage: PlanUsage;
+  /** Its limits over the last week; null with too little read to draw. */
+  chart: LimitsChart | null;
+}
+
+/** A plan's limits over the last week, drawn. */
+interface LimitsChart {
+  series: LineSeries[];
+  from: number;
+  to: number;
+  ticks: ChartTick[];
+  marks: ChartTick[];
+}
+
+/** Where the tokens went over the span, a column or point for each day or hour. */
+interface TokensCharts {
+  /** "Tokens by day" or "Tokens by hour". */
+  caption: string;
+  columns: Column[];
+  cache: LineSeries[];
+  from: number;
+  to: number;
+  ticks: ChartTick[];
+  /** A bucket's length, in ms: a gap of more than that breaks the line. */
+  bucket: number;
 }
 
 /** An agent's own word on where its plan's usage went. */
@@ -46,7 +80,52 @@ const GROUPS: Record<Group, string> = { day: 'Day', model: 'Model', folder: 'Fol
 
 const SHOWN = 5;
 
-const HOUR =60 * 60_000;
+const HOUR = 60 * 60_000;
+const DAY = 24 * HOUR;
+
+/** The parts a column of tokens is stacked from, bottom first, each weighed as the API prices it. */
+const TOKEN_SERIES: (ChartSeries & { weigh: (counts: TokenCounts) => number })[] = [
+  { name: 'Read from the cache', color: 'var(--gr-chart-1)', weigh: (c) => c.cacheRead * 0.1 },
+  {
+    name: 'Written to the cache',
+    color: 'var(--gr-chart-2)',
+    weigh: (c) => c.cacheWritten * 1.25 + c.cacheWrittenLong * 2,
+  },
+  { name: 'Fresh input', color: 'var(--gr-chart-3)', weigh: (c) => c.input },
+  { name: 'Output', color: 'var(--gr-chart-4)', weigh: (c) => c.output * 5 },
+];
+const TOKEN_LEGEND: ChartSeries[] = TOKEN_SERIES.map(({ name, color }) => ({ name, color }));
+
+/** The plan's limits drawn on the chart, in this order: the session, the week, then a week kept for one model. */
+const LIMIT_COLORS = ['var(--gr-chart-3)', 'var(--gr-chart-4)', 'var(--gr-chart-1)', 'var(--gr-chart-2)'];
+
+/** The limits are read every 15 minutes: readings further apart than this aren't joined. */
+const READINGS_APART = 40 * 60_000;
+
+/** The start of the local day or hour a time falls in. */
+function startOf(at: number, unit: 'day' | 'hour'): Date {
+  const date = new Date(at);
+  if (unit === 'day') date.setHours(0, 0, 0, 0);
+  else date.setMinutes(0, 0, 0);
+  return date;
+}
+
+/** A local day as YYYY-MM-DD, as the totals name it. */
+function dayKey(date: Date): string {
+  const two = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${two(date.getMonth() + 1)}-${two(date.getDate())}`;
+}
+
+/** The share of the input read from the cache, in percent; null with no input. */
+function cacheShare(c: TokenCounts): number | null {
+  const all = c.input + c.cacheWritten + c.cacheWrittenLong + c.cacheRead;
+  return all ? (c.cacheRead / all) * 100 : null;
+}
+
+const weekday = (at: number) => new Date(at).toLocaleDateString([], { weekday: 'short' });
+/** A day on a chart's axis, such as "Sat 31": a week back is the same weekday as today. */
+const dayTick = (at: number) => `${weekday(at)} ${new Date(at).getDate()}`;
+const hourName = (at: number) => new Date(at).toLocaleTimeString([], { hour: 'numeric' });
 const SPANS: Record<Span, { label: string; ms: number }> = {
   day: { label: 'Last 24 hours', ms: 24 * HOUR },
   week: { label: 'Last 7 days', ms: 7 * 24 * HOUR },
@@ -95,7 +174,7 @@ export function money(minor: number, currency: string): string {
  */
 @Component({
   selector: 'gr-ledger-page',
-  imports: [NgTemplateOutlet],
+  imports: [NgTemplateOutlet, LedgerColumns, LedgerLines],
   templateUrl: './ledger-page.html',
   styleUrl: './ledger-page.css',
 })
@@ -126,6 +205,63 @@ export class LedgerPage {
   protected readonly breakdowns = signal<Breakdown[] | undefined>(undefined);
   protected readonly breakdownsFailed = signal<string | null>(null);
   protected readonly readingTokens = signal(false);
+
+  protected readonly tokenSeries = TOKEN_LEGEND;
+
+  /** Where the tokens went over the span, a column and a point for each day, or each hour of the last 24. */
+  protected readonly tokensCharts = computed((): TokensCharts | null => {
+    const totals = this.totals();
+    if (!totals?.total.weight) return null;
+    const unit = this.span() === 'day' ? 'hour' : 'day';
+    const byDay = new Map(totals.days.map((day) => [day.day, day]));
+    const byHour = new Map(totals.hours.map((hour) => [hour.hour, hour]));
+    const columns: Column[] = [];
+    const cache: { at: number; value: number }[] = [];
+    const ticks: ChartTick[] = [];
+    const now = Date.now();
+    const from = startOf(totals.since, unit).getTime();
+    let to = from;
+    for (const at = new Date(from); at.getTime() <= now; ) {
+      const start = at.getTime();
+      const total = unit === 'day' ? byDay.get(dayKey(at)) : byHour.get(start);
+      if (unit === 'day') at.setDate(at.getDate() + 1);
+      else at.setHours(at.getHours() + 1);
+      to = at.getTime();
+      const middle = (start + to) / 2;
+      const label = unit === 'day' ? dayTick(start) : new Date(start).getHours() % 6 ? '' : hourName(start);
+      columns.push({
+        label,
+        name: unit === 'day' ? this.dayName(dayKey(new Date(start))) : this.hourSpan(start, to),
+        parts: TOKEN_SERIES.map((series) => (total ? series.weigh(total) : 0)),
+      });
+      if (label) ticks.push({ at: middle, label });
+      const share = total ? cacheShare(total) : null;
+      if (share !== null) cache.push({ at: middle, value: share });
+    }
+    const bucket = unit === 'day' ? DAY : HOUR;
+    return {
+      caption: unit === 'day' ? 'Tokens by day' : 'Tokens by hour',
+      columns,
+      cache: [{ name: 'Served from the cache', color: 'var(--gr-chart-1)', points: cache }],
+      from,
+      to,
+      ticks,
+      bucket,
+    };
+  });
+
+  /** A moment of a day or hour, for the tooltip and table of the cache chart. */
+  protected readonly bucketName = (at: number): string =>
+    this.span() === 'day'
+      ? this.hourSpan(startOf(at, 'hour').getTime(), startOf(at, 'hour').getTime() + HOUR)
+      : this.dayName(dayKey(new Date(at)));
+
+  /** A reading's moment, such as "Thu 2:15 PM". */
+  protected readonly readingName = (at: number): string =>
+    `${weekday(at)} ${new Date(at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+
+  protected readonly readingsApart = READINGS_APART;
+  protected readonly tokenFormat = (n: number): string => tokenCount(n);
 
   constructor() {
     // Read once the agents are known.
@@ -278,13 +414,24 @@ export class LedgerPage {
     this.failed.set(null);
     try {
       const agents = this.chats.agents();
+      const since = Date.now() - 7 * DAY;
       const answers = await Promise.all(
-        agents.map((agent) => this.bridge.invoke('agents.usage', { agent: agent.id })),
+        agents.map(async (agent) => {
+          const usage = await this.bridge.invoke('agents.usage', { agent: agent.id });
+          if (!usage) return null;
+          // Read after the limits, so the history has this reading too.
+          const history =
+            (await this.bridge.invoke('agents.usageHistory', { agent: agent.id, since })) ?? [];
+          return { usage, history };
+        }),
       );
+      const now = Date.now();
       this.plans.set(
         agents.flatMap((agent, i) => {
-          const usage = answers[i];
-          return usage ? [{ agent, usage }] : [];
+          const answer = answers[i];
+          return answer
+            ? [{ agent, usage: answer.usage, chart: this.limitsChart(answer.history, now) }]
+            : [];
         }),
       );
     } catch (error) {
@@ -293,6 +440,57 @@ export class LedgerPage {
       this.reading.set(false);
       done();
     }
+  }
+
+  /**
+   * A plan's limits over the last week: a line for the session and one for
+   * the week, and for each week kept for one model, with each time the week
+   * started afresh marked. Null with too little read to draw.
+   */
+  private limitsChart(history: readonly UsageReading[], now: number): LimitsChart | null {
+    const from = now - 7 * DAY;
+    const limits = new Map<string, { window: UsageReading; points: LineSeries['points'][number][] }>();
+    const order = (r: UsageReading) => (r.span === 'session' ? 0 : r.model ? 2 : 1);
+    for (const reading of [...history].sort((a, b) => order(a) - order(b) || a.at - b.at)) {
+      const key = `${reading.span} ${reading.model ?? ''}`;
+      const limit = limits.get(key) ?? { window: reading, points: [] };
+      limits.set(key, limit);
+      if (reading.used !== null && reading.at >= from) limit.points.push({ at: reading.at, value: reading.used });
+    }
+    // Past four limits the colours would repeat: the rest stay in the list above.
+    const series = [...limits.values()]
+      .filter((limit) => limit.points.length)
+      .slice(0, LIMIT_COLORS.length)
+      .map((limit, i) => ({
+        name: this.label(limit.window),
+        color: LIMIT_COLORS[i]!,
+        points: limit.points.sort((a, b) => a.at - b.at),
+      }));
+    if (series.reduce((sum, each) => sum + each.points.length, 0) < 2) return null;
+    const ticks: ChartTick[] = [];
+    for (const day = startOf(from, 'day'); day.getTime() <= now; day.setDate(day.getDate() + 1)) {
+      const noon = day.getTime() + 12 * HOUR;
+      if (noon >= from && noon <= now) ticks.push({ at: noon, label: dayTick(noon) });
+    }
+    const resets = new Set(
+      history
+        .filter((r) => r.span === 'week' && !r.model && r.resetsAt !== null)
+        .map((r) => r.resetsAt!)
+        .filter((at) => at > from && at <= now),
+    );
+    return {
+      series,
+      from,
+      to: now,
+      ticks,
+      marks: [...resets].sort((a, b) => a - b).map((at) => ({ at, label: 'New week' })),
+    };
+  }
+
+  /** An hour, such as "Thursday, 2 PM to 3 PM". */
+  protected hourSpan(from: number, to: number): string {
+    const day = new Date(from).toLocaleDateString([], { weekday: 'long' });
+    return `${day}, ${hourName(from)} to ${hourName(to)}`;
   }
 
   protected planName(plan: string): string {

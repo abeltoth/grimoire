@@ -1,0 +1,151 @@
+<figure class="chart">
+  <figcaption>{{ caption() }}</figcaption>
+  @if (series().length > 1) {
+    <ul class="legend">
+      @for (each of series(); track each.name) {
+        <li><span class="line-key" [style.background]="each.color"></span>{{ each.name }}</li>
+      }
+    </ul>
+  }
+
+  @let drawn = layout();
+  @let read = readout();
+  <div class="plot">
+    <svg [attr.viewBox]="'0 0 ' + width + ' ' + height" role="group" [attr.aria-label]="caption()">
+      @for (tick of drawn.ticks; track tick.value) {
+        <line
+          class="grid"
+          [attr.x1]="left"
+          [attr.x2]="right"
+          [attr.y1]="tick.y"
+          [attr.y2]="tick.y"
+        />
+        <text class="y-tick" [attr.x]="left - 6" [attr.y]="tick.y" dy="0.32em">
+          {{ format()(tick.value) }}
+        </text>
+      }
+      @for (tick of drawn.xTicks; track tick.at) {
+        <text class="x-tick" [attr.x]="tick.x" [attr.y]="base + 16">{{ tick.label }}</text>
+      }
+      @for (mark of drawn.marks; track mark.at) {
+        <line
+          class="mark"
+          [attr.x1]="mark.x"
+          [attr.x2]="mark.x"
+          [attr.y1]="topEdge"
+          [attr.y2]="base"
+        />
+        <text class="mark-label" [attr.x]="mark.x + 4" [attr.y]="topEdge + 2" dy="0.7em">
+          {{ mark.label }}
+        </text>
+      }
+      <line class="axis" [attr.x1]="left" [attr.x2]="right" [attr.y1]="base" [attr.y2]="base" />
+
+      @for (line of drawn.lines; track line.series.name) {
+        @for (d of line.lines; track $index) {
+          <path class="line" [attr.d]="d" [style.stroke]="line.series.color" />
+        }
+        @for (dot of line.dots; track $index) {
+          <circle
+            class="dot"
+            [attr.cx]="dot.x"
+            [attr.cy]="dot.y"
+            r="4"
+            [style.fill]="line.series.color"
+          />
+        }
+        @if (line.end; as end) {
+          <circle
+            class="dot"
+            [attr.cx]="end.x"
+            [attr.cy]="end.y"
+            r="4"
+            [style.fill]="line.series.color"
+          />
+        }
+      }
+      @for (label of drawn.labels; track $index) {
+        <text class="end-label" [attr.x]="label.x + 8" [attr.y]="label.y" dy="0.32em">
+          {{ format()(label.value) }}
+        </text>
+      }
+
+      @if (read) {
+        <line
+          class="crosshair"
+          [attr.x1]="read.x"
+          [attr.x2]="read.x"
+          [attr.y1]="topEdge"
+          [attr.y2]="base"
+        />
+        @for (row of read.rows; track row.series.name) {
+          @if (row.point) {
+            <circle
+              class="dot"
+              [attr.cx]="read.x"
+              [attr.cy]="row.y"
+              r="4"
+              [style.fill]="row.series.color"
+            />
+          }
+        }
+      }
+
+      <rect
+        class="hit"
+        [attr.x]="left"
+        y="0"
+        [attr.width]="right - left"
+        [attr.height]="base"
+        tabindex="0"
+        role="img"
+        [attr.aria-label]="
+          read ? spoken(read) : caption() + ': the arrow keys step through the readings'
+        "
+        (pointermove)="point($event)"
+        (pointerleave)="leave()"
+        (focus)="focus()"
+        (blur)="leave()"
+        (keydown)="key($event)"
+      />
+    </svg>
+
+    @if (read) {
+      @let at = tipAt(read.x);
+      <div class="tip" [class.flip]="at.flip" [style.left.%]="at.left" aria-hidden="true">
+        <span class="tip-head">{{ when()(read.at) }}</span>
+        @for (row of read.rows; track row.series.name) {
+          <span class="tip-row">
+            <span class="key" [style.background]="row.series.color"></span>
+            <strong>{{ row.point ? format()(row.point.value) : '–' }}</strong>
+            <span class="tip-name">{{ row.series.name }}</span>
+          </span>
+        }
+      </div>
+    }
+  </div>
+
+  <details class="table-view">
+    <summary>As a table</summary>
+    <table>
+      <thead>
+        <tr>
+          <th scope="col"></th>
+          @for (each of series(); track each.name) {
+            <th scope="col">{{ each.name }}</th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (at of moments(); track at) {
+          <tr>
+            <th scope="row">{{ when()(at) }}</th>
+            @for (each of series(); track each.name) {
+              <td>{{ valueAt(each, at) }}</td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+  </details>
+</figure>

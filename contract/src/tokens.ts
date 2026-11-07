@@ -72,6 +72,8 @@ export interface TokenTotals {
   total: TokenTotal;
   /** Each day with turns, oldest first, as YYYY-MM-DD in local time. */
   days: (TokenTotal & { day: string })[];
+  /** Each hour with turns, oldest first, as the start of the local hour in ms since the epoch. */
+  hours: (TokenTotal & { hour: number })[];
   /** Most weight first. */
   models: (TokenTotal & { model: string; subagent: boolean })[];
   /** Most weight first. */

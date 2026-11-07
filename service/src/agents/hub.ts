@@ -35,6 +35,7 @@ import type {
   RecentFolders,
   SettingsChange,
   UsageBreakdown,
+  UsageReading,
 } from '@grimoire/contract';
 import type { DatabaseSync } from 'node:sqlite';
 import { Chapters } from '../storage/chapters';
@@ -321,6 +322,11 @@ export class AgentHub {
   /** Stops a sign-in under way; the agent stays signed in as before. */
   cancelSignIn(agent: AgentId): void {
     this.signIns.get(agent)?.run.cancel();
+  }
+
+  /** Each reading of the agent's plan limits kept since a time, oldest first. */
+  usageHistory(agent: AgentId, since: number): UsageReading[] {
+    return this.store.usage.since(agent, since);
   }
 
   /** What the agent's own scan says took the plan's usage; null when it can't say. */

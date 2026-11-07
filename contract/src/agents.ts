@@ -110,6 +110,12 @@ export interface UsageWindow {
   resetsAt: number | null;
 }
 
+/** A plan limit as it was read at one moment. */
+export interface UsageReading extends UsageWindow {
+  /** When it was read, in ms since the epoch. */
+  at: number;
+}
+
 /**
  * Usage credits: money a month's use may cost, as Claude Code's /usage
  * shows them. On Pro and Max they pay for use past the plan's limits; on a
@@ -397,6 +403,8 @@ declare module './commands' {
     'agents.commands': { request: { agent: AgentId; cwd?: string }; response: AgentCommand[] };
     /** The agent's subscription limits and how much of them is used; null when it has none. */
     'agents.usage': { request: { agent: AgentId }; response: PlanUsage | null };
+    /** Each reading of the agent's plan limits kept since a time, oldest first. */
+    'agents.usageHistory': { request: { agent: AgentId; since: number }; response: UsageReading[] };
     /** Who the agent is signed in as, and any sign-in under way. */
     'agents.account': { request: { agent: AgentId }; response: AgentSignIn };
     /**

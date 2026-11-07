@@ -25,6 +25,7 @@ import type {
   TokenTotals,
   TokenUse,
   UsageBreakdown,
+  UsageReading,
   UsageSpan,
 } from '@grimoire/contract';
 import { DEFAULT_SETTINGS } from '@grimoire/contract';
@@ -1521,6 +1522,144 @@ describe('App', () => {
     expect(calls.filter((call) => call.command === 'agents.usage')).toHaveLength(2);
   });
 
+  it('draws the plan limits over the last week in the Ledger, a line broken where nothing was read', async () => {
+    const { bridge, answers, calls } = fakeBridge();
+    const now = Date.now();
+    const minutes = (n: number) => now - n * 60_000;
+    const weekReset = minutes(3 * 24 * 60);
+    answers['agents.usage'] = () => ({
+      plan: 'max',
+      windows: [
+        { span: 'session', used: 40, resetsAt: null },
+        { span: 'week', used: 20, resetsAt: null },
+      ],
+      at: now,
+    });
+    answers['agents.usageHistory'] = (): UsageReading[] => [
+      { at: minutes(300), span: 'session', used: 10, resetsAt: null },
+      { at: minutes(300), span: 'week', used: 15, resetsAt: weekReset },
+      { at: minutes(285), span: 'session', used: 20, resetsAt: null },
+      { at: minutes(285), span: 'week', used: 16, resetsAt: weekReset },
+      // Two hours with nothing read: the line breaks.
+      { at: minutes(30), span: 'session', used: 35, resetsAt: null },
+      { at: minutes(30), span: 'week', used: 19, resetsAt: null },
+      { at: minutes(15), span: 'session', used: 40, resetsAt: null },
+      { at: minutes(15), span: 'week', used: 20, resetsAt: null },
+    ];
+    const { fixture, el, texts } = await render(bridge);
+    [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
+      .find((tab) => tab.textContent!.trim() === 'Ledger')!
+      .click();
+    await fixture.whenStable();
+
+    const since = (calls.find((c) => c.command === 'agents.usageHistory')!.request as { since: number }).since;
+    expect(now - since).toBeGreaterThan(7 * 24 * 60 * 60_000 - 60_000);
+    expect(texts('gr-ledger-page .plan gr-ledger-lines figcaption')).toEqual(['Over the last 7 days']);
+    expect(texts('gr-ledger-page .plan .legend li')).toEqual(['Current session', 'This week, all models']);
+    // Two runs of readings for each limit, and the week starting afresh marked.
+    expect(el.querySelectorAll('gr-ledger-page .plan path.line')).toHaveLength(4);
+    expect(texts('gr-ledger-page .plan .mark-label')).toEqual(['New week']);
+    expect(texts('gr-ledger-page .plan .end-label')).toEqual(['40%', '20%']);
+    const cells = (selector: string) =>
+      [...el.querySelectorAll(`${selector} tbody tr`)].map((row) =>
+        [...row.querySelectorAll('td')].map((cell) => cell.textContent!.trim()),
+      );
+    expect(cells('gr-ledger-page .plan')).toEqual([
+      ['10%', '15%'],
+      ['20%', '16%'],
+      ['35%', '19%'],
+      ['40%', '20%'],
+    ]);
+
+    // Focus puts the crosshair on the latest reading; the arrow keys step back.
+    const plot = el.querySelector<SVGRectElement>('gr-ledger-page .plan rect.hit')!;
+    plot.dispatchEvent(new FocusEvent('focus'));
+    await fixture.whenStable();
+    expect(texts('gr-ledger-page .plan .tip strong')).toEqual(['40%', '20%']);
+    plot.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' }));
+    await fixture.whenStable();
+    expect(texts('gr-ledger-page .plan .tip strong')).toEqual(['35%', '19%']);
+    expect(plot.getAttribute('aria-label')).toMatch(/Current session 35%, This week, all models 19%$/);
+  });
+
+  it('draws the tokens and the share served from the cache by day and by hour in the Ledger', async () => {
+    const { bridge, answers } = fakeBridge();
+    answers['agents.usage'] = () => ({ plan: 'max', windows: [], at: 0 });
+    answers['agents.usageBreakdown'] = () => null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const day = (back: number) => {
+      const date = new Date(today);
+      date.setDate(date.getDate() - back);
+      const two = (n: number) => String(n).padStart(2, '0');
+      return `${date.getFullYear()}-${two(date.getMonth() + 1)}-${two(date.getDate())}`;
+    };
+    const counts = (input: number, cacheRead: number, output: number) => ({
+      input,
+      cacheWritten: 0,
+      cacheWrittenLong: 0,
+      cacheRead,
+      output,
+      weight: input + cacheRead * 0.1 + output * 5,
+    });
+    const hour = new Date();
+    hour.setMinutes(0, 0, 0);
+    answers['tokens.totals'] = ({ since }: CommandRequest<'tokens.totals'>): TokenTotals => ({
+      since,
+      total: counts(1_300, 9_000, 100),
+      days: [
+        { day: day(2), ...counts(1_000, 3_000, 0) },
+        { day: day(0), ...counts(300, 6_000, 100) },
+      ],
+      hours: [{ hour: hour.getTime(), ...counts(300, 6_000, 100) }],
+      models: [],
+      folders: [],
+      chats: [],
+      tools: [],
+      skills: [],
+    });
+    const { fixture, el, texts } = await render(bridge);
+    [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
+      .find((tab) => tab.textContent!.trim() === 'Ledger')!
+      .click();
+    await fixture.whenStable();
+    [...el.querySelectorAll<HTMLButtonElement>('gr-ledger-page .tabs button')]
+      .find((button) => button.textContent!.trim() === 'Where it went')!
+      .click();
+    await fixture.whenStable();
+
+    expect(texts('gr-ledger-page figcaption')).toEqual(['Tokens by day', 'Served from the cache']);
+    expect(texts('gr-ledger-page gr-ledger-columns .legend li')).toEqual([
+      'Read from the cache',
+      'Written to the cache',
+      'Fresh input',
+      'Output',
+    ]);
+    // A column for each day of the span, the days without turns empty.
+    const columns = el.querySelectorAll('gr-ledger-page gr-ledger-columns rect.hit');
+    expect(columns.length).toBeGreaterThanOrEqual(8);
+    const rows = [...el.querySelectorAll('gr-ledger-page gr-ledger-columns tbody tr')].map((row) =>
+      [...row.querySelectorAll('td')].map((cell) => cell.textContent!.trim()),
+    );
+    // Weighed: a cache read a tenth, output five times.
+    expect(rows[rows.length - 1]).toEqual(['600', '0', '300', '500', '1.4K']);
+    expect(rows[rows.length - 2]).toEqual(['0', '0', '0', '0', '0']);
+    expect(rows[rows.length - 3]).toEqual(['300', '0', '1K', '0', '1.3K']);
+    expect(texts('gr-ledger-page gr-ledger-lines tbody td')).toEqual(['75%', '95%']);
+
+    columns[columns.length - 1]!.dispatchEvent(new MouseEvent('mouseenter'));
+    await fixture.whenStable();
+    expect(texts('gr-ledger-page gr-ledger-columns .tip strong')).toEqual(['1.4K', '600', '0', '300', '500']);
+
+    [...el.querySelectorAll<HTMLButtonElement>('gr-ledger-page .spans button')]
+      .find((button) => button.textContent!.trim() === 'Last 24 hours')!
+      .click();
+    await fixture.whenStable();
+    expect(texts('gr-ledger-page figcaption')).toEqual(['Tokens by hour', 'Served from the cache']);
+    expect(el.querySelectorAll('gr-ledger-page gr-ledger-columns rect.hit').length).toBeGreaterThanOrEqual(24);
+    expect(texts('gr-ledger-page gr-ledger-lines tbody td')).toEqual(['95%']);
+  });
+
   it("shows an organization's monthly allowance in the Ledger, with no session or week limits", async () => {
     const { bridge, answers } = fakeBridge();
     answers['agents.usage'] = () => ({
@@ -1610,6 +1749,7 @@ describe('App', () => {
       since,
       total: total(4_000),
       days: [{ day: '2026-11-05', ...total(4_000) }],
+      hours: [{ hour: new Date(2026, 10, 5, 14).getTime(), ...total(4_000) }],
       models: [
         { model: 'claude-opus-5-5', subagent: false, ...total(3_000) },
         { model: 'claude-haiku-4-5', subagent: true, ...total(1_000) },

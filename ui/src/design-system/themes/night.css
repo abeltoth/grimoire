@@ -80,6 +80,13 @@
   --gr-composer-button-on: rgba(224, 112, 90, 0.14);
   --gr-queued-rule: rgba(232, 215, 185, 0.22);
   --gr-allowance-ticks: repeating-linear-gradient(90deg, rgba(232, 215, 185, 0.3) 0 1px, transparent 1px 4px);
+  --gr-chart-1: #44a781;
+  --gr-chart-2: #b9883c;
+  --gr-chart-3: #6a93d5;
+  --gr-chart-4: #cc7867;
+  --gr-chart-grid: rgba(232, 215, 185, 0.12);
+  --gr-chart-axis: rgba(232, 215, 185, 0.35);
+  --gr-chart-tip-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
   --gr-shadow-slip-corner: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.5));
   --gr-shadow-slip-corner-far: drop-shadow(-1px -1px 1px rgba(0, 0, 0, 0.45));
   --gr-seal-button-hover: rgba(224, 112, 90, 0.14);
