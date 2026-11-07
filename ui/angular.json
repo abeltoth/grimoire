@@ -18,6 +18,13 @@
           "options": {
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.app.json",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "vendor/vs",
+                "output": "vs"
+              }
+            ],
             "styles": [
               "src/styles.css"
             ]

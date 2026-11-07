@@ -23,6 +23,8 @@ import { registerPing } from './core/ping';
 import { endpointFor } from './endpoint';
 import { registerGit } from './git/commands';
 import { Git } from './git/git';
+import { registerFiles } from './files/commands';
+import { Files } from './files/files';
 import { Worktrees } from './git/worktrees';
 import { CommandRegistry } from './registry';
 import { AlreadyRunningError, startServer, type ServiceServer } from './server';
@@ -73,7 +75,10 @@ const broadcast: Parameters<typeof registerSettings>[2] = (event, payload) =>
   server?.broadcast(event, payload);
 registerPresets(registry, new PresetStore(db), settingsStore, broadcast);
 registerSettings(registry, settingsStore, broadcast);
-registerGit(registry, new Git());
+const git = new Git();
+registerGit(registry, git);
+const files = new Files(git, (event, payload) => server?.broadcast(event, payload));
+registerFiles(registry, files);
 
 // The search worker, bundled beside the service, keeps its index beside Grimoire's data.
 const search = new SearchWorker(
@@ -120,6 +125,7 @@ const endpoint = endpointFor(dataDir);
 async function stop(): Promise<void> {
   hub.closeAll();
   terminals.closeAll();
+  files.dispose();
   search.close();
   await server?.close();
   db.close();

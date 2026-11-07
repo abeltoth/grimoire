@@ -1,0 +1,249 @@
+/* The folder scrolls on its own; an open file's editor fills what's left of the page. */
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: auto;
+  padding-bottom: var(--gr-files-pad-bottom);
+}
+
+h2 {
+  margin: 0 0 var(--gr-files-head-gap);
+  font-family: var(--gr-font-display-sc);
+  font-weight: 400;
+  font-size: var(--gr-size-section-head);
+  letter-spacing: var(--gr-tracking-section-head);
+  color: var(--gr-rubric);
+  overflow-wrap: anywhere;
+}
+
+h3 {
+  margin: var(--gr-files-section-gap) 0 var(--gr-files-head-gap);
+  font-family: var(--gr-font-display);
+  font-weight: 400;
+  font-size: var(--gr-size-git-head);
+  color: var(--gr-ink);
+}
+
+.sub,
+.none {
+  margin: var(--gr-aside-gap) 0 0;
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.none.alert {
+  color: var(--gr-rubric);
+}
+
+.dot {
+  margin: 0 var(--gr-space-1);
+}
+
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* The look-up, written in pen, as the Index's is. */
+.look-up {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-index-look-up-gap);
+  max-width: var(--gr-files-width);
+  padding-bottom: var(--gr-index-look-up-pad);
+  border-bottom: var(--gr-index-look-up-rule);
+}
+
+.look-up label {
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-index-label);
+  letter-spacing: var(--gr-tracking-index-label);
+  color: var(--gr-ink-soft);
+  white-space: nowrap;
+}
+
+.look-up input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-git-file);
+  color: var(--gr-pen);
+  caret-color: var(--gr-pen);
+  outline: none;
+}
+
+.look-up input::placeholder {
+  font-family: var(--gr-font-text);
+  font-style: italic;
+  color: var(--gr-ink-placeholder);
+}
+
+/* A file found or changed: its path, then dotted leaders to what happened to it. */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-files-gap);
+  max-width: var(--gr-files-width);
+}
+
+.file {
+  display: flex;
+  align-items: baseline;
+  width: 100%;
+  text-align: left;
+}
+
+.path {
+  min-width: 0;
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-git-file);
+  color: var(--gr-ink);
+  overflow-wrap: anywhere;
+}
+
+.folder {
+  color: var(--gr-ink-soft);
+}
+
+button.file:hover .path {
+  color: var(--gr-link);
+}
+
+.gone .path {
+  color: var(--gr-ink-soft);
+  text-decoration: line-through;
+}
+
+.leader {
+  flex: 1;
+  min-width: var(--gr-outline-leader-min);
+  margin: 0 var(--gr-outline-leader-gap);
+  border-bottom: var(--gr-leader);
+  transform: translateY(var(--gr-outline-leader-lift));
+}
+
+.kind {
+  font-style: italic;
+  font-size: var(--gr-size-outline-status);
+  color: var(--gr-ink-soft);
+  white-space: nowrap;
+}
+
+.kind.alert {
+  color: var(--gr-rubric);
+}
+
+/* The folder's tree: each folder's entries hung under it, ruled down the side. */
+.tree {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-files-tree-gap);
+}
+
+.tree .tree,
+.tree .none {
+  margin: var(--gr-files-tree-gap) 0 0 var(--gr-files-tree-indent);
+  padding-left: var(--gr-files-tree-pad);
+  border-left: 1px solid var(--gr-git-tree-rule);
+}
+
+.entry {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--gr-files-twist-gap);
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-git-file);
+  color: var(--gr-ink);
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.entry:hover {
+  color: var(--gr-link);
+}
+
+.entry.ignored {
+  color: var(--gr-ink-faint);
+}
+
+.entry gr-icon {
+  align-self: center;
+  color: var(--gr-ink-soft);
+  transition: transform var(--gr-files-twist-dur) var(--gr-ease-ink);
+}
+
+.entry gr-icon.folded {
+  transform: rotate(var(--gr-files-folded-turn));
+}
+
+/* Files without folders line up with the folders' names. */
+.entry:not(.folder-entry) {
+  padding-left: var(--gr-files-twist-w);
+}
+
+/* Whether the open file shows alone, or its changes since the last commit. */
+.show {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--gr-files-show-gap);
+  margin: var(--gr-files-head-gap) 0;
+}
+
+.show button {
+  padding: var(--gr-colophon-word-pad);
+  border-bottom: var(--gr-colophon-word-rule-off);
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.show button:hover {
+  color: var(--gr-ink);
+}
+
+.show button[aria-checked='true'] {
+  color: var(--gr-ink);
+  border-bottom: var(--gr-colophon-word-rule);
+}
+
+.sub {
+  margin-bottom: var(--gr-files-head-gap);
+}
+
+.sub .path {
+  font-style: normal;
+}
+
+gr-code-editor {
+  margin-top: var(--gr-files-head-gap);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--gr-file-editor-actions-gap);
+  margin: 0;
+  padding: var(--gr-files-actions-pad);
+}
+
+.actions .dot {
+  margin: 0;
+}
+
+.note {
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.note.alert {
+  color: var(--gr-rubric);
+}

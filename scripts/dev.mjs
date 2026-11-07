@@ -4,7 +4,7 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import electronPath from 'electron';
 import * as esbuild from 'esbuild';
 import { builds } from './build.mjs';
@@ -12,6 +12,9 @@ import { builds } from './build.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = 4200;
 const DEV_URL = `http://localhost:${PORT}`;
+
+// The VS Code editor's files, which the UI serves as /vs.
+await import(pathToFileURL(path.join(root, 'ui/tools/copy-monaco.mjs')).href);
 
 const ng = spawn(process.execPath, [path.join(root, 'node_modules/@angular/cli/bin/ng.js'), 'serve', '--port', String(PORT)], {
   cwd: path.join(root, 'ui'),
