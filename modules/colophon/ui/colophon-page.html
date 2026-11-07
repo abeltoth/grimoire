@@ -123,6 +123,97 @@
         }}
       </p>
     }
+
+    @if (accounts.agent(); as agent) {
+      @let signIn = accounts.state();
+      <span class="label" id="gr-colophon-account">{{ agent.name }} signs in as</span>
+      <span class="words" role="radiogroup" aria-labelledby="gr-colophon-account">
+        @for (email of accounts.emails(); track email) {
+          <span class="account">
+            <button
+              type="button"
+              class="word"
+              role="radio"
+              [attr.aria-checked]="accounts.isCurrent(email)"
+              [disabled]="!!signIn?.pending"
+              (click)="accounts.isCurrent(email) || accounts.signIn(email)"
+            >
+              {{ email }}
+            </button>
+            @if (!accounts.isCurrent(email) && !signIn?.pending) {
+              <button
+                type="button"
+                class="forget"
+                [attr.aria-label]="'Forget ' + email"
+                [title]="'Forget ' + email"
+                (click)="accounts.forget(email)"
+              >
+                ×
+              </button>
+            }
+          </span>
+        }
+        @if (addingAccount()) {
+          <input
+            #accountField
+            class="line account-field"
+            type="email"
+            autocomplete="off"
+            aria-label="Email of the account to sign in to"
+            placeholder="Their email"
+            (keydown.enter)="addAccount(accountField.value)"
+            (keydown.escape)="$event.preventDefault(); addingAccount.set(false)"
+            (blur)="addAccount(accountField.value)"
+          />
+        } @else if (!signIn?.pending) {
+          <button type="button" class="gr-link" (click)="startAddingAccount()">
+            Another account
+          </button>
+        }
+      </span>
+      @if (signIn?.pending; as pending) {
+        <p class="note" role="status">
+          Waiting for you to sign in as {{ pending.email }} in the browser.
+          <span class="actions">
+            @if (pending.url) {
+              <button type="button" class="gr-link" (click)="copyPage(pending.url)">
+                {{ copiedPage() === pending.url ? 'Link copied' : 'Copy the sign-in link' }}
+              </button>
+            }
+            <button type="button" class="gr-link" (click)="accounts.cancel()">Cancel</button>
+          </span>
+        </p>
+        <label class="note code" for="gr-colophon-sign-in-code">
+          If the page shows a code, paste it here:
+          <input
+            #codeField
+            id="gr-colophon-sign-in-code"
+            class="line code-field"
+            autocomplete="off"
+            (keydown.enter)="accounts.code(codeField.value); codeField.value = ''"
+          />
+        </label>
+      } @else if (signIn) {
+        <p class="note">
+          @if (signIn.account; as account) {
+            @if (planName(account.plan); as plan) {
+              {{ plan }}{{ account.expiresAt ? ', until ' + day(account.expiresAt) : '' }}.
+            }
+            {{
+              wording.say(
+                'Every chapter uses it, as does Claude Code in a terminal; open chapters switch at their next entry.',
+                'Every chat uses it, as does Claude Code in a terminal; open chats switch at their next message.'
+              )
+            }}
+          } @else {
+            Not signed in.
+          }
+        </p>
+      }
+      @if (accounts.failed(); as error) {
+        <p class="note failed" role="alert">{{ error }}</p>
+      }
+    }
   </div>
 </section>
 

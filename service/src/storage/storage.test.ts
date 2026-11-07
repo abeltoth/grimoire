@@ -98,9 +98,11 @@ describe('storage', () => {
       defaultAgent: null,
       newChapter: { from: 'last-used' },
       theme: {},
+      accounts: [],
     });
     settings.set({ wording: 'plain', newChapter: { from: 'preset', preset: 'Bug fix' } });
     settings.set({ theme: { '--gr-page': '#fffaf0', '--gr-size-text': '18px' } });
+    settings.set({ accounts: ['me@example.com', 'mum@example.com'] });
     expect(() => settings.set({ wording: 'fancy' } as never)).toThrow(`"wording" can't be "fancy"`);
     expect(() => settings.set({ newChapter: { from: 'preset', preset: '' } })).toThrow('"newChapter"');
     expect(() => settings.set({ shelf: 'x' } as never)).toThrow(`There's no setting "shelf"`);
@@ -108,6 +110,9 @@ describe('storage', () => {
     expect(() => settings.set({ theme: { color: 'red' } })).toThrow('"theme"');
     expect(() => settings.set({ theme: { '--gr-page': 'red; }' } })).toThrow('"theme"');
     expect(() => settings.set({ theme: { '--gr-page': ' ' } })).toThrow('"theme"');
+    // Accounts are emails, each once whatever its case.
+    expect(() => settings.set({ accounts: ['not an email'] })).toThrow('"accounts"');
+    expect(() => settings.set({ accounts: ['a@x.com', 'A@x.com'] })).toThrow('"accounts"');
     // A refused change changes nothing, even the settings given beside it.
     expect(() => settings.set({ drawings: false, defaultAgent: 3 } as never)).toThrow();
     db.close();
@@ -119,6 +124,7 @@ describe('storage', () => {
       defaultAgent: null,
       newChapter: { from: 'preset', preset: 'Bug fix' },
       theme: { '--gr-page': '#fffaf0', '--gr-size-text': '18px' },
+      accounts: ['me@example.com', 'mum@example.com'],
     });
     again.close();
   });

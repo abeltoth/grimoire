@@ -12,6 +12,7 @@ import type {
   SpareProcess,
 } from '@anthropic-ai/claude-agent-sdk';
 import type {
+  AgentAccount,
   AgentCommand,
   AgentInfo,
   AgentMemories,
@@ -25,7 +26,7 @@ import type {
   PlanUsage,
   UsageBreakdown,
 } from '@grimoire/contract';
-import type { AgentAdapter, ChatEvents, ChatHistory, LiveChat, SavedChat } from '../adapter';
+import type { AgentAdapter, ChatEvents, ChatHistory, LiveChat, SavedChat, SignInRun } from '../adapter';
 import { CacheTracker, type ReplyUsage } from './cache';
 import { readUserSettings } from './effort';
 import { memorySettings, readMemories } from './memories';
@@ -36,6 +37,7 @@ import { withReferences } from './references';
 import { commandFiles, readSettingsFile, settingsFilesIn, toSetup } from './setup';
 import { type AgentToolInput, type PickerSources, RATER_PROMPT, pickFor, readRating } from './subagents';
 import { AUTO_PROMPT, autoPick, entryForRater } from './auto-model';
+import { readAccount, signIn } from './sign-in';
 import { ClaudeTranscript, turnEnd } from './transcript';
 import { toPlanUsage, toUsageBreakdown } from './usage';
 
@@ -84,7 +86,7 @@ export class ClaudeAdapter implements AgentAdapter {
   readonly info: AgentInfo = {
     id: 'claude-code',
     name: 'Claude Code',
-    capabilities: ['rename', 'fork', 'undo', 'compact'],
+    capabilities: ['rename', 'fork', 'undo', 'compact', 'sign-in'],
   };
 
   async listChats(cwd?: string): Promise<SavedChat[]> {
@@ -196,6 +198,30 @@ export class ClaudeAdapter implements AgentAdapter {
 
   usage(): Promise<PlanUsage> {
     return readUsage();
+  }
+
+  /** Who Claude Code is signed in as, as `claude auth status` says. */
+  account(): Promise<AgentAccount | null> {
+    return readAccount();
+  }
+
+  /**
+   * Signs Claude Code in to another claude.ai account, as /login does, so
+   * terminal Claude Code uses it too. Once signed in, what Claude Code said
+   * under the last account is asked again, and the spare starts again
+   * under the new one.
+   */
+  signIn(email: string, page: (url: string) => void): SignInRun {
+    const run = signIn(email, page);
+    return {
+      ...run,
+      done: run.done.then(() => {
+        this.modelList = undefined;
+        this.commandLists.clear();
+        this.dispose();
+        this.warm();
+      }),
+    };
   }
 
   /** What Claude Code's own scan of its transcripts says took the plan's usage, as /usage shows it. */

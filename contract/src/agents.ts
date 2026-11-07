@@ -11,8 +11,11 @@ export type AgentId = string;
 export type ChatId = string;
 
 /** What an agent supports beyond chatting. Features that need one show only for agents that have it. */
-/** What an agent can do beyond chatting; "compact" sums a chat up to free its context. */
-export type AgentCapability = 'rename' | 'fork' | 'undo' | 'compact';
+/**
+ * What an agent can do beyond chatting; "compact" sums a chat up to free its
+ * context, and "sign-in" switches the account every chat uses.
+ */
+export type AgentCapability = 'rename' | 'fork' | 'undo' | 'compact' | 'sign-in';
 
 export interface AgentInfo {
   id: AgentId;
@@ -127,6 +130,31 @@ export interface PlanUsage {
   credits?: UsageCredits;
   /** When it was read, in ms since the epoch. */
   at: number;
+}
+
+/** The account an agent is signed in with. */
+export interface AgentAccount {
+  email: string;
+  /** The subscription, such as "pro" or "max"; null when the agent doesn't say. */
+  plan: string | null;
+  /** When the sign-in runs out unless it's renewed, in ms since the epoch; null when the agent doesn't say. */
+  expiresAt: number | null;
+}
+
+/** A sign-in waiting for you in the browser. */
+export interface PendingSignIn {
+  /** The account being signed in to. */
+  email: string;
+  /** The sign-in page, to open by hand when the browser didn't open by itself; null until the agent gives it. */
+  url: string | null;
+}
+
+/** Who an agent is signed in as, and any sign-in under way. */
+export interface AgentSignIn {
+  agent: AgentId;
+  /** Null while it's signed out. */
+  account: AgentAccount | null;
+  pending: PendingSignIn | null;
 }
 
 /** The folders your chats ran in, most recent first, and your home folder. */
@@ -358,6 +386,18 @@ declare module './commands' {
     'agents.commands': { request: { agent: AgentId; cwd?: string }; response: AgentCommand[] };
     /** The agent's subscription limits and how much of them is used; null when it has none. */
     'agents.usage': { request: { agent: AgentId }; response: PlanUsage | null };
+    /** Who the agent is signed in as, and any sign-in under way. */
+    'agents.account': { request: { agent: AgentId }; response: AgentSignIn };
+    /**
+     * Signs the agent in to another account, in the browser, for every chat:
+     * open chats move to it from their next message. Settles once the
+     * sign-in ends; rejects, saying why, when it fails or is cancelled.
+     */
+    'agents.signIn': { request: { agent: AgentId; email: string }; response: AgentSignIn };
+    /** The code the sign-in page shows when it doesn't return to the agent by itself. */
+    'agents.signInCode': { request: { agent: AgentId; code: string }; response: void };
+    /** Stops a sign-in under way; the agent stays signed in as before. */
+    'agents.cancelSignIn': { request: { agent: AgentId }; response: void };
     /** The folders your chats with any agent ran in. */
     'agents.folders': { request: Record<string, never>; response: RecentFolders };
     /** The agent's chats, most recent first, optionally only those in one folder. */
@@ -442,6 +482,8 @@ declare module './commands' {
 declare module './events' {
   interface EventMap {
     'agents.status': { chatId: ChatId; status: ChatStatus };
+    /** An agent's sign-in changed: it began, its page is known, or it ended. */
+    'agents.account': AgentSignIn;
     /** A new or changed entry, complete. */
     'agents.entry': { chatId: ChatId; entry: Entry };
     /** Text streamed into a block of an entry since the last event, batched. */

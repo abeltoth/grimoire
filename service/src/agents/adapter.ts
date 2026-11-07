@@ -1,4 +1,5 @@
 import type {
+  AgentAccount,
   AgentCommand,
   AgentInfo,
   AgentMemories,
@@ -57,6 +58,14 @@ export interface AgentAdapter {
    * none. Agents that can't say leave it out.
    */
   usageBreakdown?(): Promise<UsageBreakdown | null>;
+  /** Who the agent is signed in as; null while it's signed out. Agents that can't switch accounts leave it out. */
+  account?(): Promise<AgentAccount | null>;
+  /**
+   * Signs the agent in to the account with this email, in the browser, for
+   * every process it starts from then on; `page` gets the sign-in page's
+   * address. Agents that can't switch accounts leave it out.
+   */
+  signIn?(email: string, page: (url: string) => void): SignInRun;
   /** What the agent loads in a folder, and where each piece comes from. Agents that can't say leave it out. */
   setup?(cwd: string): Promise<AgentSetup>;
   /** The memories the agent keeps on its own for a folder. Agents that keep none leave it out. */
@@ -90,6 +99,15 @@ export interface AgentAdapter {
   warm?(): void;
   /** Stops any spare process, for when the service stops. */
   dispose?(): void;
+}
+
+/** A sign-in under way. */
+export interface SignInRun {
+  /** Settles once signed in; rejects, saying why, when the sign-in fails or is cancelled. */
+  done: Promise<void>;
+  /** Passes on the code the sign-in page shows when it doesn't return by itself. */
+  code(code: string): void;
+  cancel(): void;
 }
 
 export interface ChatHistory {
