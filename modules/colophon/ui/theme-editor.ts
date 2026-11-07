@@ -4,25 +4,32 @@ import { Settings } from '@ui/app/core/settings';
 import { Wording } from '@ui/app/core/wording';
 import { AUTO_DARK, AUTO_LIGHT, DesignSettings } from '@ui/design-system/design-settings';
 import {
+  DENSITIES,
+  type Density,
   MAIN_TOKENS,
+  TEXT_FONT,
+  TEXT_FONTS,
   TEXT_SIZE,
   TEXT_SIZES,
   THEME_CHOICES,
   THEME_FILES,
   type TokenGroup,
+  densityOf,
   hexOf,
   isColour,
   lookUpTokens,
   pxOf,
+  textFontOf,
   tokenGroups,
   tokenValues,
+  withDensity,
 } from './theme';
 
 /**
  * The theme editor: the ready-made themes to choose from, then, to
- * change the one in use, the book's main colours and the size of its
- * text, and every token under the theme's own headings, to look up and
- * change. The book is its own preview: a change shows on every page at
+ * change the one in use, the book's main colours, the size and face of
+ * its text and how closely its pages are set, and every token under the
+ * theme's own headings, to look up and change. The book is its own preview: a change shows on every page at
  * once, and is kept for every window once you stop. Reset puts a token
  * back as the theme draws it; choosing another theme starts afresh.
  */
@@ -75,6 +82,18 @@ export class ThemeEditor {
     }),
   );
   protected readonly textSize = computed(() => pxOf(this.valueOf(TEXT_SIZE)));
+  protected readonly TEXT_FONT = TEXT_FONT;
+  /** The faces to pick, each word shown in its own face. */
+  protected readonly fonts = computed(() =>
+    TEXT_FONTS.map((font) => ({
+      ...font,
+      label: this.wording.plain() && font.plainLabel ? font.plainLabel : font.label,
+      face: font.value ?? this.drawn().get(TEXT_FONT) ?? null,
+    })),
+  );
+  protected readonly textFont = computed(() => textFontOf(this.changes()));
+  protected readonly densities = DENSITIES;
+  protected readonly density = computed(() => densityOf(this.changes()));
   protected readonly changedCount = computed(() => Object.keys(this.changes()).length);
   protected readonly count = computed(() => {
     const tokens = this.shown().reduce((sum, group) => sum + group.tokens.length, 0);
@@ -151,6 +170,22 @@ export class ThemeEditor {
     if (!(name in this.changes())) return;
     const { [name]: _, ...rest } = this.changes();
     this.settings.setSoon({ theme: rest });
+  }
+
+  /** Sets the text in a face; the book's own is no change. */
+  protected chooseFont(value: string | null): void {
+    if (value) this.change(TEXT_FONT, value);
+    else this.reset(TEXT_FONT);
+  }
+
+  /** Sets the pages closer or wider, in place of the density before; Normal is no change. */
+  protected chooseDensity(density: Density): void {
+    if (density.name === this.density()) return;
+    this.settings.setSoon({ theme: withDensity(this.changes(), density) });
+  }
+
+  protected resetDensity(): void {
+    this.chooseDensity(DENSITIES.find((density) => density.name === 'normal')!);
   }
 
   protected resetAll(): void {

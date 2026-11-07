@@ -78,6 +78,47 @@
       <button type="button" class="gr-link" (click)="reset(TEXT_SIZE)">Reset</button>
     }
   </span>
+
+  <span class="label" id="gr-theme-font">{{ wording.say('Face of the text', 'Font') }}</span>
+  <span class="control">
+    <span class="words" role="radiogroup" aria-labelledby="gr-theme-font">
+      @for (font of fonts(); track font.name) {
+        <button
+          type="button"
+          class="word"
+          role="radio"
+          [attr.aria-checked]="font.name === textFont()"
+          [style.font-family]="font.face"
+          (click)="chooseFont(font.value)"
+        >
+          {{ font.label }}
+        </button>
+      }
+    </span>
+    @if (TEXT_FONT in changes()) {
+      <button type="button" class="gr-link" (click)="reset(TEXT_FONT)">Reset</button>
+    }
+  </span>
+
+  <span class="label" id="gr-theme-density">{{ wording.say('Room on the page', 'Density') }}</span>
+  <span class="control">
+    <span class="words" role="radiogroup" aria-labelledby="gr-theme-density">
+      @for (choice of densities; track choice.name) {
+        <button
+          type="button"
+          class="word"
+          role="radio"
+          [attr.aria-checked]="choice.name === density()"
+          (click)="chooseDensity(choice)"
+        >
+          {{ choice.label }}
+        </button>
+      }
+    </span>
+    @if (density() !== 'normal') {
+      <button type="button" class="gr-link" (click)="resetDensity()">Reset</button>
+    }
+  </span>
 </div>
 
 <h3>{{ wording.say('Every token', 'All tokens') }}</h3>

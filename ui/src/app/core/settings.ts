@@ -37,6 +37,8 @@ export class Settings {
 
   /** Changes the settings given at once, and as the service has them again if it refuses them. */
   async set(change: Partial<GrimoireSettings>): Promise<void> {
+    // A change still waiting to be sent would undo this one once it is.
+    for (const key of Object.keys(change)) delete this.pending[key as keyof GrimoireSettings];
     this.all.update((all) => ({ ...all, ...change }));
     await this.send(change);
   }

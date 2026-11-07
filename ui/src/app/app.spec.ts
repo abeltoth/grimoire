@@ -28,6 +28,7 @@ import type {
   UsageSpan,
 } from '@grimoire/contract';
 import { DEFAULT_SETTINGS } from '@grimoire/contract';
+import { DENSITIES, TEXT_FONTS } from '../../../modules/colophon/ui/theme';
 import { MONACO, type MonacoApi } from '../../../modules/files/ui/monaco';
 import { clock, dateline, upcoming, when } from '../../../modules/schedules/ui/wording';
 import { App } from './app';
@@ -2721,10 +2722,10 @@ describe('App', () => {
     answers['settings.set'] = (change: Partial<GrimoireSettings>) => (kept = { ...kept, ...change });
     const { fixture, el, texts } = await render(bridge);
     const word = (text: string) =>
-      [...el.querySelectorAll<HTMLButtonElement>('gr-colophon-page .word')].find(
+      [...el.querySelectorAll<HTMLButtonElement>('#gr-colophon-settings ~ .form .word')].find(
         (button) => button.textContent!.trim() === text,
       )!;
-    const checked = () => texts('gr-colophon-page .word[aria-checked="true"]');
+    const checked = () => texts('#gr-colophon-settings ~ .form .word[aria-checked="true"]');
     [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
       .find((tab) => tab.textContent!.trim() === 'Colophon')!
       .click();
@@ -2851,12 +2852,11 @@ describe('App', () => {
       .find((tab) => tab.textContent!.trim() === 'Colophon')!
       .click();
     await fixture.whenStable();
-    expect(texts('gr-colophon-page .word[aria-checked="true"]').slice(2)).toEqual([
-      'The one used last',
-      'Bug fix',
-    ]);
+    expect(
+      texts('#gr-colophon-settings ~ .form .word[aria-checked="true"]').slice(2),
+    ).toEqual(['The one used last', 'Bug fix']);
     const word = (text: string) =>
-      [...el.querySelectorAll<HTMLButtonElement>('gr-colophon-page .word')].find(
+      [...el.querySelectorAll<HTMLButtonElement>('#gr-colophon-settings ~ .form .word')].find(
         (button) => button.textContent!.trim() === text,
       )!;
     word('Your last settings').click();
@@ -3114,7 +3114,7 @@ describe('App', () => {
     expect(texts('gr-colophon-page .preset h3')).toEqual(['Bug fix']);
 
     // New chapters begin with the preset, its first entry written in.
-    [...el.querySelectorAll<HTMLButtonElement>('gr-colophon-page .word')]
+    [...el.querySelectorAll<HTMLButtonElement>('#gr-colophon-settings ~ .form .word')]
       .find((word) => word.textContent!.trim() === 'Bug fix')!
       .click();
     await fixture.whenStable();
@@ -3157,6 +3157,8 @@ describe('App', () => {
       'Lapis',
       'Gilt',
       'Size of the text',
+      'Face of the text',
+      'Room on the page',
     ]);
     expect(texts('gr-theme-editor summary')[0]).toMatch(/^Desk, binding and thumb index\s*\d+$/);
     // Folded shut until opened.
@@ -3203,6 +3205,109 @@ describe('App', () => {
     await fixture.whenStable();
     expect(kept.theme).toEqual({});
     expect(root.getPropertyValue('--gr-page')).toBe('');
+  });
+
+  it('sets the text’s face and the room on the page on the Colophon, as changes to the theme', async () => {
+    const { bridge, answers } = fakeBridge();
+    let kept: GrimoireSettings = { ...DEFAULT_SETTINGS };
+    answers['settings.get'] = () => kept;
+    answers['settings.set'] = (change: Partial<GrimoireSettings>) => (kept = { ...kept, ...change });
+    const { fixture, el, texts } = await render(bridge);
+    const root = document.documentElement.style;
+    const settle = async () => {
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      await fixture.whenStable();
+    };
+    [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
+      .find((tab) => tab.textContent!.trim() === 'Colophon')!
+      .click();
+    await fixture.whenStable();
+    for (let i = 0; i < 50 && !el.querySelector('gr-theme-editor details'); i++) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      await fixture.whenStable();
+    }
+    const group = (name: string) =>
+      el.querySelector(`gr-theme-editor [aria-labelledby="gr-theme-${name}"]`)!;
+    const words = (name: string) => [...group(name).querySelectorAll<HTMLButtonElement>('.word')];
+    const named = (name: string) => words(name).map((button) => button.textContent!.trim());
+    const word = (name: string, label: string) => words(name)[named(name).indexOf(label)]!;
+    const picked = (name: string) =>
+      words(name)
+        .filter((button) => button.getAttribute('aria-checked') === 'true')
+        .map((button) => button.textContent!.trim());
+    const reset = (name: string) =>
+      group(name).parentElement!.querySelector<HTMLButtonElement>('.gr-link');
+    const [, sans, , mono] = TEXT_FONTS;
+    const [compact, , roomy] = DENSITIES;
+
+    expect(named('font')).toEqual(['The book’s', 'Sans-serif', 'Serif', 'Monospace']);
+    expect(picked('font')).toEqual(['The book’s']);
+    expect(named('density')).toEqual(['Compact', 'Normal', 'Roomy']);
+    // Normal is the book as drawn: nothing changed, nothing to reset.
+    expect(picked('density')).toEqual(['Normal']);
+    expect(reset('font')).toBeNull();
+    expect(reset('density')).toBeNull();
+
+    word('font', 'Sans-serif').click();
+    await settle();
+    expect(kept.theme).toEqual({ '--gr-font-text': sans!.value });
+    expect(root.getPropertyValue('--gr-font-text')).toBe(sans!.value);
+    expect(picked('font')).toEqual(['Sans-serif']);
+
+    word('density', 'Compact').click();
+    await settle();
+    expect(kept.theme).toEqual({ '--gr-font-text': sans!.value, ...compact!.tokens });
+    expect(root.getPropertyValue('--gr-space-3')).toBe('9px');
+    expect(picked('density')).toEqual(['Compact']);
+    const changed = Object.keys(compact!.tokens).length + 1;
+    expect(texts('gr-theme-editor .count')).toEqual([
+      expect.stringMatching(new RegExp(` · ${changed} changed$`)),
+    ]);
+
+    // Roomy takes Compact's place; the face stays.
+    word('density', 'Roomy').click();
+    await settle();
+    expect(kept.theme).toEqual({ '--gr-font-text': sans!.value, ...roomy!.tokens });
+
+    // One of its tokens changed by hand is none of the densities.
+    const field = el.querySelector<HTMLInputElement>('#gr-theme-look-up')!;
+    field.value = '--gr-space-3';
+    field.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    const space = el.querySelector<HTMLInputElement>(
+      'gr-theme-editor input[aria-label="--gr-space-3"]',
+    )!;
+    expect(space.value).toBe('15px');
+    space.value = '14px';
+    space.dispatchEvent(new Event('change'));
+    await settle();
+    expect(picked('density')).toEqual([]);
+
+    reset('density')!.click();
+    await settle();
+    expect(kept.theme).toEqual({ '--gr-font-text': sans!.value });
+    expect(root.getPropertyValue('--gr-space-3')).toBe('');
+    expect(picked('density')).toEqual(['Normal']);
+
+    word('font', 'The book’s').click();
+    await settle();
+    expect(kept.theme).toEqual({});
+    expect(root.getPropertyValue('--gr-font-text')).toBe('');
+    expect(reset('font')).toBeNull();
+
+    // Another theme starts afresh, the face and the density with it, even before they were kept.
+    word('font', 'Monospace').click();
+    word('density', 'Compact').click();
+    await fixture.whenStable();
+    expect(root.getPropertyValue('--gr-font-text')).toBe(mono!.value);
+    [...el.querySelectorAll<HTMLButtonElement>('gr-theme-editor .theme')]
+      .find((button) => button.querySelector('.theme-name')!.textContent!.trim() === 'Sepia')!
+      .click();
+    await settle();
+    expect(kept.themeName).toBe('sepia');
+    expect(kept.theme).toEqual({});
+    expect(picked('font')).toEqual(['The book’s']);
+    expect(picked('density')).toEqual(['Normal']);
   });
 
   it('chooses a ready-made theme on the Colophon, which starts afresh from it', async () => {

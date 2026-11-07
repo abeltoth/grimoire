@@ -135,6 +135,30 @@ code {
   accent-color: var(--gr-rubric);
 }
 
+/* Words to pick from, the picked one underlined in rubric, as in the settings above. */
+.words {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--gr-colophon-word-gap);
+}
+
+.word {
+  padding: var(--gr-colophon-word-pad);
+  border-bottom: var(--gr-colophon-word-rule-off);
+  font-size: var(--gr-size-colophon-word);
+  color: var(--gr-ink-soft);
+}
+
+.word:hover {
+  color: var(--gr-ink);
+}
+
+.word[aria-checked='true'] {
+  color: var(--gr-ink);
+  border-bottom: var(--gr-colophon-word-rule);
+}
+
 h3 {
   margin: var(--gr-colophon-section-gap) 0 var(--gr-theme-row-gap);
   font-family: var(--gr-font-display-sc);

@@ -78,6 +78,117 @@ export const TEXT_SIZE = '--gr-size-text';
 /** How small and large the text may be set, in px. */
 export const TEXT_SIZES = { min: 13, max: 24 } as const;
 
+export const TEXT_FONT = '--gr-font-text';
+
+/** A face to set the text in; the book's own when it changes nothing. */
+export interface TextFont {
+  name: 'book' | 'sans' | 'serif' | 'mono';
+  label: string;
+  plainLabel?: string;
+  /** What it sets --gr-font-text to: faces the system has, so none need loading. */
+  value: string | null;
+}
+
+/** The faces the text may be set in, in the order they are offered. */
+export const TEXT_FONTS: readonly TextFont[] = [
+  { name: 'book', label: 'The book’s', plainLabel: 'Default', value: null },
+  {
+    name: 'sans',
+    label: 'Sans-serif',
+    value: "system-ui, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
+  },
+  { name: 'serif', label: 'Serif', value: "Georgia, Cambria, 'Times New Roman', serif" },
+  {
+    name: 'mono',
+    label: 'Monospace',
+    value: "ui-monospace, 'Cascadia Mono', Consolas, Menlo, monospace",
+  },
+];
+
+/** The face your changes set the text in; null for one of your own. */
+export function textFontOf(changes: Readonly<Record<string, string>>): TextFont['name'] | null {
+  const value = changes[TEXT_FONT] ?? null;
+  return TEXT_FONTS.find((font) => font.value === value)?.name ?? null;
+}
+
+/** How closely the pages are set: the space scale, the leading, and the margins, closer or wider. */
+export interface Density {
+  name: 'compact' | 'normal' | 'roomy';
+  label: string;
+  /** What it changes; Normal is the book as drawn, and changes nothing. */
+  tokens: Readonly<Record<string, string>>;
+}
+
+/** The densities, in the order they are offered: about three quarters and five quarters of Normal. */
+export const DENSITIES: readonly Density[] = [
+  {
+    name: 'compact',
+    label: 'Compact',
+    tokens: {
+      '--gr-space-1': '3px',
+      '--gr-space-2': '6px',
+      '--gr-space-3': '9px',
+      '--gr-space-4': '12px',
+      '--gr-space-5': '18px',
+      '--gr-space-6': '24px',
+      '--gr-space-7': '36px',
+      '--gr-leading-text': '1.36',
+      '--gr-leading-entry': '1.3',
+      '--gr-block-gap': '6px',
+      '--gr-list-gap': '3px',
+      '--gr-col-gap': '21px',
+      '--gr-page-margin-outer': '36px',
+      '--gr-page-margin-inner': '30px',
+    },
+  },
+  { name: 'normal', label: 'Normal', tokens: {} },
+  {
+    name: 'roomy',
+    label: 'Roomy',
+    tokens: {
+      '--gr-space-1': '5px',
+      '--gr-space-2': '10px',
+      '--gr-space-3': '15px',
+      '--gr-space-4': '20px',
+      '--gr-space-5': '30px',
+      '--gr-space-6': '40px',
+      '--gr-space-7': '60px',
+      '--gr-leading-text': '1.6',
+      '--gr-leading-entry': '1.54',
+      '--gr-block-gap': '10px',
+      '--gr-list-gap': '5px',
+      '--gr-col-gap': '35px',
+      '--gr-page-margin-outer': '60px',
+      '--gr-page-margin-inner': '50px',
+    },
+  },
+];
+
+/** Every token a density sets. */
+export const DENSITY_TOKENS: readonly string[] = [
+  ...new Set(DENSITIES.flatMap((density) => Object.keys(density.tokens))),
+];
+
+/** The density your changes make; null when they set its tokens some other way. */
+export function densityOf(changes: Readonly<Record<string, string>>): Density['name'] | null {
+  return (
+    DENSITIES.find((density) =>
+      DENSITY_TOKENS.every((token) => changes[token] === density.tokens[token]),
+    )?.name ?? null
+  );
+}
+
+/** Your changes with a density set in place of the one before; your other changes stay. */
+export function withDensity(
+  changes: Readonly<Record<string, string>>,
+  density: Density,
+): Record<string, string> {
+  const rest = Object.fromEntries(
+    Object.entries(changes).filter(([token]) => !DENSITY_TOKENS.includes(token)),
+  );
+  return { ...rest, ...density.tokens };
+}
+
 /**
  * The theme's tokens under its headings, read from the theme file: a
  * comment after a blank line heads the tokens below it; one right after a

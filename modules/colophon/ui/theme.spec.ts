@@ -1,15 +1,22 @@
 import { THEME_NAMES } from '@grimoire/contract';
 import theme from '@ui/design-system/themes/grimoire.css' with { loader: 'text' };
 import {
+  DENSITIES,
+  DENSITY_TOKENS,
   MAIN_TOKENS,
+  TEXT_FONT,
+  TEXT_FONTS,
   TEXT_SIZE,
   THEME_FILES,
+  densityOf,
   hexOf,
   isColour,
   lookUpTokens,
   pxOf,
+  textFontOf,
   tokenGroups,
   tokenValues,
+  withDensity,
 } from './theme';
 
 /** WCAG 2's contrast between two colours, 1 to 21. */
@@ -153,5 +160,58 @@ describe('the theme’s tokens', () => {
     expect(isColour('var(--gr-page)')).toBe(false);
     expect(pxOf('17px')).toBe(17);
     expect(pxOf('1.2rem')).toBeNull();
+  });
+});
+
+describe('the face and density of the text', () => {
+  // As the service takes a token's value.
+  const TOKEN_VALUE = /^[^;{}]{1,300}$/;
+  const known = new Set(Object.keys(tokenValues(theme)));
+
+  it('offers the book’s face first, which changes nothing, then faces the system has', () => {
+    expect(known).toContain(TEXT_FONT);
+    expect(TEXT_FONTS.map((font) => font.name)).toEqual(['book', 'sans', 'serif', 'mono']);
+    expect(TEXT_FONTS[0]!.value).toBeNull();
+    for (const font of TEXT_FONTS.slice(1)) {
+      expect(font.value, font.name).toMatch(TOKEN_VALUE);
+      expect(font.value, font.name).toMatch(/, (sans-serif|serif|monospace)$/);
+    }
+    expect(textFontOf({})).toBe('book');
+    expect(textFontOf({ [TEXT_FONT]: TEXT_FONTS[3]!.value!, '--gr-page': '#ffffff' })).toBe('mono');
+    expect(textFontOf({ [TEXT_FONT]: 'Comic Sans MS, cursive' })).toBeNull();
+  });
+
+  it('sets the same tokens closer or wider, Normal none of them', () => {
+    expect(DENSITIES.map((density) => density.name)).toEqual(['compact', 'normal', 'roomy']);
+    const [compact, normal, roomy] = DENSITIES;
+    expect(normal!.tokens).toEqual({});
+    expect(Object.keys(compact!.tokens)).toEqual(DENSITY_TOKENS);
+    expect(Object.keys(roomy!.tokens)).toEqual(DENSITY_TOKENS);
+    const drawn = tokenValues(theme);
+    for (const token of DENSITY_TOKENS) {
+      expect(known, token).toContain(token);
+      const [close, asDrawn, wide] = [
+        compact!.tokens[token]!,
+        drawn[token]!,
+        roomy!.tokens[token]!,
+      ];
+      expect(close, token).toMatch(TOKEN_VALUE);
+      expect(wide, token).toMatch(TOKEN_VALUE);
+      expect(parseFloat(close), token).toBeLessThan(parseFloat(asDrawn));
+      expect(parseFloat(wide), token).toBeGreaterThan(parseFloat(asDrawn));
+    }
+  });
+
+  it('says which density your changes make, and sets one in place of another', () => {
+    const [compact, normal, roomy] = DENSITIES;
+    expect(densityOf({})).toBe('normal');
+    expect(densityOf({ '--gr-page': '#ffffff' })).toBe('normal');
+    const close = withDensity({ '--gr-page': '#ffffff' }, compact!);
+    expect(densityOf(close)).toBe('compact');
+    expect(close['--gr-page']).toBe('#ffffff');
+    expect(withDensity(close, roomy!)).toEqual({ '--gr-page': '#ffffff', ...roomy!.tokens });
+    expect(withDensity(close, normal!)).toEqual({ '--gr-page': '#ffffff' });
+    // One of its tokens changed by hand is none of them.
+    expect(densityOf({ ...close, '--gr-space-3': '10px' })).toBeNull();
   });
 });
