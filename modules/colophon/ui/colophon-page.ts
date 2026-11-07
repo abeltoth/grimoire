@@ -4,12 +4,14 @@ import {
   Injector,
   afterNextRender,
   computed,
+  effect,
   inject,
   signal,
   viewChild,
 } from '@angular/core';
 import type { AgentId, GrimoireSettings, Preset } from '@grimoire/contract';
 import { Chats } from '@ui/app/core/chats';
+import { McpServers } from '@ui/app/core/mcp-servers';
 import { PresetList } from '@ui/app/core/preset-list';
 import { Presets } from '@ui/app/core/presets';
 import { Settings } from '@ui/app/core/settings';
@@ -22,7 +24,9 @@ import { ThemeEditor } from './theme-editor';
  * words to pick, the picked one underlined, and each is kept by the
  * service as soon as it's picked; among them, the account the agent signs
  * in as. Below them, the presets, each with the first entry its chapters
- * begin with, to rename or remove; then the theme.
+ * begin with, to rename or remove; then the theme. The MCP servers your
+ * agents load in your home folder, and those turned off, can be turned off
+ * or on in every chapter.
  */
 @Component({
   selector: 'gr-colophon-page',
@@ -38,6 +42,7 @@ export class ColophonPage {
   protected readonly described = inject(Presets);
   protected readonly wording = inject(Wording);
   protected readonly accounts = inject(Accounts);
+  private readonly mcp = inject(McpServers);
   private readonly injector = inject(Injector);
   private readonly nameField = viewChild<ElementRef<HTMLInputElement>>('nameField');
   private readonly accountField = viewChild<ElementRef<HTMLInputElement>>('accountField');
@@ -60,8 +65,33 @@ export class ColophonPage {
       : null;
   });
 
+  /** Whether every agent has said which MCP servers it loads in your home folder. */
+  protected readonly mcpRead = computed(() =>
+    this.chats.agents().every((agent) => this.mcp.of(agent.id, this.home()) !== undefined),
+  );
+
+  /** The MCP servers your agents load in your home folder, and those turned off, by name. */
+  protected readonly mcpServers = computed(() => {
+    const listed = this.chats
+      .agents()
+      .flatMap((agent) => this.mcp.of(agent.id, this.home()) ?? [])
+      .map((server) => server.name);
+    return [...new Set([...listed, ...this.settings.all().mcpOff])];
+  });
+
+  private readonly home = computed(() => this.chats.folders().home || undefined);
+
   constructor() {
     void this.presets.load();
+    effect(() => {
+      for (const agent of this.chats.agents()) this.mcp.load(agent.id, this.home());
+    });
+  }
+
+  /** Turns an MCP server off in every chapter, or on again. */
+  protected toggleMcp(name: string): void {
+    const off = this.settings.all().mcpOff;
+    this.set({ mcpOff: off.includes(name) ? off.filter((n) => n !== name) : [...off, name] });
   }
 
   protected set(change: Partial<GrimoireSettings>): void {

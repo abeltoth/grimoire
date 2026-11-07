@@ -5,6 +5,7 @@ import {
   afterNextRender,
   afterRenderEffect,
   computed,
+  effect,
   inject,
   input,
   linkedSignal,
@@ -16,8 +17,10 @@ import { Icon } from '@ui/design-system/icon';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { type Chapter, Chats, type Setting, type SettingsPick } from '@ui/app/core/chats';
 import { EFFORTS } from '@ui/app/core/efforts';
+import { McpServers } from '@ui/app/core/mcp-servers';
 import { MODES } from '@ui/app/core/modes';
 import { Presets } from '@ui/app/core/presets';
+import { Settings } from '@ui/app/core/settings';
 import { Wording } from '@ui/app/core/wording';
 
 const RECENT_FOLDERS = 3;
@@ -27,7 +30,8 @@ const RECENT_FOLDERS = 3;
  * or its ribbon. A blank chapter takes any of them; once the chapter has
  * begun, its agent and folder stay. Esc or a click elsewhere closes it.
  * Its presets set several at once, and "Save these settings as a preset…"
- * names the chapter's settings in place.
+ * names the chapter's settings in place. Its folder's MCP servers can be
+ * turned off for it, those off in every chapter as the Colophon says.
  */
 @Component({
   selector: 'gr-settings-card',
@@ -52,6 +56,8 @@ export class SettingsCard {
   protected readonly presets = inject(Presets);
   protected readonly wording = inject(Wording);
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
+  private readonly settings = inject(Settings);
+  private readonly mcp = inject(McpServers);
   private readonly injector = inject(Injector);
   private readonly nameField = viewChild<ElementRef<HTMLInputElement>>('presetName');
   private readonly saveButton = viewChild<ElementRef<HTMLButtonElement>>('saveButton');
@@ -98,8 +104,31 @@ export class SettingsCard {
     return [...(current ? [current] : []), ...others].slice(0, RECENT_FOLDERS);
   });
 
+  /**
+   * The folder's MCP servers, and any turned off that it no longer lists,
+   * each saying whether it's off here or in every chapter; undefined until read.
+   */
+  protected readonly servers = computed(() => {
+    const { agent, settings } = this.chapter();
+    const listed = this.mcp.of(agent, settings.cwd);
+    if (!listed) return undefined;
+    const everywhere = this.settings.all().mcpOff;
+    const off = settings.mcpOff ?? [];
+    const names = [...new Set([...listed.map((server) => server.name), ...off])];
+    return names.map((name) => ({
+      name,
+      tokens: listed.find((server) => server.name === name)?.tokens,
+      everywhere: everywhere.includes(name),
+      on: !everywhere.includes(name) && !off.includes(name),
+    }));
+  });
+
   constructor() {
     void this.presets.load();
+    effect(() => {
+      const { agent, settings } = this.chapter();
+      this.mcp.load(agent, settings.cwd);
+    });
     afterRenderEffect(() => this.nameField()?.nativeElement.focus());
     afterRenderEffect(() => {
       const anchor = this.anchor();
@@ -122,6 +151,17 @@ export class SettingsCard {
 
   protected pick(pick: SettingsPick): void {
     void this.chats.configure(this.chapter().id, pick);
+  }
+
+  /** Turns an MCP server off for the chapter, or on again; one off in every chapter stays off. */
+  protected toggleMcp(name: string): void {
+    if (this.settings.all().mcpOff.includes(name)) return;
+    const off = this.chapter().settings.mcpOff ?? [];
+    this.pick({ mcpOff: off.includes(name) ? off.filter((n) => n !== name) : [...off, name] });
+  }
+
+  protected tokenCount(tokens: number | undefined): string {
+    return tokens ? `${tokens.toLocaleString()} tokens` : '';
   }
 
   protected usePreset(preset: Preset): void {

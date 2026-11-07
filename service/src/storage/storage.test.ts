@@ -99,10 +99,12 @@ describe('storage', () => {
       newChapter: { from: 'last-used' },
       theme: {},
       accounts: [],
+      mcpOff: [],
     });
     settings.set({ wording: 'plain', newChapter: { from: 'preset', preset: 'Bug fix' } });
     settings.set({ theme: { '--gr-page': '#fffaf0', '--gr-size-text': '18px' } });
     settings.set({ accounts: ['me@example.com', 'mum@example.com'] });
+    settings.set({ mcpOff: ['github', 'claude.ai Gmail'] });
     expect(() => settings.set({ wording: 'fancy' } as never)).toThrow(`"wording" can't be "fancy"`);
     expect(() => settings.set({ newChapter: { from: 'preset', preset: '' } })).toThrow('"newChapter"');
     expect(() => settings.set({ shelf: 'x' } as never)).toThrow(`There's no setting "shelf"`);
@@ -113,6 +115,9 @@ describe('storage', () => {
     // Accounts are emails, each once whatever its case.
     expect(() => settings.set({ accounts: ['not an email'] })).toThrow('"accounts"');
     expect(() => settings.set({ accounts: ['a@x.com', 'A@x.com'] })).toThrow('"accounts"');
+    // MCP servers are named, each once.
+    expect(() => settings.set({ mcpOff: ['github', 'github'] })).toThrow('"mcpOff"');
+    expect(() => settings.set({ mcpOff: [' '] })).toThrow('"mcpOff"');
     // A refused change changes nothing, even the settings given beside it.
     expect(() => settings.set({ drawings: false, defaultAgent: 3 } as never)).toThrow();
     db.close();
@@ -125,6 +130,7 @@ describe('storage', () => {
       newChapter: { from: 'preset', preset: 'Bug fix' },
       theme: { '--gr-page': '#fffaf0', '--gr-size-text': '18px' },
       accounts: ['me@example.com', 'mum@example.com'],
+      mcpOff: ['github', 'claude.ai Gmail'],
     });
     again.close();
   });

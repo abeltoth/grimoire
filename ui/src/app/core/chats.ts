@@ -82,6 +82,8 @@ export interface SettingsPick {
   cwd?: string;
   /** Whether a new chapter works in a worktree of its own. */
   worktree?: boolean;
+  /** The MCP servers turned off for this chapter, by name. */
+  mcpOff?: string[];
 }
 
 /** The settings a new chapter takes: the ones last picked or begun with. */
@@ -272,6 +274,7 @@ export class Chats {
       ...(pick.model ? { model: pick.model } : {}),
       ...(pick.effort ? { effort: pick.effort } : {}),
       ...(pick.mode ? { mode: pick.mode } : {}),
+      ...(pick.mcpOff ? { mcpOff: pick.mcpOff } : {}),
     };
     try {
       await this.bridge.invoke('agents.configure', { chatId: id, change });
@@ -686,7 +689,9 @@ export class Chats {
       .catch(() => {});
   }
 
-  private remember(lastUsed: LastUsed): void {
+  /** The settings a new chapter takes next; MCP servers turned off for one chapter stay with it. */
+  private remember({ agent, settings: { mcpOff: _, ...settings } }: LastUsed): void {
+    const lastUsed = { agent, settings };
     this.lastUsed = lastUsed;
     this.bridge.invoke('layout.set', { lastUsed }).catch(() => {});
   }

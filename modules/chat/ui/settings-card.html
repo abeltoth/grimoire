@@ -226,6 +226,39 @@
   </div>
 </div>
 
+<div class="strip" data-setting="mcp" role="group" aria-label="MCP servers">
+  <h3>MCP servers <i>on here</i></h3>
+  @if (servers(); as servers) {
+    @for (server of servers; track server.name) {
+      <button
+        type="button"
+        class="choice"
+        role="checkbox"
+        [attr.aria-checked]="server.on"
+        [attr.aria-disabled]="server.everywhere || null"
+        (click)="toggleMcp(server.name)"
+      >
+        <gr-icon name="check" />
+        <span
+          >{{ server.name }}
+          <small>{{
+            server.everywhere
+              ? wording.say('off in every chapter', 'off in every chat')
+              : tokenCount(server.tokens)
+          }}</small></span
+        >
+      </button>
+    } @empty {
+      <p class="none">{{ agentName() }} loads none here</p>
+    }
+    @if (begun() && servers.length) {
+      <p class="none">A change counts from its next turn</p>
+    }
+  } @else {
+    <p class="none">Asking {{ agentName() }}…</p>
+  }
+</div>
+
 <footer class="card-foot">
   <span>{{
     wording.say(

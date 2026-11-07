@@ -124,6 +124,33 @@
       </p>
     }
 
+    <span class="label" id="gr-colophon-mcp">{{
+      wording.say('MCP servers in every chapter', 'MCP servers in every chat')
+    }}</span>
+    <span class="words" role="group" aria-labelledby="gr-colophon-mcp">
+      @for (name of mcpServers(); track name) {
+        <button
+          type="button"
+          class="word"
+          role="checkbox"
+          [attr.aria-checked]="!all.mcpOff.includes(name)"
+          (click)="toggleMcp(name)"
+        >
+          {{ name }}
+        </button>
+      } @empty {
+        <span class="none">{{ mcpRead() ? 'None' : 'Asking your agents…' }}</span>
+      }
+    </span>
+    <p class="note">
+      {{
+        wording.say(
+          'Those underlined start in every chapter. One turned off takes no room in the context; open chapters change at their next entry. Turn one off for a single chapter on its settings card.',
+          'Those underlined start in every chat. One turned off takes no room in the context; open chats change at their next message. Turn one off for a single chat in its settings.'
+        )
+      }}
+    </p>
+
     @if (accounts.agent(); as agent) {
       @let signIn = accounts.state();
       <span class="label" id="gr-colophon-account">{{ agent.name }} signs in as</span>

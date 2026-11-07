@@ -532,15 +532,33 @@ export class AgentHub {
     this.emitQueued(chat);
   }
 
-  /** Changes a chat's model or permission, for its running process too. */
+  /**
+   * Changes a chat's model or permission, for its running process too. Its
+   * MCP servers can't change in a running process: it starts again, as soon
+   * as no turn runs, continuing the chat.
+   */
   async configure(chatId: ChatId, change: SettingsChange): Promise<void> {
     const chat = this.chat(chatId);
-    await chat.live?.configure(change);
+    const { mcpOff, ...live } = change;
+    if (mcpOff && !(Array.isArray(mcpOff) && mcpOff.every((name) => typeof name === 'string')))
+      throw new Error('MCP servers are turned off by name');
+    const servers = mcpOff && !sameNames(mcpOff, chat.settings.mcpOff ?? []);
+    if (Object.keys(live).length) await chat.live?.configure(live);
     // Another model, picked by you, ends Auto.
     const { autoModel, ...kept } = chat.settings;
     chat.settings = { ...kept, ...(autoModel && !change.model ? { autoModel } : {}), ...change };
+    if (!chat.settings.mcpOff?.length) delete chat.settings.mcpOff;
     this.store.chapters.add({ chatId, agent: chat.agent.info.id, settings: chat.settings });
     this.emit('agents.settings', { chatId, settings: chat.settings });
+    if (servers) this.restartWhenIdle(chat);
+  }
+
+  /**
+   * The MCP servers turned off in every chat changed: each open chat's
+   * process starts again, as soon as no turn runs, continuing the chat.
+   */
+  mcpChanged(): void {
+    for (const chat of this.chats.values()) this.restartWhenIdle(chat);
   }
 
   /**
@@ -752,11 +770,14 @@ export class AgentHub {
 
   /** The agent's open chats move to its new account, each as soon as no turn runs. */
   private moveToNewAccount(adapter: AgentAdapter): void {
-    for (const chat of this.chats.values()) {
-      if (chat.agent !== adapter || !chat.live) continue;
-      if (chat.status === 'idle') this.restartProcess(chat);
-      else chat.restart = true;
-    }
+    for (const chat of this.chats.values()) if (chat.agent === adapter) this.restartWhenIdle(chat);
+  }
+
+  /** Stops the chat's process now, or once its turn ends; its next message starts another. */
+  private restartWhenIdle(chat: ChatState): void {
+    if (!chat.live) return;
+    if (chat.status === 'idle') this.restartProcess(chat);
+    else chat.restart = true;
   }
 
   /** Stops the chat's process; its next message starts another, continuing the chat. */
@@ -974,4 +995,9 @@ export class AgentHub {
 
 function userEntry(id: string, text: string, enclosures: Enclosure[]): Entry {
   return { kind: 'user', id, text, ...(enclosures.length ? { enclosures } : {}) };
+}
+
+/** Whether two lists name the same, in any order. */
+function sameNames(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((name) => b.includes(name));
 }

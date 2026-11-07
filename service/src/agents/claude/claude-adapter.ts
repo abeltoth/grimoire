@@ -29,6 +29,7 @@ import type {
 import type { AgentAdapter, ChatEvents, ChatHistory, LiveChat, SavedChat, SignInRun } from '../adapter';
 import { CacheTracker, type ReplyUsage } from './cache';
 import { readUserSettings } from './effort';
+import { mcpOff, mcpSettings } from './mcp';
 import { memorySettings, readMemories } from './memories';
 import { MessageQueue } from './message-queue';
 import { toAgentModels } from './models';
@@ -71,6 +72,8 @@ interface Spare {
   process: Promise<SpareProcess>;
   claimedBy: Deferred<ChatEvents>;
   picking: Deferred<PickerSources>;
+  /** The MCP servers kept from starting in it, sorted: a chat with others starts on a process of its own. */
+  mcpOff: string[];
 }
 
 /**
@@ -82,6 +85,9 @@ export class ClaudeAdapter implements AgentAdapter {
   private spare: Spare | undefined;
   private modelList: Promise<ModelInfo[]> | undefined;
   private readonly commandLists = new Map<string, { at: number; list: Promise<AgentCommand[]> }>();
+
+  /** `mcpOffEverywhere` names the MCP servers turned off in every chat, as they are when a process starts. */
+  constructor(private readonly mcpOffEverywhere: () => readonly string[] = () => []) {}
 
   readonly info: AgentInfo = {
     id: 'claude-code',
@@ -261,6 +267,7 @@ export class ClaudeAdapter implements AgentAdapter {
   ): LiveChat {
     const input = new MessageQueue<SDKUserMessage>();
     const picking = new Deferred<PickerSources>();
+    const off = mcpOff(this.mcpOffEverywhere(), settings);
     const started: Promise<Query> = sdk().then(({ query }) =>
       query({
         prompt: input,
@@ -269,6 +276,7 @@ export class ClaudeAdapter implements AgentAdapter {
           ...(settings.model ? { model: settings.model } : {}),
           ...(settings.effort ? { effort: settings.effort } : {}),
           permissionMode: MODES[settings.mode ?? 'ask'],
+          ...(off.length ? { settings: mcpSettings(off) } : {}),
           // Lets you pick Full access, now or later; it doesn't skip any asking by itself.
           allowDangerouslySkipPermissions: true,
           includePartialMessages: true,
@@ -287,8 +295,9 @@ export class ClaudeAdapter implements AgentAdapter {
 
   /**
    * Starts a new chat on the spare process when one is parked; Claude Code
-   * then picks the session ID. When there's no spare, or the spare refuses
-   * the claim, the chat starts on a process of its own.
+   * then picks the session ID. When there's no spare, the spare refuses the
+   * claim, or it was started with other MCP servers off, the chat starts on
+   * a process of its own.
    */
   async start(
     settings: ChatSettings,
@@ -298,7 +307,11 @@ export class ClaudeAdapter implements AgentAdapter {
     title?: string,
     enclosures: Enclosure[] = [],
   ): Promise<LiveChat> {
-    const spare = this.takeSpare();
+    let spare = this.takeSpare();
+    if (spare && !sameNames(spare.mcpOff, mcpOff(this.mcpOffEverywhere(), settings))) {
+      void spare.process.then((process) => process.close(), () => {});
+      spare = undefined;
+    }
     try {
       if (spare) return await this.claim(spare, settings, text, id, bind, title, enclosures);
     } catch {
@@ -316,14 +329,17 @@ export class ClaudeAdapter implements AgentAdapter {
     if (this.spare) return;
     const claimedBy = new Deferred<ChatEvents>();
     const picking = new Deferred<PickerSources>();
+    const off = mcpOff(this.mcpOffEverywhere());
     const spare: Spare = {
       claimedBy,
       picking,
+      mcpOff: off,
       process: sdk().then(({ prewarm }) =>
         prewarm({
           options: {
             includePartialMessages: true,
             permissionMode: MODES.ask,
+            ...(off.length ? { settings: mcpSettings(off) } : {}),
             allowDangerouslySkipPermissions: true,
             enableFileCheckpointing: true,
             env: ENV,
@@ -443,6 +459,7 @@ export class ClaudeAdapter implements AgentAdapter {
       interrupt: async () => {
         await (await started).interrupt();
       },
+      // The MCP servers change when the hub starts the process again.
       configure: async ({ model, mode, effort }) => {
         const live = await started;
         if (model) await live.setModel(model);
@@ -744,4 +761,9 @@ function approvalsTo(events: () => Promise<ChatEvents>): CanUseTool {
 function resultError(result: Extract<SDKMessage, { type: 'result' }>): string | undefined {
   if (result.subtype === 'success') return result.is_error ? result.result : undefined;
   return result.errors.join('\n') || result.subtype;
+}
+
+/** Whether two sorted lists name the same. */
+function sameNames(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((name, i) => name === b[i]);
 }

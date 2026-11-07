@@ -708,6 +708,44 @@ describe('AgentHub', () => {
     expect(chapters.list()[0]?.settings).toEqual({ ...settings, model: 'small', mode: 'plan' });
   });
 
+  it("turns a chat's MCP servers off from its next turn, starting its process again", async () => {
+    const store = hubStore(openDatabase(':memory:'));
+    hub = new AgentHub((event, payload) => sent.push({ event, payload } as Sent), 50, store);
+    hub.addAdapter(fake);
+    const { id } = await hub.start('fake', settings, 'Hello');
+    const working = fake.runOf(id);
+    sent = [];
+
+    // While a turn runs, the process stays until it ends.
+    await hub.configure(id, { mcpOff: ['github'] });
+    expect(working.configured).toEqual([]);
+    expect(working.closed).toBe(false);
+    expect(sent).toEqual([
+      { event: 'agents.settings', payload: { chatId: id, settings: { ...settings, mcpOff: ['github'] } } },
+    ]);
+    expect(store.chapters.list()[0]?.settings).toEqual({ ...settings, mcpOff: ['github'] });
+    working.events.turnEnded();
+    expect(working.closed).toBe(true);
+    hub.send(id, 'Again');
+    expect(fake.runOf(id)).toMatchObject({ resume: true, settings: { mcpOff: ['github'] }, sent: ['Again'] });
+
+    // The same servers again leave the process be; none off drops the setting.
+    const again = fake.runOf(id);
+    again.events.turnEnded();
+    await hub.configure(id, { mcpOff: ['github'] });
+    expect(again.closed).toBe(false);
+    await hub.configure(id, { mcpOff: [] });
+    expect(again.closed).toBe(true);
+    expect(store.chapters.list()[0]?.settings).toEqual(settings);
+
+    // Those off in every chat changed: every open chat starts again, as soon as no turn runs.
+    hub.send(id, 'Once more');
+    const third = fake.runOf(id);
+    third.events.turnEnded();
+    hub.mcpChanged();
+    expect(third.closed).toBe(true);
+  });
+
   it('lists the folders a setup can be read in: those still there, outside the temp folder', async () => {
     const temp = mkdtempSync(path.join(tmpdir(), 'grimoire-temp-'));
     const work = mkdtempSync(path.join(tmpdir(), 'grimoire-work-'));
