@@ -124,13 +124,10 @@
         <p class="none" role="alert">Claude Code couldn’t say where the usage went: {{ error }}</p>
       } @else if (breakdowns(); as breakdowns) {
         @for (each of breakdowns; track each.agent.id) {
-          @let scan = each.breakdown[span()];
-          <h3>What {{ each.agent.name }} says took your usage</h3>
-          <p class="sub">{{ scan.requests }} requests in {{ scan.chats }} chats</p>
-          @if (scan.advice.length) {
-            <h4>Its advice</h4>
+          @if (each.breakdown[span()].advice.length) {
+            <h3>{{ each.agent.name }}’s advice</h3>
             <ul class="advice">
-              @for (advice of scan.advice; track advice.key) {
+              @for (advice of each.breakdown[span()].advice; track advice.key) {
                 <li>
                   <span class="name">{{ advice.title }}</span>
                   @if (advice.detail) {
@@ -140,63 +137,7 @@
               }
             </ul>
           }
-          @if (scan.behaviours.length) {
-            <h4>Ways of working</h4>
-            <ul class="limits">
-              @for (behaviour of top(scan.behaviours, 'behaviours'); track behaviour.key) {
-                <li>
-                  <span class="head">
-                    <span class="name">{{ behaviourName(behaviour.key) }}</span>
-                    <span class="resets">{{ behaviour.requests }} requests</span>
-                  </span>
-                  <span
-                    class="ticks"
-                    role="meter"
-                    [attr.aria-label]="behaviourName(behaviour.key) + ', share of the usage'"
-                    aria-valuemin="0"
-                    aria-valuemax="100"
-                    [attr.aria-valuenow]="behaviour.share"
-                  >
-                    <span class="used" [style.width.%]="filled(behaviour.share)"></span>
-                  </span>
-                  <b>{{ round(behaviour.share) }}%</b>
-                </li>
-              }
-            </ul>
-            <ng-container
-              *ngTemplateOutlet="more; context: { key: 'behaviours', size: scan.behaviours.length }"
-            />
-          }
-          @if (scan.sources.length) {
-            <h4>What took a share</h4>
-            <ul class="limits">
-              @for (source of top(scan.sources, 'sources'); track source.kind + source.name) {
-                <li>
-                  <span class="head">
-                    <span class="name">{{ source.name }}</span>
-                    <span class="resets">{{ sourceKind(source.kind) }}</span>
-                  </span>
-                  <span
-                    class="ticks"
-                    role="meter"
-                    [attr.aria-label]="source.name + ', share of the usage'"
-                    aria-valuemin="0"
-                    aria-valuemax="100"
-                    [attr.aria-valuenow]="source.share"
-                  >
-                    <span class="used" [style.width.%]="filled(source.share)"></span>
-                  </span>
-                  <b>{{ round(source.share) }}%</b>
-                </li>
-              }
-            </ul>
-            <ng-container
-              *ngTemplateOutlet="more; context: { key: 'sources', size: scan.sources.length }"
-            />
-          }
         }
-      } @else {
-        <p class="none">Asking Claude Code where the usage went…</p>
       }
 
       <h3>By Grimoire’s count</h3>
@@ -209,82 +150,169 @@
             <span class="detail">{{ inWords(totals.total) }}</span>
           </p>
 
-          <h4>By day</h4>
-          <ul class="limits">
-            @for (day of top(totals.days, 'days'); track day.day) {
-              <ng-container
-                *ngTemplateOutlet="weighed; context: { name: dayName(day.day), total: day }"
-              />
-            }
-          </ul>
-          <ng-container
-            *ngTemplateOutlet="more; context: { key: 'days', size: totals.days.length }"
-          />
-
-          <h4>By model</h4>
-          <ul class="limits">
-            @for (model of top(totals.models, 'models'); track model.model + model.subagent) {
-              <ng-container
-                *ngTemplateOutlet="
-                  weighed;
-                  context: { name: modelName(model.model, model.subagent), total: model }
-                "
-              />
-            }
-          </ul>
-          <ng-container
-            *ngTemplateOutlet="more; context: { key: 'models', size: totals.models.length }"
-          />
-
-          @if (totals.folders.length) {
-            <h4>By folder</h4>
-            <ul class="limits">
-              @for (folder of top(totals.folders, 'folders'); track folder.cwd) {
-                <ng-container
-                  *ngTemplateOutlet="
-                    weighed;
-                    context: { name: folderName(folder.cwd), total: folder }
-                  "
-                />
-              }
-            </ul>
-            <ng-container
-              *ngTemplateOutlet="more; context: { key: 'folders', size: totals.folders.length }"
-            />
-          }
-
-          <h4>The chats that weighed most</h4>
-          <ul class="limits">
-            @for (chat of top(totals.chats, 'chats'); track chat.id) {
-              <li>
-                <span class="head">
-                  <button type="button" class="name gr-link" (click)="openChat(chat)">
-                    {{ chat.title || 'Untitled' }}
-                  </button>
-                  <span class="resets">{{ count(chat.weight) }} tokens</span>
-                </span>
-                <span
-                  class="ticks"
-                  role="meter"
-                  [attr.aria-label]="(chat.title || 'Untitled') + ', share of the tokens'"
-                  aria-valuemin="0"
-                  aria-valuemax="100"
-                  [attr.aria-valuenow]="round(shareOf(chat))"
+          <p class="sub">
+            <span class="groups" role="radiogroup" aria-label="Group by">
+              @for (each of groups; track each[0]) {
+                <button
+                  type="button"
+                  role="radio"
+                  [attr.aria-checked]="group() === each[0]"
+                  (click)="group.set(each[0])"
                 >
-                  <span class="used" [style.width.%]="shareOf(chat)"></span>
-                </span>
-                <b>{{ round(shareOf(chat)) }}%</b>
-              </li>
+                  {{ each[1] }}
+                </button>
+              }
+            </span>
+          </p>
+
+          @switch (group()) {
+            @case ('day') {
+              <ul class="limits">
+                @for (day of top(totals.days, 'day'); track day.day) {
+                  <ng-container
+                    *ngTemplateOutlet="weighed; context: { name: dayName(day.day), total: day }"
+                  />
+                }
+              </ul>
+              <ng-container
+                *ngTemplateOutlet="more; context: { key: 'day', size: totals.days.length }"
+              />
             }
-          </ul>
-          <ng-container
-            *ngTemplateOutlet="more; context: { key: 'chats', size: totals.chats.length }"
-          />
+            @case ('model') {
+              <ul class="limits">
+                @for (model of top(totals.models, 'model'); track model.model + model.subagent) {
+                  <ng-container
+                    *ngTemplateOutlet="
+                      weighed;
+                      context: { name: modelName(model.model, model.subagent), total: model }
+                    "
+                  />
+                }
+              </ul>
+              <ng-container
+                *ngTemplateOutlet="more; context: { key: 'model', size: totals.models.length }"
+              />
+            }
+            @case ('folder') {
+              <ul class="limits">
+                @for (folder of top(totals.folders, 'folder'); track folder.cwd) {
+                  <ng-container
+                    *ngTemplateOutlet="
+                      weighed;
+                      context: { name: folderName(folder.cwd), total: folder }
+                    "
+                  />
+                } @empty {
+                  <li class="none">No folders over this span.</li>
+                }
+              </ul>
+              <ng-container
+                *ngTemplateOutlet="more; context: { key: 'folder', size: totals.folders.length }"
+              />
+            }
+            @case ('chat') {
+              <ul class="limits">
+                @for (chat of top(totals.chats, 'chat'); track chat.id) {
+                  <li>
+                    <span class="head">
+                      <button type="button" class="name gr-link" (click)="openChat(chat)">
+                        {{ chat.title || 'Untitled' }}
+                      </button>
+                      <span class="resets">{{ count(chat.weight) }} tokens</span>
+                    </span>
+                    <span
+                      class="ticks"
+                      role="meter"
+                      [attr.aria-label]="(chat.title || 'Untitled') + ', share of the tokens'"
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                      [attr.aria-valuenow]="round(shareOf(chat))"
+                    >
+                      <span class="used" [style.width.%]="shareOf(chat)"></span>
+                    </span>
+                    <b>{{ round(shareOf(chat)) }}%</b>
+                  </li>
+                }
+              </ul>
+              <ng-container
+                *ngTemplateOutlet="more; context: { key: 'chat', size: totals.chats.length }"
+              />
+            }
+          }
         } @else {
           <p class="none">No chat spent any tokens over this span.</p>
         }
       } @else {
         <p class="none">Counting the chats’ tokens…</p>
+      }
+
+      @if (breakdowns(); as breakdowns) {
+        @for (each of breakdowns; track each.agent.id) {
+          @let scan = each.breakdown[span()];
+          @if (scan.behaviours.length || scan.sources.length) {
+            <details class="how">
+              <summary>{{ each.agent.name }}’s own scan</summary>
+              <p>{{ scan.requests }} requests in {{ scan.chats }} chats</p>
+              @if (scan.behaviours.length) {
+                <h4>Ways of working</h4>
+                <ul class="limits">
+                  @for (behaviour of top(scan.behaviours, 'behaviours'); track behaviour.key) {
+                    <li>
+                      <span class="head">
+                        <span class="name">{{ behaviourName(behaviour.key) }}</span>
+                        <span class="resets">{{ behaviour.requests }} requests</span>
+                      </span>
+                      <span
+                        class="ticks"
+                        role="meter"
+                        [attr.aria-label]="behaviourName(behaviour.key) + ', share of the usage'"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                        [attr.aria-valuenow]="behaviour.share"
+                      >
+                        <span class="used" [style.width.%]="filled(behaviour.share)"></span>
+                      </span>
+                      <b>{{ round(behaviour.share) }}%</b>
+                    </li>
+                  }
+                </ul>
+                <ng-container
+                  *ngTemplateOutlet="
+                    more;
+                    context: { key: 'behaviours', size: scan.behaviours.length }
+                  "
+                />
+              }
+              @if (scan.sources.length) {
+                <h4>What took a share</h4>
+                <ul class="limits">
+                  @for (source of top(scan.sources, 'sources'); track source.kind + source.name) {
+                    <li>
+                      <span class="head">
+                        <span class="name">{{ source.name }}</span>
+                        <span class="resets">{{ sourceKind(source.kind) }}</span>
+                      </span>
+                      <span
+                        class="ticks"
+                        role="meter"
+                        [attr.aria-label]="source.name + ', share of the usage'"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                        [attr.aria-valuenow]="source.share"
+                      >
+                        <span class="used" [style.width.%]="filled(source.share)"></span>
+                      </span>
+                      <b>{{ round(source.share) }}%</b>
+                    </li>
+                  }
+                </ul>
+                <ng-container
+                  *ngTemplateOutlet="more; context: { key: 'sources', size: scan.sources.length }"
+                />
+              }
+            </details>
+          }
+        }
       }
 
       <details class="how">

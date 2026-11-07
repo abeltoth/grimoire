@@ -1583,38 +1583,36 @@ describe('App', () => {
 
     await showView('Where it went');
     expect(texts('gr-ledger-page .spans [aria-checked="true"]')).toEqual(['Last 7 days']);
-    expect(texts('gr-ledger-page .tokens h3')).toEqual([
-      'What Claude Code says took your usage',
-      'By Grimoire’s count',
-    ]);
-    expect(texts('gr-ledger-page .tokens .sub')[1]).toBe('70 requests in 4 chats');
-    expect(texts('gr-ledger-page .tokens h4')).toEqual([
-      'Its advice',
-      'Ways of working',
-      'What took a share',
-      'By day',
-      'By model',
-      'By folder',
-      'The chats that weighed most',
-    ]);
+    const pick = async (name: string) => {
+      [...el.querySelectorAll<HTMLButtonElement>('gr-ledger-page .groups button')]
+        .find((button) => button.textContent!.trim() === name)!
+        .click();
+      await fixture.whenStable();
+    };
+    expect(texts('gr-ledger-page .tokens h3')).toEqual(['Claude Code’s advice', 'By Grimoire’s count']);
+    expect(texts('gr-ledger-page .groups [aria-checked="true"]')).toEqual(['Day']);
+    expect(texts('gr-ledger-page .tokens h4')).toEqual(['Ways of working', 'What took a share']);
     const day = new Date(2026, 10, 5).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
-    expect(texts('gr-ledger-page .tokens .name')).toEqual([
+    // Advice, the total, and the one list shown: by day.
+    expect(texts('gr-ledger-page .tokens > .advice .name, .tokens > .total .name, .tokens > .limits .name')).toEqual([
       'Start fresh when you switch tasks',
-      'Long context',
-      // A way of working Grimoire has no name for keeps Claude Code's.
-      'brand new',
-      'docs',
       '4K tokens',
       day,
-      'Opus 5.5',
-      'Subagents on Haiku 4.5',
-      'C:/work/grimoire',
-      'Ribbon',
     ]);
-    expect(texts('gr-ledger-page .tokens b')).toEqual(['80%', '5%', '9%', '100%', '75%', '25%', '100%', '100%']);
+    expect(texts('gr-ledger-page .tokens > .limits b')).toEqual(['100%']);
+    await pick('Model');
+    expect(texts('gr-ledger-page .tokens > .limits .name')).toEqual(['Opus 5.5', 'Subagents on Haiku 4.5']);
+    expect(texts('gr-ledger-page .tokens > .limits b')).toEqual(['75%', '25%']);
+    await pick('Folder');
+    expect(texts('gr-ledger-page .tokens > .limits .name')).toEqual(['C:/work/grimoire']);
+    await pick('Day');
+    // Claude Code's own scan is folded away, with the explanations.
+    expect(texts('gr-ledger-page .how summary')).toEqual(['Claude Code’s own scan', 'How this is counted']);
+    expect(texts('gr-ledger-page .how .name')).toEqual(['Long context', 'brand new', 'docs']);
+    // A way of working Grimoire has no name for keeps Claude Code's.
+    expect(texts('gr-ledger-page .how b')).toEqual(['80%', '5%', '9%']);
     expect(texts('gr-ledger-page .tokens .detail')).toEqual(['run /clear', '4K fresh input']);
-    // The explanations stay folded away.
-    expect(texts('gr-ledger-page .how summary')).toEqual(['How this is counted']);
+    expect(texts('gr-ledger-page .how p')[0]).toBe('70 requests in 4 chats');
 
     await showView('Tools & skills');
     expect(texts('gr-ledger-page .tokens h4')).toEqual(['The tools used most', 'The skills used most']);
@@ -1638,12 +1636,13 @@ describe('App', () => {
       .find((button) => button.textContent!.trim() === 'Last 24 hours')!
       .click();
     await fixture.whenStable();
-    expect(texts('gr-ledger-page .tokens .sub')[1]).toBe('10 requests in 4 chats');
+    expect(texts('gr-ledger-page .how p')[0]).toBe('10 requests in 4 chats');
     expect(asked()).toHaveLength(2);
     expect(asked()[1]! - asked()[0]!).toBeGreaterThan(6 * 24 * 60 * 60_000 - 60_000);
     expect(calls.filter((c) => c.command === 'agents.usageBreakdown')).toHaveLength(1);
 
     // A chat that weighed much opens from the list.
+    await pick('Chat');
     [...el.querySelectorAll<HTMLButtonElement>('gr-ledger-page .tokens button.name')]
       .find((button) => button.textContent!.trim() === 'Ribbon')!
       .click();
