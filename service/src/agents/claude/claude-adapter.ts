@@ -4,6 +4,7 @@ import path from 'node:path';
 import type {
   CanUseTool,
   ModelInfo,
+  Options,
   PermissionMode,
   Query,
   SDKMessage,
@@ -33,6 +34,7 @@ import { toAgentModels } from './models';
 import { ASK_TOOL, alwaysAllowOf, toClaudeAnswers, toQuestions } from './permissions';
 import { withReferences } from './references';
 import { commandFiles, readSettingsFile, settingsFilesIn, toSetup } from './setup';
+import { type AgentToolInput, type PickerSources, RATER_PROMPT, pickFor } from './subagents';
 import { ClaudeTranscript, turnEnd } from './transcript';
 import { toPlanUsage, toUsageBreakdown } from './usage';
 
@@ -55,10 +57,17 @@ const MODES: Record<ApprovalMode, PermissionMode> = {
   'allow-all': 'auto',
 };
 
-/** A parked Claude Code process, and where its approvals go once a chat claims it. */
+/** How long a subagent waits for its model to be picked before it runs as it would have. */
+const PICK_TIMEOUT_S = 30;
+
+/**
+ * A parked Claude Code process, and where its approvals go, and its
+ * subagents' models are picked, once a chat claims it.
+ */
 interface Spare {
   process: Promise<SpareProcess>;
   claimedBy: Deferred<ChatEvents>;
+  picking: Deferred<PickerSources>;
 }
 
 /**
@@ -213,6 +222,7 @@ export class ClaudeAdapter implements AgentAdapter {
     title?: string,
   ): LiveChat {
     const input = new MessageQueue<SDKUserMessage>();
+    const picking = new Deferred<PickerSources>();
     const started: Promise<Query> = sdk().then(({ query }) =>
       query({
         prompt: input,
@@ -230,10 +240,11 @@ export class ClaudeAdapter implements AgentAdapter {
           extraArgs: CLI_ARGS,
           ...(resume ? { resume: chatId } : { sessionId: chatId, ...(title ? { title } : {}) }),
           canUseTool: approvalsTo(async () => events),
+          hooks: subagentHooks(() => picking.promise),
         },
       }),
     );
-    return this.drive(chatId, settings, started, input, events);
+    return this.drive(chatId, settings, started, input, events, picking);
   }
 
   /**
@@ -266,8 +277,10 @@ export class ClaudeAdapter implements AgentAdapter {
   warm(): void {
     if (this.spare) return;
     const claimedBy = new Deferred<ChatEvents>();
+    const picking = new Deferred<PickerSources>();
     const spare: Spare = {
       claimedBy,
+      picking,
       process: sdk().then(({ prewarm }) =>
         prewarm({
           options: {
@@ -278,6 +291,7 @@ export class ClaudeAdapter implements AgentAdapter {
             env: ENV,
             extraArgs: CLI_ARGS,
             canUseTool: approvalsTo(() => claimedBy.promise),
+            hooks: subagentHooks(() => picking.promise),
           },
         }),
       ),
@@ -338,7 +352,7 @@ export class ClaudeAdapter implements AgentAdapter {
     }
     const events = bind(chatId);
     spare.claimedBy.resolve(events);
-    return this.drive(chatId, settings, Promise.resolve(query), input, events);
+    return this.drive(chatId, settings, Promise.resolve(query), input, events, spare.picking);
   }
 
   /** Follows a live query: its messages become the chat's events. */
@@ -348,7 +362,18 @@ export class ClaudeAdapter implements AgentAdapter {
     started: Promise<Query>,
     input: MessageQueue<SDKUserMessage>,
     events: ChatEvents,
+    picking: Deferred<PickerSources>,
   ): LiveChat {
+    // The model and effort the chat runs at now, against which a subagent's is picked.
+    const current = { model: settings.model, effort: settings.effort };
+    let definitions: Promise<{ name: string; model?: string }[]> | undefined;
+    picking.resolve({
+      settings: () => current,
+      models: () => this.models(),
+      definitions: () => (definitions ??= started.then((live) => live.supportedAgents())),
+      rate: rateTask,
+      env: { ...process.env, ...userSettingsEnv() },
+    });
     const transcript = new ClaudeTranscript(true, events);
     const cache = new CacheTracker();
     void (async () => {
@@ -384,6 +409,8 @@ export class ClaudeAdapter implements AgentAdapter {
         const live = await started;
         if (model) await live.setModel(model);
         if (effort) await live.applyFlagSettings({ effortLevel: effort });
+        if (model) current.model = model;
+        if (effort) current.effort = effort;
         if (mode) await live.setPermissionMode(MODES[mode]);
       },
       undo: async (entryId) => {
@@ -401,6 +428,71 @@ export class ClaudeAdapter implements AgentAdapter {
 /** When a saved message came, in ms since the epoch; Claude Code saves it, though the SDK's type leaves it out. */
 function timeOf(message: object): number {
   return Date.parse((message as { timestamp?: string }).timestamp ?? '');
+}
+
+/**
+ * Has each subagent's model and effort picked for its task, once the chat
+ * whose process this is is known, as `sources` says. A pick that fails, or
+ * takes too long, leaves the subagent as Claude Code would run it.
+ */
+function subagentHooks(sources: () => Promise<PickerSources>): Options['hooks'] {
+  return {
+    PreToolUse: [
+      {
+        matcher: 'Agent|Task',
+        timeout: PICK_TIMEOUT_S,
+        hooks: [
+          async (hook, _toolUseId, { signal }) => {
+            if (hook.hook_event_name !== 'PreToolUse') return {};
+            try {
+              const picked = await pickFor(hook.tool_input as AgentToolInput, await sources(), signal);
+              return picked
+                ? { hookSpecificOutput: { hookEventName: 'PreToolUse', updatedInput: { ...picked } } }
+                : {};
+            } catch {
+              return {};
+            }
+          },
+        ],
+      },
+    ],
+  };
+}
+
+/**
+ * Asks Haiku what a subagent's task needs, on a Claude Code process of its
+ * own that loads none of your settings, has no tools and saves nothing.
+ */
+async function rateTask(task: string, signal: AbortSignal): Promise<string> {
+  const { query } = await sdk();
+  const abortController = new AbortController();
+  signal.addEventListener('abort', () => abortController.abort(), { once: true });
+  const rater = query({
+    prompt: task,
+    options: {
+      model: 'haiku',
+      systemPrompt: RATER_PROMPT,
+      tools: [],
+      settingSources: [],
+      mcpServers: {},
+      strictMcpConfig: true,
+      persistSession: false,
+      maxTurns: 1,
+      thinking: { type: 'disabled' },
+      permissionMode: MODES.ask,
+      abortController,
+    },
+  });
+  for await (const message of rater) {
+    if (message.type === 'result') return message.subtype === 'success' ? message.result : '';
+  }
+  return '';
+}
+
+/** The environment your Claude Code user settings give it, such as CLAUDE_CODE_SUBAGENT_MODEL. */
+function userSettingsEnv(): Record<string, string> {
+  const { env } = readUserSettings() as { env?: unknown };
+  return typeof env === 'object' && env !== null ? (env as Record<string, string>) : {};
 }
 
 /** Asks a Claude Code process that never gets a message for the models it offers. */
