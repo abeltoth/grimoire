@@ -63,6 +63,7 @@ A custom UI for Claude Code, built on the Claude Agent SDK.
 
 - Show remaining AI tokens (Claude first) in the thumb index menu.
 - Token statistics and optimizer: show where most of the resources are spent and help optimize it.
+- Estimate progress on a task: what % of completion we're at.
 
 ## Design ideas
 
