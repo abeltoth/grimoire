@@ -40,9 +40,11 @@ export class SchedulesPage {
   /** "Claude Code · ~/git/grimoire · Opus 5.5, Extra high effort". */
   protected settingsOf(schedule: ScheduleInfo): string {
     const { agent, settings } = schedule;
-    const model = this.chats.modelName(agent, settings.model);
+    const model = this.chats.modelLabel(agent, settings, false);
     const { levels, level } = this.chats.effortOf(agent, settings);
-    const effort = levels.length ? `, ${effortName(level).toLowerCase()}` : '';
+    // Auto picks the effort with the model, as each chat begins.
+    const effort =
+      levels.length && !settings.autoModel ? `, ${effortName(level).toLowerCase()}` : '';
     return `${this.chats.agentName(agent)} · ${model}${effort}`;
   }
 

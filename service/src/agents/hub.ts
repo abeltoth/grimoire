@@ -339,12 +339,25 @@ export class AgentHub {
     enclosures: Enclosure[] = [],
   ): Promise<OpenChat> {
     let resolved: ChatSettings = { ...settings, cwd: settings.cwd ?? homedir() };
+    if (resolved.autoModel) resolved = await this.autoPicked(agent, resolved, text);
     const named = title?.trim() || undefined;
     if (resolved.worktree) {
       if (!this.workplaces) throw new Error('Chats can’t have worktrees of their own here');
       resolved = { ...resolved, cwd: await this.workplaces.make(resolved.cwd, named ?? text) };
     }
     return this.begin(agent, resolved, text, named, enclosures);
+  }
+
+  /**
+   * A new chat's settings on Auto: the model and effort the agent picks for
+   * its first entry, in place of any set; the agent's defaults when it can't say.
+   */
+  private async autoPicked(agent: AgentId, settings: ChatSettings, text: string): Promise<ChatSettings> {
+    const { model: _, effort: __, ...rest } = settings;
+    const picked = await this.adapter(agent)
+      .pickModel?.(text)
+      .catch(() => undefined);
+    return { ...rest, ...picked };
   }
 
   /**
@@ -361,7 +374,9 @@ export class AgentHub {
       const named = from.title?.trim();
       const title = named ? await this.variantTitle(this.adapter(from.agent), named, cwd) : undefined;
       const own = await this.ownPlace(cwd, title ?? text);
-      return this.begin(from.agent, { ...from.settings, cwd, model, ...own }, text, title, enclosures);
+      // The second model is the one asked for, not Auto's.
+      const { autoModel: _, ...settings } = from.settings;
+      return this.begin(from.agent, { ...settings, cwd, model, ...own }, text, title, enclosures);
     }
     const chat = this.chat(from.chatId);
     if (!chat.agent.fork) throw new Error(`${chat.agent.info.name} can't copy a chat to another model`);
@@ -373,7 +388,8 @@ export class AgentHub {
     // The chat goes on at once; its copy follows once it has a place to work.
     this.send(chat.id, text, enclosures);
     const own = await this.ownPlace(chat.settings.cwd, title);
-    const variant = await this.open(chat.agent.info.id, forkId, { ...chat.settings, model, ...own });
+    const { autoModel: _, ...settings } = chat.settings;
+    const variant = await this.open(chat.agent.info.id, forkId, { ...settings, model, ...own });
     // The copy's entries are copies, without the original's file checkpoints.
     this.store.copied.add(
       forkId,
@@ -444,7 +460,9 @@ export class AgentHub {
   async configure(chatId: ChatId, change: SettingsChange): Promise<void> {
     const chat = this.chat(chatId);
     await chat.live?.configure(change);
-    chat.settings = { ...chat.settings, ...change };
+    // Another model, picked by you, ends Auto.
+    const { autoModel, ...kept } = chat.settings;
+    chat.settings = { ...kept, ...(autoModel && !change.model ? { autoModel } : {}), ...change };
     this.store.chapters.add({ chatId, agent: chat.agent.info.id, settings: chat.settings });
     this.emit('agents.settings', { chatId, settings: chat.settings });
   }

@@ -75,6 +75,8 @@ export type Setting = 'agent' | 'model' | 'effort' | 'mode' | 'folder' | 'preset
 export interface SettingsPick {
   agent?: AgentId;
   model?: string;
+  /** Auto, on a blank chapter: the model and effort are picked for its first entry. */
+  autoModel?: boolean;
   effort?: EffortLevel;
   mode?: ApprovalMode;
   cwd?: string;
@@ -192,6 +194,15 @@ export class Chats {
   }
 
   /**
+   * The model as a chapter shows it; on Auto, "Auto" until its first entry,
+   * then with the model Auto picked: "Auto: Sonnet 5.5".
+   */
+  modelLabel(agent: AgentId, settings: NewChatSettings, begun: boolean): string {
+    if (!settings.autoModel) return this.modelName(agent, settings.model);
+    return begun ? `Auto: ${this.modelName(agent, settings.model)}` : 'Auto';
+  }
+
+  /**
    * The effort levels a chapter's model takes, and the one it runs at: the
    * chapter's own, else the model's default, as near as the model takes it.
    */
@@ -249,6 +260,11 @@ export class Chats {
       const base = agent === chapter.agent ? chapter.settings : kept;
       const { agent: __, ...change } = pick;
       const settings: NewChatSettings = { ...base, ...change };
+      // Auto picks the model and effort; picking a model yourself ends it.
+      if (pick.autoModel) {
+        delete settings.model;
+        delete settings.effort;
+      } else if (pick.model) delete settings.autoModel;
       this.update(id, (c) => ({ ...c, agent, settings }));
       return this.remember({ agent, settings });
     }
@@ -259,7 +275,11 @@ export class Chats {
     };
     try {
       await this.bridge.invoke('agents.configure', { chatId: id, change });
-      this.remember({ agent: chapter.agent, settings: { ...chapter.settings, ...change } });
+      const { autoModel, ...kept } = chapter.settings;
+      this.remember({
+        agent: chapter.agent,
+        settings: { ...kept, ...(autoModel && !change.model ? { autoModel } : {}), ...change },
+      });
     } catch (error) {
       this.fail(id, error);
     }

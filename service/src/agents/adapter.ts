@@ -43,6 +43,11 @@ export interface AgentAdapter {
   /** The chat's title; empty until the agent names it. */
   title(chatId: ChatId, cwd: string): Promise<string>;
   models(): Promise<AgentModels>;
+  /**
+   * The model and effort for a new chat on Auto, picked for its first
+   * entry; undefined when the agent can't say. Agents that can't pick leave it out.
+   */
+  pickModel?(text: string): Promise<Pick<ChatSettings, 'model' | 'effort'> | undefined>;
   /** The commands and skills you can use in a folder. Agents without them leave it out. */
   commands?(cwd: string): Promise<AgentCommand[]>;
   /** The subscription's limits and how much of them is used. Agents without a plan leave it out. */

@@ -152,12 +152,15 @@ export class ChapterPage {
     const chapter = this.chapter();
     if (!chapter) return [];
     const { agent, settings } = chapter;
+    const begun = chapter.status !== 'blank';
     const effort = this.chats.effortOf(agent, settings);
+    // Auto picks the effort with the model, at the first entry.
+    const effortShown = effort.levels.length > 0 && (begun || !settings.autoModel);
     return [
       { key: 'agent', label: this.chats.agentName(agent) },
-      { key: 'model', label: this.chats.modelName(agent, settings.model) },
+      { key: 'model', label: this.chats.modelLabel(agent, settings, begun) },
       // Only for a model that takes effort levels.
-      ...(effort.levels.length ? [{ key: 'effort' as const, label: effortName(effort.level) }] : []),
+      ...(effortShown ? [{ key: 'effort' as const, label: effortName(effort.level) }] : []),
       { key: 'mode', label: modeName(settings.mode) },
       {
         key: 'folder',

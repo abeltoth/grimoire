@@ -79,6 +79,9 @@ export class Presets {
    */
   private spelledOut(agent: AgentId, settings: NewChatSettings): NewChatSettings {
     const cwd = settings.cwd ?? this.chats.folders().home;
+    // On Auto, the model and effort are picked for the first entry.
+    if (settings.autoModel)
+      return { ...(cwd ? { cwd } : {}), autoModel: true, mode: settings.mode ?? 'ask' };
     const model = settings.model ?? this.chats.models()[agent]?.default;
     const { level: effort } = this.chats.effortOf(agent, { ...settings, ...(model ? { model } : {}) });
     return {
@@ -93,6 +96,7 @@ export class Presets {
 function same(a: NewChatSettings, b: NewChatSettings): boolean {
   return (
     a.cwd === b.cwd &&
+    !!a.autoModel === !!b.autoModel &&
     a.model === b.model &&
     a.effort === b.effort &&
     a.mode === b.mode &&
