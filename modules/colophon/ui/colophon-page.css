@@ -76,6 +76,54 @@ h2 {
   color: var(--gr-ink-soft);
 }
 
+/* An account to sign in as, with a mark to forget it beside it. */
+.account {
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.forget {
+  padding: var(--gr-colophon-word-pad);
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.forget:hover {
+  color: var(--gr-rubric);
+}
+
+.word:disabled {
+  cursor: default;
+}
+
+.account-field {
+  width: var(--gr-colophon-account-field-width);
+  font-size: var(--gr-size-colophon-word);
+}
+
+.note .actions {
+  display: inline-flex;
+  gap: var(--gr-colophon-actions-gap);
+  margin-left: var(--gr-colophon-word-gap);
+  font-style: normal;
+}
+
+.note.code {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-colophon-word-gap);
+  margin-top: 0;
+}
+
+.code-field {
+  flex: 1;
+  font-style: normal;
+}
+
+.note.failed {
+  color: var(--gr-rubric);
+}
+
 /* The presets, below the settings: each a short entry, ruled off from the next. */
 .presets,
 .theme {

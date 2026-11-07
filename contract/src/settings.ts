@@ -14,6 +14,8 @@ export interface GrimoireSettings {
   newChapter: NewChapterStart;
   /** The theme's tokens you changed, by name, such as "--gr-page": "#fffaf0"; the rest stay as drawn. */
   theme: Readonly<Record<string, string>>;
+  /** The accounts you switch the agent's sign-in between, by email, such as yours and your family's. */
+  accounts: readonly string[];
 }
 
 export const DEFAULT_SETTINGS: GrimoireSettings = {
@@ -22,6 +24,7 @@ export const DEFAULT_SETTINGS: GrimoireSettings = {
   defaultAgent: null,
   newChapter: { from: 'last-used' },
   theme: {},
+  accounts: [],
 };
 
 declare module './commands' {

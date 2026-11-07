@@ -3,12 +3,14 @@ import { existsSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
 import type {
+  AgentAccount,
   AgentCommand,
   AgentId,
   AgentInfo,
   AgentMemories,
   AgentModels,
   AgentSetup,
+  AgentSignIn,
   SetupFile,
   Answer,
   Approval,
@@ -41,7 +43,7 @@ import { DogEars } from '../storage/dog-ears';
 import { EntryIds } from '../storage/entry-ids';
 import { Tags } from '../storage/tags';
 import { UsageReadings } from '../storage/usage-readings';
-import type { AgentAdapter, ChatEvents, LiveChat, Verdict } from './adapter';
+import type { AgentAdapter, ChatEvents, LiveChat, SignInRun, Verdict } from './adapter';
 import { samePath } from './files';
 import { MemoryFiles } from './memory-files';
 import { MemoryWatcher } from './memory-watcher';
@@ -72,10 +74,24 @@ interface ChatState {
   copied: string[];
   /** While the agent process runs. */
   live?: LiveChat;
+  /** How many processes the chat has had; what an earlier one still reports is dropped. */
+  processes: number;
+  /** The agent was signed in to another account during a turn: the process starts again once it ends. */
+  restart: boolean;
   /** Streamed text not sent to windows yet, per entry and block. */
   pendingText: Map<string, { entryId: string; block: number; text: string }>;
   flushTimer?: NodeJS.Timeout;
 }
+
+/** A sign-in under way, waiting for you in the browser. */
+interface SigningIn {
+  email: string;
+  url: string | null;
+  run: SignInRun;
+}
+
+/** An email: something, an @, and a domain, without spaces. */
+const EMAIL = /^[^\s@]+@[^\s@]+$/;
 
 interface PendingApproval {
   approval: Approval;
@@ -132,6 +148,9 @@ export class AgentHub {
   private readonly adapters = new Map<AgentId, AgentAdapter>();
   private readonly chats = new Map<ChatId, ChatState>();
   private readonly approvals = new Map<string, PendingApproval>();
+  /** Who each agent was last read to be signed in as. */
+  private readonly accounts = new Map<AgentId, AgentAccount | null>();
+  private readonly signIns = new Map<AgentId, SigningIn>();
   private readonly setupFiles = new SetupFiles((agent, cwd) => this.setup(agent, cwd));
   private readonly memoryFiles = new MemoryFiles((agent, cwd) => this.memories(agent, cwd));
   private readonly setupWatcher = new SetupWatcher((agent, cwd) =>
@@ -243,6 +262,63 @@ export class AgentHub {
     const usage = await adapter.usage();
     this.store.usage.record(agent, usage);
     return usage;
+  }
+
+  /** Who the agent is signed in as, read now, and any sign-in under way. */
+  async account(agent: AgentId): Promise<AgentSignIn> {
+    return this.signInState(agent, true);
+  }
+
+  /**
+   * Signs the agent in to another account, in the browser, for every chat;
+   * a sign-in already under way is cancelled. Open chats move to the new
+   * account: an idle chat's process stops, and its next message starts it
+   * again, continuing the chat; a running turn ends first. Then the plan's
+   * limits are read again, as they're the new account's.
+   */
+  async signIn(agent: AgentId, email: string): Promise<AgentSignIn> {
+    const adapter = this.adapter(agent);
+    if (!adapter.signIn) throw new Error(`${adapter.info.name} can't switch accounts`);
+    const to = email.trim();
+    if (!EMAIL.test(to)) throw new Error('Give the email of the account to sign in to');
+    this.signIns.get(agent)?.run.cancel();
+    const signingIn: SigningIn = {
+      email: to,
+      url: null,
+      run: adapter.signIn(to, (url) => {
+        if (this.signIns.get(agent) !== signingIn) return;
+        signingIn.url = url;
+        void this.announceSignIn(agent, false);
+      }),
+    };
+    this.signIns.set(agent, signingIn);
+    void this.announceSignIn(agent, false);
+    try {
+      await signingIn.run.done;
+    } catch (error) {
+      if (this.signIns.get(agent) === signingIn) {
+        this.signIns.delete(agent);
+        void this.announceSignIn(agent, false);
+      }
+      throw error;
+    }
+    if (this.signIns.get(agent) === signingIn) this.signIns.delete(agent);
+    this.moveToNewAccount(adapter);
+    if (adapter.usage) this.usage(agent).catch(() => {});
+    return this.announceSignIn(agent, true);
+  }
+
+  /** Passes on the code the sign-in page shows, when it doesn't return to the agent by itself. */
+  signInCode(agent: AgentId, code: string): void {
+    const signingIn = this.signIns.get(agent);
+    if (!signingIn) throw new Error('No sign-in is under way');
+    if (!code.trim()) throw new Error('Paste the code the sign-in page shows');
+    signingIn.run.code(code);
+  }
+
+  /** Stops a sign-in under way; the agent stays signed in as before. */
+  cancelSignIn(agent: AgentId): void {
+    this.signIns.get(agent)?.run.cancel();
   }
 
   /** What the agent's own scan says took the plan's usage; null when it can't say. */
@@ -605,6 +681,7 @@ export class AgentHub {
 
   /** Stops every chat and spare process, for when the service stops; chats reopen when it starts again. */
   closeAll(): void {
+    for (const signingIn of this.signIns.values()) signingIn.run.cancel();
     for (const id of [...this.chats.keys()]) this.release(id);
     for (const adapter of this.adapters.values()) adapter.dispose?.();
     this.setupWatcher.dispose();
@@ -640,10 +717,55 @@ export class AgentHub {
       dogEars: [],
       tags: [],
       copied: [],
+      processes: 0,
+      restart: false,
       pendingText: new Map(),
     };
     this.chats.set(id, chat);
     return chat;
+  }
+
+  /** Who the agent is signed in as, read again when `fresh`, and any sign-in under way. */
+  private async signInState(agent: AgentId, fresh: boolean): Promise<AgentSignIn> {
+    const adapter = this.adapter(agent);
+    if (fresh || !this.accounts.has(agent))
+      this.accounts.set(agent, (await adapter.account?.()) ?? null);
+    return this.knownSignIn(agent);
+  }
+
+  /** Who the agent was last read to be signed in as, and any sign-in under way. */
+  private knownSignIn(agent: AgentId): AgentSignIn {
+    const signingIn = this.signIns.get(agent);
+    return {
+      agent,
+      account: this.accounts.get(agent) ?? null,
+      pending: signingIn ? { email: signingIn.email, url: signingIn.url } : null,
+    };
+  }
+
+  /** Every window hears of a sign-in that began, changed or ended. */
+  private async announceSignIn(agent: AgentId, fresh: boolean): Promise<AgentSignIn> {
+    const state = await this.signInState(agent, fresh).catch(() => this.knownSignIn(agent));
+    this.emit('agents.account', state);
+    return state;
+  }
+
+  /** The agent's open chats move to its new account, each as soon as no turn runs. */
+  private moveToNewAccount(adapter: AgentAdapter): void {
+    for (const chat of this.chats.values()) {
+      if (chat.agent !== adapter || !chat.live) continue;
+      if (chat.status === 'idle') this.restartProcess(chat);
+      else chat.restart = true;
+    }
+  }
+
+  /** Stops the chat's process; its next message starts another, continuing the chat. */
+  private restartProcess(chat: ChatState): void {
+    chat.restart = false;
+    chat.processes++;
+    const live = chat.live;
+    chat.live = undefined;
+    live?.close();
   }
 
   private sendTo(chat: ChatState, text: string, resume: boolean, enclosures: Enclosure[] = []): void {
@@ -668,7 +790,8 @@ export class AgentHub {
 
   private eventsFor(chat: ChatState): ChatEvents {
     // Events from a process that was closed, or replaced, are dropped.
-    const current = () => this.chats.get(chat.id) === chat;
+    const processes = chat.processes;
+    const current = () => this.chats.get(chat.id) === chat && chat.processes === processes;
     return {
       status: (status) => {
         if (current() && !this.hasApprovals(chat)) this.setStatus(chat, status);
@@ -721,11 +844,13 @@ export class AgentHub {
         this.timeTurn(chat);
         this.setStatus(chat, 'idle');
         this.emit('agents.turnEnded', { chatId: chat.id, ...(error ? { error } : {}) });
+        if (chat.restart) this.restartProcess(chat);
         this.sendQueued(chat);
       },
       closed: (error) => {
         if (!current()) return;
         chat.live = undefined;
+        chat.restart = false;
         this.settleAll(chat);
         if (chat.status !== 'idle') {
           this.timeTurn(chat);

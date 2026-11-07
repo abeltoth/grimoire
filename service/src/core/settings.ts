@@ -14,6 +14,10 @@ const MAX_TOKENS = 2000;
 const TOKEN = /^--gr-[a-z0-9-]+$/;
 /** A token's value: one declaration's worth, with nothing that would end it. */
 const TOKEN_VALUE = /^[^;{}]{1,300}$/;
+/** The most accounts kept: more than a family has. */
+const MAX_ACCOUNTS = 50;
+/** An email: something, an @, and a domain, without spaces. */
+const EMAIL = /^[^\s@]+@[^\s@]+$/;
 
 /** Whether a value is one a setting takes; anything else is left out. */
 const VALID: { [K in keyof GrimoireSettings]: (value: unknown) => boolean } = {
@@ -41,6 +45,11 @@ const VALID: { [K in keyof GrimoireSettings]: (value: unknown) => boolean } = {
       )
     );
   },
+  accounts: (value) =>
+    Array.isArray(value) &&
+    value.length <= MAX_ACCOUNTS &&
+    value.every((email) => typeof email === 'string' && email.length <= 320 && EMAIL.test(email)) &&
+    new Set(value.map((email: string) => email.toLowerCase())).size === value.length,
 };
 
 const known = (key: string): key is keyof GrimoireSettings => key in VALID;
