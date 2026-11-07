@@ -28,8 +28,9 @@ export class Settings {
     this.ready = this.reload();
     const design = inject(DesignSettings);
     effect(() => {
-      const { drawings, theme } = this.all();
+      const { drawings, theme, themeName } = this.all();
       design.drawings.set(drawings);
+      design.themeName.set(themeName ?? 'grimoire');
       design.tokens.set(theme ?? {});
     });
   }

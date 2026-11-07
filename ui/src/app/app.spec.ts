@@ -3205,6 +3205,48 @@ describe('App', () => {
     expect(root.getPropertyValue('--gr-page')).toBe('');
   });
 
+  it('chooses a ready-made theme on the Colophon, which starts afresh from it', async () => {
+    const { bridge, answers } = fakeBridge();
+    let kept: GrimoireSettings = { ...DEFAULT_SETTINGS, theme: { '--gr-page': '#fffaf0' } };
+    answers['settings.get'] = () => kept;
+    answers['settings.set'] = (change: Partial<GrimoireSettings>) => (kept = { ...kept, ...change });
+    const { fixture, el, texts } = await render(bridge);
+    const theme = () => document.documentElement.dataset['theme'];
+    [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
+      .find((tab) => tab.textContent!.trim() === 'Colophon')!
+      .click();
+    await fixture.whenStable();
+
+    expect(texts('gr-theme-editor .theme-name')).toEqual([
+      'Grimoire',
+      'Night',
+      'Sepia',
+      'High contrast',
+      'Automatic',
+    ]);
+    const card = (name: string) =>
+      [...el.querySelectorAll<HTMLButtonElement>('gr-theme-editor .theme')].find(
+        (button) => button.querySelector('.theme-name')!.textContent!.trim() === name,
+      )!;
+    expect(card('Grimoire').getAttribute('aria-checked')).toBe('true');
+    expect(theme()).toBe('grimoire');
+
+    card('Night').click();
+    await fixture.whenStable();
+    expect(kept.themeName).toBe('night');
+    // The colour changed over Grimoire isn't carried over to Night.
+    expect(kept.theme).toEqual({});
+    expect(theme()).toBe('night');
+    expect(card('Night').getAttribute('aria-checked')).toBe('true');
+    expect(card('Grimoire').getAttribute('aria-checked')).toBe('false');
+
+    // Automatic follows the system, which a test's window calls light.
+    card('Automatic').click();
+    await fixture.whenStable();
+    expect(kept.themeName).toBe('auto');
+    expect(theme()).toBe('grimoire');
+  });
+
   it('lays the chapter alone on the desk at Single page, and brings everything back at Two pages', async () => {
     const { bridge, calls } = fakeBridge();
     const { fixture, el } = await render(bridge);

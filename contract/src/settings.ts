@@ -3,6 +3,10 @@ import type { AgentId } from './agents';
 /** What a new chapter begins with: the settings used last, or a preset's, by name. */
 export type NewChapterStart = { from: 'last-used' } | { from: 'preset'; preset: string };
 
+/** The ready-made looks: the book as drawn, and three others. */
+export const THEME_NAMES = ['grimoire', 'night', 'sepia', 'contrast'] as const;
+export type ThemeName = (typeof THEME_NAMES)[number];
+
 /** Grimoire's own settings (ADR-009), set on the Colophon. */
 export interface GrimoireSettings {
   /** The book's own words, such as Colophon, chapter and seal, or plain ones: Settings, chat, approve. */
@@ -12,7 +16,9 @@ export interface GrimoireSettings {
   /** The agent new chapters are written by; null for whichever wrote the last one. */
   defaultAgent: AgentId | null;
   newChapter: NewChapterStart;
-  /** The theme's tokens you changed, by name, such as "--gr-page": "#fffaf0"; the rest stay as drawn. */
+  /** The ready-made look in use; "auto" follows the system's light or dark (Grimoire by day, Night after dark). */
+  themeName: ThemeName | 'auto';
+  /** The tokens of that look you changed, by name, such as "--gr-page": "#fffaf0"; the rest stay as drawn. */
   theme: Readonly<Record<string, string>>;
   /** The accounts you switch the agent's sign-in between, by email, such as yours and your family's. */
   accounts: readonly string[];
@@ -25,6 +31,7 @@ export const DEFAULT_SETTINGS: GrimoireSettings = {
   drawings: true,
   defaultAgent: null,
   newChapter: { from: 'last-used' },
+  themeName: 'grimoire',
   theme: {},
   accounts: [],
   mcpOff: [],
