@@ -51,7 +51,7 @@ A custom UI for Claude Code, built on the Claude Agent SDK.
 - [ ] Suggested follow-up tasks as cards that open new chats
 - [ ] @mention files or drag them into a chat
 - [ ] Mermaid diagrams drawn in the chat
-- [ ] File pane to view and edit files, using the VS Code editor
+- [x] File pane to view and edit files, using the VS Code editor
 - [ ] Kanban board: tasks as cards, each one launching a chat
 - [ ] Setup and cleanup scripts for each worktree
 - [ ] Pull request and CI status for each chat, with auto-fix
