@@ -41,7 +41,7 @@ A custom UI for Claude Code, built on the Claude Agent SDK.
 - [x] Live todo and progress panel for Claude's plan
 - [ ] Usage stats: tokens per chat and per day, most-used tools and skills
 - [x] Workflow setup view sorted by tokens, with heavy items flagged
-- [ ] Turn MCP servers off for one chat, or for good in settings
+- [x] Turn MCP servers off for one chat, or for good in settings
 - [x] Paste screenshots straight into a chat
 - [x] Git panel: branch and uncommitted changes, plus a separate worktree per chat so parallel chats don't collide
 - [x] Scheduled chats, such as a morning summary of repo changes
