@@ -77,7 +77,15 @@
   font-size: var(--gr-size-label);
 }
 
-/* How long the turn took, by its hourglass; the running one's counts up. */
+/* The end of a turn: how long it took and what it spent. */
+.spent-line {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-by-gap);
+  color: var(--gr-ink-soft);
+}
+
+/* How long the turn took, by its hourglass. */
 .took {
   display: inline-flex;
   align-items: center;
