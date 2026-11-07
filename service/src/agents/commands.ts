@@ -12,6 +12,7 @@ export function registerAgentCommands(registry: CommandRegistry, hub: AgentHub):
   registry.register('agents.models', ({ agent }) => hub.models(agent));
   registry.register('agents.commands', ({ agent, cwd }) => hub.commands(agent, cwd));
   registry.register('agents.usage', ({ agent }) => hub.usage(agent));
+  registry.register('agents.usageBreakdown', ({ agent }) => hub.usageBreakdown(agent));
   registry.register('agents.setup', ({ agent, cwd }) => hub.setup(agent, cwd));
   registry.register('agents.setupFolders', () => hub.setupFolders());
   registry.register('agents.memories', ({ agent, cwd }) => hub.memories(agent, cwd));

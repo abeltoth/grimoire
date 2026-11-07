@@ -6,10 +6,14 @@ import type {
   Entry,
   PictureEnclosure,
   PlanStep,
+  TokenCounts,
+  TokenUse,
   ToolBlock,
   ToolResult,
   UserEntry,
 } from '@grimoire/contract';
+import { addTokens } from '@grimoire/contract';
+import type { ReplyUsage } from './cache';
 import { splitReferences } from './references';
 
 /** The parts of Claude Code's messages the transcript reads; live and saved messages share them. */
@@ -45,6 +49,8 @@ function isYourEntry(message: ClaudeMessage): boolean {
 
 interface ApiMessage {
   id?: string;
+  model?: string;
+  usage?: ReplyUsage;
   content?: string | ApiBlock[];
 }
 
@@ -75,7 +81,12 @@ export interface TranscriptListener {
   text(entryId: string, block: number, text: string): void;
   status(status: Exclude<ChatStatus, 'idle' | 'waiting'>): void;
   plan(plan: PlanStep[]): void;
+  /** What the running turn has spent so far, by model. */
+  tokens?(uses: TokenUse[]): void;
 }
+
+/** A turn's replies' tokens by API message ID; Claude Code repeats a reply's on each of its blocks. */
+type Spent = Map<string, TokenUse>;
 
 const PLAN_STATUS: Record<string, PlanStep['status']> = {
   pending: 'pending',
@@ -99,8 +110,12 @@ export class ClaudeTranscript {
   private streamingIndex: number | undefined;
   /** The plan's steps by Claude Code's task ID, in the order it made them. */
   private readonly tasks = new Map<string, PlanStep>();
-  /** The saved turn being read: your entry that began it, and when you wrote it. */
-  private turn: { entry: UserEntry; began: number } | undefined;
+  /** The saved turn being read: your entry that began it, when you wrote it, and what it spent. */
+  private turn: SavedTurn | undefined;
+  /** Every saved turn read, in order, for the subagents' tokens. */
+  private readonly turns: SavedTurn[] = [];
+  /** What the live turn has spent so far. */
+  private spent: Spent = new Map();
 
   /**
    * @param live Your own messages aren't echoed back live; the hub adds them as you send.
@@ -119,6 +134,9 @@ export class ClaudeTranscript {
    *   turn took from your entry until its last message.
    */
   apply(message: ClaudeMessage, at?: number): void {
+    if (message.type === 'assistant')
+      this.count(message.message as ApiMessage, !!message.parent_tool_use_id, this.turn);
+    else if (message.type === 'result' && this.live) this.spent = new Map();
     // Messages inside a subagent's run belong to its tool call, not the chat.
     if (message.parent_tool_use_id) return;
     const entries = this.entries.length;
@@ -127,8 +145,34 @@ export class ClaudeTranscript {
     else if (message.type === 'user') this.applyUser(message.uuid, message.message as ApiMessage);
     if (at === undefined || !Number.isFinite(at)) return;
     const last = this.entries.at(-1);
-    if (this.entries.length > entries && last?.kind === 'user') this.turn = { entry: last, began: at };
-    else if (this.turn && at > this.turn.began) this.turn.entry.took = at - this.turn.began;
+    if (this.entries.length > entries && last?.kind === 'user') {
+      this.turn = { entry: last, began: at, spent: new Map() };
+      this.turns.push(this.turn);
+    } else if (this.turn && at > this.turn.began) this.turn.entry.took = at - this.turn.began;
+  }
+
+  /**
+   * A message from a saved subagent's run: its tokens count toward the turn
+   * it ran in, found by when it came, as nothing in it names the tool call.
+   */
+  applySubagent(message: ClaudeMessage, at: number): void {
+    if (message.type !== 'assistant' || !Number.isFinite(at)) return;
+    const turn = this.turns.findLast((t) => t.began <= at);
+    this.count(message.message as ApiMessage, true, turn);
+  }
+
+  /** Counts a reply's tokens toward the live turn, or the saved one. */
+  private count(message: ApiMessage | undefined, subagent: boolean, turn: SavedTurn | undefined): void {
+    const use = message?.id ? tokenUse(message, subagent) : undefined;
+    if (!use) return;
+    if (this.live) {
+      const known = this.spent.get(message!.id!);
+      this.spent.set(message!.id!, use);
+      if (!known || JSON.stringify(known) !== JSON.stringify(use)) this.listener?.tokens?.(byModel(this.spent));
+    } else if (turn) {
+      turn.spent.set(message!.id!, use);
+      turn.entry.tokens = { at: turn.began, uses: byModel(turn.spent) };
+    }
   }
 
   private applyStreamEvent(event: StreamEvent): void {
@@ -289,6 +333,39 @@ export class ClaudeTranscript {
     if (!positions) this.positions.set(entryId, (positions = new Map()));
     return positions;
   }
+}
+
+interface SavedTurn {
+  entry: UserEntry;
+  began: number;
+  spent: Spent;
+}
+
+/** A reply's tokens; undefined for one with none, such as Claude Code's own notes. */
+function tokenUse(message: ApiMessage, subagent: boolean): TokenUse | undefined {
+  const usage = message.usage;
+  if (!usage || !message.model || message.model === '<synthetic>') return undefined;
+  const long = usage.cache_creation?.ephemeral_1h_input_tokens ?? 0;
+  const counts: TokenCounts = {
+    input: usage.input_tokens ?? 0,
+    cacheWritten: Math.max((usage.cache_creation_input_tokens ?? 0) - long, 0),
+    cacheWrittenLong: long,
+    cacheRead: usage.cache_read_input_tokens ?? 0,
+    output: usage.output_tokens ?? 0,
+  };
+  if (!Object.values(counts).some((n) => n > 0)) return undefined;
+  return { model: message.model, ...(subagent ? { subagent } : {}), ...counts };
+}
+
+/** A turn's tokens added up by model, the chat's own apart from its subagents'. */
+function byModel(spent: Spent): TokenUse[] {
+  const uses = new Map<string, TokenUse>();
+  for (const use of spent.values()) {
+    const key = `${use.subagent ? 'subagent' : 'chat'} ${use.model}`;
+    const sum = uses.get(key);
+    uses.set(key, sum ? { ...sum, ...addTokens([sum, use]) } : { ...use });
+  }
+  return [...uses.values()];
 }
 
 function toBlock(block: ApiBlock): Block | undefined {

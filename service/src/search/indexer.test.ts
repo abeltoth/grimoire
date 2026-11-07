@@ -1,7 +1,7 @@
 import type { Entry } from '@grimoire/contract';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FakeAdapter } from '../agents/fake-adapter';
-import { Indexer, passagesOf } from './indexer';
+import { Indexer, passagesOf, turnsOf } from './indexer';
 import { SearchIndex } from './search-index';
 
 const you = (id: string, text: string): Entry => ({ kind: 'user', id, text });
@@ -34,6 +34,32 @@ describe('Indexer', () => {
       { kind: 'title', text: 'Title' },
       { kind: 'you', text: 'Hello' },
       { kind: 'agent', text: 'One\n\nTwo' },
+    ]);
+  });
+
+  it('takes what each turn spent from your entry that began it', () => {
+    const use = {
+      model: 'm',
+      input: 1,
+      cacheWritten: 2,
+      cacheWrittenLong: 3,
+      cacheRead: 4,
+      output: 5,
+    };
+    expect(
+      turnsOf([
+        {
+          kind: 'user',
+          id: 'u1',
+          text: 'Hello',
+          tokens: { at: 7, uses: [use, { ...use, subagent: true }] },
+        },
+        reply('a1', 'Hi'),
+        you('u2', 'No reply yet'),
+      ]),
+    ).toEqual([
+      { at: 7, ...use },
+      { at: 7, ...use, subagent: true },
     ]);
   });
 

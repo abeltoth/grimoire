@@ -1,3 +1,5 @@
+import type { TurnTokens } from './tokens';
+
 /**
  * The agent hub's contract (ADR-006): chats with any agent, in terms that
  * aren't specific to one. Each agent's adapter maps its own messages onto
@@ -157,6 +159,8 @@ export interface UserEntry {
   at?: number;
   /** How long the turn it began took, in ms, once that turn has ended and when known. */
   took?: number;
+  /** What the turn it began spent, so far while it runs, when the agent says. */
+  tokens?: TurnTokens;
 }
 
 /** Something sent with an entry: a picture, shown as a plate, or a file, as a reference. */

@@ -43,6 +43,24 @@ describe('SearchWorker', () => {
     expect(worker.sent.at(-1)).toEqual({ kind: 'stale' });
   });
 
+  it('asks the worker where the tokens went', async () => {
+    const worker = fakeProcess();
+    const search = new SearchWorker(() => worker.process);
+    const asked = search.tokens(1_000);
+    expect(worker.sent).toEqual([{ kind: 'tokens', id: 1, since: 1_000 }]);
+    const none = {
+      input: 0,
+      cacheWritten: 0,
+      cacheWrittenLong: 0,
+      cacheRead: 0,
+      output: 0,
+      weight: 0,
+    };
+    const totals = { since: 1_000, total: none, days: [], models: [], folders: [], chats: [] };
+    worker.reply({ id: 1, totals });
+    await expect(asked).resolves.toEqual(totals);
+  });
+
   it('fails the searches waiting when the worker stops, and starts it again for the next', async () => {
     const workers = [fakeProcess(), fakeProcess()];
     const start = vi.fn(() => workers[start.mock.calls.length - 1]!.process);

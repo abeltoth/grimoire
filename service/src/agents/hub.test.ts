@@ -200,6 +200,19 @@ describe('AgentHub', () => {
     expect(sent.find((s) => s.event === 'agents.entry' && s.payload.entry.kind === 'user' && s.payload.entry.took)).toBeTruthy();
   });
 
+  it('writes what the running turn has spent on your entry that began it', async () => {
+    const { id } = await hub.start('fake', settings, 'Hello');
+    const run = fake.runOf(id);
+    const uses = [{ model: 'claude-opus-5-5', input: 2, cacheWritten: 0, cacheWrittenLong: 10, cacheRead: 0, output: 5 }];
+    vi.advanceTimersByTime(1_000);
+    run.events.tokens(uses);
+
+    const { entries } = await hub.open('fake', id, settings);
+    const yours = entries[0]!;
+    expect(yours.kind === 'user' && yours.tokens).toEqual({ at: yours.at, uses });
+    expect(sent.at(-1)).toMatchObject({ event: 'agents.entry', payload: { entry: { id: yours.id, tokens: { uses } } } });
+  });
+
   it('waits for your decision on an approval', async () => {
     const { id } = await hub.start('fake', settings, 'Make a file');
     const { events: agent } = fake.runOf(id);

@@ -22,6 +22,7 @@ import type {
   Enclosure,
   Entry,
   PlanUsage,
+  UsageBreakdown,
 } from '@grimoire/contract';
 import type { AgentAdapter, ChatEvents, ChatHistory, LiveChat, SavedChat } from '../adapter';
 import { CacheTracker, type ReplyUsage } from './cache';
@@ -33,7 +34,7 @@ import { ASK_TOOL, alwaysAllowOf, toClaudeAnswers, toQuestions } from './permiss
 import { withReferences } from './references';
 import { commandFiles, readSettingsFile, settingsFilesIn, toSetup } from './setup';
 import { ClaudeTranscript, turnEnd } from './transcript';
-import { toPlanUsage } from './usage';
+import { toPlanUsage, toUsageBreakdown } from './usage';
 
 // Loaded on first use: it's large, and the service starts without it.
 const sdk = () => import('@anthropic-ai/claude-agent-sdk');
@@ -91,15 +92,20 @@ export class ClaudeAdapter implements AgentAdapter {
   }
 
   async history(chatId: ChatId, cwd: string): Promise<ChatHistory> {
-    const { getSessionMessages } = await sdk();
+    const { getSessionMessages, getSubagentMessages, listSubagents } = await sdk();
     const transcript = new ClaudeTranscript(false);
     const cache = new CacheTracker();
-    for (const message of await getSessionMessages(chatId, await this.savedIn(chatId, cwd))) {
-      // Claude Code saves when each message came, though the SDK's type leaves it out.
-      const at = Date.parse((message as { timestamp?: string }).timestamp ?? '');
+    const saved = await this.savedIn(chatId, cwd);
+    for (const message of await getSessionMessages(chatId, saved)) {
+      const at = timeOf(message);
       transcript.apply(message, at);
       if (message.type === 'assistant' && message.parent_tool_use_id === null && Number.isFinite(at))
         cache.reply((message.message as { usage?: ReplyUsage }).usage, at);
+    }
+    // Subagents' runs are saved apart; what they spent counts toward the turns they ran in.
+    for (const agentId of await listSubagents(chatId, saved)) {
+      for (const message of await getSubagentMessages(chatId, agentId, saved))
+        transcript.applySubagent(message, timeOf(message));
     }
     return {
       entries: transcript.entries,
@@ -169,6 +175,11 @@ export class ClaudeAdapter implements AgentAdapter {
 
   usage(): Promise<PlanUsage> {
     return readUsage();
+  }
+
+  /** What Claude Code's own scan of its transcripts says took the plan's usage, as /usage shows it. */
+  usageBreakdown(): Promise<UsageBreakdown | null> {
+    return readBreakdown();
   }
 
   /** The memories Claude Code keeps on its own for a folder, where its settings say. */
@@ -387,6 +398,11 @@ export class ClaudeAdapter implements AgentAdapter {
   }
 }
 
+/** When a saved message came, in ms since the epoch; Claude Code saves it, though the SDK's type leaves it out. */
+function timeOf(message: object): number {
+  return Date.parse((message as { timestamp?: string }).timestamp ?? '');
+}
+
 /** Asks a Claude Code process that never gets a message for the models it offers. */
 async function listModels(): Promise<ModelInfo[]> {
   const { query } = await sdk();
@@ -411,6 +427,23 @@ async function readUsage(): Promise<PlanUsage> {
       skipBehaviors: true,
     });
     return toPlanUsage(usage, Date.now());
+  } finally {
+    input.end();
+    probe.close();
+  }
+}
+
+/** Asks a Claude Code process that never gets a message what /usage shows of where the plan's usage went. */
+async function readBreakdown(): Promise<UsageBreakdown | null> {
+  const { query } = await sdk();
+  const input = new MessageQueue<SDKUserMessage>();
+  const probe = query({ prompt: input, options: { permissionMode: MODES.ask } });
+  try {
+    // Experimental in the SDK: its name and answer may change in any release.
+    const usage = await probe.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET({
+      skipBehaviors: false,
+    });
+    return toUsageBreakdown(usage, Date.now());
   } finally {
     input.end();
     probe.close();

@@ -1,13 +1,59 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { Component, PendingTasks, effect, inject, signal, untracked } from '@angular/core';
-import type { AgentInfo, PlanUsage, UsageCredits, UsageWindow } from '@grimoire/contract';
+import type {
+  AgentInfo,
+  PlanUsage,
+  TokenTotal,
+  TokenTotals,
+  UsageBreakdown,
+  UsageCredits,
+  UsageSpan,
+  UsageWindow,
+} from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { Chats } from '@ui/app/core/chats';
+import { countsInWords, modelLabel, tokenCount } from '@ui/app/core/tokens';
 
 /** An agent with a plan, and how much of its limits is used. */
 interface Plan {
   agent: AgentInfo;
   usage: PlanUsage;
 }
+
+/** An agent's own word on where its plan's usage went. */
+interface Breakdown {
+  agent: AgentInfo;
+  breakdown: UsageBreakdown;
+}
+
+/** The spans where the tokens went is shown over, as Claude Code's scan reads them. */
+type Span = 'day' | 'week';
+
+const HOUR = 60 * 60_000;
+const SPANS: Record<Span, { label: string; ms: number }> = {
+  day: { label: 'Last 24 hours', ms: 24 * HOUR },
+  week: { label: 'Last 7 days', ms: 7 * 24 * HOUR },
+};
+
+/** Claude Code's ways of working, as its usage scan names them, in plain words. */
+const BEHAVIOURS: Record<string, string> = {
+  cache_miss: 'Going on after the prompt cache ran out',
+  long_context: 'Long context',
+  subagent_heavy: 'Many subagents',
+  high_parallel: 'Many chats at once',
+  cron: 'Chats left running for hours',
+  max_effort: 'Max effort',
+  workflow: 'Workflows',
+  always_on_context: 'What loads into every chat',
+  large_tool_results: 'Large tool results',
+};
+
+const SOURCES: Record<UsageSpan['sources'][number]['kind'], string> = {
+  agent: 'subagent',
+  skill: 'skill',
+  plugin: 'plugin',
+  mcp: 'MCP server',
+};
 
 const time = (at: number) => new Date(at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
@@ -26,10 +72,13 @@ export function money(minor: number, currency: string): string {
 
 /**
  * The Ledger: how much of each agent's subscription limits is used, read
- * from the agent when the page opens, each limit with when it resets.
+ * from the agent when the page opens, each limit with when it resets; and
+ * where the tokens went, as the agent's own scan says and by Grimoire's
+ * count from the chats' transcripts.
  */
 @Component({
   selector: 'gr-ledger-page',
+  imports: [NgTemplateOutlet],
   templateUrl: './ledger-page.html',
   styleUrl: './ledger-page.css',
 })
@@ -43,10 +92,129 @@ export class LedgerPage {
   protected readonly reading = signal(false);
   protected readonly failed = signal<string | null>(null);
 
+  protected readonly spans = Object.entries(SPANS) as [Span, { label: string; ms: number }][];
+  protected readonly span = signal<Span>('week');
+  /** Grimoire's count over the span; undefined until it's read. */
+  protected readonly totals = signal<TokenTotals | undefined>(undefined);
+  protected readonly totalsFailed = signal<string | null>(null);
+  /** What the agents say of their usage; undefined until they've answered. */
+  protected readonly breakdowns = signal<Breakdown[] | undefined>(undefined);
+  protected readonly breakdownsFailed = signal<string | null>(null);
+  protected readonly readingTokens = signal(false);
+
   constructor() {
     // Read once the agents are known.
     effect(() => {
-      if (this.chats.agents().length) untracked(() => void this.read());
+      if (this.chats.agents().length)
+        untracked(() => {
+          void this.read();
+          void this.readTokens();
+        });
+    });
+  }
+
+  /** Reads where the tokens went again: Grimoire's count, and what the agents say. */
+  protected async readTokens(): Promise<void> {
+    if (this.readingTokens()) return;
+    this.readingTokens.set(true);
+    const done = this.pending.add();
+    try {
+      await Promise.all([this.readTotals(), this.readBreakdowns()]);
+    } finally {
+      this.readingTokens.set(false);
+      done();
+    }
+  }
+
+  protected async showSpan(span: Span): Promise<void> {
+    if (span === this.span()) return;
+    this.span.set(span);
+    const done = this.pending.add();
+    try {
+      await this.readTotals();
+    } finally {
+      done();
+    }
+  }
+
+  private async readTotals(): Promise<void> {
+    const span = this.span();
+    this.totalsFailed.set(null);
+    try {
+      const totals = await this.bridge.invoke('tokens.totals', { since: Date.now() - SPANS[span].ms });
+      if (span === this.span()) this.totals.set(totals);
+    } catch (error) {
+      this.totalsFailed.set(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  private async readBreakdowns(): Promise<void> {
+    this.breakdownsFailed.set(null);
+    try {
+      const agents = this.chats.agents();
+      const answers = await Promise.all(
+        agents.map((agent) => this.bridge.invoke('agents.usageBreakdown', { agent: agent.id })),
+      );
+      this.breakdowns.set(
+        agents.flatMap((agent, i) => {
+          const breakdown = answers[i];
+          return breakdown ? [{ agent, breakdown }] : [];
+        }),
+      );
+    } catch (error) {
+      this.breakdownsFailed.set(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  protected behaviourName(key: string): string {
+    return BEHAVIOURS[key] ?? key.replace(/_/g, ' ');
+  }
+
+  protected sourceKind(kind: UsageSpan['sources'][number]['kind']): string {
+    return SOURCES[kind];
+  }
+
+  protected count(n: number): string {
+    return tokenCount(n);
+  }
+
+  protected inWords(total: TokenTotal): string {
+    return countsInWords(total);
+  }
+
+  /** A share of the span's weight, 0-100. */
+  protected shareOf(total: TokenTotal): number {
+    const all = this.totals()?.total.weight ?? 0;
+    return all ? (total.weight / all) * 100 : 0;
+  }
+
+  protected modelName(model: string, subagent: boolean): string {
+    return subagent ? `Subagents on ${modelLabel(model)}` : modelLabel(model);
+  }
+
+  protected folderName(cwd: string): string {
+    return this.chats.folderName(cwd);
+  }
+
+  /** A day, such as "Thursday, November 5". */
+  protected dayName(day: string): string {
+    const [year, month, date] = day.split('-').map(Number);
+    return new Date(year!, month! - 1, date!).toLocaleDateString([], {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+    });
+  }
+
+  protected openChat({ id, agent, title, cwd }: TokenTotals['chats'][number]): void {
+    void this.chats.openChat({
+      id,
+      agent,
+      title,
+      ...(cwd ? { cwd } : {}),
+      updatedAt: 0,
+      dogEars: [],
+      tags: [],
     });
   }
 

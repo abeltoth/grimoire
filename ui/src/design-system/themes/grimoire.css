@@ -414,6 +414,9 @@
   --gr-ledger-gap: 18px;
   --gr-ledger-section-gap: 32px;
   --gr-ledger-percent-col: 40px;
+  /* Where the tokens went: its heads, and the spans to show it over */
+  --gr-ledger-head-gap: 22px;
+  --gr-ledger-spans-gap: 14px;
 
   /* The Table of contents: every chapter, in parts by project */
   --gr-contents-width: 680px;

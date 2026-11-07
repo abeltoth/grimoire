@@ -21,6 +21,10 @@ import type {
   ScheduleInfo,
   ScheduleRun,
   SetupFile,
+  TokenTotals,
+  TokenUse,
+  UsageBreakdown,
+  UsageSpan,
 } from '@grimoire/contract';
 import { DEFAULT_SETTINGS } from '@grimoire/contract';
 import { MONACO, type MonacoApi } from '../../../modules/files/ui/monaco';
@@ -254,6 +258,45 @@ describe('App', () => {
     expect(texts('.stop')).toEqual([]);
     expect(texts('.you .took')).toEqual(['3m 20s']);
     expect(el.querySelector('.you .took')!.getAttribute('title')).toBe('This turn took 3m 20s');
+  });
+
+  it("shows what each turn spent by your entry, the chapter's costliest three in rubric", async () => {
+    const { bridge, emit } = fakeBridge();
+    const { fixture, el, texts } = await render(bridge);
+    await write(fixture, el, 'u1');
+    const use = (input: number, output = 0) => ({
+      model: 'claude-opus-5-5',
+      input,
+      cacheWritten: 0,
+      cacheWrittenLong: 0,
+      cacheRead: 0,
+      output,
+    });
+    const turn = (id: string, ...uses: TokenUse[]) => ({
+      chatId: 'chat-1',
+      entry: { kind: 'user' as const, id, text: id, at: 1, took: 1, tokens: { at: 1, uses } },
+    });
+    emit('agents.entry', turn('u1', use(500, 100), { ...use(2_000), model: 'claude-haiku-4-5', subagent: true }));
+    await fixture.whenStable();
+    expect(texts('.you .spent')).toEqual(['3K tokens']);
+    // One turn alone isn't marked the costliest.
+    expect(el.querySelector('.you .spent.costly')).toBeNull();
+    expect(el.querySelector('.you .spent')!.getAttribute('title')).toBe(
+      'This turn: 3K tokens, weighed as the API prices them\n' +
+        'Opus 5.5: 500 fresh input, 100 output\n' +
+        'Subagents on Haiku 4.5: 2K fresh input',
+    );
+
+    emit('agents.entry', turn('u2', use(500)));
+    emit('agents.entry', turn('u3', use(4_000)));
+    emit('agents.entry', turn('u4', use(100)));
+    emit('agents.entry', turn('u5', use(2_000)));
+    await fixture.whenStable();
+    expect(texts('.you .spent')).toEqual(['3K tokens', '500 tokens', '4K tokens', '100 tokens', '2K tokens']);
+    expect(texts('.you .spent.costly')).toEqual(['3K tokens', '4K tokens', '2K tokens']);
+    expect(el.querySelector('.you .spent.costly')!.getAttribute('title')).toMatch(
+      /^One of the costliest turns in this chapter: 3K tokens/,
+    );
   });
 
   it('starts the chat with the first entry and follows its events', async () => {
@@ -1299,21 +1342,21 @@ describe('App', () => {
     await fixture.whenStable();
 
     expect(texts('gr-thumb-page .title')).toEqual(['Ledger']);
-    expect(texts('gr-ledger-page h2')).toEqual(['Claude Code’s plan limits']);
+    expect(texts('gr-ledger-page .plan h2')).toEqual(['Claude Code’s plan limits']);
     expect(texts('gr-ledger-page .sub')[0]).toMatch(/^Max plan, read at .+Read again$/);
-    expect(texts('gr-ledger-page .name')).toEqual([
+    expect(texts('gr-ledger-page .plan .name')).toEqual([
       'Current session',
       'This week, all models',
       'This week, Opus',
     ]);
-    expect(texts('gr-ledger-page b')).toEqual(['37%', '70%', '12%']);
-    expect(texts('gr-ledger-page .resets')[0]).toMatch(/^resets at \S/);
-    const meter = el.querySelector('gr-ledger-page [role="meter"]')!;
+    expect(texts('gr-ledger-page .plan b')).toEqual(['37%', '70%', '12%']);
+    expect(texts('gr-ledger-page .plan .resets')[0]).toMatch(/^resets at \S/);
+    const meter = el.querySelector('gr-ledger-page .plan [role="meter"]')!;
     expect(meter.getAttribute('aria-valuenow')).toBe('37');
 
     el.querySelector<HTMLButtonElement>('gr-ledger-page .sub .gr-link')!.click();
     await fixture.whenStable();
-    expect(texts('gr-ledger-page b')[0]).toBe('38%');
+    expect(texts('gr-ledger-page .plan b')[0]).toBe('38%');
     expect(calls.filter((call) => call.command === 'agents.usage')).toHaveLength(2);
   });
 
@@ -1338,13 +1381,13 @@ describe('App', () => {
     await fixture.whenStable();
 
     expect(texts('gr-ledger-page .sub')[0]).toMatch(/^Enterprise plan, read at /);
-    expect(texts('gr-ledger-page .none')).toEqual([]);
+    expect(texts('gr-ledger-page .plan .none')).toEqual([]);
     const spent = (12345 / 100).toLocaleString([], { style: 'currency', currency: 'USD' });
     const limit = (600).toLocaleString([], { style: 'currency', currency: 'USD' });
-    expect(texts('gr-ledger-page .name')).toEqual([`Usage credits this month ${spent} of ${limit}`]);
-    expect(texts('gr-ledger-page .resets')[0]).toMatch(/^resets on \S/);
-    expect(texts('gr-ledger-page b')).toEqual(['21%']);
-    const meter = el.querySelector('gr-ledger-page [role="meter"]')!;
+    expect(texts('gr-ledger-page .plan .name')).toEqual([`Usage credits this month ${spent} of ${limit}`]);
+    expect(texts('gr-ledger-page .plan .resets')[0]).toMatch(/^resets on \S/);
+    expect(texts('gr-ledger-page .plan b')).toEqual(['21%']);
+    const meter = el.querySelector('gr-ledger-page .plan [role="meter"]')!;
     expect(meter.getAttribute('aria-valuetext')).toBe(`${spent} of ${limit}`);
   });
 
@@ -1363,8 +1406,8 @@ describe('App', () => {
     await fixture.whenStable();
 
     const spent = (9).toLocaleString([], { style: 'currency', currency: 'EUR' });
-    expect(texts('gr-ledger-page .spent')).toEqual([`${spent} spent, no limit`]);
-    expect(el.querySelector('gr-ledger-page [role="meter"]')).toBeNull();
+    expect(texts('gr-ledger-page .plan .spent')).toEqual([`${spent} spent, no limit`]);
+    expect(el.querySelector('gr-ledger-page .plan [role="meter"]')).toBeNull();
   });
 
   it('says so in the Ledger when the agent has no plan limits', async () => {
@@ -1375,8 +1418,124 @@ describe('App', () => {
       .find((tab) => tab.textContent!.trim() === 'Ledger')!
       .click();
     await fixture.whenStable();
-    expect(texts('gr-ledger-page .none')).toEqual([
+    expect(texts('gr-ledger-page .plan .none')).toEqual([
       'No limits to show: Claude Code isn’t signed in with a Claude subscription.',
+    ]);
+  });
+
+  it("shows where the tokens went in the Ledger, as Claude Code says and by Grimoire's count", async () => {
+    const { bridge, answers, calls } = fakeBridge();
+    answers['agents.usage'] = () => ({ plan: 'max', windows: [], at: 0 });
+    const span = (requests: number): UsageSpan => ({
+      requests,
+      chats: 4,
+      behaviours: [
+        { key: 'long_context', share: 80, requests: 40 },
+        { key: 'brand_new', share: 5.4, requests: 2 },
+      ],
+      advice: [{ key: 'long_context', share: 80, title: 'Start fresh when you switch tasks', detail: 'run /clear' }],
+      sources: [{ kind: 'mcp', name: 'docs', share: 9 }],
+    });
+    answers['agents.usageBreakdown'] = (): UsageBreakdown => ({ day: span(10), week: span(70), at: 0 });
+    const total = (weight: number) => ({
+      input: weight,
+      cacheWritten: 0,
+      cacheWrittenLong: 0,
+      cacheRead: 0,
+      output: 0,
+      weight,
+    });
+    answers['tokens.totals'] = ({ since }: CommandRequest<'tokens.totals'>): TokenTotals => ({
+      since,
+      total: total(4_000),
+      days: [{ day: '2026-11-05', ...total(4_000) }],
+      models: [
+        { model: 'claude-opus-5-5', subagent: false, ...total(3_000) },
+        { model: 'claude-haiku-4-5', subagent: true, ...total(1_000) },
+      ],
+      folders: [{ cwd: 'C:/work/grimoire', ...total(4_000) }],
+      chats: [{ id: 'old-1', agent: 'claude-code', title: 'Ribbon', cwd: 'C:/work/grimoire', ...total(4_000) }],
+    });
+    const { fixture, el, texts } = await render(bridge);
+    [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
+      .find((tab) => tab.textContent!.trim() === 'Ledger')!
+      .click();
+    await fixture.whenStable();
+
+    expect(texts('gr-ledger-page h2')).toEqual(['Claude Code’s plan limits', 'Where the tokens went']);
+    expect(texts('gr-ledger-page .spans [aria-checked="true"]')).toEqual(['Last 7 days']);
+    expect(texts('gr-ledger-page .tokens h3')).toEqual([
+      'What Claude Code says took your usage',
+      'By Grimoire’s count',
+    ]);
+    expect(texts('gr-ledger-page .tokens .sub')[1]).toMatch(/: 70 requests in 4 chats\./);
+    expect(texts('gr-ledger-page .tokens h4')).toEqual([
+      'Its advice',
+      'What took a share',
+      'By day',
+      'By model',
+      'By folder',
+      'The chats that weighed most',
+    ]);
+    const day = new Date(2026, 10, 5).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+    expect(texts('gr-ledger-page .tokens .name')).toEqual([
+      'Long context',
+      // A way of working Grimoire has no name for keeps Claude Code's.
+      'brand new',
+      'Start fresh when you switch tasks',
+      'docs',
+      '4K tokens',
+      day,
+      'Opus 5.5',
+      'Subagents on Haiku 4.5',
+      'C:/work/grimoire',
+      'Ribbon',
+    ]);
+    expect(texts('gr-ledger-page .tokens b')).toEqual(['80%', '5%', '9%', '100%', '75%', '25%', '100%', '100%']);
+    expect(texts('gr-ledger-page .tokens .detail')).toEqual(['run /clear', '4K fresh input']);
+
+    // The last 24 hours: Claude Code's scan already has them; Grimoire counts again.
+    const asked = () =>
+      calls
+        .filter((c) => c.command === 'tokens.totals')
+        .map((c) => (c.request as CommandRequest<'tokens.totals'>).since);
+    [...el.querySelectorAll<HTMLButtonElement>('gr-ledger-page .spans button')]
+      .find((button) => button.textContent!.trim() === 'Last 24 hours')!
+      .click();
+    await fixture.whenStable();
+    expect(texts('gr-ledger-page .tokens .sub')[1]).toMatch(/: 10 requests in 4 chats\./);
+    expect(asked()).toHaveLength(2);
+    expect(asked()[1]! - asked()[0]!).toBeGreaterThan(6 * 24 * 60 * 60_000 - 60_000);
+    expect(calls.filter((c) => c.command === 'agents.usageBreakdown')).toHaveLength(1);
+
+    // A chat that weighed much opens from the list.
+    [...el.querySelectorAll<HTMLButtonElement>('gr-ledger-page .tokens button.name')]
+      .find((button) => button.textContent!.trim() === 'Ribbon')!
+      .click();
+    await fixture.whenStable();
+    expect(calls.find((c) => c.command === 'agents.open')!.request).toEqual({
+      agent: 'claude-code',
+      chatId: 'old-1',
+      settings: { cwd: 'C:/work/grimoire' },
+    });
+  });
+
+  it("says so in the Ledger when there's nothing to say of the tokens", async () => {
+    const { bridge, answers } = fakeBridge();
+    answers['agents.usage'] = () => ({ plan: 'max', windows: [], at: 0 });
+    answers['agents.usageBreakdown'] = () => null;
+    answers['tokens.totals'] = () => {
+      throw new Error('The search stopped');
+    };
+    const { fixture, el, texts } = await render(bridge);
+    [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
+      .find((tab) => tab.textContent!.trim() === 'Ledger')!
+      .click();
+    await fixture.whenStable();
+    // No scan from Claude Code: only Grimoire's count, which failed.
+    expect(texts('gr-ledger-page .tokens h3')).toEqual(['By Grimoire’s count']);
+    expect(texts('gr-ledger-page .tokens .none')).toEqual([
+      'The chats’ tokens couldn’t be counted: The search stopped',
     ]);
   });
 
