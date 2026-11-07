@@ -97,12 +97,15 @@ describe('storage', () => {
       drawings: true,
       defaultAgent: null,
       newChapter: { from: 'last-used' },
+      themeName: 'grimoire',
       theme: {},
       accounts: [],
       mcpOff: [],
     });
     settings.set({ wording: 'plain', newChapter: { from: 'preset', preset: 'Bug fix' } });
-    settings.set({ theme: { '--gr-page': '#fffaf0', '--gr-size-text': '18px' } });
+    settings.set({ themeName: 'night', theme: { '--gr-page': '#fffaf0', '--gr-size-text': '18px' } });
+    settings.set({ themeName: 'auto' });
+    expect(() => settings.set({ themeName: 'neon' } as never)).toThrow('"themeName"');
     settings.set({ accounts: ['me@example.com', 'mum@example.com'] });
     settings.set({ mcpOff: ['github', 'claude.ai Gmail'] });
     expect(() => settings.set({ wording: 'fancy' } as never)).toThrow(`"wording" can't be "fancy"`);
@@ -128,6 +131,7 @@ describe('storage', () => {
       drawings: true,
       defaultAgent: null,
       newChapter: { from: 'preset', preset: 'Bug fix' },
+      themeName: 'auto',
       theme: { '--gr-page': '#fffaf0', '--gr-size-text': '18px' },
       accounts: ['me@example.com', 'mum@example.com'],
       mcpOff: ['github', 'claude.ai Gmail'],

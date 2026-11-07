@@ -1,4 +1,7 @@
 @import './fonts.css';
 @import './themes/grimoire.css';
+@import './themes/night.css';
+@import './themes/sepia.css';
+@import './themes/contrast.css';
 @import './base.css';
 @import './motion.css';

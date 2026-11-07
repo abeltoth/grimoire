@@ -485,6 +485,16 @@
   --gr-theme-summary-pad: 7px 0;
   --gr-theme-name-col: 290px;
   --gr-theme-token-pad: 3px 0;
+  --gr-theme-card-width: 124px;
+  --gr-theme-card-gap: 14px;
+  --gr-theme-card-pad: 8px;
+  --gr-theme-card-radius: 3px;
+  --gr-theme-card-swatch-height: 60px;
+  --gr-theme-card-swatch-page-inset: 12px;
+  --gr-theme-card-ink-width: 56%;
+  --gr-theme-card-ink-height: 6px;
+  --gr-theme-card-rule: 1px solid var(--gr-hairline);
+  --gr-theme-card-rule-on: 2px solid var(--gr-rubric);
 
   /* Front matter: what your agents load, and where each piece comes from */
   --gr-front-matter-section-gap: 34px;

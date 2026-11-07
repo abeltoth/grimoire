@@ -1,0 +1,33 @@
+/*
+ * Sepia: aged paper and brown ink, softer than the book as drawn. Sets
+ * over grimoire.css only the tokens that change.
+ */
+:root[data-theme='sepia'] {
+  /* Desk, binding and thumb index */
+  --gr-desk: #1c130b;
+  --gr-cover: #4b2812;
+  --gr-cover-edge: #2e1708;
+
+  /* Paper */
+  --gr-page: #e8d7b0;
+  --gr-page-next: #f0e2c2;
+  --gr-foldout: #dfcba0;
+  --gr-fore-edge-a: #dccaa0;
+  --gr-fore-edge-b: #bba67b;
+  --gr-page-edge: #c9b58a;
+  --gr-dogear-flap: #c9b58a;
+  --gr-hairline: rgba(74, 48, 22, 0.2);
+  --gr-slip: #f1e4c4;
+  --gr-plate: #e1cfa5;
+
+  /* Ink and stamps */
+  --gr-ink: #3a2813;
+  --gr-ink-soft: #664e32;
+  --gr-ink-placeholder: #6f5738;
+  --gr-ink-faint: #a68f68;
+  --gr-link-underline: #94805a;
+  --gr-verdigris: #275a47;
+
+  /* Ribbons */
+  --gr-ribbon-slip: #efe0bd;
+}

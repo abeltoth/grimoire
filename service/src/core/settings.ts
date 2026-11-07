@@ -4,6 +4,7 @@ import {
   type EventName,
   type EventPayload,
   type GrimoireSettings,
+  THEME_NAMES,
 } from '@grimoire/contract';
 import type { CommandRegistry } from '../registry';
 
@@ -31,6 +32,7 @@ const VALID: { [K in keyof GrimoireSettings]: (value: unknown) => boolean } = {
       (start?.from === 'preset' && typeof start.preset === 'string' && start.preset !== '')
     );
   },
+  themeName: (value) => value === 'auto' || (THEME_NAMES as readonly unknown[]).includes(value),
   theme: (value) => {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
     const tokens = Object.entries(value);

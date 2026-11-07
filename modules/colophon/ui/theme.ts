@@ -1,3 +1,52 @@
+import type { ThemeName } from '@grimoire/contract';
+
+/** A ready-made theme, to choose on the Colophon. */
+export interface ThemeChoice {
+  name: ThemeName | 'auto';
+  label: string;
+  /** What it looks like, in a few words. */
+  note: string;
+}
+
+/** The ready-made themes in the order they are offered; "auto" follows the system's light or dark. */
+export const THEME_CHOICES: readonly ThemeChoice[] = [
+  { name: 'grimoire', label: 'Grimoire', note: 'The book as drawn' },
+  { name: 'night', label: 'Night', note: 'Dark paper, cream ink' },
+  { name: 'sepia', label: 'Sepia', note: 'Aged paper, brown ink' },
+  { name: 'contrast', label: 'High contrast', note: 'Black on white' },
+  { name: 'auto', label: 'Automatic', note: 'Night after dark, else Grimoire' },
+];
+
+/** The theme files, each read as text when asked for. */
+export const THEME_FILES: Record<ThemeName, () => Promise<string>> = {
+  grimoire: () =>
+    import('@ui/design-system/themes/grimoire.css', { with: { loader: 'text' } }).then(
+      (file) => file.default,
+    ),
+  night: () =>
+    import('@ui/design-system/themes/night.css', { with: { loader: 'text' } }).then(
+      (file) => file.default,
+    ),
+  sepia: () =>
+    import('@ui/design-system/themes/sepia.css', { with: { loader: 'text' } }).then(
+      (file) => file.default,
+    ),
+  contrast: () =>
+    import('@ui/design-system/themes/contrast.css', { with: { loader: 'text' } }).then(
+      (file) => file.default,
+    ),
+};
+
+/** The tokens a theme file sets, by name; for a theme over the book as drawn, only those it changes. */
+export function tokenValues(css: string): Record<string, string> {
+  const body = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  const values: Record<string, string> = {};
+  for (const match of body.matchAll(/^\s*(--gr-[a-z0-9-]+)\s*:\s*(.+?);\s*$/gm)) {
+    values[match[1]!] = match[2]!;
+  }
+  return values;
+}
+
 /** One of the theme's tokens, as the theme draws it. */
 export interface Token {
   name: string;

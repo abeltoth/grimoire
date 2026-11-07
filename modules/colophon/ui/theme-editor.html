@@ -1,8 +1,42 @@
 <p class="lead">
   {{
     wording.say(
-      'Every colour, face, size and timing in the book is one of the theme’s tokens. Change one and every page changes with it; it’s kept for every window once you stop.',
-      'Every colour, font, size and timing is a theme token. Change one and the app changes with it; it’s kept for every window once you stop.'
+      'Choose how the book looks. Automatic turns to Night when your system is dark.',
+      'Choose how the app looks. Automatic turns to Night when your system is dark.'
+    )
+  }}
+</p>
+
+<div class="themes" role="radiogroup" aria-label="Theme">
+  @for (choice of choices; track choice.name) {
+    <button
+      type="button"
+      class="theme"
+      role="radio"
+      [attr.aria-checked]="choice.name === chosen()"
+      (click)="choose(choice.name)"
+    >
+      <span class="preview" aria-hidden="true">
+        @for (look of looks(choice.name); track $index) {
+          <span class="look" [style.background]="look.cover">
+            <span class="leaf" [style.background]="look.page">
+              <span class="ink" [style.background]="look.ink"></span>
+            </span>
+          </span>
+        }
+      </span>
+      <span class="theme-name">{{ choice.label }}</span>
+      <small class="theme-note">{{ choice.note }}</small>
+    </button>
+  }
+</div>
+
+<h3>{{ wording.say('Change the colours', 'Customise') }}</h3>
+<p class="lead">
+  {{
+    wording.say(
+      'Every colour, face, size and timing in the book is one of the theme’s tokens. Change one and every page changes with it; it’s kept for every window once you stop. Choosing another theme above starts afresh.',
+      'Every colour, font, size and timing is a theme token. Change one and the app changes with it; it’s kept for every window once you stop. Choosing another theme above starts afresh.'
     )
   }}
 </p>

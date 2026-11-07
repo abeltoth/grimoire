@@ -16,6 +16,72 @@
   color: var(--gr-ink-soft);
 }
 
+/* The ready-made themes, each a small page on its cover with its name beneath. */
+.themes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gr-theme-card-gap);
+}
+
+.theme {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-theme-row-gap);
+  width: var(--gr-theme-card-width);
+  padding: var(--gr-theme-card-pad);
+  border: var(--gr-theme-card-rule);
+  border-radius: var(--gr-theme-card-radius);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.theme:hover {
+  background: var(--gr-card-choice-hover);
+}
+
+.theme[aria-checked='true'] {
+  border: var(--gr-theme-card-rule-on);
+  padding: calc(var(--gr-theme-card-pad) - 1px);
+}
+
+.preview {
+  display: flex;
+  height: var(--gr-theme-card-swatch-height);
+  border: var(--gr-theme-swatch-rule);
+  border-radius: var(--gr-theme-radius);
+  overflow: hidden;
+}
+
+.look {
+  display: flex;
+  flex: 1;
+  padding: var(--gr-theme-card-swatch-page-inset) var(--gr-theme-control-gap);
+}
+
+.leaf {
+  flex: 1;
+  padding: var(--gr-theme-row-gap) var(--gr-theme-card-pad);
+}
+
+.ink {
+  display: block;
+  width: var(--gr-theme-card-ink-width);
+  height: var(--gr-theme-card-ink-height);
+  border-radius: var(--gr-theme-radius);
+}
+
+.theme-name {
+  font-size: var(--gr-size-colophon-word);
+  color: var(--gr-ink);
+}
+
+.theme-note {
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
 /* The main colours, each name in small capitals beside its well of ink. */
 .form {
   display: grid;
