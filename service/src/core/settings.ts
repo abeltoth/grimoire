@@ -50,7 +50,21 @@ const VALID: { [K in keyof GrimoireSettings]: (value: unknown) => boolean } = {
     value.length <= MAX_ACCOUNTS &&
     value.every((email) => typeof email === 'string' && email.length <= 320 && EMAIL.test(email)) &&
     new Set(value.map((email: string) => email.toLowerCase())).size === value.length,
+  mcpOff: (value) => mcpNames(value),
 };
+
+/** The most MCP servers kept off: more than anyone has. */
+const MAX_MCP_SERVERS = 200;
+
+/** A list of MCP servers' names, each once; also what a chat's settings take. */
+export function mcpNames(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) &&
+    value.length <= MAX_MCP_SERVERS &&
+    value.every((name) => typeof name === 'string' && name.trim() !== '' && name.length <= 200) &&
+    new Set(value).size === value.length
+  );
+}
 
 const known = (key: string): key is keyof GrimoireSettings => key in VALID;
 

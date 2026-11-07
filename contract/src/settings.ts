@@ -16,6 +16,8 @@ export interface GrimoireSettings {
   theme: Readonly<Record<string, string>>;
   /** The accounts you switch the agent's sign-in between, by email, such as yours and your family's. */
   accounts: readonly string[];
+  /** The MCP servers turned off in every chat, by name; open chats change from their next turn. */
+  mcpOff: readonly string[];
 }
 
 export const DEFAULT_SETTINGS: GrimoireSettings = {
@@ -25,6 +27,7 @@ export const DEFAULT_SETTINGS: GrimoireSettings = {
   newChapter: { from: 'last-used' },
   theme: {},
   accounts: [],
+  mcpOff: [],
 };
 
 declare module './commands' {

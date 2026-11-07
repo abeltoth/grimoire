@@ -42,6 +42,26 @@
 }
 
 .card-head span,
+/* The folder's MCP servers, in a strip under the columns: as many as it has. */
+.strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--gr-card-strip-gap);
+  row-gap: var(--gr-card-choice-gap);
+  margin-top: var(--gr-card-columns-pad);
+  padding-top: var(--gr-card-columns-pad);
+  border-top: 1px solid var(--gr-hairline);
+}
+
+.strip h3 {
+  margin: 0;
+}
+
+.strip .choice {
+  margin-left: 0;
+}
+
 .card-foot {
   font-style: italic;
   font-size: var(--gr-size-card-aside);

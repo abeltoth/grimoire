@@ -60,6 +60,12 @@ export interface ChatSettings {
    * is the one its worktree is made from; once begun, it's the worktree.
    */
   worktree?: boolean;
+  /**
+   * The MCP servers turned off for this chat, by name: they don't start for
+   * it, nor take room in its context. Those off in every chat are in
+   * Grimoire's settings.
+   */
+  mcpOff?: string[];
 }
 
 /** Settings for a new chat; the folder defaults to your home folder. */
@@ -69,8 +75,11 @@ export type NewChatSettings = Omit<ChatSettings, 'cwd'> & { cwd?: string };
 export type ParallelFrom =
   { chatId: ChatId } | { agent: AgentId; settings: NewChatSettings; title?: string };
 
-/** The settings you can change once a chat has begun. */
-export type SettingsChange = Pick<ChatSettings, 'model' | 'mode' | 'effort'>;
+/**
+ * The settings you can change once a chat has begun. Its MCP servers change
+ * from its next turn: the agent's process starts again, continuing the chat.
+ */
+export type SettingsChange = Pick<ChatSettings, 'model' | 'mode' | 'effort' | 'mcpOff'>;
 
 /** A model an agent offers. */
 export interface AgentModel {

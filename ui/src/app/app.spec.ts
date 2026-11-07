@@ -884,6 +884,49 @@ describe('App', () => {
     expect(el.querySelector('gr-settings-card')).toBeNull();
   });
 
+  it("turns MCP servers off for one chapter on its settings card, and not for the next", async () => {
+    const { bridge, answers, calls, emit } = fakeBridge();
+    const empty = { memory: [], skills: [], agents: [], commands: [], hooks: [], mcpServers: [], plugins: [], permissions: [] };
+    answers['agents.setup'] = (request: CommandRequest<'agents.setup'>): AgentSetup => ({
+      cwd: request.cwd ?? 'C:/Users/me',
+      sections: {
+        ...empty,
+        mcpServers: [
+          { name: 'github', source: 'project', tokens: 4200 },
+          { name: 'slack', source: 'user', tokens: 900 },
+        ],
+      },
+      settingsFiles: [],
+      at: Date.now(),
+    });
+    answers['settings.get'] = () => ({ ...DEFAULT_SETTINGS, mcpOff: ['slack'] });
+    const { fixture, el, texts } = await render(bridge);
+    await write(fixture, el, 'Hello');
+    el.querySelector<HTMLButtonElement>('.meta [data-setting="mode"]')!.click();
+    await fixture.whenStable();
+
+    const column = 'gr-settings-card [data-setting="mcp"]';
+    // What each costs; one off in every chapter stays off here.
+    expect(texts(`${column} .choice`)).toEqual(['github 4,200 tokens', 'slack off in every chapter']);
+    expect(texts(`${column} .choice[aria-checked="true"]`)).toEqual(['github 4,200 tokens']);
+    expect(texts(`${column} .choice[aria-disabled]`)).toEqual(['slack off in every chapter']);
+    expect(texts(`${column} .none`)).toEqual(['A change counts from its next turn']);
+
+    pick(el, 'github');
+    pick(el, 'slack');
+    await fixture.whenStable();
+    expect(calls.filter((c) => c.command === 'agents.configure').map((c) => c.request)).toEqual([
+      { chatId: 'chat-1', change: { mcpOff: ['github'] } },
+    ]);
+    emit('agents.settings', { chatId: 'chat-1', settings: { cwd: 'C:/work/grimoire', mcpOff: ['github'] } });
+    await fixture.whenStable();
+    expect(texts(`${column} .choice[aria-checked="true"]`)).toEqual([]);
+    // A new chapter takes the settings used last, but not the servers turned off for this one.
+    expect(calls.filter((c) => c.command === 'layout.set').at(-1)?.request).toEqual({
+      lastUsed: { agent: 'claude-code', settings: { cwd: 'C:/work/grimoire' } },
+    });
+  });
+
   it('opens a chapter\'s settings from a right-click on its ribbon', async () => {
     const { fixture, el, texts } = await render(fakeBridge().bridge);
     el.querySelector('gr-ribbon.chapter button')!.dispatchEvent(
@@ -2660,8 +2703,10 @@ describe('App', () => {
       'Drawings',
       'Default agent for new chapters',
       'New chapters begin with',
+      'MCP servers in every chapter',
     ]);
     expect(checked()).toEqual(['The book’s', 'Drawn', 'The one used last', 'Your last settings']);
+    expect(texts('gr-colophon-page [aria-labelledby="gr-colophon-mcp"] .none')).toEqual(['None']);
 
     word('Plain').click();
     await fixture.whenStable();
@@ -2703,6 +2748,48 @@ describe('App', () => {
     expect(texts('gr-colophon-page [role="alert"]')).toEqual([
       'That setting couldn’t be kept: the service is busy',
     ]);
+  });
+
+  it('turns MCP servers off in every chat on the Colophon', async () => {
+    const { bridge, answers, calls } = fakeBridge();
+    const empty = { memory: [], skills: [], agents: [], commands: [], hooks: [], mcpServers: [], plugins: [], permissions: [] };
+    answers['agents.setup'] = (request: CommandRequest<'agents.setup'>): AgentSetup => ({
+      cwd: request.cwd ?? 'C:/Users/me',
+      sections: {
+        ...empty,
+        mcpServers: [
+          { name: 'github', source: 'user', tokens: 4200 },
+          { name: 'claude.ai Gmail', source: 'account' },
+        ],
+      },
+      settingsFiles: [],
+      at: Date.now(),
+    });
+    let kept: GrimoireSettings = { ...DEFAULT_SETTINGS, mcpOff: ['linear'] };
+    answers['settings.get'] = () => kept;
+    answers['settings.set'] = (change: Partial<GrimoireSettings>) => (kept = { ...kept, ...change });
+    const { fixture, el, texts } = await render(bridge);
+    [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
+      .find((tab) => tab.textContent!.trim() === 'Colophon')!
+      .click();
+    await fixture.whenStable();
+
+    const row = 'gr-colophon-page [aria-labelledby="gr-colophon-mcp"]';
+    // Those your agents load, and those turned off they no longer list; the ones on underlined.
+    expect(texts(`${row} .word`)).toEqual(['github', 'claude.ai Gmail', 'linear']);
+    expect(texts(`${row} .word[aria-checked="true"]`)).toEqual(['github', 'claude.ai Gmail']);
+
+    el.querySelector<HTMLButtonElement>(`${row} .word`)!.click();
+    await fixture.whenStable();
+    el.querySelectorAll<HTMLButtonElement>(`${row} .word`)[2]!.click();
+    await fixture.whenStable();
+    expect(calls.filter((c) => c.command === 'settings.set').map((c) => c.request)).toEqual([
+      { mcpOff: ['linear', 'github'] },
+      { mcpOff: ['github'] },
+    ]);
+    // One turned on again that no agent lists any more is gone.
+    expect(texts(`${row} .word`)).toEqual(['github', 'claude.ai Gmail']);
+    expect(texts(`${row} .word[aria-checked="true"]`)).toEqual(['claude.ai Gmail']);
   });
 
   it('begins new chapters with the default agent, or the preset the Colophon names', async () => {

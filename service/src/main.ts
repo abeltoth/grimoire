@@ -12,7 +12,12 @@ import { appendFileSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileS
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
-import { PROTOCOL_VERSION, SERVICE_INFO_FILE, type ServiceInfo } from '@grimoire/contract';
+import {
+  type EventPayload,
+  PROTOCOL_VERSION,
+  SERVICE_INFO_FILE,
+  type ServiceInfo,
+} from '@grimoire/contract';
 import { ClaudeAdapter } from './agents/claude/claude-adapter';
 import { registerAgentCommands } from './agents/commands';
 import { AgentHub, hubStore } from './agents/hub';
@@ -74,7 +79,18 @@ const settingsStore = new SettingsStore(db);
 const broadcast: Parameters<typeof registerSettings>[2] = (event, payload) =>
   server?.broadcast(event, payload);
 registerPresets(registry, new PresetStore(db), settingsStore, broadcast);
-registerSettings(registry, settingsStore, broadcast);
+let mcpOff = settingsStore.get().mcpOff;
+registerSettings(registry, settingsStore, (event, payload) => {
+  broadcast(event, payload);
+  if (event !== 'settings.changed') return;
+  // Other MCP servers off in every chat: the open chats, and the spare, start again with them.
+  const now = (payload as EventPayload<'settings.changed'>).settings.mcpOff;
+  if (now.length === mcpOff.length && now.every((name) => mcpOff.includes(name))) return;
+  mcpOff = now;
+  hub.mcpChanged();
+  claude.dispose();
+  claude.warm();
+});
 const git = new Git();
 registerGit(registry, git);
 const files = new Files(git, (event, payload) => server?.broadcast(event, payload));
@@ -102,7 +118,7 @@ const hub = new AgentHub(
   new Worktrees(new WorktreeRecords(db), log),
   log,
 );
-const claude = new ClaudeAdapter();
+const claude = new ClaudeAdapter(() => settingsStore.get().mcpOff);
 hub.addAdapter(claude);
 claude.warm();
 registerAgentCommands(registry, hub);
