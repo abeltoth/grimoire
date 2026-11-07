@@ -110,6 +110,7 @@ h4 {
 
 /* The views and the spans to show where the tokens went over, the shown one underlined. */
 .spans,
+.groups,
 .tabs {
   display: inline-flex;
   gap: var(--gr-ledger-spans-gap);
@@ -138,6 +139,7 @@ h4 {
 }
 
 .spans button,
+.groups button,
 .tabs button {
   padding: var(--gr-colophon-word-pad);
   border-bottom: var(--gr-colophon-word-rule-off);
@@ -146,11 +148,13 @@ h4 {
 }
 
 .spans button:hover,
+.groups button:hover,
 .tabs button:hover {
   color: var(--gr-ink);
 }
 
 .spans button[aria-checked='true'],
+.groups button[aria-checked='true'],
 .tabs button[aria-selected='true'] {
   color: var(--gr-ink);
   border-bottom: var(--gr-colophon-word-rule);

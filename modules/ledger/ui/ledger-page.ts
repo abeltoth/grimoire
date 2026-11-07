@@ -39,6 +39,11 @@ const VIEWS: Record<View, string> = {
   tools: 'Tools & skills',
 };
 
+/** What Grimoire's count can be grouped by. */
+type Group = 'day' | 'model' | 'folder' | 'chat';
+
+const GROUPS: Record<Group, string> = { day: 'Day', model: 'Model', folder: 'Folder', chat: 'Chat' };
+
 const SHOWN = 5;
 
 const HOUR =60 * 60_000;
@@ -104,6 +109,8 @@ export class LedgerPage {
   protected readonly reading = signal(false);
   protected readonly failed = signal<string | null>(null);
 
+  protected readonly groups = Object.entries(GROUPS) as [Group, string][];
+  protected readonly group = signal<Group>('day');
   protected readonly views = Object.entries(VIEWS) as [View, string][];
   protected readonly view = signal<View>('limits');
   /** How many rows a list shows before "Show all". */
