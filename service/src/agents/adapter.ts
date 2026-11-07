@@ -16,6 +16,8 @@ import type {
   PromptCache,
   Enclosure,
   Entry,
+  HelperRun,
+  HelperState,
   PlanStep,
   PlanUsage,
   SettingsChange,
@@ -43,10 +45,10 @@ export interface AgentAdapter {
   rename?(chatId: ChatId, cwd: string, title: string): Promise<void>;
   /**
    * A saved helper's run: what the subagent the chat's tool call `toolId`
-   * started did, your task left out. Empty when there's no record of it.
-   * Agents without helpers leave it out.
+   * started did, your task left out, and where it is with it. No entries
+   * when there's no record of it. Agents without helpers leave it out.
    */
-  helper?(chatId: ChatId, cwd: string, toolId: string): Promise<Entry[]>;
+  helper?(chatId: ChatId, cwd: string, toolId: string): Promise<HelperRun>;
   /** The chat's title; empty until the agent names it. */
   title(chatId: ChatId, cwd: string): Promise<string>;
   models(): Promise<AgentModels>;
@@ -152,6 +154,8 @@ export interface ChatEvents {
   text(entryId: string, block: number, text: string): void;
   /** A new or changed entry in the run of the helper the tool call `toolId` started, complete. */
   helperEntry(toolId: string, entry: Entry): void;
+  /** The helper the tool call `toolId` started began, or ended its task. */
+  helperState(toolId: string, state: HelperState): void;
   /** Asks for a decision. `signal` aborts when the agent stops waiting for it. */
   approval(request: ApprovalRequest, signal: AbortSignal): Promise<Verdict>;
   /** The agent named or renamed the chat. */

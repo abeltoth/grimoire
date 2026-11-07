@@ -242,6 +242,8 @@ export interface AgentEntry {
   blocks: Block[];
   /** When it was written, in ms since the epoch, when known. */
   at?: number;
+  /** The model that wrote it, such as claude-opus-5-5, when the agent says. */
+  model?: string;
 }
 
 export type Block = TextBlock | ThinkingBlock | ToolBlock;
@@ -339,6 +341,17 @@ export interface PromptCache {
   tokens: number;
   /** When the cache runs out, in ms since the epoch. */
   until: number;
+}
+
+/** Where a helper is with its task: still at it, done, failed, or stopped before it was done. */
+export type HelperState = 'working' | 'done' | 'failed' | 'stopped';
+
+/** What a helper did, and where it is with its task. */
+export interface HelperRun {
+  /** Its replies and tools; its task, the tool call's input, left out. */
+  entries: Entry[];
+  /** Missing while the agent hasn't said. */
+  state?: HelperState;
 }
 
 /** One step of the agent's plan for the chat, which it keeps up to date as it works. */
@@ -497,10 +510,10 @@ declare module './commands' {
     /**
      * What a helper did: a subagent the agent handed a task to with one of
      * its tool calls, working in a transcript of its own. Its task is the
-     * tool call's input, and its last reply the call's result. Empty when the
-     * agent keeps no record of it. The chat must be open.
+     * tool call's input, and its last reply the call's result. No entries
+     * when the agent keeps no record of it. The chat must be open.
      */
-    'agents.helper': { request: { chatId: ChatId; toolId: string }; response: Entry[] };
+    'agents.helper': { request: { chatId: ChatId; toolId: string }; response: HelperRun };
     /**
      * Closes a chat's chapter and stops its agent process. The chat itself
      * stays with the agent.
@@ -518,6 +531,8 @@ declare module './events' {
     'agents.entry': { chatId: ChatId; entry: Entry };
     /** A new or changed entry in the run of a helper the chat's tool call `toolId` started, complete. */
     'agents.helperEntry': { chatId: ChatId; toolId: string; entry: Entry };
+    /** A helper the chat's tool call `toolId` started began, or ended its task. */
+    'agents.helperState': { chatId: ChatId; toolId: string; state: HelperState };
     /** Text streamed into a block of an entry since the last event, batched. */
     'agents.text': { chatId: ChatId; entryId: string; block: number; text: string };
     'agents.approval': { approval: Approval };

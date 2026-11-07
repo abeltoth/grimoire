@@ -36,8 +36,9 @@ import { tokenCount, usesInWords } from '@ui/app/core/tokens';
  * in view unless you scrolled back. A note for a task handed to a helper
  * turns the facing page to what the helper did, where there's one.
  *
- * As a helper's run, it only reads: its replies are signed `by`, and it
- * has no Stop, Undo or Fork.
+ * As a helper's run, it only reads: its task is signed `askedBy`, its
+ * replies `by`, and it has no Stop, Undo or Fork. What's put inside it
+ * follows the last row.
  */
 @Component({
   selector: 'gr-transcript',
@@ -69,6 +70,8 @@ export class Transcript {
   readonly helper = input(false, { transform: booleanAttribute });
   /** Who signs the replies; the chapter's agent when unset. */
   readonly by = input<string>();
+  /** Who signs the entries that ask; you when unset. */
+  readonly askedBy = input<string>();
   readonly stop = output<void>();
 
   protected readonly rows = computed(() =>

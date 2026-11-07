@@ -112,6 +112,15 @@ const UNNOTED_TOOLS = new Set([
   'ToolSearch',
 ]);
 
+/** The tool a helper ends its run with: its report, in its input's `message`, reads as its last reply. */
+const HANDBACK_TOOL = 'SubagentHandback';
+
+/** A helper's report, when the tool call hands one back. */
+function handbackOf(block: ToolBlock): string | undefined {
+  const message = (block.input as { message?: unknown } | undefined)?.message;
+  return block.tool === HANDBACK_TOOL && typeof message === 'string' ? message : undefined;
+}
+
 /** Your entries whose edits were undone, and those a fork copied, which can't be. */
 export interface UndoMarks {
   withdrawn?: ReadonlySet<string>;
@@ -182,7 +191,8 @@ export function toRows(
     }
     entry.blocks.forEach((block, i) => {
       const key = `${entry.id}/${i}`;
-      if (block.kind === 'tool') {
+      const report = block.kind === 'tool' ? handbackOf(block) : undefined;
+      if (block.kind === 'tool' && report === undefined) {
         if (UNNOTED_TOOLS.has(block.tool)) return;
         const note = toNote(
           key,
@@ -198,7 +208,7 @@ export function toRows(
         rows.push({
           kind: 'reply',
           key,
-          text: block.text,
+          text: report ?? (block.kind === 'text' ? block.text : ''),
           byline: !bylined,
           ...(entry.at ? { at: entry.at } : {}),
           ...margin(pending),

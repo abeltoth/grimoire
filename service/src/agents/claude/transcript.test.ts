@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { type ClaudeMessage, ClaudeTranscript, helperAgentId, helperAgentIdIn, turnEnd } from './transcript';
+import type { Entry } from '@grimoire/contract';
+import {
+  type ClaudeMessage,
+  ClaudeTranscript,
+  helperAgentId,
+  helperCallIn,
+  runBeganWith,
+  savedHelperState,
+  turnEnd,
+} from './transcript';
 
 // Shaped after real Claude Code output: a tool call, its result, then a reply
 // with a thinking block and a text block.
@@ -293,19 +302,131 @@ describe('ClaudeTranscript', () => {
     expect(run.entries).toMatchObject([{ kind: 'agent', id: 'msg_sub', blocks: [{ text: 'Done' }] }]);
   });
 
-  it("finds the saved run a helper's tool call started from its result", () => {
-    const result = (toolId: string, text: string): ClaudeMessage => ({
+  it('notes the model that wrote each reply, but not on Claude Code’s own notes', () => {
+    const transcript = new ClaudeTranscript(false);
+    const by = (id: string, model: string): ClaudeMessage => ({
+      type: 'assistant',
+      parent_tool_use_id: null,
+      message: { id, model, role: 'assistant', content: [{ type: 'text', text: 'Hi' }] },
+    });
+    transcript.apply(by('msg_1', 'claude-sonnet-4-5'));
+    transcript.apply(by('msg_2', '<synthetic>'));
+    expect(transcript.entries).toMatchObject([{ id: 'msg_1', model: 'claude-sonnet-4-5' }, { id: 'msg_2' }]);
+    expect(transcript.entries[1]).not.toHaveProperty('model');
+  });
+
+  it("notes the model of a helper's replies as it works", () => {
+    const helped: Entry[] = [];
+    const transcript = new ClaudeTranscript(true, {
+      entry: () => {},
+      text: () => {},
+      status: () => {},
+      plan: () => {},
+      helperEntry: (_toolId, entry) => helped.push(structuredClone(entry)),
+    });
+    transcript.apply({
+      type: 'assistant',
+      parent_tool_use_id: 'toolu_1',
+      message: { id: 'msg_sub', model: 'claude-haiku-4-5', role: 'assistant', content: [{ type: 'text', text: 'Done' }] },
+    });
+    expect(helped.at(-1)).toMatchObject({ id: 'msg_sub', model: 'claude-haiku-4-5' });
+  });
+
+  it("follows a helper's task from when it begins until Claude Code says how it ended", () => {
+    const states: [string, string][] = [];
+    const transcript = new ClaudeTranscript(true, {
+      entry: () => {},
+      text: () => {},
+      status: () => {},
+      plan: () => {},
+      helperState: (toolId, state) => states.push([toolId, state]),
+    });
+    const system = (fields: object): ClaudeMessage => ({ type: 'system', ...fields });
+    transcript.apply(system({ subtype: 'task_started', task_id: 'a1', tool_use_id: 'toolu_1', description: 'Look' }));
+    // A background helper's tool call has its result at once; it's still at work.
+    transcript.apply({
       type: 'user',
       parent_tool_use_id: null,
-      message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: toolId, content: [{ type: 'text', text }] }] },
+      message: {
+        role: 'user',
+        content: [{ type: 'tool_result', tool_use_id: 'toolu_1', content: 'Async agent launched successfully.' }],
+      },
     });
-    const messages = [
-      result('toolu_1', 'Read sdk.d.ts\nagentId: string;'),
-      result('toolu_2', 'All done.\nagentId: ae05a781070d8c49e (internal ID - do not mention to user.)'),
-    ];
-    expect(helperAgentIdIn(messages, 'toolu_2')).toBe('ae05a781070d8c49e');
-    expect(helperAgentIdIn(messages, 'toolu_3')).toBeUndefined();
-    expect(helperAgentId('No helper here')).toBeUndefined();
+    transcript.apply(system({ subtype: 'task_notification', task_id: 'a1', tool_use_id: 'toolu_1', status: 'completed' }));
+    transcript.apply(system({ subtype: 'task_notification', task_id: 'a2', tool_use_id: 'toolu_2', status: 'failed' }));
+    transcript.apply(system({ subtype: 'task_notification', task_id: 'a3', tool_use_id: 'toolu_3', status: 'stopped' }));
+    transcript.apply(system({ subtype: 'task_notification', task_id: 'a4', status: 'completed' }));
+    transcript.apply(system({ subtype: 'init' }));
+
+    expect(states).toEqual([
+      ['toolu_1', 'working'],
+      ['toolu_1', 'done'],
+      ['toolu_2', 'failed'],
+      ['toolu_3', 'stopped'],
+    ]);
+    expect(transcript.entries).toEqual([]);
+  });
+
+  describe('a saved helper', () => {
+    const result = (toolId: string, text: string, isError = false): ClaudeMessage => ({
+      type: 'user',
+      parent_tool_use_id: null,
+      message: {
+        role: 'user',
+        content: [{ type: 'tool_result', tool_use_id: toolId, content: [{ type: 'text', text }], is_error: isError }],
+      },
+    });
+    const call = (toolId: string, prompt: string): ClaudeMessage =>
+      assistant(`msg_${toolId}`, { type: 'tool_use', id: toolId, name: 'Agent', input: { description: 'Look', prompt } });
+
+    it('is named by the result of the tool call that started it, in either of its forms', () => {
+      const messages = [
+        result('toolu_1', 'Read sdk.d.ts\nagentId: string;'),
+        result('toolu_2', 'All done.\nagentId: ae05a781070d8c49e (internal ID - do not mention to user.)'),
+        result(
+          'toolu_3',
+          'Its report was delivered to you as a message from "a572d1044a9eb0bac"; reply to it with SendMessage.',
+        ),
+      ];
+      const named = (toolId: string) => {
+        const text = helperCallIn(messages, toolId)?.result?.text;
+        return text === undefined ? undefined : helperAgentId(text);
+      };
+      expect(named('toolu_2')).toBe('ae05a781070d8c49e');
+      expect(named('toolu_3')).toBe('a572d1044a9eb0bac');
+      expect(helperCallIn(messages, 'toolu_4')).toBeUndefined();
+      expect(helperAgentId('No helper here')).toBeUndefined();
+    });
+
+    it('is found by the task it began with when the result names none', () => {
+      const messages = [call('toolu_1', 'Find the meter.'), result('toolu_1', 'It is in meter.ts.')];
+      const found = helperCallIn(messages, 'toolu_1');
+      expect(found).toEqual({ prompt: 'Find the meter.', result: { text: 'It is in meter.ts.', isError: false } });
+      expect(helperAgentId(found!.result!.text)).toBeUndefined();
+
+      const run = (first: unknown): ClaudeMessage[] => [
+        { type: 'user', parent_tool_use_id: null, message: first },
+        assistant('msg_sub', { type: 'text', text: 'Looking' }),
+      ];
+      expect(runBeganWith(run({ role: 'user', content: 'Find the meter.\n' }), found!.prompt!)).toBe(true);
+      expect(
+        runBeganWith(run({ role: 'user', content: [{ type: 'text', text: 'Find the meter.' }] }), 'Find the meter.'),
+      ).toBe(true);
+      expect(runBeganWith(run({ role: 'user', content: 'Find the clock.' }), 'Find the meter.')).toBe(false);
+      expect(runBeganWith([], 'Find the meter.')).toBe(false);
+    });
+
+    it('is done once it handed its report back, else as its tool call’s result says', () => {
+      const handback: Entry = {
+        kind: 'agent',
+        id: 'msg_end',
+        blocks: [{ kind: 'tool', id: 'toolu_h', tool: 'SubagentHandback', input: { message: 'Report' } }],
+      };
+      expect(savedHelperState([handback], undefined)).toBe('done');
+      expect(savedHelperState([], { text: 'All done.', isError: false })).toBe('done');
+      expect(savedHelperState([], { text: 'It broke.', isError: true })).toBe('failed');
+      expect(savedHelperState([], undefined)).toBe('stopped');
+    });
   });
 
   describe('tokens', () => {

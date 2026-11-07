@@ -4,6 +4,7 @@ import type {
   ChatStatus,
   Enclosure,
   Entry,
+  HelperState,
   PictureEnclosure,
   PlanStep,
   TokenCounts,
@@ -85,25 +86,82 @@ export interface TranscriptListener {
   tokens?(uses: TokenUse[]): void;
   /** A new or changed entry in the run of the helper the tool call `toolId` started. */
   helperEntry?(toolId: string, entry: Entry): void;
+  /** The helper the tool call `toolId` started began, or ended its task. */
+  helperState?(toolId: string, state: HelperState): void;
 }
+
+/** The tool a helper ends its run with, its report to the agent that asked in its input's `message`. */
+export const HANDBACK_TOOL = 'SubagentHandback';
 
 /**
  * The ID Claude Code keeps a helper's saved run by, from the result of the
- * tool call that started it; undefined when it names none.
+ * tool call that started it; undefined when it names none. Older results
+ * end on "agentId: …"; newer ones say the run's report comes "as a message
+ * from" it.
  */
 export function helperAgentId(result: string): string | undefined {
-  return /^agentId: ([\w-]+)/m.exec(result)?.[1];
+  return (/^agentId: ([\w-]+)/m.exec(result) ?? /message from "([\w-]+)"/.exec(result))?.[1];
 }
 
-/** The ID of the helper the tool call `toolId` started, from the messages that hold its result. */
-export function helperAgentIdIn(messages: readonly ClaudeMessage[], toolId: string): string | undefined {
+/**
+ * The tool call `toolId` among the messages: the task it handed a helper,
+ * and its result once it has one. Undefined when it isn't among them.
+ */
+export function helperCallIn(
+  messages: readonly ClaudeMessage[],
+  toolId: string,
+): { prompt?: string; result?: ToolResult } | undefined {
+  let call: { prompt?: string; result?: ToolResult } | undefined;
   for (const message of messages) {
     const content = (message.message as ApiMessage | undefined)?.content;
-    if (message.type !== 'user' || !Array.isArray(content)) continue;
-    const block = content.find((b) => b.type === 'tool_result' && b.tool_use_id === toolId);
-    if (block) return helperAgentId(toolResult(block).text);
+    if (!Array.isArray(content)) continue;
+    for (const block of content) {
+      if (message.type === 'assistant' && block.type === 'tool_use' && block.id === toolId) {
+        const prompt = (block.input as { prompt?: unknown } | undefined)?.prompt;
+        call = { ...call, ...(typeof prompt === 'string' ? { prompt } : {}) };
+      } else if (message.type === 'user' && block.type === 'tool_result' && block.tool_use_id === toolId) {
+        call = { ...call, result: toolResult(block) };
+      }
+    }
   }
-  return undefined;
+  return call;
+}
+
+/** Whether a saved helper's run began with the task `prompt`: its first message is the task it was given. */
+export function runBeganWith(messages: readonly ClaudeMessage[], prompt: string): boolean {
+  const first = messages.find((message) => message.type === 'user');
+  const content = (first?.message as ApiMessage | undefined)?.content;
+  const text =
+    typeof content === 'string'
+      ? content
+      : (content ?? [])
+          .filter((block) => block.type === 'text')
+          .map((block) => block.text ?? '')
+          .join('\n');
+  return !!text && text.trim() === prompt.trim();
+}
+
+/**
+ * Where a saved helper is with its task: done once it handed its report
+ * back, else as the result of the tool call that started it says.
+ */
+export function savedHelperState(entries: readonly Entry[], result: ToolResult | undefined): HelperState {
+  const handedBack = entries.some(
+    (entry) => entry.kind === 'agent' && entry.blocks.some((b) => b.kind === 'tool' && b.tool === HANDBACK_TOOL),
+  );
+  if (handedBack) return 'done';
+  if (!result) return 'stopped';
+  return result.isError ? 'failed' : 'done';
+}
+
+/** How a task Claude Code ran ended, as a helper's state. */
+const TASK_END: Record<string, HelperState> = { completed: 'done', failed: 'failed', stopped: 'stopped' };
+
+/** Claude Code's word on a task it runs, such as a helper: that it began, or how it ended. */
+interface TaskMessage {
+  subtype?: string;
+  tool_use_id?: string;
+  status?: string;
 }
 
 /** A turn's replies' tokens by API message ID; Claude Code repeats a reply's on each of its blocks. */
@@ -157,7 +215,8 @@ export class ClaudeTranscript {
    *   turn took from your entry until its last message.
    */
   apply(message: ClaudeMessage, at?: number): void {
-    if (message.type === 'assistant')
+    if (message.type === 'system') this.applyTask(message as ClaudeMessage & TaskMessage);
+    else if (message.type === 'assistant')
       this.count(message.message as ApiMessage, !!message.parent_tool_use_id, this.turn);
     else if (message.type === 'result' && this.live) this.spent = new Map();
     // Messages inside a subagent's run belong to its tool call's helper, not the chat.
@@ -168,6 +227,19 @@ export class ClaudeTranscript {
   /** A message from a saved helper's run, read on its own: its entries are the run's. */
   applyRun(message: ClaudeMessage): void {
     this.take(message);
+  }
+
+  /** A helper's task began, or ended; a background helper's tool call has its result long before. */
+  private applyTask(message: TaskMessage): void {
+    const toolId = message.tool_use_id;
+    if (!toolId) return;
+    const state =
+      message.subtype === 'task_started'
+        ? 'working'
+        : message.subtype === 'task_notification'
+          ? TASK_END[message.status ?? '']
+          : undefined;
+    if (state) this.listener?.helperState?.(toolId, state);
   }
 
   /** The transcript of the helper the tool call `toolId` started, its entries passed on as the helper's. */
@@ -225,7 +297,7 @@ export class ClaudeTranscript {
   private applyStreamEvent(event: StreamEvent): void {
     switch (event.type) {
       case 'message_start':
-        if (event.message?.id) this.agentEntry(event.message.id);
+        if (event.message?.id) this.agentEntry(event.message.id, event.message.model);
         this.listener?.status('thinking');
         break;
       case 'content_block_start': {
@@ -260,7 +332,7 @@ export class ClaudeTranscript {
 
   private applyAssistant(message: ApiMessage): void {
     if (!message.id || !Array.isArray(message.content)) return;
-    const entry = this.agentEntry(message.id);
+    const entry = this.agentEntry(message.id, message.model);
     const blocks = message.content.map(toBlock).filter((block) => block !== undefined);
     const position =
       this.streamingIndex === undefined
@@ -361,10 +433,12 @@ export class ClaudeTranscript {
     }
   }
 
-  private agentEntry(id: string): AgentEntry {
+  /** The reply `id`, made when it's new; `model` wrote it, unless it's Claude Code's own note. */
+  private agentEntry(id: string, model?: string): AgentEntry {
+    const known = model && model !== SYNTHETIC_MODEL ? { model } : {};
     const existing = this.entries.find((entry) => entry.id === id);
-    if (existing?.kind === 'agent') return existing;
-    const entry: AgentEntry = { kind: 'agent', id, blocks: [] };
+    if (existing?.kind === 'agent') return Object.assign(existing, known);
+    const entry: AgentEntry = { kind: 'agent', id, blocks: [], ...known };
     this.entries.push(entry);
     this.listener?.entry(entry);
     return entry;
@@ -382,6 +456,9 @@ export class ClaudeTranscript {
   }
 }
 
+/** The model Claude Code names on notes of its own, which no model wrote. */
+const SYNTHETIC_MODEL = '<synthetic>';
+
 interface SavedTurn {
   entry: UserEntry;
   began: number;
@@ -391,7 +468,7 @@ interface SavedTurn {
 /** A reply's tokens; undefined for one with none, such as Claude Code's own notes. */
 function tokenUse(message: ApiMessage, subagent: boolean): TokenUse | undefined {
   const usage = message.usage;
-  if (!usage || !message.model || message.model === '<synthetic>') return undefined;
+  if (!usage || !message.model || message.model === SYNTHETIC_MODEL) return undefined;
   const long = usage.cache_creation?.ephemeral_1h_input_tokens ?? 0;
   const counts: TokenCounts = {
     input: usage.input_tokens ?? 0,

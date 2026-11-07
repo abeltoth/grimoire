@@ -1,5 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import type { Entry, ToolBlock } from '@grimoire/contract';
+import type { Entry, HelperRun, HelperState, ToolBlock } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { Chats } from '@ui/app/core/chats';
 import { LEAF } from '@ui/app/core/leaf';
@@ -37,6 +37,10 @@ export class Helpers {
   readonly loading = signal(false);
   /** Entries that came while it was read, applied after. */
   private early: Entry[] = [];
+  /** Where the helper shown is with its task, when the agent said; undefined until it does. */
+  private readonly said = signal<HelperState | undefined>(undefined);
+  /** Whether the agent said where it is while what it did was read, which is newer than what was read. */
+  private saidEarly = false;
 
   /** Whether there's a facing page to show a helper on. */
   readonly canShow = computed(() => !this.leaf && !this.focus.on());
@@ -59,10 +63,37 @@ export class Helpers {
     return shown.block;
   });
 
-  /** Whether the helper shown is still working: its tool call has no result, and its chapter is running. */
-  readonly running = computed(() => {
+  /**
+   * Where the helper shown is with its task: as the agent said, else as its
+   * tool call stands: working while it has no result and its chapter runs.
+   */
+  readonly state = computed<HelperState | undefined>(() => {
+    const said = this.said();
+    if (said) return said;
+    const block = this.block();
+    if (!block) return undefined;
     const status = this.chapter()?.status;
-    return !this.block()?.result && (status === 'thinking' || status === 'writing' || status === 'waiting');
+    const live = status === 'thinking' || status === 'writing' || status === 'waiting';
+    if (!block.result) return live ? 'working' : 'stopped';
+    return block.result.isError ? 'failed' : 'done';
+  });
+
+  /** Whether the helper shown is still at its task. */
+  readonly running = computed(() => this.state() === 'working');
+
+  /**
+   * Whether the helper shown waits for your OK on one of its tool calls: you
+   * give it in its chapter, where the approval bears the tool call's ID.
+   */
+  readonly waiting = computed(() => {
+    const approvals = this.chapter()?.approvals ?? [];
+    if (!this.running() || !approvals.length) return false;
+    const calls = new Set(
+      this.entries().flatMap((entry) =>
+        entry.kind === 'agent' ? entry.blocks.flatMap((b) => (b.kind === 'tool' ? [b.id] : [])) : [],
+      ),
+    );
+    return approvals.some((approval) => calls.has(approval.id));
   });
 
   constructor() {
@@ -71,6 +102,12 @@ export class Helpers {
       if (shown?.chapterId !== chatId || shown.toolId !== toolId) return;
       if (this.loading()) this.early.push(entry);
       else this.entries.update((entries) => upsert(entries, entry));
+    });
+    this.bridge.on('agents.helperState', ({ chatId, toolId, state }) => {
+      const shown = this.shown();
+      if (shown?.chapterId !== chatId || shown.toolId !== toolId) return;
+      this.saidEarly = this.loading();
+      this.said.set(state);
     });
   }
 
@@ -84,17 +121,21 @@ export class Helpers {
     this.shown.set({ chapterId, toolId: block.id, block });
     this.entries.set([]);
     this.early = [];
+    this.said.set(undefined);
+    this.saidEarly = false;
     this.loading.set(true);
     this.bridge.invoke('agents.helper', { chatId: chapterId, toolId: block.id }).then(
-      (entries) => this.loaded(block.id, entries ?? []),
-      () => this.loaded(block.id, []),
+      (run) => this.loaded(block.id, run ?? { entries: [] }),
+      () => this.loaded(block.id, { entries: [] }),
     );
   }
 
-  private loaded(toolId: string, entries: Entry[]): void {
+  private loaded(toolId: string, run: HelperRun): void {
     if (this.shown()?.toolId !== toolId) return;
-    this.entries.set(this.early.reduce(upsert, entries as readonly Entry[]));
+    this.entries.set(this.early.reduce(upsert, run.entries as readonly Entry[]));
+    if (!this.saidEarly) this.said.set(run.state);
     this.early = [];
+    this.saidEarly = false;
     this.loading.set(false);
   }
 }

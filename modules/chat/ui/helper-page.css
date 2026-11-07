@@ -12,7 +12,7 @@
   flex: 1;
 }
 
-/* The task the helper was handed: what it's for, who asked, and the prompt in full when you read it. */
+/* What the helper's task is for, what kind of helper on which model, and where it is with it. */
 .task {
   display: flex;
   flex-direction: column;
@@ -36,22 +36,21 @@
 }
 
 .meta,
-.none {
+.none,
+.line {
   margin: 0;
   font-style: italic;
   font-size: var(--gr-size-aside);
   color: var(--gr-ink-soft);
 }
 
-.prompt {
-  align-self: stretch;
-  max-height: var(--gr-helper-task-max);
-  margin: 0;
-  overflow-y: auto;
-  white-space: pre-wrap;
-  font-size: var(--gr-size-aside);
-  line-height: var(--gr-leading-entry);
-  color: var(--gr-ink-soft);
+/* A line after the transcript's last row: what it waits for, or why there's little to read. */
+.line {
+  margin-top: var(--gr-space-3);
+}
+
+.line.waiting {
+  color: var(--gr-ink);
 }
 
 .body {

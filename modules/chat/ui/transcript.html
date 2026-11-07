@@ -22,7 +22,7 @@
       <div class="row">
         <article class="you">
           <header class="by">
-            <span class="who">You</span>
+            <span class="who">{{ askedBy() ?? 'You' }}</span>
             @if (row.at) {
               <span class="time">{{ time(row.at) }}</span>
             }
@@ -160,6 +160,8 @@
     <p class="error" role="alert">{{ error }}</p>
   </div>
 }
+
+<ng-content />
 
 <!--
   The notes beside a row. A run of them is summed up on one line, which folds

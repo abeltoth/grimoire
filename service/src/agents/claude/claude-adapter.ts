@@ -22,7 +22,7 @@ import type {
   ChatId,
   ChatSettings,
   Enclosure,
-  Entry,
+  HelperRun,
   PlanUsage,
   UsageBreakdown,
 } from '@grimoire/contract';
@@ -39,7 +39,15 @@ import { commandFiles, readSettingsFile, settingsFilesIn, toSetup } from './setu
 import { type AgentToolInput, type PickerSources, RATER_PROMPT, pickFor, readRating } from './subagents';
 import { AUTO_PROMPT, autoPick, entryForRater } from './auto-model';
 import { readAccount, signIn } from './sign-in';
-import { ClaudeTranscript, helperAgentIdIn, turnEnd } from './transcript';
+import {
+  type ClaudeMessage,
+  ClaudeTranscript,
+  helperAgentId,
+  helperCallIn,
+  runBeganWith,
+  savedHelperState,
+  turnEnd,
+} from './transcript';
 import { toPlanUsage, toUsageBreakdown } from './usage';
 
 // Loaded on first use: it's large, and the service starts without it.
@@ -132,22 +140,37 @@ export class ClaudeAdapter implements AgentAdapter {
     };
   }
 
-  async helper(chatId: ChatId, cwd: string, toolId: string): Promise<Entry[]> {
+  async helper(chatId: ChatId, cwd: string, toolId: string): Promise<HelperRun> {
     const { getSessionMessages, getSubagentMessages, listSubagents } = await sdk();
     const saved = await this.savedIn(chatId, cwd);
-    // The tool call's result names the run; a helper's helper is started from inside its run.
-    let agentId = helperAgentIdIn(await getSessionMessages(chatId, saved), toolId);
-    if (!agentId) {
-      for (const id of await listSubagents(chatId, saved)) {
-        agentId = helperAgentIdIn(await getSubagentMessages(chatId, id, saved), toolId);
-        if (agentId) break;
+    const ids = await listSubagents(chatId, saved);
+    const runs = new Map<string, Promise<ClaudeMessage[]>>();
+    const runOf = (id: string) => {
+      if (!runs.has(id)) runs.set(id, getSubagentMessages(chatId, id, saved));
+      return runs.get(id)!;
+    };
+    // The chat made the tool call; a helper's helper is started from inside its run.
+    let call = helperCallIn(await getSessionMessages(chatId, saved), toolId);
+    for (const id of ids) {
+      if (call) break;
+      call = helperCallIn(await runOf(id), toolId);
+    }
+    // Its result names the run; a result that doesn't, the run that began with its task.
+    let agentId = call?.result && helperAgentId(call.result.text);
+    if (!agentId && call?.prompt) {
+      for (const id of ids) {
+        if (runBeganWith(await runOf(id), call.prompt)) {
+          agentId = id;
+          break;
+        }
       }
     }
-    if (!agentId) return [];
+    if (!agentId) return { entries: [], ...(call ? { state: savedHelperState([], call.result) } : {}) };
     const run = new ClaudeTranscript(false);
-    for (const message of await getSubagentMessages(chatId, agentId, saved)) run.applyRun(message);
+    for (const message of await runOf(agentId)) run.applyRun(message);
     // Its task is the tool call's input; what it was sent later isn't yours.
-    return run.entries.filter((entry) => entry.kind === 'agent');
+    const entries = run.entries.filter((entry) => entry.kind === 'agent');
+    return { entries, state: savedHelperState(entries, call?.result) };
   }
 
   async fork(chatId: ChatId, cwd: string, entryId: string, title: string): Promise<ChatId> {

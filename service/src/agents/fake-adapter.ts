@@ -6,6 +6,7 @@ import type {
   ChatSettings,
   Enclosure,
   Entry,
+  HelperRun,
   PlanStep,
   PromptCache,
   SettingsChange,
@@ -40,7 +41,7 @@ export class FakeAdapter implements AgentAdapter {
   plans = new Map<ChatId, PlanStep[]>();
   caches = new Map<ChatId, PromptCache>();
   /** Saved helpers' runs, by the tool call that started each. */
-  helpers = new Map<string, Entry[]>();
+  helpers = new Map<string, HelperRun>();
   transcriptLoads = 0;
   /** When set, undo fails with this. */
   undoError?: string;
@@ -58,8 +59,8 @@ export class FakeAdapter implements AgentAdapter {
     });
   }
 
-  async helper(_chatId: ChatId, _cwd: string, toolId: string): Promise<Entry[]> {
-    return structuredClone(this.helpers.get(toolId) ?? []);
+  async helper(_chatId: ChatId, _cwd: string, toolId: string): Promise<HelperRun> {
+    return structuredClone(this.helpers.get(toolId) ?? { entries: [] });
   }
 
   /** Copies the chat up to and with your entry, as the new chat `fork-n`. */

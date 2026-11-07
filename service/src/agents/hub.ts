@@ -26,6 +26,8 @@ import type {
   Entry,
   EventName,
   EventPayload,
+  HelperRun,
+  HelperState,
   NewChatSettings,
   OpenChat,
   ParallelFrom,
@@ -79,8 +81,8 @@ interface ChatState {
   processes: number;
   /** The agent was signed in to another account during a turn: the process starts again once it ends. */
   restart: boolean;
-  /** What the helpers its tool calls started did while it was live, by tool call. */
-  helpers: Map<string, Entry[]>;
+  /** What the helpers its tool calls started did while it was live, and where they are, by tool call. */
+  helpers: Map<string, HelperRun>;
   /** Streamed text not sent to windows yet, per entry and block. */
   pendingText: Map<string, { entryId: string; block: number; text: string }>;
   flushTimer?: NodeJS.Timeout;
@@ -573,11 +575,11 @@ export class AgentHub {
    * What the helper the chat's tool call `toolId` started did: as it went,
    * while the chat was live, or else as the agent saved it.
    */
-  async helper(chatId: ChatId, toolId: string): Promise<Entry[]> {
+  async helper(chatId: ChatId, toolId: string): Promise<HelperRun> {
     const chat = this.chat(chatId);
     const live = chat.helpers.get(toolId);
     if (live) return structuredClone(live);
-    return chat.agent.helper ? chat.agent.helper(chat.id, chat.settings.cwd, toolId) : [];
+    return chat.agent.helper ? chat.agent.helper(chat.id, chat.settings.cwd, toolId) : { entries: [] };
   }
 
   /**
@@ -846,13 +848,15 @@ export class AgentHub {
       helperEntry: (toolId, update) => {
         if (!current()) return;
         const entry = structuredClone(update);
-        const run = chat.helpers.get(toolId) ?? [];
-        const index = run.findIndex((existing) => existing.id === entry.id);
-        entry.at ??= run[index]?.at ?? Date.now();
-        if (index === -1) run.push(entry);
-        else run[index] = entry;
-        chat.helpers.set(toolId, run);
+        const { entries } = this.helperRun(chat, toolId);
+        const index = entries.findIndex((existing) => existing.id === entry.id);
+        entry.at ??= entries[index]?.at ?? Date.now();
+        if (index === -1) entries.push(entry);
+        else entries[index] = entry;
         this.emit('agents.helperEntry', { chatId: chat.id, toolId, entry });
+      },
+      helperState: (toolId, state) => {
+        if (current()) this.setHelperState(chat, toolId, state);
       },
       approval: (request, signal) =>
         new Promise<Verdict>((resolve) => {
@@ -904,6 +908,9 @@ export class AgentHub {
         chat.live = undefined;
         chat.restart = false;
         this.settleAll(chat);
+        // Helpers still at work in the background end with the process.
+        for (const [toolId, run] of chat.helpers)
+          if (run.state === 'working') this.setHelperState(chat, toolId, 'stopped');
         if (chat.status !== 'idle') {
           this.timeTurn(chat);
           this.setStatus(chat, 'idle');
@@ -912,6 +919,18 @@ export class AgentHub {
         }
       },
     };
+  }
+
+  /** The run of the helper the chat's tool call `toolId` started, kept from its first word. */
+  private helperRun(chat: ChatState, toolId: string): HelperRun {
+    let run = chat.helpers.get(toolId);
+    if (!run) chat.helpers.set(toolId, (run = { entries: [] }));
+    return run;
+  }
+
+  private setHelperState(chat: ChatState, toolId: string, state: HelperState): void {
+    this.helperRun(chat, toolId).state = state;
+    this.emit('agents.helperState', { chatId: chat.id, toolId, state });
   }
 
   private upsert(chat: ChatState, update: Entry): void {
