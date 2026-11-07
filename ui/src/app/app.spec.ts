@@ -3227,8 +3227,9 @@ describe('App', () => {
           { name: '~/.claude/CLAUDE.md', detail: 'Your instructions, in every folder', source: 'user', path: 'C:/Users/me/.claude/CLAUDE.md', tokens: 310 },
         ],
         skills: [
-          { name: 'wrangler', detail: 'Cloudflare Workers CLI', source: 'user', tokens: 1148 },
           { name: 'deploy', source: 'plugin', plugin: 'ship', tokens: 60 },
+          { name: 'notes', source: 'user' },
+          { name: 'wrangler', detail: 'Cloudflare Workers CLI', source: 'user', tokens: 2148 },
         ],
         mcpServers: [{ name: 'github', detail: 'Failed to connect', source: 'project', problem: 'spawn gh-mcp ENOENT' }],
       },
@@ -3260,7 +3261,7 @@ describe('App', () => {
     ]);
     expect(texts('gr-front-matter-page summary .n')).toEqual([
       '1 · 310 tokens',
-      '2 · 1,208 tokens',
+      '3 · 2,208 tokens',
       '0',
       '0',
       '0',
@@ -3275,10 +3276,16 @@ describe('App', () => {
       [...el.querySelectorAll(`${section(name)} li`)].map((row) =>
         [...row.children].map((cell) => cell.textContent!.trim()).join(' | '),
       );
+    // The costliest first, those without a cost last; the heavy ones flagged.
     expect(rows('skills')).toEqual([
-      'wrangler | Yours | Cloudflare Workers CLI | 1,148 tokens',
+      'wrangler | Yours | Cloudflare Workers CLI | 2,148 tokens',
       'deploy | ship |  | 60 tokens',
+      'notes | Yours |  | ',
     ]);
+    expect(texts(`${section('skills')} li.heavy .name`)).toEqual(['wrangler']);
+    expect(el.querySelector(`${section('skills')} li.heavy .n`)!.getAttribute('title')).toBe(
+      'Heavy: 2,000 tokens or more in every chat',
+    );
     expect(el.querySelector(`${section('memory')} .name`)!.getAttribute('title')).toBe('C:/Users/me/.claude/CLAUDE.md');
     expect(texts(`${section('mcpServers')} .problem`)).toEqual(['spawn gh-mcp ENOENT']);
     expect(texts(`${section('hooks')} .none`)).toEqual(['None.']);

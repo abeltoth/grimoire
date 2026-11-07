@@ -58,8 +58,8 @@
             </summary>
             @if (items.length) {
               <ul>
-                @for (item of items; track $index) {
-                  <li [class.trouble]="item.problem">
+                @for (item of byCost(items); track $index) {
+                  <li [class.trouble]="item.problem" [class.heavy]="heavy(item)">
                     @if (item.path) {
                       <button
                         type="button"
@@ -74,7 +74,7 @@
                     }
                     <span class="from">{{ from(item) }}</span>
                     <span class="detail" [attr.title]="item.detail ?? null">{{ item.detail }}</span>
-                    <span class="n">{{ tokens(item.tokens) }}</span>
+                    <span class="n" [attr.title]="heavy(item) ? heavyTitle : null">{{ tokens(item.tokens) }}</span>
                     @if (item.problem) {
                       <span class="problem">{{ item.problem }}</span>
                     }
