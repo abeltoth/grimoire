@@ -1,4 +1,4 @@
-import { Component, ElementRef, computed, input, viewChild } from '@angular/core';
+import { Component, ElementRef, computed, input, output, viewChild } from '@angular/core';
 import type { DiffLine } from '@grimoire/contract';
 import { linesShown } from './fold-out';
 
@@ -23,6 +23,10 @@ export class Corrections {
   readonly lines = input.required<readonly DiffLine[]>();
   /** Who marked them, such as "as proposed by Claude Code". */
   readonly caption = input.required<string>();
+  /** Whether it offers to open the file in Files. */
+  readonly openable = input(false);
+  /** Asks to open the file in Files. */
+  readonly open = output<void>();
 
   private readonly body = viewChild.required<ElementRef<HTMLElement>>('body');
 

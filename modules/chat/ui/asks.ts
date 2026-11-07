@@ -5,7 +5,7 @@ import { relativeTo } from './rows';
 /** What an approval asks for, as the slip shows it. */
 export type Ask =
   | { kind: 'command'; asks: string; command: string; about?: string }
-  | { kind: 'file'; asks: string; file: string; lines: DiffLine[]; about?: string }
+  | { kind: 'file'; asks: string; file: string; path: string; lines: DiffLine[]; about?: string }
   | { kind: 'tool'; asks: string; detail: string; about?: string };
 
 const FILE_ASKS: Record<string, string> = {
@@ -39,6 +39,7 @@ export function askOf(approval: Approval, cwd?: string): Ask {
       kind: 'file',
       asks: FILE_ASKS[approval.tool]!,
       file: relativeTo(cwd, change.file),
+      path: change.file,
       lines: change.lines,
       ...(approval.title ? { about: approval.title } : {}),
     };

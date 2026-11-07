@@ -105,18 +105,18 @@ export class Files {
 
   async open(cwd: string, file: string): Promise<OpenFile> {
     const { root, repo } = await this.where(cwd);
-    const full = inside(root, file);
-    const opened = await this.read(root, repo, full, file);
-    this.watch(root, full, file);
+    const { full, shown } = locate(root, file);
+    const opened = await this.read(root, repo, full, shown);
+    this.watch(root, full, shown);
     return opened;
   }
 
   async save(cwd: string, file: string, text: string, changedAt: number): Promise<OpenFile> {
     const { root, repo } = await this.where(cwd);
-    const full = inside(root, file);
+    const { full, shown } = locate(root, file);
     unchangedSince(full, changedAt);
     await writeFile(full, text, 'utf8');
-    const saved = await this.read(root, repo, full, file);
+    const saved = await this.read(root, repo, full, shown);
     const watched = this.watching.get(samePath(full));
     if (watched) watched.saved = saved.changedAt;
     return saved;
@@ -124,7 +124,7 @@ export class Files {
 
   async close(cwd: string, file: string): Promise<void> {
     const { root } = await this.where(cwd);
-    this.stop(samePath(inside(root, file)));
+    this.stop(samePath(locate(root, file).full));
   }
 
   dispose(): void {
@@ -144,12 +144,24 @@ export class Files {
     if (info.size > LARGEST) return { ...at, unshown: 'large' };
     const bytes = await readFile(full);
     if (bytes.subarray(0, SNIFF).includes(0)) return { ...at, unshown: 'binary' };
-    const committed = repo ? await this.git.committed(root, file) : undefined;
+    const committed = await this.committedOf(root, repo, full, file);
     return {
       ...at,
       text: bytes.toString('utf8'),
       ...(committed !== undefined ? { committed } : {}),
     };
+  }
+
+  /** Its text as last committed, from the folder's repository, or, for a file outside it, from its own. */
+  private async committedOf(
+    root: string,
+    repo: boolean,
+    full: string,
+    file: string,
+  ): Promise<string | null | undefined> {
+    if (!path.isAbsolute(file)) return repo ? this.git.committed(root, file) : undefined;
+    const top = await this.git.root(path.dirname(full));
+    return top ? this.git.committed(top, slashed(path.relative(top, full))) : undefined;
   }
 
   /** Tells, once it settles, when an open file changes on disk; not when it was saved here. */
@@ -193,6 +205,27 @@ export class Files {
     entry.watcher.close();
     this.watching.delete(key);
   }
+}
+
+/**
+ * A file to open: from the folder, or anywhere when written in full. Gives
+ * where it is, with the system's slashes, and how the page names it: from
+ * the folder, or in full outside it, with forward slashes.
+ */
+function locate(root: string, file: string): { full: string; shown: string } {
+  const written = expand(file);
+  if (!path.isAbsolute(written)) {
+    const full = inside(root, written);
+    return { full, shown: slashed(path.relative(root, full)) };
+  }
+  const full = path.resolve(written);
+  const relative = path.relative(root, full);
+  const within = !relative.startsWith('..') && !path.isAbsolute(relative);
+  return { full, shown: slashed(within ? relative : full) };
+}
+
+function slashed(file: string): string {
+  return file.replaceAll('\\', '/');
 }
 
 /** A path inside the folder, with the system's slashes; refuses one outside it. */

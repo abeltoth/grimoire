@@ -33,7 +33,13 @@
     </div>
   }
   @case ('file') {
-    <gr-corrections [file]="a.file" [lines]="a.lines" [caption]="'as proposed by ' + agentName()" />
+    <gr-corrections
+      [file]="a.file"
+      [lines]="a.lines"
+      [caption]="'as proposed by ' + agentName()"
+      [openable]="!!shell.openFile()"
+      (open)="shell.openFile()?.(a.path)"
+    />
     @if (a.about) {
       <div class="meta">
         <span>{{ a.about }}</span>

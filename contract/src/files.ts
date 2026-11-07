@@ -17,7 +17,7 @@ export interface FolderList {
 
 /** A file opened on the Files page. */
 export interface OpenFile {
-  /** From the folder the page shows, with forward slashes. */
+  /** From the folder the page shows, or in full for a file outside it, with forward slashes. */
   path: string;
   /** Its text; empty when it can't be shown. */
   text: string;
@@ -38,7 +38,10 @@ declare module './commands' {
     'files.list': { request: { cwd: string; path: string }; response: FolderList };
     /** The files whose paths have all the words in them, best first, up to 50; those git ignores are left out. */
     'files.find': { request: { cwd: string; query: string }; response: string[] };
-    /** Opens a file to view and edit, and watches it until it's closed. */
+    /**
+     * Opens a file to view and edit, and watches it until it's closed: one
+     * in the folder, from it, or any file written in full.
+     */
     'files.open': { request: { cwd: string; path: string }; response: OpenFile };
     /** Saves a file, unless it changed on disk since it was opened. */
     'files.save': {
