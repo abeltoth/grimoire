@@ -1,7 +1,7 @@
 import { homedir } from 'node:os';
 import type { ChatId, Entry } from '@grimoire/contract';
 import type { AgentAdapter } from '../agents/adapter';
-import type { Passage, SearchIndex } from './search-index';
+import type { Passage, SearchIndex, TurnUse } from './search-index';
 
 /** What the indexer needs of an agent: its chats, and each one's transcript. */
 export type IndexedAgent = Pick<AgentAdapter, 'info' | 'listChats' | 'history'>;
@@ -19,6 +19,15 @@ export function passagesOf(title: string, entries: readonly Entry[]): Passage[] 
     }
   }
   return passages.filter((passage) => passage.text.trim());
+}
+
+/** What a chat's turns spent, by model, from your entries that began them. */
+export function turnsOf(entries: readonly Entry[]): TurnUse[] {
+  return entries.flatMap((entry) =>
+    entry.kind === 'user' && entry.tokens
+      ? entry.tokens.uses.map((use) => ({ ...use, at: entry.tokens!.at }))
+      : [],
+  );
 }
 
 /**
@@ -75,8 +84,15 @@ export class Indexer {
         try {
           const { entries } = await agent.history(chat.id, chat.cwd ?? homedir());
           this.index.put(
-            { id: chat.id, agent: agent.info.id, updatedAt: chat.updatedAt },
+            {
+              id: chat.id,
+              agent: agent.info.id,
+              updatedAt: chat.updatedAt,
+              title: chat.title,
+              ...(chat.cwd ? { cwd: chat.cwd } : {}),
+            },
             passagesOf(chat.title, entries),
+            turnsOf(entries),
           );
           read++;
         } catch (error) {

@@ -1,5 +1,17 @@
 import { DatabaseSync } from 'node:sqlite';
-import type { AgentId, ChatId, ExcerptPart, PassageKind, SearchHit } from '@grimoire/contract';
+import {
+  type AgentId,
+  type ChatId,
+  type ExcerptPart,
+  type PassageKind,
+  type SearchHit,
+  type TokenCounts,
+  type TokenTotal,
+  type TokenTotals,
+  type TokenUse,
+  addTokens,
+  weighTokens,
+} from '@grimoire/contract';
 
 /** A passage to look through: a chat's title, one of your entries, or one of the agent's replies. */
 export interface Passage {
@@ -7,22 +19,64 @@ export interface Passage {
   text: string;
 }
 
-/** A chat as indexed: which agent it's with, and when it was last written in. */
+/** A chat as indexed: which agent it's with, when it was last written in, its title and folder. */
 export interface IndexedChat {
   id: ChatId;
   agent: AgentId;
   updatedAt: number;
+  title?: string;
+  cwd?: string;
 }
 
+/** One model's tokens in one of a chat's turns. */
+export interface TurnUse extends TokenUse {
+  /** When the turn began, in ms since the epoch. */
+  at: number;
+}
+
+/** A turn's tokens for one model, as the totals read them, with its chat's details. */
+type TurnRow = {
+  id: ChatId;
+  at: number;
+  model: string;
+  subagent: number;
+  input: number;
+  cacheWritten: number;
+  cacheWrittenLong: number;
+  cacheRead: number;
+  output: number;
+  agent: AgentId;
+  title: string;
+  cwd: string | null;
+};
+
 /** Bump to rebuild every index: it's a cache, so it's dropped rather than migrated. */
-const VERSION = 1;
+const VERSION = 2;
+
+/** The most chats the totals list. */
+const MAX_CHATS = 10;
 
 const SCHEMA = `
   CREATE TABLE chats (
     chat_id TEXT PRIMARY KEY,
     agent TEXT NOT NULL,
-    updated_at INTEGER NOT NULL
+    updated_at INTEGER NOT NULL,
+    title TEXT NOT NULL DEFAULT '',
+    cwd TEXT
   );
+  CREATE TABLE turns (
+    chat_id TEXT NOT NULL,
+    at INTEGER NOT NULL,
+    model TEXT NOT NULL,
+    subagent INTEGER NOT NULL,
+    input INTEGER NOT NULL,
+    cache_written INTEGER NOT NULL,
+    cache_written_long INTEGER NOT NULL,
+    cache_read INTEGER NOT NULL,
+    output INTEGER NOT NULL
+  );
+  CREATE INDEX turns_at ON turns (at);
+  CREATE INDEX turns_chat ON turns (chat_id);
   CREATE VIRTUAL TABLE passages USING fts5(
     text,
     chat_id UNINDEXED,
@@ -52,7 +106,9 @@ export class SearchIndex {
       user_version: number;
     };
     if (version !== VERSION) {
-      this.db.exec('DROP TABLE IF EXISTS chats; DROP TABLE IF EXISTS passages;');
+      this.db.exec(
+        'DROP TABLE IF EXISTS chats; DROP TABLE IF EXISTS passages; DROP TABLE IF EXISTS turns;',
+      );
       this.db.exec(SCHEMA);
       this.db.exec(`PRAGMA user_version = ${VERSION}`);
     }
@@ -73,16 +129,36 @@ export class SearchIndex {
     );
   }
 
-  /** Indexes a chat's passages, in place of the ones it had. */
-  put(chat: IndexedChat, passages: readonly Passage[]): void {
+  /** Indexes a chat's passages and what its turns spent, in place of the ones it had. */
+  put(chat: IndexedChat, passages: readonly Passage[], turns: readonly TurnUse[] = []): void {
     this.inTransaction(() => {
       this.db.prepare('DELETE FROM passages WHERE chat_id = ?').run(chat.id);
+      this.db.prepare('DELETE FROM turns WHERE chat_id = ?').run(chat.id);
       this.db
-        .prepare('INSERT OR REPLACE INTO chats (chat_id, agent, updated_at) VALUES (?, ?, ?)')
-        .run(chat.id, chat.agent, chat.updatedAt);
+        .prepare(
+          'INSERT OR REPLACE INTO chats (chat_id, agent, updated_at, title, cwd) VALUES (?, ?, ?, ?, ?)',
+        )
+        .run(chat.id, chat.agent, chat.updatedAt, chat.title ?? '', chat.cwd ?? null);
       const insert = this.db.prepare('INSERT INTO passages (text, chat_id, kind) VALUES (?, ?, ?)');
       for (const passage of passages) {
         if (passage.text.trim()) insert.run(passage.text, chat.id, passage.kind);
+      }
+      const spent = this.db.prepare(
+        `INSERT INTO turns (chat_id, at, model, subagent, input, cache_written, cache_written_long, cache_read, output)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      );
+      for (const turn of turns) {
+        spent.run(
+          chat.id,
+          turn.at,
+          turn.model,
+          turn.subagent ? 1 : 0,
+          turn.input,
+          turn.cacheWritten,
+          turn.cacheWrittenLong,
+          turn.cacheRead,
+          turn.output,
+        );
       }
     });
   }
@@ -90,8 +166,60 @@ export class SearchIndex {
   remove(chatId: ChatId): void {
     this.inTransaction(() => {
       this.db.prepare('DELETE FROM passages WHERE chat_id = ?').run(chatId);
+      this.db.prepare('DELETE FROM turns WHERE chat_id = ?').run(chatId);
       this.db.prepare('DELETE FROM chats WHERE chat_id = ?').run(chatId);
     });
+  }
+
+  /** Where the tokens went in the turns begun since a time: by day, model, folder and chat. */
+  tokens(since: number): TokenTotals {
+    const rows = this.db
+      .prepare(
+        `SELECT turns.chat_id AS id, turns.at AS at, turns.model AS model, turns.subagent AS subagent,
+           turns.input AS input, turns.cache_written AS cacheWritten,
+           turns.cache_written_long AS cacheWrittenLong, turns.cache_read AS cacheRead,
+           turns.output AS output, chats.agent AS agent, chats.title AS title, chats.cwd AS cwd
+         FROM turns JOIN chats ON chats.chat_id = turns.chat_id
+         WHERE turns.at >= ?
+         ORDER BY turns.at`,
+      )
+      .all(since) as TurnRow[];
+    const days = new Map<string, TokenCounts[]>();
+    const models = new Map<string, TokenCounts[]>();
+    const folders = new Map<string, TokenCounts[]>();
+    const chats = new Map<ChatId, TokenCounts[]>();
+    const about = new Map<ChatId, { agent: AgentId; title: string; cwd: string | null }>();
+    for (const row of rows) {
+      add(days, dayOf(row.at), row);
+      add(models, `${row.subagent ? 'subagent' : 'chat'} ${row.model}`, row);
+      if (row.cwd) add(folders, row.cwd, row);
+      add(chats, row.id, row);
+      about.set(row.id, row);
+    }
+    return {
+      since,
+      total: totalOf(rows),
+      days: [...days].map(([day, counts]) => ({ day, ...totalOf(counts) })),
+      models: heaviest(
+        [...models].map(([key, counts]) => {
+          const [kind, ...model] = key.split(' ');
+          return { model: model.join(' '), subagent: kind === 'subagent', ...totalOf(counts) };
+        }),
+      ),
+      folders: heaviest([...folders].map(([cwd, counts]) => ({ cwd, ...totalOf(counts) }))),
+      chats: heaviest(
+        [...chats].map(([id, counts]) => {
+          const chat = about.get(id)!;
+          return {
+            id,
+            agent: chat.agent,
+            title: chat.title,
+            ...(chat.cwd ? { cwd: chat.cwd } : {}),
+            ...totalOf(counts),
+          };
+        }),
+      ).slice(0, MAX_CHATS),
+    };
   }
 
   /** The chats with a passage that has every word looked for, best first, each with that passage. */
@@ -140,6 +268,31 @@ export class SearchIndex {
       throw error;
     }
   }
+}
+
+function add<K>(groups: Map<K, TokenCounts[]>, key: K, counts: TokenCounts): void {
+  const group = groups.get(key);
+  if (group) group.push(counts);
+  else groups.set(key, [counts]);
+}
+
+/** Totals, the heaviest first. */
+function heaviest<T extends TokenTotal>(totals: T[]): T[] {
+  return totals.sort((a, b) => b.weight - a.weight);
+}
+
+/** Token counts added up and weighed; only the counts are kept, whatever else they came with. */
+function totalOf(counts: readonly TokenCounts[]): TokenTotal {
+  const { input, cacheWritten, cacheWrittenLong, cacheRead, output } = addTokens(counts);
+  const total = { input, cacheWritten, cacheWrittenLong, cacheRead, output };
+  return { ...total, weight: weighTokens(total) };
+}
+
+/** The local day a time falls on, as YYYY-MM-DD. */
+function dayOf(at: number): string {
+  const date = new Date(at);
+  const two = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${two(date.getMonth() + 1)}-${two(date.getDate())}`;
 }
 
 /**

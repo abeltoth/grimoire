@@ -92,3 +92,74 @@ b {
   color: var(--gr-ink);
   text-align: right;
 }
+
+h3 {
+  margin: var(--gr-ledger-head-gap) 0 0;
+  font-family: var(--gr-font-display);
+  font-weight: 400;
+  font-size: var(--gr-size-git-head);
+  color: var(--gr-ink);
+}
+
+h4 {
+  margin: var(--gr-ledger-head-gap) 0 var(--gr-aside-gap);
+  font-weight: 500;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+/* The spans to show where the tokens went over, the shown one underlined. */
+.spans {
+  display: inline-flex;
+  gap: var(--gr-ledger-spans-gap);
+}
+
+.spans button {
+  padding: var(--gr-colophon-word-pad);
+  border-bottom: var(--gr-colophon-word-rule-off);
+  font-style: italic;
+  color: var(--gr-ink-soft);
+}
+
+.spans button:hover {
+  color: var(--gr-ink);
+}
+
+.spans button[aria-checked='true'] {
+  color: var(--gr-ink);
+  border-bottom: var(--gr-colophon-word-rule);
+}
+
+/* A chat that weighed much opens from its title. */
+button.name {
+  text-align: left;
+}
+
+/* Claude Code's advice, and the totals, each with an aside under it. */
+.advice {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-aside-gap);
+  max-width: var(--gr-ledger-width);
+}
+
+.advice li,
+.total {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.total {
+  margin: var(--gr-aside-gap) 0 0;
+  max-width: var(--gr-ledger-width);
+}
+
+.detail {
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}

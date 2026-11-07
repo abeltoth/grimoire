@@ -243,4 +243,95 @@ describe('ClaudeTranscript', () => {
     });
     expect(transcript.entries).toEqual([]);
   });
+
+  describe('tokens', () => {
+    const usage = (input: number, written: number, long: number, read: number, output: number) => ({
+      input_tokens: input,
+      cache_creation_input_tokens: written,
+      cache_creation: { ephemeral_1h_input_tokens: long, ephemeral_5m_input_tokens: written - long },
+      cache_read_input_tokens: read,
+      output_tokens: output,
+    });
+    const reply = (id: string, model: string, used: object, parent: string | null = null): ClaudeMessage => ({
+      type: 'assistant',
+      parent_tool_use_id: parent,
+      message: { id, model, role: 'assistant', content: [{ type: 'text', text: 'ok' }], usage: used },
+    });
+    const you = (uuid: string, text: string): ClaudeMessage => ({
+      type: 'user',
+      uuid,
+      parent_tool_use_id: null,
+      message: { role: 'user', content: text },
+    });
+
+    it('counts each saved turn by model, once per reply, its subagents apart', () => {
+      const transcript = new ClaudeTranscript(false);
+      const messages: [ClaudeMessage, number][] = [
+        [you('u1', 'Fix it'), 1_000],
+        // Claude Code repeats a reply's usage on each of its blocks.
+        [reply('msg_1', 'claude-opus-5-5', usage(2, 100, 100, 0, 10)), 2_000],
+        [reply('msg_1', 'claude-opus-5-5', usage(2, 100, 100, 0, 10)), 2_000],
+        [reply('msg_2', 'claude-opus-5-5', usage(3, 20, 20, 100, 30)), 3_000],
+        // Its own notes cost nothing.
+        [reply('msg_3', '<synthetic>', usage(0, 0, 0, 0, 0)), 3_500],
+        [you('u2', 'Thanks'), 10_000],
+        [reply('msg_4', 'claude-opus-5-5', usage(1, 0, 0, 120, 5)), 11_000],
+      ];
+      for (const [message, at] of messages) transcript.apply(message, at);
+      // A subagent's run, saved apart, counts toward the turn it ran in.
+      transcript.applySubagent(reply('msg_s1', 'claude-sonnet-5-5', usage(4, 50, 0, 0, 40)), 2_500);
+      transcript.applySubagent(reply('msg_s2', 'claude-sonnet-5-5', usage(1, 0, 0, 50, 2)), 2_600);
+
+      const yours = transcript.entries.filter((entry) => entry.kind === 'user');
+      expect(yours.map((entry) => entry.tokens)).toEqual([
+        {
+          at: 1_000,
+          uses: [
+            { model: 'claude-opus-5-5', input: 5, cacheWritten: 0, cacheWrittenLong: 120, cacheRead: 100, output: 40 },
+            {
+              model: 'claude-sonnet-5-5',
+              subagent: true,
+              input: 5,
+              cacheWritten: 50,
+              cacheWrittenLong: 0,
+              cacheRead: 50,
+              output: 42,
+            },
+          ],
+        },
+        {
+          at: 10_000,
+          uses: [{ model: 'claude-opus-5-5', input: 1, cacheWritten: 0, cacheWrittenLong: 0, cacheRead: 120, output: 5 }],
+        },
+      ]);
+    });
+
+    it("reports the live turn's tokens as they grow, its subagents' included, and starts afresh after it", () => {
+      const reported: object[][] = [];
+      const transcript = new ClaudeTranscript(true, {
+        entry: () => {},
+        text: () => {},
+        status: () => {},
+        plan: () => {},
+        tokens: (uses) => reported.push(uses),
+      });
+      transcript.apply(reply('msg_1', 'claude-opus-5-5', usage(2, 10, 10, 0, 5)));
+      transcript.apply(reply('msg_1', 'claude-opus-5-5', usage(2, 10, 10, 0, 5)));
+      transcript.apply(reply('msg_s1', 'claude-haiku-4-5', usage(3, 0, 0, 0, 1), 'toolu_1'));
+      transcript.apply({ type: 'result' });
+      transcript.apply(reply('msg_2', 'claude-opus-5-5', usage(1, 0, 0, 10, 2)));
+
+      // The repeated block isn't reported again.
+      expect(reported).toEqual([
+        [{ model: 'claude-opus-5-5', input: 2, cacheWritten: 0, cacheWrittenLong: 10, cacheRead: 0, output: 5 }],
+        [
+          { model: 'claude-opus-5-5', input: 2, cacheWritten: 0, cacheWrittenLong: 10, cacheRead: 0, output: 5 },
+          { model: 'claude-haiku-4-5', subagent: true, input: 3, cacheWritten: 0, cacheWrittenLong: 0, cacheRead: 0, output: 1 },
+        ],
+        [{ model: 'claude-opus-5-5', input: 1, cacheWritten: 0, cacheWrittenLong: 0, cacheRead: 10, output: 2 }],
+      ]);
+      // Still left out of the chat's own entries.
+      expect(transcript.entries.map((entry) => entry.id)).toEqual(['msg_1', 'msg_2']);
+    });
+  });
 });

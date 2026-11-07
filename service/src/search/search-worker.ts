@@ -1,5 +1,5 @@
 import { fork } from 'node:child_process';
-import type { SearchHit } from '@grimoire/contract';
+import type { SearchHit, TokenTotals } from '@grimoire/contract';
 import type { WorkerReply, WorkerRequest } from './protocol';
 
 /** The search worker's process, as the service talks to it. */
@@ -20,7 +20,7 @@ export class SearchWorker {
   private nextId = 1;
   private readonly waiting = new Map<
     number,
-    { resolve(hits: SearchHit[]): void; reject(error: Error): void }
+    { resolve(answer: SearchHit[] | TokenTotals): void; reject(error: Error): void }
   >();
 
   constructor(
@@ -34,12 +34,12 @@ export class SearchWorker {
   }
 
   search(query: string): Promise<SearchHit[]> {
-    const worker = this.ensure();
-    const id = this.nextId++;
-    return new Promise((resolve, reject) => {
-      this.waiting.set(id, { resolve, reject });
-      worker.send({ kind: 'search', id, query });
-    });
+    return this.ask((id) => ({ kind: 'search', id, query })) as Promise<SearchHit[]>;
+  }
+
+  /** Where the tokens went in the turns begun since a time. */
+  tokens(since: number): Promise<TokenTotals> {
+    return this.ask((id) => ({ kind: 'tokens', id, since })) as Promise<TokenTotals>;
   }
 
   /** A chat may have changed: the next search reads the chats again first. */
@@ -54,6 +54,15 @@ export class SearchWorker {
     this.failAll('The search was stopped');
   }
 
+  private ask(request: (id: number) => WorkerRequest): Promise<SearchHit[] | TokenTotals> {
+    const worker = this.ensure();
+    const id = this.nextId++;
+    return new Promise((resolve, reject) => {
+      this.waiting.set(id, { resolve, reject });
+      worker.send(request(id));
+    });
+  }
+
   private ensure(): WorkerProcess {
     if (this.worker) return this.worker;
     const worker = this.start();
@@ -63,7 +72,7 @@ export class SearchWorker {
       const waiting = this.waiting.get(reply.id);
       this.waiting.delete(reply.id);
       if ('error' in reply) waiting?.reject(new Error(reply.error));
-      else waiting?.resolve(reply.hits);
+      else waiting?.resolve('hits' in reply ? reply.hits : reply.totals);
     });
     worker.onExit(() => {
       if (this.worker !== worker) return;

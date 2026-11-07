@@ -32,6 +32,7 @@ import type {
   QueuedEntry,
   RecentFolders,
   SettingsChange,
+  UsageBreakdown,
 } from '@grimoire/contract';
 import type { DatabaseSync } from 'node:sqlite';
 import { Chapters } from '../storage/chapters';
@@ -242,6 +243,12 @@ export class AgentHub {
     const usage = await adapter.usage();
     this.store.usage.record(agent, usage);
     return usage;
+  }
+
+  /** What the agent's own scan says took the plan's usage; null when it can't say. */
+  async usageBreakdown(agent: AgentId): Promise<UsageBreakdown | null> {
+    const adapter = this.adapter(agent);
+    return adapter.usageBreakdown ? adapter.usageBreakdown() : null;
   }
 
   /**
@@ -679,6 +686,11 @@ export class AgentHub {
         if (!current()) return;
         chat.plan = plan;
         this.emit('agents.plan', { chatId: chat.id, plan });
+      },
+      tokens: (uses) => {
+        const began = chat.entries.findLast((entry) => entry.kind === 'user');
+        if (!current() || began?.kind !== 'user') return;
+        this.upsert(chat, { ...began, tokens: { at: began.at ?? Date.now(), uses } });
       },
       title: (title) => {
         if (!current() || title === chat.title) return;

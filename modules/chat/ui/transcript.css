@@ -69,6 +69,7 @@
 
 .time,
 .took,
+.spent,
 .elapsed {
   font-family: var(--gr-font-text);
   font-style: italic;
@@ -86,6 +87,15 @@
 
 .took gr-icon {
   color: var(--gr-gilt-ink);
+}
+
+/* What the turn spent; one of the chapter's costliest in rubric. */
+.spent {
+  font-variant-numeric: tabular-nums;
+}
+
+.spent.costly {
+  color: var(--gr-rubric);
 }
 
 .elapsed {

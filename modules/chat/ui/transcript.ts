@@ -25,7 +25,8 @@ import { Output } from '@ui/design-system/output';
 import { QuestionsForm } from './questions-form';
 import { SealStub } from './seal-stub';
 import { duration } from './duration';
-import { toRows } from './rows';
+import { type TurnSpent, toRows } from './rows';
+import { tokenCount, usesInWords } from '@ui/app/core/tokens';
 
 /**
  * The chapter's transcript: your entries, the agent's replies, its tools
@@ -102,6 +103,13 @@ export class Transcript {
     return turn ? duration(this.now() - turn.at) : '';
   });
   protected readonly duration = duration;
+  protected readonly tokenCount = tokenCount;
+
+  /** What a turn spent, in words, for its title. */
+  protected spentTitle(tokens: TurnSpent): string {
+    const head = tokens.costly ? 'One of the costliest turns in this chapter: ' : 'This turn: ';
+    return `${head}${tokenCount(tokens.weight)} tokens, weighed as the API prices them\n${usesInWords(tokens.uses)}`;
+  }
   /** The thinking you're reading and the notes you folded out. */
   private readonly open = signal<ReadonlySet<string>>(new Set());
   /** The entry being undone, until the agent is done. */

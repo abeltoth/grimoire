@@ -35,6 +35,11 @@
                 <gr-icon name="hourglass" />{{ elapsed() }}
               </span>
             }
+            @if (row.tokens; as tokens) {
+              <span class="spent" [class.costly]="tokens.costly" [attr.title]="spentTitle(tokens)"
+                >{{ tokenCount(tokens.weight) }} tokens</span
+              >
+            }
             <span class="spacer"></span>
             @if (row.undoable) {
               <button

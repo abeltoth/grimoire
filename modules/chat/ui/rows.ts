@@ -1,4 +1,5 @@
-import type { Enclosure, Entry, ToolBlock } from '@grimoire/contract';
+import type { Enclosure, Entry, TokenUse, ToolBlock } from '@grimoire/contract';
+import { weightOf } from '@ui/app/core/tokens';
 import { type DiffLine, type FileChange, fileChange } from './diff';
 
 /** What a margin note folds out: a file's corrections or what a tool printed. */
@@ -73,6 +74,8 @@ export type Row =
       at?: number;
       /** How long the turn it began took, once it ended. */
       took?: number;
+      /** What the turn it began spent, so far while it runs. */
+      tokens?: TurnSpent;
       withdrawn: boolean;
       /** Undo would restore something: this turn or a later one changed files, not yet undone. */
       undoable: boolean;
@@ -80,6 +83,16 @@ export type Row =
   | { kind: 'thinking'; key: string; text: string }
   | ({ kind: 'reply'; key: string; text: string; byline: boolean; at?: number } & Margin)
   | ({ kind: 'notes'; key: string } & Margin);
+
+/** What a turn spent: by model, and weighed; `costly` for one of the chapter's costliest. */
+export interface TurnSpent {
+  uses: readonly TokenUse[];
+  weight: number;
+  costly: boolean;
+}
+
+/** How many of a chapter's turns are marked its costliest, once it has more than that. */
+const COSTLIEST = 3;
 
 const MARKS = ['*', '†', '‡', '§', '‖', '¶'];
 
@@ -130,6 +143,15 @@ export function toRows(
         enclosures: entry.enclosures ?? [],
         ...(entry.at ? { at: entry.at } : {}),
         ...(entry.took !== undefined ? { took: entry.took } : {}),
+        ...(entry.tokens?.uses.length
+          ? {
+              tokens: {
+                uses: entry.tokens.uses,
+                weight: weightOf(entry.tokens.uses),
+                costly: false,
+              },
+            }
+          : {}),
         withdrawn: withdrawn.has(entry.id),
         undoable: false,
       });
@@ -168,7 +190,16 @@ export function toRows(
   }
   flushNotes();
   markUndoable(rows, copied);
+  markCostliest(rows);
   return rows;
+}
+
+/** Marks the turns that weighed most, once there are more turns than that to tell them from. */
+function markCostliest(rows: Row[]): void {
+  const spent = rows.flatMap((row) => (row.kind === 'you' && row.tokens ? [row.tokens] : []));
+  if (spent.length <= COSTLIEST) return;
+  for (const tokens of [...spent].sort((a, b) => b.weight - a.weight).slice(0, COSTLIEST))
+    tokens.costly = true;
 }
 
 function margin(notes: Note[]): Margin {

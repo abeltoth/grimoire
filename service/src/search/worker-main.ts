@@ -20,10 +20,11 @@ const reply = (message: WorkerReply) => process.send?.(message);
 const index = new SearchIndex(values.index);
 const indexer = new Indexer(index, [new ClaudeAdapter()], (log) => reply({ log }));
 
-async function search(id: number, query: string): Promise<void> {
+/** Answers once the chats are read again, where they may have changed. */
+async function answer(id: number, read: () => WorkerReply): Promise<void> {
   try {
     await indexer.syncIfStale(FRESH_MS);
-    reply({ id, hits: index.search(query) });
+    reply(read());
   } catch (error) {
     reply({ id, error: error instanceof Error ? error.message : String(error) });
   }
@@ -31,7 +32,9 @@ async function search(id: number, query: string): Promise<void> {
 
 process.on('message', (request: WorkerRequest) => {
   if (request.kind === 'stale') indexer.markStale();
-  else void search(request.id, request.query);
+  else if (request.kind === 'tokens')
+    void answer(request.id, () => ({ id: request.id, totals: index.tokens(request.since) }));
+  else void answer(request.id, () => ({ id: request.id, hits: index.search(request.query) }));
 });
 process.on('disconnect', () => {
   index.close();

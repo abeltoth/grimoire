@@ -1,5 +1,11 @@
 import type { SDKControlGetUsageResponse } from '@anthropic-ai/claude-agent-sdk';
-import type { PlanUsage, UsageCredits, UsageWindow } from '@grimoire/contract';
+import type {
+  PlanUsage,
+  UsageBreakdown,
+  UsageCredits,
+  UsageSpan,
+  UsageWindow,
+} from '@grimoire/contract';
 
 type Limit = { utilization: number | null; resets_at: string | null } | null | undefined;
 
@@ -48,4 +54,43 @@ export function toPlanUsage(usage: SDKControlGetUsageResponse, at: number): Plan
   }
   const credits = toCredits(limits?.extra_usage, at);
   return { plan: usage.subscription_type, windows, ...(credits ? { credits } : {}), at };
+}
+
+type Span = NonNullable<SDKControlGetUsageResponse['behaviors']>['day'];
+
+/**
+ * What Claude Code's own scan of its transcripts on this machine says took
+ * a share of the plan's usage, as /usage shows it; null when it has none.
+ */
+export function toUsageBreakdown(
+  usage: SDKControlGetUsageResponse,
+  at: number,
+): UsageBreakdown | null {
+  const scan = usage.behaviors;
+  return scan ? { day: toSpan(scan.day), week: toSpan(scan.week), at } : null;
+}
+
+function toSpan(span: Span): UsageSpan {
+  const of = (kind: UsageSpan['sources'][number]['kind'], items: { name: string; pct: number }[]) =>
+    items.map(({ name, pct }) => ({ kind, name, share: pct }));
+  const sources = [
+    ...of('agent', span.agents),
+    ...of('skill', span.skills),
+    ...of('plugin', span.plugins),
+    ...of('mcp', span.mcp_servers),
+  ];
+  return {
+    requests: span.request_count,
+    chats: span.session_count,
+    behaviours: span.behaviors
+      .map(({ key, pct, count }) => ({ key, share: pct, requests: count }))
+      .sort((a, b) => b.share - a.share),
+    advice: (span.recommendations ?? []).map(({ key, pct, title, detail }) => ({
+      key,
+      share: pct,
+      title,
+      ...(detail ? { detail } : {}),
+    })),
+    sources: sources.sort((a, b) => b.share - a.share),
+  };
 }

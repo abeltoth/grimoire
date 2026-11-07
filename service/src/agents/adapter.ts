@@ -18,6 +18,8 @@ import type {
   PlanStep,
   PlanUsage,
   SettingsChange,
+  TokenUse,
+  UsageBreakdown,
 } from '@grimoire/contract';
 
 /** A chat as the agent lists it; its dog-ears and tags are Grimoire's (ADR-009). */
@@ -45,6 +47,11 @@ export interface AgentAdapter {
   commands?(cwd: string): Promise<AgentCommand[]>;
   /** The subscription's limits and how much of them is used. Agents without a plan leave it out. */
   usage?(): Promise<PlanUsage>;
+  /**
+   * What the agent's own scan says took the plan's usage; null when it has
+   * none. Agents that can't say leave it out.
+   */
+  usageBreakdown?(): Promise<UsageBreakdown | null>;
   /** What the agent loads in a folder, and where each piece comes from. Agents that can't say leave it out. */
   setup?(cwd: string): Promise<AgentSetup>;
   /** The memories the agent keeps on its own for a folder. Agents that keep none leave it out. */
@@ -124,6 +131,8 @@ export interface ChatEvents {
   cache(cache: PromptCache): void;
   /** The agent changed its plan. */
   plan(plan: PlanStep[]): void;
+  /** What the running turn has spent so far, by model, its subagents' included. */
+  tokens(uses: TokenUse[]): void;
   turnEnded(error?: string): void;
   /** The agent process ended, on close() or by itself. */
   closed(error?: string): void;

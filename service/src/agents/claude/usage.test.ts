@@ -1,6 +1,6 @@
 import type { SDKControlGetUsageResponse } from '@anthropic-ai/claude-agent-sdk';
 import { describe, expect, it } from 'vitest';
-import { toPlanUsage } from './usage';
+import { toPlanUsage, toUsageBreakdown } from './usage';
 
 const response = (rateLimits: SDKControlGetUsageResponse['rate_limits']) =>
   ({
@@ -79,5 +79,52 @@ describe('toPlanUsage', () => {
     });
     const off = { is_enabled: false, monthly_limit: 5000, used_credits: 0, utilization: 0 };
     expect(toPlanUsage(response({ extra_usage: off }), at).credits).toBeUndefined();
+  });
+});
+
+describe('toUsageBreakdown', () => {
+  const span = (requests: number) => ({
+    request_count: requests,
+    session_count: 3,
+    behaviors: [
+      { key: 'long_context', pct: 80, count: 40 },
+      { key: 'cron', pct: 82, count: 30 },
+    ],
+    recommendations: [
+      { key: 'cron', pct: 82, title: 'Stop sessions you no longer need' },
+      { key: 'long_context', pct: 80, title: 'Start fresh when you switch tasks', detail: 'Run /clear.' },
+    ],
+    fix: { keys: ['cron'], messages: ['/effort low'] },
+    agents: [{ name: 'Explore', pct: 5 }],
+    skills: [],
+    plugins: [],
+    mcp_servers: [{ name: 'docs', pct: 9 }],
+  });
+
+  it('reads what Claude Code says took the usage, the largest share first', () => {
+    const usage = { ...response(null), behaviors: { day: span(10), week: span(70) } };
+    const breakdown = toUsageBreakdown(usage as unknown as SDKControlGetUsageResponse, at);
+    expect(breakdown?.at).toBe(at);
+    expect(breakdown?.week.requests).toBe(70);
+    expect(breakdown?.day).toEqual({
+      requests: 10,
+      chats: 3,
+      behaviours: [
+        { key: 'cron', share: 82, requests: 30 },
+        { key: 'long_context', share: 80, requests: 40 },
+      ],
+      advice: [
+        { key: 'cron', share: 82, title: 'Stop sessions you no longer need' },
+        { key: 'long_context', share: 80, title: 'Start fresh when you switch tasks', detail: 'Run /clear.' },
+      ],
+      sources: [
+        { kind: 'mcp', name: 'docs', share: 9 },
+        { kind: 'agent', name: 'Explore', share: 5 },
+      ],
+    });
+  });
+
+  it('has none when the scan has none', () => {
+    expect(toUsageBreakdown(response(null), at)).toBeNull();
   });
 });

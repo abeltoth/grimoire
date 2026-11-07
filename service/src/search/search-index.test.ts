@@ -72,6 +72,58 @@ describe('SearchIndex', () => {
     expect([...index.indexed().values()]).toEqual([{ id: 'c1', agent: 'a', updatedAt: 2 }]);
   });
 
+  it('adds up the tokens of the turns begun since a time, by day, model, folder and chat', () => {
+    const counts = (input: number, output: number) => ({
+      input,
+      cacheWritten: 0,
+      cacheWrittenLong: 0,
+      cacheRead: 0,
+      output,
+    });
+    const day = (d: number, hour = 12) => new Date(2026, 10, d, hour).getTime();
+    index.put(
+      { id: 'c1', agent: 'a', updatedAt: 1, title: 'Ribbon', cwd: '/work/grimoire' },
+      [],
+      [
+        { at: day(5), model: 'claude-opus-5-5', ...counts(100, 10) },
+        { at: day(5), model: 'claude-sonnet-5-5', subagent: true, ...counts(50, 0) },
+        { at: day(6, 9), model: 'claude-opus-5-5', ...counts(10, 2) },
+        // Before the span.
+        { at: day(1), model: 'claude-opus-5-5', ...counts(9_999, 0) },
+      ],
+    );
+    index.put(
+      { id: 'c2', agent: 'a', updatedAt: 2, title: 'Notes' },
+      [],
+      [{ at: day(6, 23), model: 'claude-haiku-4-5', ...counts(1_000, 100) }],
+    );
+
+    const totals = index.tokens(day(4));
+    expect(totals.total).toEqual({ ...counts(1_160, 112), weight: 1_160 + 112 * 5 });
+    expect(totals.days.map(({ day, weight }) => [day, weight])).toEqual([
+      ['2026-11-05', 200],
+      ['2026-11-06', 1_520],
+    ]);
+    expect(totals.models.map(({ model, subagent, weight }) => [model, subagent, weight])).toEqual([
+      ['claude-haiku-4-5', false, 1_500],
+      ['claude-opus-5-5', false, 170],
+      ['claude-sonnet-5-5', true, 50],
+    ]);
+    // A chat with no folder counts in the totals, not the folders.
+    expect(totals.folders.map(({ cwd, weight }) => [cwd, weight])).toEqual([
+      ['/work/grimoire', 220],
+    ]);
+    expect(totals.chats.map(({ id, title, cwd, weight }) => [id, title, cwd, weight])).toEqual([
+      ['c2', 'Notes', undefined, 1_500],
+      ['c1', 'Ribbon', '/work/grimoire', 220],
+    ]);
+
+    // Indexed again, a chat's turns replace the ones it had; removed, they're gone.
+    index.put({ id: 'c1', agent: 'a', updatedAt: 3 }, [], []);
+    index.remove('c2');
+    expect(index.tokens(day(4)).total.weight).toBe(0);
+  });
+
   it('keeps its index in a file across runs', () => {
     const dir = mkdtempSync(path.join(tmpdir(), 'grimoire-search-'));
     const file = path.join(dir, 'search.db');
