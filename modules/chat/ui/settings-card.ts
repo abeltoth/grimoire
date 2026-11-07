@@ -69,11 +69,19 @@ export class SettingsCard {
   });
   protected readonly agentName = computed(() => this.chats.agentName(this.chapter().agent));
   protected readonly models = computed(() => this.chats.models()[this.chapter().agent]);
-  protected readonly selectedModel = computed(
-    () => this.chapter().settings.model ?? this.models()?.default,
+  /** On Auto, before the first entry: the model and effort are still to be picked. */
+  protected readonly auto = computed(() => !this.begun() && !!this.chapter().settings.autoModel);
+  /** On Auto, once begun: the model was picked for the first entry. */
+  protected readonly autoPicked = computed(
+    () => this.begun() && !!this.chapter().settings.autoModel,
+  );
+  protected readonly selectedModel = computed(() =>
+    this.auto() ? undefined : (this.chapter().settings.model ?? this.models()?.default),
   );
   protected readonly modelName = computed(() =>
-    this.chats.modelName(this.chapter().agent, this.chapter().settings.model),
+    this.auto()
+      ? 'Auto'
+      : this.chats.modelName(this.chapter().agent, this.chapter().settings.model),
   );
   /** The levels the chapter's model takes, and the one it runs at. */
   protected readonly effort = computed(() => {

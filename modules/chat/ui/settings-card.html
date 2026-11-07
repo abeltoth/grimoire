@@ -46,6 +46,19 @@
     <h3>
       Model <i>for {{ agentName() }}</i>
     </h3>
+    @if (!begun()) {
+      <button
+        type="button"
+        class="choice"
+        role="radio"
+        [attr.aria-checked]="auto()"
+        title="Haiku reads your first entry and picks the model and effort for it"
+        (click)="pick({ autoModel: true })"
+      >
+        <gr-icon name="check" />
+        <span>Auto</span>
+      </button>
+    }
     @for (model of models()?.models ?? []; track model.id) {
       <button
         type="button"
@@ -61,6 +74,9 @@
     } @empty {
       <p class="none">{{ agentName() }} hasn't listed its models</p>
     }
+    @if (autoPicked()) {
+      <p class="none">Auto picked {{ modelName() }} for your first entry</p>
+    }
   </div>
 
   <div
@@ -73,20 +89,24 @@
     <h3>
       Effort <i>for {{ modelName() }}</i>
     </h3>
-    @for (e of effort().efforts; track e.level) {
-      <button
-        type="button"
-        class="choice"
-        role="radio"
-        [attr.aria-checked]="e.level === effort().level"
-        [attr.title]="e.detail"
-        (click)="pick({ effort: e.level })"
-      >
-        <gr-icon name="check" />
-        <span>{{ e.label }}</span>
-      </button>
-    } @empty {
-      <p class="none">{{ modelName() }} has no effort levels</p>
+    @if (auto()) {
+      <p class="none">Auto picks the effort too</p>
+    } @else {
+      @for (e of effort().efforts; track e.level) {
+        <button
+          type="button"
+          class="choice"
+          role="radio"
+          [attr.aria-checked]="e.level === effort().level"
+          [attr.title]="e.detail"
+          (click)="pick({ effort: e.level })"
+        >
+          <gr-icon name="check" />
+          <span>{{ e.label }}</span>
+        </button>
+      } @empty {
+        <p class="none">{{ modelName() }} has no effort levels</p>
+      }
     }
   </div>
 

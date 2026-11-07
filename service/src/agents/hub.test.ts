@@ -148,6 +148,27 @@ describe('AgentHub', () => {
     expect(events()).toEqual(['agents.entry', 'agents.status']);
   });
 
+  it('starts a chat on Auto on the model and effort picked for its first entry', async () => {
+    fake.picks.set('Fix the ribbon', { model: 'small', effort: 'low' });
+    const chat = await hub.start('fake', { ...settings, autoModel: true, model: 'big', effort: 'max' }, 'Fix the ribbon');
+    expect(chat.settings).toEqual({ cwd: '/work', autoModel: true, model: 'small', effort: 'low' });
+    expect(fake.runOf(chat.id).settings).toMatchObject({ model: 'small', effort: 'low' });
+
+    // When nothing is picked, it runs on the agent's defaults.
+    const unpicked = await hub.start('fake', { ...settings, autoModel: true, model: 'small' }, 'Hello');
+    expect(unpicked.settings).toEqual({ cwd: '/work', autoModel: true });
+
+    // Picking another model ends Auto; another effort doesn't.
+    await hub.configure(chat.id, { effort: 'medium' });
+    expect((await hub.open('fake', chat.id, settings)).settings).toMatchObject({ autoModel: true, effort: 'medium' });
+    await hub.configure(chat.id, { model: 'big' });
+    expect((await hub.open('fake', chat.id, settings)).settings).toEqual({
+      cwd: '/work',
+      model: 'big',
+      effort: 'medium',
+    });
+  });
+
   it('batches streamed text, and keeps it in the transcript', async () => {
     const { id } = await hub.start('fake', settings, 'Hello');
     const { events: agent } = fake.runOf(id);

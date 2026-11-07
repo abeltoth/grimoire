@@ -44,6 +44,12 @@ export interface ChatSettings {
   model?: string;
   /** The model's effort; what your agent's own settings give when left out. */
   effort?: EffortLevel;
+  /**
+   * Auto: the agent picks the model and effort for the chat's first entry,
+   * whatever is set here. Once the chat has begun, `model` and `effort` say
+   * what it picked; picking another model ends Auto.
+   */
+  autoModel?: boolean;
   mode?: ApprovalMode;
   /**
    * Works in a worktree of its own, on a branch of its own, so chats on one

@@ -675,6 +675,67 @@ describe('App', () => {
     });
   });
 
+  it('begins a chapter on Auto, then shows the model Auto picked', async () => {
+    const { bridge, calls, answers } = fakeBridge();
+    answers['agents.start'] = (request: CommandRequest<'agents.start'>): OpenChat => ({
+      id: 'chat-1',
+      agent: request.agent,
+      title: '',
+      settings: { ...request.settings, cwd: 'C:/work/grimoire', model: 'sonnet', effort: 'medium' },
+      status: 'thinking',
+      entries: [{ kind: 'user', id: 'u1', text: request.text }],
+      approvals: [],
+      queued: [],
+      plan: [],
+      withdrawn: [],
+      dogEars: [],
+      tags: [],
+      copied: [],
+    });
+    const { fixture, el, texts } = await render(bridge);
+    const model = () => el.querySelector<HTMLButtonElement>('.meta [data-setting="model"]')!;
+    model().click();
+    await fixture.whenStable();
+    expect(texts('gr-settings-card [data-setting="model"] .choice')).toEqual([
+      'Auto',
+      'Opus 5.5',
+      'Sonnet 5.5',
+      'Haiku 5.5',
+    ]);
+
+    pick(el, 'Auto');
+    await fixture.whenStable();
+    expect(texts('gr-settings-card [data-setting="model"] [aria-checked="true"]')).toEqual(['Auto']);
+    expect(texts('gr-settings-card [data-setting="effort"] .none')).toEqual(['Auto picks the effort too']);
+    // Auto picks the effort with the model, so the head shows no effort yet.
+    expect(texts('.meta button')).toEqual(['Claude Code', 'Auto', 'Ask first', '~', 'No preset']);
+    expect(calls.filter((c) => c.command === 'layout.set').at(-1)?.request).toMatchObject({
+      lastUsed: { agent: 'claude-code', settings: { autoModel: true } },
+    });
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await fixture.whenStable();
+    await write(fixture, el, 'Rename the ribbon');
+    const started = calls.find((c) => c.command === 'agents.start')!.request as CommandRequest<'agents.start'>;
+    expect(started.settings).toMatchObject({ autoModel: true });
+    expect(started.settings.model).toBeUndefined();
+    expect(texts('.meta button').slice(1, 3)).toEqual(['Auto: Sonnet 5.5', 'Medium effort']);
+
+    // Once begun, Auto can't be picked again; another model ends it.
+    model().click();
+    await fixture.whenStable();
+    expect(texts('gr-settings-card [data-setting="model"] .choice')).toEqual(['Opus 5.5', 'Sonnet 5.5', 'Haiku 5.5']);
+    expect(texts('gr-settings-card [data-setting="model"] .none')).toEqual([
+      'Auto picked Sonnet 5.5 for your first entry',
+    ]);
+    pick(el, 'Opus 5.5');
+    await fixture.whenStable();
+    expect(calls.find((c) => c.command === 'agents.configure')?.request).toEqual({
+      chatId: 'chat-1',
+      change: { model: 'opus' },
+    });
+  });
+
   it('begins a chapter in a worktree of its own when asked', async () => {
     const { bridge, calls, answers } = fakeBridge();
     answers['agents.start'] = (request: CommandRequest<'agents.start'>): OpenChat => ({

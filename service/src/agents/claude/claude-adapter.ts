@@ -34,7 +34,8 @@ import { toAgentModels } from './models';
 import { ASK_TOOL, alwaysAllowOf, toClaudeAnswers, toQuestions } from './permissions';
 import { withReferences } from './references';
 import { commandFiles, readSettingsFile, settingsFilesIn, toSetup } from './setup';
-import { type AgentToolInput, type PickerSources, RATER_PROMPT, pickFor } from './subagents';
+import { type AgentToolInput, type PickerSources, RATER_PROMPT, pickFor, readRating } from './subagents';
+import { AUTO_PROMPT, autoPick, entryForRater } from './auto-model';
 import { ClaudeTranscript, turnEnd } from './transcript';
 import { toPlanUsage, toUsageBreakdown } from './usage';
 
@@ -168,6 +169,17 @@ export class ClaudeAdapter implements AgentAdapter {
       throw error;
     });
     return this.modelList.then((all) => toAgentModels(all, readUserSettings()));
+  }
+
+  /**
+   * Auto: Haiku reads a new chat's first entry and says which model and
+   * effort will do it well; undefined when it can't say in time, or names
+   * a model Claude Code doesn't offer.
+   */
+  async pickModel(text: string): Promise<Pick<ChatSettings, 'model' | 'effort'> | undefined> {
+    const answer = await rate(AUTO_PROMPT, entryForRater(text), AbortSignal.timeout(PICK_TIMEOUT_S * 1000));
+    const rating = readRating(answer);
+    return rating && autoPick(rating, await this.models());
   }
 
   /** Claude Code's commands and skills in a folder, kept for a minute. */
@@ -371,7 +383,7 @@ export class ClaudeAdapter implements AgentAdapter {
       settings: () => current,
       models: () => this.models(),
       definitions: () => (definitions ??= started.then((live) => live.supportedAgents())),
-      rate: rateTask,
+      rate: (task, signal) => rate(RATER_PROMPT, task, signal),
       env: { ...process.env, ...userSettingsEnv() },
     });
     const transcript = new ClaudeTranscript(true, events);
@@ -460,18 +472,20 @@ function subagentHooks(sources: () => Promise<PickerSources>): Options['hooks'] 
 }
 
 /**
- * Asks Haiku what a subagent's task needs, on a Claude Code process of its
- * own that loads none of your settings, has no tools and saves nothing.
+ * Asks Haiku, as the prompt says, what a task needs: a subagent's, or a new
+ * chat's first entry. It runs on a Claude Code process of its own that
+ * loads none of your settings, has no tools and saves nothing.
  */
-async function rateTask(task: string, signal: AbortSignal): Promise<string> {
+async function rate(prompt: string, task: string, signal: AbortSignal): Promise<string> {
   const { query } = await sdk();
   const abortController = new AbortController();
+  if (signal.aborted) abortController.abort();
   signal.addEventListener('abort', () => abortController.abort(), { once: true });
   const rater = query({
     prompt: task,
     options: {
       model: 'haiku',
-      systemPrompt: RATER_PROMPT,
+      systemPrompt: prompt,
       tools: [],
       settingSources: [],
       mcpServers: {},
