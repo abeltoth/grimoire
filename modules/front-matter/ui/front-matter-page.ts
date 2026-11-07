@@ -46,6 +46,9 @@ interface Told {
   setup: AgentSetup;
 }
 
+/** What a piece of the setup costs every chat, in tokens, from which it's flagged as heavy. */
+export const HEAVY_TOKENS = 2000;
+
 /** How many other folders are offered, the ones worked in last. */
 const OTHER_FOLDERS = 8;
 
@@ -77,7 +80,8 @@ const SOURCE_NAMES: Record<SetupSource, string> = {
  * The Front matter: everything an agent loads when it works in a folder,
  * the open chapter's until you pick another, and where each piece comes
  * from: memory, skills, subagents, commands, hooks, MCP servers, plugins
- * and permission rules, each with what it costs the context.
+ * and permission rules, each with what it costs the context, the costliest
+ * first and the heavy ones in rubric.
  */
 @Component({
   selector: 'gr-front-matter-page',
@@ -277,6 +281,17 @@ export class FrontMatterPage {
     const folder = await this.bridge.chooseFolder();
     if (folder) this.picked.set(folder);
   }
+
+  /** A section's pieces, the costliest first; those the agent gave no cost for keep their order, last. */
+  protected byCost(items: readonly SetupItem[]): SetupItem[] {
+    return [...items].sort((a, b) => (b.tokens ?? -1) - (a.tokens ?? -1));
+  }
+
+  protected heavy(item: SetupItem): boolean {
+    return (item.tokens ?? 0) >= HEAVY_TOKENS;
+  }
+
+  protected readonly heavyTitle = `Heavy: ${HEAVY_TOKENS.toLocaleString()} tokens or more in every chat`;
 
   protected name(section: SetupSection): string {
     return SECTION_NAMES[section];

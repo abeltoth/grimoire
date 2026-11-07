@@ -137,6 +137,11 @@ li {
   color: var(--gr-rubric);
 }
 
+/* A piece that costs every chat much: its cost in rubric. */
+.heavy .n {
+  color: var(--gr-rubric);
+}
+
 .problem {
   grid-column: 2 / -1;
   font-style: italic;
