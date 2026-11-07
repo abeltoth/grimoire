@@ -26,20 +26,6 @@
             @if (row.at) {
               <span class="time">{{ time(row.at) }}</span>
             }
-            @if (row.took !== undefined) {
-              <span class="took" [attr.title]="'This turn took ' + duration(row.took)">
-                <gr-icon name="hourglass" />{{ duration(row.took) }}
-              </span>
-            } @else if (row.key === turn()?.key) {
-              <span class="took running" title="This turn is running">
-                <gr-icon name="hourglass" />{{ elapsed() }}
-              </span>
-            }
-            @if (row.tokens; as tokens) {
-              <span class="spent" [class.costly]="tokens.costly" [attr.title]="spentTitle(tokens)"
-                >{{ tokenCount(tokens.weight) }} tokens</span
-              >
-            }
             <span class="spacer"></span>
             @if (row.undoable) {
               <button
@@ -112,6 +98,22 @@
         @if (row.notes.length) {
           <ng-container *ngTemplateOutlet="marginTemplate; context: { $implicit: row }" />
         }
+      </div>
+    }
+    @case ('spent') {
+      <div class="row tight">
+        <footer class="spent-line">
+          @if (row.took !== undefined) {
+            <span class="took" [attr.title]="'This turn took ' + duration(row.took)">
+              <gr-icon name="hourglass" />{{ duration(row.took) }}
+            </span>
+          }
+          @if (row.tokens; as tokens) {
+            <span class="spent" [class.costly]="tokens.costly" [attr.title]="spentTitle(tokens)"
+              >{{ tokenCount(tokens.weight) }} tokens</span
+            >
+          }
+        </footer>
       </div>
     }
     @case ('notes') {

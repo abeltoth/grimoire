@@ -72,17 +72,21 @@ export type Row =
       /** Pictures and files sent with it. */
       enclosures: readonly Enclosure[];
       at?: number;
-      /** How long the turn it began took, once it ended. */
-      took?: number;
-      /** What the turn it began spent, so far while it runs. */
-      tokens?: TurnSpent;
       withdrawn: boolean;
       /** Undo would restore something: this turn or a later one changed files, not yet undone. */
       undoable: boolean;
     }
   | { kind: 'thinking'; key: string; text: string }
   | ({ kind: 'reply'; key: string; text: string; byline: boolean; at?: number } & Margin)
-  | ({ kind: 'notes'; key: string } & Margin);
+  | ({ kind: 'notes'; key: string } & Margin)
+  | {
+      kind: 'spent';
+      key: string;
+      /** How long the turn took. */
+      took?: number;
+      /** What the turn spent. */
+      tokens?: TurnSpent;
+    };
 
 /** What a turn spent: by model, and weighed; `costly` for one of the chapter's costliest. */
 export interface TurnSpent {
@@ -126,6 +130,13 @@ export function toRows(
   let marks = 0;
   let bylined = false;
   let undone = false;
+  let spent: Extract<Row, { kind: 'spent' }> | undefined;
+
+  /** Closes the turn: what it took and spent shows once it ended, after its last row. */
+  const flushSpent = () => {
+    if (spent) rows.push(spent);
+    spent = undefined;
+  };
 
   const flushNotes = () => {
     if (pending.length)
@@ -136,22 +147,29 @@ export function toRows(
   for (const entry of entries) {
     if (entry.kind === 'user') {
       flushNotes();
+      flushSpent();
+      if (entry.took !== undefined) {
+        spent = {
+          kind: 'spent',
+          key: `${entry.id}/spent`,
+          took: entry.took,
+          ...(entry.tokens?.uses.length
+            ? {
+                tokens: {
+                  uses: entry.tokens.uses,
+                  weight: weightOf(entry.tokens.uses),
+                  costly: false,
+                },
+              }
+            : {}),
+        };
+      }
       rows.push({
         kind: 'you',
         key: entry.id,
         text: entry.text,
         enclosures: entry.enclosures ?? [],
         ...(entry.at ? { at: entry.at } : {}),
-        ...(entry.took !== undefined ? { took: entry.took } : {}),
-        ...(entry.tokens?.uses.length
-          ? {
-              tokens: {
-                uses: entry.tokens.uses,
-                weight: weightOf(entry.tokens.uses),
-                costly: false,
-              },
-            }
-          : {}),
         withdrawn: withdrawn.has(entry.id),
         undoable: false,
       });
@@ -189,6 +207,7 @@ export function toRows(
     });
   }
   flushNotes();
+  flushSpent();
   markUndoable(rows, copied);
   markCostliest(rows);
   return rows;
@@ -196,7 +215,7 @@ export function toRows(
 
 /** Marks the turns that weighed most, once there are more turns than that to tell them from. */
 function markCostliest(rows: Row[]): void {
-  const spent = rows.flatMap((row) => (row.kind === 'you' && row.tokens ? [row.tokens] : []));
+  const spent = rows.flatMap((row) => (row.kind === 'spent' && row.tokens ? [row.tokens] : []));
   if (spent.length <= COSTLIEST) return;
   for (const tokens of [...spent].sort((a, b) => b.weight - a.weight).slice(0, COSTLIEST))
     tokens.costly = true;
@@ -251,7 +270,7 @@ function markUndoable(rows: Row[], copied: ReadonlySet<string>): void {
     const row = rows[i]!;
     if (row.kind === 'you') {
       rows[i] = { ...row, undoable: changesAfter && !row.withdrawn && !copied.has(row.key) };
-    } else if (row.kind !== 'thinking') {
+    } else if (row.kind === 'reply' || row.kind === 'notes') {
       changesAfter ||= row.notes.some((note) => note.counts && !note.withdrawn);
     }
   }

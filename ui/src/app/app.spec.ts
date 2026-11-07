@@ -243,7 +243,7 @@ describe('App', () => {
     expect(texts('gr-transcript')).toEqual([]);
   });
 
-  it('times the running turn by Stop, and keeps how long each turn took', async () => {
+  it('times the running turn by Stop, and shows how long each turn took once it ended', async () => {
     const { bridge, emit } = fakeBridge();
     const { fixture, el, texts } = await render(bridge);
     await write(fixture, el, 'Fix the flaky login test');
@@ -251,17 +251,17 @@ describe('App', () => {
     emit('agents.entry', { chatId: 'chat-1', entry: { ...user, at: Date.now() - 134_000 } });
     await fixture.whenStable();
     expect(texts('.stop')).toEqual(['Stop Esc 2m 14s']);
-    expect(texts('.you .took')).toEqual(['2m 14s']);
+    expect(texts('.spent-line .took')).toEqual([]);
 
     emit('agents.entry', { chatId: 'chat-1', entry: { ...user, at: Date.now() - 200_000, took: 200_000 } });
     emit('agents.status', { chatId: 'chat-1', status: 'idle' });
     await fixture.whenStable();
     expect(texts('.stop')).toEqual([]);
-    expect(texts('.you .took')).toEqual(['3m 20s']);
-    expect(el.querySelector('.you .took')!.getAttribute('title')).toBe('This turn took 3m 20s');
+    expect(texts('.spent-line .took')).toEqual(['3m 20s']);
+    expect(el.querySelector('.spent-line .took')!.getAttribute('title')).toBe('This turn took 3m 20s');
   });
 
-  it("shows what each turn spent by your entry, the chapter's costliest three in rubric", async () => {
+  it("shows what each turn spent at its end, the chapter's costliest three in rubric", async () => {
     const { bridge, emit } = fakeBridge();
     const { fixture, el, texts } = await render(bridge);
     await write(fixture, el, 'u1');
@@ -279,10 +279,10 @@ describe('App', () => {
     });
     emit('agents.entry', turn('u1', use(500, 100), { ...use(2_000), model: 'claude-haiku-4-5', subagent: true }));
     await fixture.whenStable();
-    expect(texts('.you .spent')).toEqual(['3K tokens']);
+    expect(texts('.spent-line .spent')).toEqual(['3K tokens']);
     // One turn alone isn't marked the costliest.
-    expect(el.querySelector('.you .spent.costly')).toBeNull();
-    expect(el.querySelector('.you .spent')!.getAttribute('title')).toBe(
+    expect(el.querySelector('.spent-line .spent.costly')).toBeNull();
+    expect(el.querySelector('.spent-line .spent')!.getAttribute('title')).toBe(
       'This turn: 3K tokens, weighed as the API prices them\n' +
         'Opus 5.5: 500 fresh input, 100 output\n' +
         'Subagents on Haiku 4.5: 2K fresh input',
@@ -293,9 +293,9 @@ describe('App', () => {
     emit('agents.entry', turn('u4', use(100)));
     emit('agents.entry', turn('u5', use(2_000)));
     await fixture.whenStable();
-    expect(texts('.you .spent')).toEqual(['3K tokens', '500 tokens', '4K tokens', '100 tokens', '2K tokens']);
-    expect(texts('.you .spent.costly')).toEqual(['3K tokens', '4K tokens', '2K tokens']);
-    expect(el.querySelector('.you .spent.costly')!.getAttribute('title')).toMatch(
+    expect(texts('.spent-line .spent')).toEqual(['3K tokens', '500 tokens', '4K tokens', '100 tokens', '2K tokens']);
+    expect(texts('.spent-line .spent.costly')).toEqual(['3K tokens', '4K tokens', '2K tokens']);
+    expect(el.querySelector('.spent-line .spent.costly')!.getAttribute('title')).toMatch(
       /^One of the costliest turns in this chapter: 3K tokens/,
     );
   });
