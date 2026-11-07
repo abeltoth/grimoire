@@ -108,24 +108,50 @@ h4 {
   color: var(--gr-ink-soft);
 }
 
-/* The spans to show where the tokens went over, the shown one underlined. */
-.spans {
+/* The views and the spans to show where the tokens went over, the shown one underlined. */
+.spans,
+.tabs {
   display: inline-flex;
   gap: var(--gr-ledger-spans-gap);
 }
 
-.spans button {
+.tabs {
+  margin-bottom: var(--gr-ledger-head-gap);
+}
+
+.more {
+  margin-top: var(--gr-aside-gap);
+  font-size: var(--gr-size-aside);
+}
+
+/* An explanation kept out of the way until asked for. */
+.how {
+  margin-top: var(--gr-ledger-head-gap);
+  max-width: var(--gr-ledger-width);
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.how summary {
+  cursor: pointer;
+  font-style: italic;
+}
+
+.spans button,
+.tabs button {
   padding: var(--gr-colophon-word-pad);
   border-bottom: var(--gr-colophon-word-rule-off);
   font-style: italic;
   color: var(--gr-ink-soft);
 }
 
-.spans button:hover {
+.spans button:hover,
+.tabs button:hover {
   color: var(--gr-ink);
 }
 
-.spans button[aria-checked='true'] {
+.spans button[aria-checked='true'],
+.tabs button[aria-selected='true'] {
   color: var(--gr-ink);
   border-bottom: var(--gr-colophon-word-rule);
 }

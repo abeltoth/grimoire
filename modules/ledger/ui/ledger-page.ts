@@ -30,7 +30,18 @@ interface Breakdown {
 /** The spans where the tokens went is shown over, as Claude Code's scan reads them. */
 type Span = 'day' | 'week';
 
-const HOUR = 60 * 60_000;
+/** The Ledger's views. */
+type View = 'limits' | 'tokens' | 'tools';
+
+const VIEWS: Record<View, string> = {
+  limits: 'Limits',
+  tokens: 'Where it went',
+  tools: 'Tools & skills',
+};
+
+const SHOWN = 5;
+
+const HOUR =60 * 60_000;
 const SPANS: Record<Span, { label: string; ms: number }> = {
   day: { label: 'Last 24 hours', ms: 24 * HOUR },
   week: { label: 'Last 7 days', ms: 7 * 24 * HOUR },
@@ -92,6 +103,12 @@ export class LedgerPage {
   protected readonly plans = signal<Plan[] | undefined>(undefined);
   protected readonly reading = signal(false);
   protected readonly failed = signal<string | null>(null);
+
+  protected readonly views = Object.entries(VIEWS) as [View, string][];
+  protected readonly view = signal<View>('limits');
+  /** How many rows a list shows before "Show all". */
+  protected readonly shown = SHOWN;
+  private readonly open = signal<ReadonlySet<string>>(new Set());
 
   protected readonly spans = Object.entries(SPANS) as [Span, { label: string; ms: number }][];
   protected readonly span = signal<Span>('week');
@@ -165,6 +182,23 @@ export class LedgerPage {
     } catch (error) {
       this.breakdownsFailed.set(error instanceof Error ? error.message : String(error));
     }
+  }
+
+  /** The first few of a list, or all of it once opened. */
+  protected top<T>(list: readonly T[], key: string): readonly T[] {
+    return this.open().has(key) ? list : list.slice(0, SHOWN);
+  }
+
+  protected isOpen(key: string): boolean {
+    return this.open().has(key);
+  }
+
+  protected toggle(key: string): void {
+    this.open.update((open) => {
+      const next = new Set(open);
+      if (!next.delete(key)) next.add(key);
+      return next;
+    });
   }
 
   protected behaviourName(key: string): string {
