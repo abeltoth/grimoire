@@ -1,7 +1,7 @@
 import type { Entry } from '@grimoire/contract';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FakeAdapter } from '../agents/fake-adapter';
-import { Indexer, passagesOf, turnsOf } from './indexer';
+import { Indexer, passagesOf, turnsOf, usesOf } from './indexer';
 import { SearchIndex } from './search-index';
 
 const you = (id: string, text: string): Entry => ({ kind: 'user', id, text });
@@ -60,6 +60,36 @@ describe('Indexer', () => {
     ).toEqual([
       { at: 7, ...use },
       { at: 7, ...use, subagent: true },
+    ]);
+  });
+
+  it("takes the tools the agent called, the skills it ran, and the /names you wrote, each at its entry's time", () => {
+    expect(
+      usesOf([
+        { kind: 'user', id: 'u1', text: '/review the diff', at: 10 },
+        {
+          kind: 'agent',
+          id: 'a1',
+          at: 11,
+          blocks: [
+            { kind: 'text', text: 'Looking' },
+            { kind: 'tool', id: 't1', tool: 'Skill', input: { skill: 'code-review' }, skill: 'code-review' },
+            { kind: 'tool', id: 't2', tool: 'Read', input: {} },
+          ],
+        },
+        // Without a time of its own, an entry takes its turn's.
+        { kind: 'user', id: 'u2', text: 'Again, /not a command', tokens: { at: 20, uses: [] } },
+        { kind: 'agent', id: 'a2', blocks: [{ kind: 'tool', id: 't3', tool: 'Bash', input: {} }] },
+        // Without either, it's left out.
+        you('u3', '/model'),
+        reply('a3', 'Hi'),
+      ]),
+    ).toEqual([
+      { at: 10, kind: 'skill', name: 'review' },
+      { at: 11, kind: 'tool', name: 'Skill' },
+      { at: 11, kind: 'skill', name: 'code-review' },
+      { at: 11, kind: 'tool', name: 'Read' },
+      { at: 20, kind: 'tool', name: 'Bash' },
     ]);
   });
 

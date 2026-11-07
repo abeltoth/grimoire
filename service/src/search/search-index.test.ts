@@ -124,6 +124,38 @@ describe('SearchIndex', () => {
     expect(index.tokens(day(4)).total.weight).toBe(0);
   });
 
+  it('counts the tools and skills used since a time, most first', () => {
+    const day = (d: number) => new Date(2026, 10, d, 12).getTime();
+    const tool = (name: string, d = 5) => ({ at: day(d), kind: 'tool' as const, name });
+    const skill = (name: string, d = 5) => ({ at: day(d), kind: 'skill' as const, name });
+    index.put({ id: 'c1', agent: 'a', updatedAt: 1 }, [], [], [
+      tool('Read'),
+      tool('Bash'),
+      tool('Read'),
+      skill('review'),
+      // Before the span.
+      tool('Write', 1),
+      skill('deploy', 1),
+    ]);
+    index.put({ id: 'c2', agent: 'a', updatedAt: 1 }, [], [], [tool('Bash'), tool('Read'), skill('deploy')]);
+
+    const totals = index.tokens(day(4));
+    expect(totals.tools).toEqual([
+      { name: 'Read', uses: 3 },
+      { name: 'Bash', uses: 2 },
+    ]);
+    expect(totals.skills).toEqual([
+      { name: 'deploy', uses: 1 },
+      { name: 'review', uses: 1 },
+    ]);
+
+    // Indexed again, a chat's uses replace the ones it had; removed, they're gone.
+    index.put({ id: 'c1', agent: 'a', updatedAt: 2 }, [], [], [tool('Grep')]);
+    index.remove('c2');
+    expect(index.tokens(day(4)).tools).toEqual([{ name: 'Grep', uses: 1 }]);
+    expect(index.tokens(day(4)).skills).toEqual([]);
+  });
+
   it('keeps its index in a file across runs', () => {
     const dir = mkdtempSync(path.join(tmpdir(), 'grimoire-search-'));
     const file = path.join(dir, 'search.db');

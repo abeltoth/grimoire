@@ -1560,6 +1560,11 @@ describe('App', () => {
       ],
       folders: [{ cwd: 'C:/work/grimoire', ...total(4_000) }],
       chats: [{ id: 'old-1', agent: 'claude-code', title: 'Ribbon', cwd: 'C:/work/grimoire', ...total(4_000) }],
+      tools: [
+        { name: 'Read', uses: 40 },
+        { name: 'Bash', uses: 10 },
+      ],
+      skills: [{ name: 'code-review', uses: 1 }],
     });
     const { fixture, el, texts } = await render(bridge);
     [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
@@ -1581,6 +1586,8 @@ describe('App', () => {
       'By model',
       'By folder',
       'The chats that weighed most',
+      'The tools used most',
+      'The skills used most',
     ]);
     const day = new Date(2026, 10, 5).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
     expect(texts('gr-ledger-page .tokens .name')).toEqual([
@@ -1595,8 +1602,20 @@ describe('App', () => {
       'Subagents on Haiku 4.5',
       'C:/work/grimoire',
       'Ribbon',
+      'Read',
+      'Bash',
+      'code-review',
     ]);
-    expect(texts('gr-ledger-page .tokens b')).toEqual(['80%', '5%', '9%', '100%', '75%', '25%', '100%', '100%']);
+    expect(texts('gr-ledger-page .tokens b')).toEqual([
+      '80%', '5%', '9%', '100%', '75%', '25%', '100%', '100%', '40', '10', '1',
+    ]);
+    // Each tool's and skill's uses, against the most used in its list.
+    expect(texts('gr-ledger-page [data-used] .resets')).toEqual(['40 uses', '10 uses', '1 use']);
+    expect(
+      [...el.querySelectorAll('gr-ledger-page [data-used="tools"] [role="meter"]')].map((m) =>
+        m.getAttribute('aria-valuenow'),
+      ),
+    ).toEqual(['100', '25']);
     expect(texts('gr-ledger-page .tokens .detail')).toEqual(['run /clear', '4K fresh input']);
 
     // The last 24 hours: Claude Code's scan already has them; Grimoire counts again.

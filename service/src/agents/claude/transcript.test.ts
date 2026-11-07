@@ -136,6 +136,19 @@ describe('ClaudeTranscript', () => {
     ]);
   });
 
+  it('names the skill a Skill call runs', () => {
+    const transcript = new ClaudeTranscript(false);
+    const call = { type: 'tool_use', id: 'toolu_9', name: 'Skill', input: { skill: 'dataviz', args: 'a chart' } };
+    transcript.apply(assistant('msg_9', call));
+    expect(transcript.entries).toEqual([
+      {
+        kind: 'agent',
+        id: 'msg_9',
+        blocks: [{ kind: 'tool', id: 'toolu_9', tool: 'Skill', input: call.input, skill: 'dataviz' }],
+      },
+    ]);
+  });
+
   it('times each saved turn, from your message to its last', () => {
     const transcript = new ClaudeTranscript(false);
     const second: ClaudeMessage = {

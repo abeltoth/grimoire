@@ -1,7 +1,7 @@
 import { homedir } from 'node:os';
 import type { ChatId, Entry } from '@grimoire/contract';
 import type { AgentAdapter } from '../agents/adapter';
-import type { Passage, SearchIndex, TurnUse } from './search-index';
+import type { Passage, SearchIndex, ToolUse, TurnUse } from './search-index';
 
 /** What the indexer needs of an agent: its chats, and each one's transcript. */
 export type IndexedAgent = Pick<AgentAdapter, 'info' | 'listChats' | 'history'>;
@@ -28,6 +28,36 @@ export function turnsOf(entries: readonly Entry[]): TurnUse[] {
       ? entry.tokens.uses.map((use) => ({ ...use, at: entry.tokens!.at }))
       : [],
   );
+}
+
+/** A command or skill you wrote, as "/name" at the start of your entry. */
+const TYPED = /^\s*\/([^\s/][^\s]*)/;
+
+/**
+ * The tools the agent called in a chat, not its subagents, and the skills
+ * it ran; and the commands and skills you wrote as "/name". Each at when
+ * its entry was written, or the turn it's in began; without either it's
+ * left out.
+ */
+export function usesOf(entries: readonly Entry[]): ToolUse[] {
+  const uses: ToolUse[] = [];
+  let turnAt: number | undefined;
+  for (const entry of entries) {
+    if (entry.kind === 'user') {
+      turnAt = entry.at ?? entry.tokens?.at;
+      const typed = TYPED.exec(entry.text)?.[1];
+      if (typed && turnAt !== undefined) uses.push({ at: turnAt, kind: 'skill', name: typed });
+      continue;
+    }
+    const at = entry.at ?? turnAt;
+    if (at === undefined) continue;
+    for (const block of entry.blocks) {
+      if (block.kind !== 'tool' || !block.tool) continue;
+      uses.push({ at, kind: 'tool', name: block.tool });
+      if (block.skill) uses.push({ at, kind: 'skill', name: block.skill });
+    }
+  }
+  return uses;
 }
 
 /**
@@ -93,6 +123,7 @@ export class Indexer {
             },
             passagesOf(chat.title, entries),
             turnsOf(entries),
+            usesOf(entries),
           );
           read++;
         } catch (error) {
