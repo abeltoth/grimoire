@@ -1572,29 +1572,37 @@ describe('App', () => {
       .click();
     await fixture.whenStable();
 
-    expect(texts('gr-ledger-page h2')).toEqual(['Claude Code’s plan limits', 'Where the tokens went']);
+    const showView = async (name: string) => {
+      [...el.querySelectorAll<HTMLButtonElement>('gr-ledger-page .tabs button')]
+        .find((button) => button.textContent!.trim() === name)!
+        .click();
+      await fixture.whenStable();
+    };
+    expect(texts('gr-ledger-page h2')).toEqual(['Claude Code’s plan limits']);
+    expect(texts('gr-ledger-page .tabs [aria-selected="true"]')).toEqual(['Limits']);
+
+    await showView('Where it went');
     expect(texts('gr-ledger-page .spans [aria-checked="true"]')).toEqual(['Last 7 days']);
     expect(texts('gr-ledger-page .tokens h3')).toEqual([
       'What Claude Code says took your usage',
       'By Grimoire’s count',
     ]);
-    expect(texts('gr-ledger-page .tokens .sub')[1]).toMatch(/: 70 requests in 4 chats\./);
+    expect(texts('gr-ledger-page .tokens .sub')[1]).toBe('70 requests in 4 chats');
     expect(texts('gr-ledger-page .tokens h4')).toEqual([
       'Its advice',
+      'Ways of working',
       'What took a share',
       'By day',
       'By model',
       'By folder',
       'The chats that weighed most',
-      'The tools used most',
-      'The skills used most',
     ]);
     const day = new Date(2026, 10, 5).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
     expect(texts('gr-ledger-page .tokens .name')).toEqual([
+      'Start fresh when you switch tasks',
       'Long context',
       // A way of working Grimoire has no name for keeps Claude Code's.
       'brand new',
-      'Start fresh when you switch tasks',
       'docs',
       '4K tokens',
       day,
@@ -1602,13 +1610,16 @@ describe('App', () => {
       'Subagents on Haiku 4.5',
       'C:/work/grimoire',
       'Ribbon',
-      'Read',
-      'Bash',
-      'code-review',
     ]);
-    expect(texts('gr-ledger-page .tokens b')).toEqual([
-      '80%', '5%', '9%', '100%', '75%', '25%', '100%', '100%', '40', '10', '1',
-    ]);
+    expect(texts('gr-ledger-page .tokens b')).toEqual(['80%', '5%', '9%', '100%', '75%', '25%', '100%', '100%']);
+    expect(texts('gr-ledger-page .tokens .detail')).toEqual(['run /clear', '4K fresh input']);
+    // The explanations stay folded away.
+    expect(texts('gr-ledger-page .how summary')).toEqual(['How this is counted']);
+
+    await showView('Tools & skills');
+    expect(texts('gr-ledger-page .tokens h4')).toEqual(['The tools used most', 'The skills used most']);
+    expect(texts('gr-ledger-page .tokens .name')).toEqual(['Read', 'Bash', 'code-review']);
+    expect(texts('gr-ledger-page .tokens b')).toEqual(['40', '10', '1']);
     // Each tool's and skill's uses, against the most used in its list.
     expect(texts('gr-ledger-page [data-used] .resets')).toEqual(['40 uses', '10 uses', '1 use']);
     expect(
@@ -1616,7 +1627,7 @@ describe('App', () => {
         m.getAttribute('aria-valuenow'),
       ),
     ).toEqual(['100', '25']);
-    expect(texts('gr-ledger-page .tokens .detail')).toEqual(['run /clear', '4K fresh input']);
+    await showView('Where it went');
 
     // The last 24 hours: Claude Code's scan already has them; Grimoire counts again.
     const asked = () =>
@@ -1627,7 +1638,7 @@ describe('App', () => {
       .find((button) => button.textContent!.trim() === 'Last 24 hours')!
       .click();
     await fixture.whenStable();
-    expect(texts('gr-ledger-page .tokens .sub')[1]).toMatch(/: 10 requests in 4 chats\./);
+    expect(texts('gr-ledger-page .tokens .sub')[1]).toBe('10 requests in 4 chats');
     expect(asked()).toHaveLength(2);
     expect(asked()[1]! - asked()[0]!).toBeGreaterThan(6 * 24 * 60 * 60_000 - 60_000);
     expect(calls.filter((c) => c.command === 'agents.usageBreakdown')).toHaveLength(1);
@@ -1654,6 +1665,10 @@ describe('App', () => {
     const { fixture, el, texts } = await render(bridge);
     [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
       .find((tab) => tab.textContent!.trim() === 'Ledger')!
+      .click();
+    await fixture.whenStable();
+    [...el.querySelectorAll<HTMLButtonElement>('gr-ledger-page .tabs button')]
+      .find((button) => button.textContent!.trim() === 'Where it went')!
       .click();
     await fixture.whenStable();
     // No scan from Claude Code: only Grimoire's count, which failed.
