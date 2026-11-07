@@ -1,4 +1,4 @@
-import type { AgentEntry, Entry, ToolBlock } from '@grimoire/contract';
+import type { AgentEntry, Entry, HookRun, ToolBlock } from '@grimoire/contract';
 import { type Note, summarize, toRows } from './rows';
 
 const you = (id: string, text: string): Entry => ({ kind: 'user', id, text });
@@ -198,5 +198,28 @@ describe('toRows', () => {
     expect(rows[0]).toEqual({ kind: 'thinking', key: 'a1/0', text: 'Hmm' });
     const notes = rows[1]!.kind === 'notes' ? rows[1]!.notes : [];
     expect(notes.map((note) => note.mark)).toEqual(['*', '†', '‡', '§', '‖', '¶', '**']);
+  });
+
+  it("counts a turn's hooks on its closing line as they run, and what it spent once it ended", () => {
+    const run = (id: string, outcome: HookRun['outcome']): HookRun => ({ id, name: 'Stop', event: 'Stop', outcome });
+    const uses = [{ model: 'claude-opus-5-5', input: 1, cacheWritten: 0, cacheWrittenLong: 0, cacheRead: 0, output: 1 }];
+    const running: Entry = {
+      kind: 'user',
+      id: 'u1',
+      text: 'Go',
+      tokens: { at: 1, uses },
+      hooks: [run('h1', 'passed'), run('h2', 'blocked'), run('h3', 'running')],
+    };
+    const rows = toRows([running, agent('a1', text('Working'))]);
+    expect(rows.map((row) => row.kind)).toEqual(['you', 'reply', 'spent']);
+    expect(rows[2]).toEqual({
+      kind: 'spent',
+      key: 'u1/spent',
+      hooks: { key: 'u1/hooks', runs: running.hooks, running: 1, blocked: 1, failed: 0 },
+    });
+
+    const ended = toRows([{ ...running, took: 5 }, agent('a1', text('Done'))]).at(-1)!;
+    expect(ended.kind === 'spent' && [ended.took, ended.tokens?.uses, ended.hooks?.runs.length]).toEqual([5, uses, 3]);
+    expect(toRows([you('u2', 'Hi')]).map((row) => row.kind)).toEqual(['you']);
   });
 });

@@ -33,7 +33,7 @@ A custom UI for Claude Code, built on the Claude Agent SDK.
 - [x] Full-text search across all past chats
 - [x] Pin, star and tag chats by project
 - [x] Memory graph: memories drawn as a graph of their `[[links]]`
-- [ ] A log of which hooks fired on each turn
+- [x] A log of which hooks fired on each turn
 - [ ] Profiles to switch between work and personal setups
 - [x] Live todo and progress panel for Claude's plan
 - [x] Usage stats: tokens per chat and per day, most-used tools and skills

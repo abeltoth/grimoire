@@ -18,6 +18,7 @@ import type {
   Entry,
   HelperRun,
   HelperState,
+  HookRun,
   PlanStep,
   PlanUsage,
   SettingsChange,
@@ -168,6 +169,8 @@ export interface ChatEvents {
   plan(plan: PlanStep[]): void;
   /** What the running turn has spent so far, by model, its subagents' included. */
   tokens(uses: TokenUse[]): void;
+  /** The hooks that ran on the running turn so far, and any begun before it that still run. */
+  hooks(runs: HookRun[]): void;
   turnEnded(error?: string): void;
   /** The agent process ended, on close() or by itself. */
   closed(error?: string): void;

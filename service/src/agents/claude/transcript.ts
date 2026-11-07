@@ -5,6 +5,7 @@ import type {
   Enclosure,
   Entry,
   HelperState,
+  HookRun,
   PictureEnclosure,
   PlanStep,
   TokenCounts,
@@ -88,6 +89,8 @@ export interface TranscriptListener {
   helperEntry?(toolId: string, entry: Entry): void;
   /** The helper the tool call `toolId` started began, or ended its task. */
   helperState?(toolId: string, state: HelperState): void;
+  /** The hooks that ran on the live turn so far, and any begun before it that still run. */
+  hooks?(runs: HookRun[]): void;
 }
 
 /** The tool a helper ends its run with, its report to the agent that asked in its input's `message`. */
@@ -164,6 +167,36 @@ interface TaskMessage {
   status?: string;
 }
 
+/**
+ * Claude Code's word on a hook it runs: that it began, what it printed so
+ * far, or how it ended. It says so only for the hooks it runs itself, such
+ * as commands, never for an SDK callback, so Grimoire's own don't show.
+ */
+interface HookMessage {
+  subtype?: string;
+  hook_id?: string;
+  /** Such as "PostToolUse:Edit": the event, and on a tool's events the tool. */
+  hook_name?: string;
+  hook_event?: string;
+  output?: string;
+  stdout?: string;
+  stderr?: string;
+  exit_code?: number;
+  outcome?: string;
+}
+
+/** The events a hook runs on for a tool, which its name follows with the tool's. */
+const TOOL_EVENTS = new Set(['PreToolUse', 'PostToolUse', 'PostToolUseFailure', 'PermissionRequest', 'PermissionDenied']);
+
+/** The exit code by which a hook's command stops what it ran on. */
+const BLOCKING_EXIT = 2;
+
+/** A hook running or run, and when it began, in ms since the epoch, when known. */
+interface HookTimed {
+  run: HookRun;
+  began?: number;
+}
+
 /** A turn's replies' tokens by API message ID; Claude Code repeats a reply's on each of its blocks. */
 type Spent = Map<string, TokenUse>;
 
@@ -195,6 +228,8 @@ export class ClaudeTranscript {
   private readonly turns: SavedTurn[] = [];
   /** What the live turn has spent so far. */
   private spent: Spent = new Map();
+  /** The hooks run on the live turn, and those still running from before it, by Claude Code's ID. */
+  private readonly hookRuns = new Map<string, HookTimed>();
   /** The runs of the helpers the chat's tool calls started, by tool call. */
   private readonly helpers = new Map<string, ClaudeTranscript>();
 
@@ -215,10 +250,12 @@ export class ClaudeTranscript {
    *   turn took from your entry until its last message.
    */
   apply(message: ClaudeMessage, at?: number): void {
-    if (message.type === 'system') this.applyTask(message as ClaudeMessage & TaskMessage);
-    else if (message.type === 'assistant')
+    if (message.type === 'system') {
+      this.applyTask(message as ClaudeMessage & TaskMessage);
+      this.applyHook(message as ClaudeMessage & HookMessage);
+    } else if (message.type === 'assistant')
       this.count(message.message as ApiMessage, !!message.parent_tool_use_id, this.turn);
-    else if (message.type === 'result' && this.live) this.spent = new Map();
+    else if (message.type === 'result' && this.live) this.endTurn();
     // Messages inside a subagent's run belong to its tool call's helper, not the chat.
     if (message.parent_tool_use_id) return this.helperRun(message.parent_tool_use_id).take(message);
     this.take(message, at);
@@ -240,6 +277,32 @@ export class ClaudeTranscript {
           ? TASK_END[message.status ?? '']
           : undefined;
     if (state) this.listener?.helperState?.(toolId, state);
+  }
+
+  /** The live turn ended: the next starts afresh, but for the hooks still running. */
+  private endTurn(): void {
+    this.spent = new Map();
+    for (const [id, { run }] of this.hookRuns) if (run.outcome !== 'running') this.hookRuns.delete(id);
+  }
+
+  /** A hook began, printed something, or ended; the turn's hooks are passed on as they stand. */
+  private applyHook(message: HookMessage): void {
+    const id = message.hook_id;
+    const kind = message.subtype;
+    if (!id || (kind !== 'hook_started' && kind !== 'hook_progress' && kind !== 'hook_response')) return;
+    const now = Date.now();
+    let timed = this.hookRuns.get(id);
+    if (!timed) {
+      timed = { run: hookRun(id, message), ...(kind === 'hook_started' ? { began: now } : {}) };
+      this.hookRuns.set(id, timed);
+    }
+    const output = message.output || [message.stdout, message.stderr].filter(Boolean).join('\n');
+    if (output.trim()) timed.run.output = output;
+    if (kind === 'hook_response') {
+      timed.run.outcome = hookOutcome(message);
+      if (timed.began !== undefined) timed.run.took = now - timed.began;
+    }
+    this.listener?.hooks?.([...this.hookRuns.values()].map(({ run }) => ({ ...run })));
   }
 
   /** The transcript of the helper the tool call `toolId` started, its entries passed on as the helper's. */
@@ -463,6 +526,36 @@ interface SavedTurn {
   entry: UserEntry;
   began: number;
   spent: Spent;
+}
+
+/** A hook Claude Code began, before it says how it went. */
+function hookRun(id: string, message: HookMessage): HookRun {
+  const event = message.hook_event ?? '';
+  const name = message.hook_name ?? event;
+  const tool = TOOL_EVENTS.has(event) && name.startsWith(`${event}:`) ? name.slice(event.length + 1) : '';
+  return { id, name, event, ...(tool ? { tool } : {}), outcome: 'running' };
+}
+
+/**
+ * How a hook ended: blocked when it stopped what it ran on, by exiting with
+ * code 2 or by saying so in the JSON it printed.
+ */
+function hookOutcome(message: HookMessage): HookRun['outcome'] {
+  if (message.outcome === 'cancelled') return 'cancelled';
+  if (message.exit_code === BLOCKING_EXIT || saysBlock(message.stdout)) return 'blocked';
+  return message.outcome === 'error' ? 'failed' : 'passed';
+}
+
+/** Whether a hook printed JSON that blocks: a decision to block, or not to continue. */
+function saysBlock(stdout: string | undefined): boolean {
+  const text = stdout?.trim();
+  if (!text?.startsWith('{')) return false;
+  try {
+    const said = JSON.parse(text) as { decision?: unknown; continue?: unknown } | null;
+    return said?.decision === 'block' || said?.continue === false;
+  } catch {
+    return false;
+  }
 }
 
 /** A reply's tokens; undefined for one with none, such as Claude Code's own notes. */

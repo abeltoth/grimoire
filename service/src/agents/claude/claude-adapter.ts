@@ -321,6 +321,8 @@ export class ClaudeAdapter implements AgentAdapter {
           // Lets you pick Full access, now or later; it doesn't skip any asking by itself.
           allowDangerouslySkipPermissions: true,
           includePartialMessages: true,
+          // Each turn's hooks show on it, as they run.
+          includeHookEvents: true,
           // Undo restores files from these checkpoints.
           enableFileCheckpointing: true,
           env: ENV,
@@ -379,6 +381,7 @@ export class ClaudeAdapter implements AgentAdapter {
         prewarm({
           options: {
             includePartialMessages: true,
+            includeHookEvents: true,
             permissionMode: MODES.ask,
             ...(off.length ? { settings: mcpSettings(off) } : {}),
             allowDangerouslySkipPermissions: true,

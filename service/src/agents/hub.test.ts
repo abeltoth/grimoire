@@ -278,6 +278,53 @@ describe('AgentHub', () => {
     expect(sent.at(-1)).toMatchObject({ event: 'agents.entry', payload: { entry: { id: yours.id, tokens: { uses } } } });
   });
 
+  it('writes the hooks run on each turn on your entry that began it, as they go', async () => {
+    const { id } = await hub.start('fake', settings, 'Hello');
+    const run = fake.runOf(id);
+    const lint = { id: 'h1', name: 'PostToolUse:Edit', event: 'PostToolUse', tool: 'Edit' };
+    const stop = { id: 'h2', name: 'Stop', event: 'Stop' };
+    run.events.hooks([{ ...lint, outcome: 'running' }]);
+    run.events.hooks([{ ...lint, outcome: 'passed', took: 400 }, { ...stop, outcome: 'running' }]);
+    expect(sent.at(-1)).toMatchObject({
+      event: 'agents.entry',
+      payload: { entry: { kind: 'user', hooks: [{ id: 'h1', outcome: 'passed' }, { id: 'h2', outcome: 'running' }] } },
+    });
+
+    run.events.turnEnded();
+    hub.send(id, 'Again');
+    // One begun on the turn before ends on it; one begun now goes with the new turn.
+    run.events.hooks([{ ...stop, outcome: 'blocked', took: 50 }, { id: 'h3', name: 'UserPromptSubmit', event: 'UserPromptSubmit', outcome: 'passed' }]);
+
+    const { entries } = await hub.open('fake', id, settings);
+    const yours = entries.filter((entry) => entry.kind === 'user');
+    expect(yours.map((entry) => entry.hooks?.map((hook) => [hook.id, hook.outcome]))).toEqual([
+      [
+        ['h1', 'passed'],
+        ['h2', 'blocked'],
+      ],
+      [['h3', 'passed']],
+    ]);
+    // Written on with what else the turn said.
+    expect(yours[0]!.took).toBeDefined();
+  });
+
+  it('cancels the hooks still running when the process ends', async () => {
+    const { id } = await hub.start('fake', settings, 'Hello');
+    const run = fake.runOf(id);
+    run.events.hooks([
+      { id: 'h1', name: 'Stop', event: 'Stop', outcome: 'passed' },
+      { id: 'h2', name: 'PostToolUse:Edit', event: 'PostToolUse', tool: 'Edit', outcome: 'running' },
+    ]);
+    run.events.closed();
+
+    const { entries } = await hub.open('fake', id, settings);
+    const yours = entries.find((entry) => entry.kind === 'user');
+    expect(yours?.hooks?.map((hook) => [hook.id, hook.outcome])).toEqual([
+      ['h1', 'passed'],
+      ['h2', 'cancelled'],
+    ]);
+  });
+
   it("keeps what a helper does as it goes, apart from the chat's transcript, and tells every window", async () => {
     const { id } = await hub.start('fake', settings, 'Hello');
     const run = fake.runOf(id);

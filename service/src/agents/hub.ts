@@ -28,6 +28,7 @@ import type {
   EventPayload,
   HelperRun,
   HelperState,
+  HookRun,
   NewChatSettings,
   OpenChat,
   ParallelFrom,
@@ -38,6 +39,7 @@ import type {
   SettingsChange,
   UsageBreakdown,
   UsageReading,
+  UserEntry,
 } from '@grimoire/contract';
 import type { DatabaseSync } from 'node:sqlite';
 import { Chapters } from '../storage/chapters';
@@ -889,6 +891,9 @@ export class AgentHub {
         if (!current() || began?.kind !== 'user') return;
         this.upsert(chat, { ...began, tokens: { at: began.at ?? Date.now(), uses } });
       },
+      hooks: (runs) => {
+        if (current()) this.logHooks(chat, runs);
+      },
       title: (title) => {
         if (!current() || title === chat.title) return;
         chat.title = title;
@@ -911,6 +916,7 @@ export class AgentHub {
         // Helpers still at work in the background end with the process.
         for (const [toolId, run] of chat.helpers)
           if (run.state === 'working') this.setHelperState(chat, toolId, 'stopped');
+        this.cancelHooks(chat);
         if (chat.status !== 'idle') {
           this.timeTurn(chat);
           this.setStatus(chat, 'idle');
@@ -943,6 +949,38 @@ export class AgentHub {
     if (index === -1) chat.entries.push(entry);
     else chat.entries[index] = entry;
     this.emit('agents.entry', { chatId: chat.id, entry });
+  }
+
+  /**
+   * Writes each hook run on your entry that began the turn it ran on: the
+   * one it's already written on, else the last. One that runs between turns
+   * goes with the turn before.
+   */
+  private logHooks(chat: ChatState, runs: readonly HookRun[]): void {
+    const yours = chat.entries.filter((entry): entry is UserEntry => entry.kind === 'user');
+    const changed = new Map<string, UserEntry>();
+    for (const run of runs) {
+      const began = yours.findLast((entry) => entry.hooks?.some((known) => known.id === run.id)) ?? yours.at(-1);
+      if (!began) continue;
+      const entry = changed.get(began.id) ?? { ...began, hooks: [...(began.hooks ?? [])] };
+      const hooks = entry.hooks!;
+      const at = hooks.findIndex((known) => known.id === run.id);
+      if (at === -1) hooks.push(run);
+      else hooks[at] = run;
+      changed.set(began.id, entry);
+    }
+    for (const entry of changed.values()) this.upsert(chat, entry);
+  }
+
+  /** Hooks still running when the process ends never say how they went: they were cancelled. */
+  private cancelHooks(chat: ChatState): void {
+    for (const entry of chat.entries) {
+      if (entry.kind !== 'user' || !entry.hooks?.some((run) => run.outcome === 'running')) continue;
+      const hooks = entry.hooks.map((run) =>
+        run.outcome === 'running' ? { ...run, outcome: 'cancelled' as const } : run,
+      );
+      this.upsert(chat, { ...entry, hooks });
+    }
   }
 
   /** Writes how long the turn took on your entry that began it. */

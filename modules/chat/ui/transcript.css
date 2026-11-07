@@ -70,6 +70,7 @@
 .time,
 .took,
 .spent,
+.hooks,
 .elapsed {
   font-family: var(--gr-font-text);
   font-style: italic;
@@ -77,7 +78,7 @@
   font-size: var(--gr-size-label);
 }
 
-/* The end of a turn: how long it took and what it spent. */
+/* The end of a turn: how long it took, what it spent and the hooks it ran. */
 .spent-line {
   display: flex;
   align-items: baseline;
@@ -109,6 +110,30 @@
 .elapsed {
   color: var(--gr-ink-soft);
   font-variant-numeric: tabular-nums;
+}
+
+/* The hooks the turn ran, counted up; any that blocked or failed in rubric. */
+.hooks {
+  color: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.hooks:hover {
+  color: var(--gr-ink);
+}
+
+.hooks .failed {
+  font-style: inherit;
+}
+
+/* A hook the turn ran, a line each, folded out beneath its closing line. */
+.row.hook {
+  margin-top: var(--gr-aside-gap);
+}
+
+.hook > .note {
+  width: auto;
+  margin-left: var(--gr-note-run-indent);
 }
 
 .spacer {

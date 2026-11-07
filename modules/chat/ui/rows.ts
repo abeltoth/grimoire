@@ -1,4 +1,4 @@
-import type { Enclosure, Entry, TokenUse, ToolBlock } from '@grimoire/contract';
+import type { Enclosure, Entry, HookRun, TokenUse, ToolBlock } from '@grimoire/contract';
 import { weightOf } from '@ui/app/core/tokens';
 import { type DiffLine, type FileChange, fileChange } from './diff';
 
@@ -84,10 +84,12 @@ export type Row =
   | {
       kind: 'spent';
       key: string;
-      /** How long the turn took. */
+      /** How long the turn took, once it ended. */
       took?: number;
-      /** What the turn spent. */
+      /** What the turn spent, once it ended. */
       tokens?: TurnSpent;
+      /** The hooks run on the turn, as they run. */
+      hooks?: HookLog;
     };
 
 /** What a turn spent: by model, and weighed; `costly` for one of the chapter's costliest. */
@@ -95,6 +97,15 @@ export interface TurnSpent {
   uses: readonly TokenUse[];
   weight: number;
   costly: boolean;
+}
+
+/** The hooks run on a turn, counted up on its closing line, which folds out to them. */
+export interface HookLog {
+  key: string;
+  runs: readonly HookRun[];
+  running: number;
+  blocked: number;
+  failed: number;
 }
 
 /** How many of a chapter's turns are marked its costliest, once it has more than that. */
@@ -143,7 +154,7 @@ export function toRows(
   let undone = false;
   let spent: Extract<Row, { kind: 'spent' }> | undefined;
 
-  /** Closes the turn: what it took and spent shows once it ended, after its last row. */
+  /** Closes the turn: what it took and spent shows once it ended, after its last row, and its hooks as they run. */
   const flushSpent = () => {
     if (spent) rows.push(spent);
     spent = undefined;
@@ -159,12 +170,12 @@ export function toRows(
     if (entry.kind === 'user') {
       flushNotes();
       flushSpent();
-      if (entry.took !== undefined) {
+      if (entry.took !== undefined || entry.hooks?.length) {
         spent = {
           kind: 'spent',
           key: `${entry.id}/spent`,
-          took: entry.took,
-          ...(entry.tokens?.uses.length
+          ...(entry.took !== undefined ? { took: entry.took } : {}),
+          ...(entry.took !== undefined && entry.tokens?.uses.length
             ? {
                 tokens: {
                   uses: entry.tokens.uses,
@@ -173,6 +184,7 @@ export function toRows(
                 },
               }
             : {}),
+          ...(entry.hooks?.length ? { hooks: hookLog(`${entry.id}/hooks`, entry.hooks) } : {}),
         };
       }
       rows.push({
@@ -231,6 +243,11 @@ function markCostliest(rows: Row[]): void {
   if (spent.length <= COSTLIEST) return;
   for (const tokens of [...spent].sort((a, b) => b.weight - a.weight).slice(0, COSTLIEST))
     tokens.costly = true;
+}
+
+function hookLog(key: string, runs: readonly HookRun[]): HookLog {
+  const counted = (outcome: HookRun['outcome']) => runs.filter((run) => run.outcome === outcome).length;
+  return { key, runs, running: counted('running'), blocked: counted('blocked'), failed: counted('failed') };
 }
 
 function margin(notes: Note[]): Margin {

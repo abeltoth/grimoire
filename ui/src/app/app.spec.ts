@@ -302,6 +302,60 @@ describe('App', () => {
     );
   });
 
+  it("counts each turn's hooks on its closing line, folding out to each, what it printed and how it went", async () => {
+    const { bridge, emit } = fakeBridge();
+    const { fixture, el, texts } = await render(bridge);
+    await write(fixture, el, 'Fix the flaky login test');
+    const user = { kind: 'user' as const, id: 'u1', text: 'Fix the flaky login test', at: Date.now() };
+    const lint = { id: 'h1', name: 'PostToolUse:Edit', event: 'PostToolUse', tool: 'Edit' };
+    const guard = { id: 'h2', name: 'PreToolUse:PowerShell', event: 'PreToolUse', tool: 'PowerShell' };
+    const stop = { id: 'h3', name: 'Stop', event: 'Stop' };
+    emit('agents.entry', { chatId: 'chat-1', entry: { ...user, hooks: [{ ...lint, outcome: 'running' }] } });
+    await fixture.whenStable();
+    expect(texts('.spent-line .hooks')).toEqual(['1 hook · 1 running…']);
+    // Stop stays where the turn writes, apart from its closing line.
+    expect(texts('.stop')).toHaveLength(1);
+
+    emit('agents.entry', {
+      chatId: 'chat-1',
+      entry: {
+        ...user,
+        took: 3_000,
+        hooks: [
+          { ...lint, outcome: 'passed', output: 'Lint ok', took: 420 },
+          { ...guard, outcome: 'blocked', output: 'No rm -rf here', took: 1_500 },
+          { ...stop, outcome: 'passed', took: 12 },
+        ],
+      },
+    });
+    emit('agents.status', { chatId: 'chat-1', status: 'idle' });
+    await fixture.whenStable();
+    expect(texts('.spent-line .hooks')).toEqual(['3 hooks ran · 1 barred the way']);
+    expect(texts('.spent-line .hooks .failed')).toEqual(['· 1 barred the way']);
+    expect(texts('.hook .note')).toEqual([]);
+
+    el.querySelector<HTMLButtonElement>('.spent-line .hooks')!.click();
+    await fixture.whenStable();
+    expect(el.querySelector('.spent-line .hooks')!.getAttribute('aria-expanded')).toBe('true');
+    // One that passed and printed nothing is listed too.
+    const parts = [...el.querySelectorAll('.hook .note')].map((line) =>
+      [...line.children].map((part) => part.textContent!.trim()),
+    );
+    expect(parts).toEqual([
+      ['After an edit', 'Edit', 'passed', '420ms'],
+      ['Before a command', 'PowerShell', 'barred the way', '1s'],
+      ['As the turn ended', 'passed', '12ms'],
+    ]);
+    expect(texts('.hook .note .failed')).toEqual(['barred the way']);
+    const lines = [...el.querySelectorAll<HTMLButtonElement>('.hook .note')];
+    expect(lines.map((line) => line.getAttribute('aria-disabled'))).toEqual([null, null, 'true']);
+
+    lines[1]!.click();
+    await fixture.whenStable();
+    expect(el.querySelector('.hook gr-output')!.getAttribute('aria-label')).toBe('Output of PreToolUse:PowerShell');
+    expect(texts('.hook gr-output .code')).toEqual(['No rm -rf here']);
+  });
+
   it('starts the chat with the first entry and follows its events', async () => {
     const { bridge, calls, emit } = fakeBridge();
     const { fixture, el, texts } = await render(bridge);

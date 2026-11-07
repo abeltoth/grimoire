@@ -214,6 +214,25 @@ export interface UserEntry {
   took?: number;
   /** What the turn it began spent, so far while it runs, when the agent says. */
   tokens?: TurnTokens;
+  /** The hooks that ran on the turn it began, in the order they began, while the chat is live. */
+  hooks?: HookRun[];
+}
+
+/** A hook the agent ran, such as your command after each edit, and how it went. */
+export interface HookRun {
+  id: string;
+  /** As the agent names it, such as "PostToolUse:Edit". */
+  name: string;
+  /** What it ran on, such as "PostToolUse". */
+  event: string;
+  /** The tool it ran for, on a tool's events, such as "Edit". */
+  tool?: string;
+  /** Blocked when it stopped what it ran on; failed when it broke without stopping it. */
+  outcome: 'running' | 'passed' | 'failed' | 'blocked' | 'cancelled';
+  /** What it printed, when it printed anything. */
+  output?: string;
+  /** How long it took, in ms, once it ended and when known. */
+  took?: number;
 }
 
 /** Something sent with an entry: a picture, shown as a plate, or a file, as a reference. */

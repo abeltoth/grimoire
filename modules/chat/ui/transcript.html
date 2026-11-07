@@ -16,7 +16,7 @@
   </button>
 </ng-template>
 
-@for (row of rows(); track row.key; let last = $last) {
+@for (row of rows(); track row.key) {
   @switch (row.kind) {
     @case ('you') {
       <div class="row">
@@ -63,7 +63,7 @@
       <div class="row tight">
         <div class="think">
           <gr-drawing class="thought" name="thought" essential />
-          <span>{{ last && running() ? 'Thinking' : 'Thought' }}</span>
+          <span>{{ row.key === lastKey() && running() ? 'Thinking' : 'Thought' }}</span>
           @if (row.text) {
             <button type="button" class="gr-link" (click)="toggle(row.key)">
               {{ isOpen(row.key) ? 'Put the thinking away' : 'Read the thinking' }}
@@ -92,9 +92,9 @@
           }
           <gr-markdown
             [text]="row.text"
-            [writing]="last && writing()"
+            [writing]="row.key === lastKey() && writing()"
             [firstListing]="listingStarts().get(row.key) ?? 1"
-            [tail]="last && (writing() || stoppable()) ? replyTail : null"
+            [tail]="row.key === lastKey() && (writing() || stoppable()) ? replyTail : null"
           />
         </div>
         @if (row.notes.length) {
@@ -115,8 +115,30 @@
               >{{ tokenCount(tokens.weight) }} tokens</span
             >
           }
+          @if (row.hooks; as hooks) {
+            <button
+              type="button"
+              class="hooks"
+              [attr.aria-expanded]="isOpen(hooks.key)"
+              (click)="toggle(hooks.key)"
+            >
+              {{ hooksRan(hooks) }}
+              @if (hooks.running) {
+                &ngsp;<span>· {{ hooks.running }} running…</span>
+              }
+              @if (hooks.blocked) {
+                &ngsp;<span class="failed">· {{ hooks.blocked }} {{ wording.say('barred the way', 'blocked') }}</span>
+              }
+              @if (hooks.failed) {
+                &ngsp;<span class="failed">· {{ hooks.failed }} failed</span>
+              }
+            </button>
+          }
         </footer>
       </div>
+      @if (row.hooks && isOpen(row.hooks.key)) {
+        <ng-container *ngTemplateOutlet="hooksTemplate; context: { $implicit: row.hooks }" />
+      }
     }
     @case ('notes') {
       <div class="row">
@@ -235,6 +257,41 @@
       <span class="detail">{{ note.counts }}</span>
     }
   </button>
+</ng-template>
+
+<!--
+  The hooks a turn ran, folded out of its closing line a line each; what one
+  printed folds out of its line, across the text and the margin.
+-->
+<ng-template #hooksTemplate let-hooks>
+  @for (run of hooks.runs; track run.id) {
+    <div class="row hook">
+      <button
+        type="button"
+        class="note"
+        [attr.title]="run.name"
+        [attr.aria-disabled]="run.output ? null : true"
+        [attr.aria-expanded]="run.output ? isOpen(hooks.key + '/' + run.id) : null"
+        (click)="run.output && toggle(hooks.key + '/' + run.id)"
+      >
+        <span class="note-head">{{ hookWhen(run) }}</span>
+        @if (run.tool) {
+          <span class="target">{{ run.tool }}</span>
+        }
+        <span
+          class="detail"
+          [class.failed]="run.outcome === 'blocked' || run.outcome === 'failed'"
+          >{{ hookOutcome(run) }}</span
+        >
+        @if (run.took !== undefined) {
+          <span class="detail">{{ hookTook(run.took) }}</span>
+        }
+      </button>
+      @if (run.output && isOpen(hooks.key + '/' + run.id)) {
+        <gr-output class="wide" [title]="run.name" [text]="run.output" />
+      }
+    </div>
+  }
 </ng-template>
 
 <!-- The details of the notes you folded out, across the text and the margin. -->

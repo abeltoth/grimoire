@@ -16,7 +16,7 @@ import { Icon } from '@ui/design-system/icon';
 import { type Chapter, Chats } from '@ui/app/core/chats';
 import { Facing } from '@ui/app/shell/facing';
 import { ShellRegistry } from '@ui/app/shell/shell-registry';
-import type { Answer, ApprovalDecision } from '@grimoire/contract';
+import type { Answer, ApprovalDecision, HookRun } from '@grimoire/contract';
 import { ApprovalSlip } from './approval-slip';
 import { Corrections } from '@ui/design-system/corrections';
 import { Enclosures } from './enclosures';
@@ -28,7 +28,9 @@ import { SealStub } from './seal-stub';
 import { duration } from './duration';
 import { Helpers } from './helpers';
 import { type Note, type TurnSpent, toRows } from './rows';
+import { hookOutcome, hookTook, hookWhen, hooksRan } from './hook-log';
 import { tokenCount, usesInWords } from '@ui/app/core/tokens';
+import { Wording } from '@ui/app/core/wording';
 
 /**
  * The chapter's transcript: your entries, the agent's replies, its tools
@@ -63,6 +65,7 @@ export class Transcript {
   private readonly helpers = inject(Helpers);
   protected readonly shell = inject(ShellRegistry);
   protected readonly facing = inject(Facing);
+  protected readonly wording = inject(Wording);
   private readonly element = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
 
   readonly chapter = input.required<Chapter>();
@@ -90,18 +93,24 @@ export class Transcript {
     const starts = new Map<string, number>();
     const rows = this.rows();
     let next = 1;
-    rows.forEach((row, i) => {
-      if (row.kind !== 'reply') return;
+    for (const row of rows) {
+      if (row.kind !== 'reply') continue;
       starts.set(row.key, next);
-      next += parseMarkdown(row.text, i === rows.length - 1 && this.writing()).listings;
-    });
+      next += parseMarkdown(row.text, row.key === this.lastKey() && this.writing()).listings;
+    }
     return starts;
   });
   /** Stop shows while the agent works; while it waits for you, you answer instead. */
   protected readonly stoppable = computed(
     () => !this.helper() && ['thinking', 'writing'].includes(this.chapter().status),
   );
-  protected readonly endsInReply = computed(() => this.rows().at(-1)?.kind === 'reply');
+  /** The row the running turn writes on: the last, but for the closing line its hooks show on. */
+  private readonly lastRow = computed(() => {
+    const rows = this.rows();
+    return rows.at(-1)?.kind === 'spent' ? rows.at(-2) : rows.at(-1);
+  });
+  protected readonly lastKey = computed(() => this.lastRow()?.key);
+  protected readonly endsInReply = computed(() => this.lastRow()?.kind === 'reply');
   /** Your entry that began the running turn, and when you wrote it. */
   protected readonly turn = computed(() => {
     if (!this.running()) return undefined;
@@ -118,6 +127,10 @@ export class Transcript {
   });
   protected readonly duration = duration;
   protected readonly tokenCount = tokenCount;
+  protected readonly hooksRan = hooksRan;
+  protected readonly hookTook = hookTook;
+  protected readonly hookWhen = (run: HookRun) => hookWhen(run, this.wording.say);
+  protected readonly hookOutcome = (run: HookRun) => hookOutcome(run, this.wording.say);
 
   /** What a turn spent, in words, for its title. */
   protected spentTitle(tokens: TurnSpent): string {
