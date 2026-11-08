@@ -29,6 +29,9 @@ interface SyncRow {
  * stays closed while it's found.
  */
 export class JiraCards {
+  /** When each card's issue was last updated on its own, as its status changed, by card ID. */
+  private readonly updated = new Map<string, number>();
+
   constructor(private readonly db: DatabaseSync) {}
 
   /** A profile's Jira cards, column by column, each column in Jira's order, without their chats. */
@@ -63,6 +66,46 @@ export class JiraCards {
     return !!this.db.prepare('SELECT 1 FROM jira_cards WHERE id = ? AND profile = ?').get(id, profile);
   }
 
+  /** The issue's key, when the card is one of the profile's Jira cards. */
+  keyOf(profile: string, id: string): string | undefined {
+    const row = this.db
+      .prepare('SELECT issue_key FROM jira_cards WHERE id = ? AND profile = ?')
+      .get(id, profile) as { issue_key: string } | undefined;
+    return row?.issue_key;
+  }
+
+  /**
+   * Puts what Jira says of an issue now on its card, once its status
+   * changed: all of it when it was read again, or the status it was
+   * changed to only when it couldn't be. It stays in its place in Jira's
+   * order; a sync begun before keeps what's put here.
+   */
+  update(
+    profile: string,
+    issue: Pick<FetchedIssue, 'key' | 'status' | 'column'> & Partial<FetchedIssue>,
+    at: number,
+  ): void {
+    this.db
+      .prepare(
+        `UPDATE jira_cards SET summary = COALESCE(?, summary), description = COALESCE(?, description),
+           url = COALESCE(?, url), issue_type = COALESCE(?, issue_type), priority = COALESCE(?, priority),
+           status = ?, column_id = ?
+         WHERE profile = ? AND issue_key = ?`,
+      )
+      .run(
+        issue.summary ?? null,
+        issue.description ?? null,
+        issue.url ?? null,
+        issue.type ?? null,
+        issue.priority ?? null,
+        issue.status,
+        issue.column,
+        profile,
+        issue.key,
+      );
+    this.updated.set(jiraCardId(profile, issue.key), at);
+  }
+
   /** Takes a Jira card off the board, or puts it back; it stays where Jira has it. */
   close(profile: string, id: string, closed: boolean, at: number): void {
     this.db
@@ -76,9 +119,11 @@ export class JiraCards {
   /**
    * Puts the issues a sync found on the profile's board in place of those
    * there, in their order, keeping when each was first seen and whether it
-   * was closed, and notes the sync.
+   * was closed, and notes the sync. One updated since the sync `began`,
+   * as its status changed, keeps what Jira said of it then: the sync may
+   * have found it as it was before.
    */
-  replace(profile: string, issues: readonly FetchedIssue[], at: number): void {
+  replace(profile: string, issues: readonly FetchedIssue[], at: number, began: number = at): void {
     const upsert = this.db.prepare(
       `INSERT INTO jira_cards (id, profile, issue_key, summary, description, url, issue_type, priority,
          status, column_id, position, created_at)
@@ -88,6 +133,7 @@ export class JiraCards {
          priority = excluded.priority, status = excluded.status, column_id = excluded.column_id,
          position = excluded.position`,
     );
+    const place = this.db.prepare('UPDATE jira_cards SET position = ? WHERE profile = ? AND issue_key = ?');
     const keys = issues.map((issue) => issue.key);
     this.db.exec('BEGIN');
     try {
@@ -97,9 +143,14 @@ export class JiraCards {
            AND issue_key NOT IN (SELECT value FROM json_each(?))`,
         )
         .run(profile, JSON.stringify(keys));
-      issues.forEach((issue, position) =>
+      issues.forEach((issue, position) => {
+        const id = jiraCardId(profile, issue.key);
+        if ((this.updated.get(id) ?? -Infinity) >= began) {
+          place.run(position, profile, issue.key);
+          return;
+        }
         upsert.run(
-          jiraCardId(profile, issue.key),
+          id,
           profile,
           issue.key,
           issue.summary,
@@ -111,8 +162,8 @@ export class JiraCards {
           issue.column,
           position,
           at,
-        ),
-      );
+        );
+      });
       this.note(profile, 'synced', undefined, at);
       this.db.exec('COMMIT');
     } catch (error) {

@@ -9,7 +9,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import type { Card, CardChat, CardColumn } from '@grimoire/contract';
+import type { Card, CardChat, CardColumn, JiraTransition } from '@grimoire/contract';
 import { type Chapter, Chats } from '@ui/app/core/chats';
 import { Wording } from '@ui/app/core/wording';
 import { Icon, type IconName } from '@ui/design-system/icon';
@@ -48,10 +48,17 @@ interface ListedChat {
  *
  * Your Jira issues are cards too, after your own in each column, as Jira's
  * status categories place them: each with its key, type, priority and
- * status, an edge of its own, and a link to it in Jira. Only Jira moves
- * them; they belong to no folder, so show whichever is picked, and their
- * chats begin in it. Opening the board syncs them, unless that was done a
- * minute ago; it says when they were synced, or why they couldn't be.
+ * status, an edge of its own, and a link to it in Jira. They belong to no
+ * folder, so show whichever is picked, and their chats begin in it.
+ * Opening the board syncs them, unless that was done a minute ago; it
+ * says when they were synced, or why they couldn't be.
+ *
+ * A Jira card moves in Jira, dragged or with Move to, into another column
+ * only: it goes there at once while Jira is asked which statuses there its
+ * workflow allows. With one, it takes it; with several, you pick one; with
+ * none, it goes back, saying so. Change status lists every status Jira
+ * allows it, in its own column too. When Jira refuses, it goes back,
+ * saying what Jira said, and offers to open it in Jira.
  */
 @Component({
   selector: 'gr-kanban-page',
@@ -71,6 +78,14 @@ export class KanbanPage {
   protected readonly editing = signal<string | null>(null);
   /** The card whose Move to is open. */
   protected readonly moving = signal<string | null>(null);
+  /**
+   * The Jira card being moved in Jira: into a column, or to another status
+   * with Change status; Jira is asked how, then its choices show, when
+   * there's more than one to pick from.
+   */
+  protected readonly inJira = signal<{ card: string; column?: CardColumn; choices?: JiraTransition[] } | null>(
+    null,
+  );
   /** The card being dragged, and the column it's over. */
   protected readonly dragging = signal<string | null>(null);
   protected readonly over = signal<CardColumn | null>(null);
@@ -173,13 +188,17 @@ export class KanbanPage {
       : `synced ${when.toLocaleString([], { day: 'numeric', month: 'short', ...time })}`;
   }
 
-  /** Where Move to can take a card: the other columns, and up or down its own. */
+  /**
+   * Where Move to can take a card: the other columns, and up or down its
+   * own; a Jira card keeps Jira's order in its column.
+   */
   protected movesOf(card: Card): { label: string; column: CardColumn; before?: string }[] {
     const column = this.byColumn()[card.column];
     const at = column.findIndex((c) => c.id === card.id);
     const moves: { label: string; column: CardColumn; before?: string }[] = COLUMNS.filter(
       (c) => c.column !== card.column,
     ).map((c) => ({ label: c.label, column: c.column }));
+    if (card.kind === 'jira') return moves;
     if (at > 0) moves.push({ label: 'Up', column: card.column, before: column[at - 1]!.id });
     if (at !== -1 && at < column.length - 1) {
       moves.push({ label: 'Down', column: card.column, before: column[at + 2]?.id });
@@ -194,7 +213,65 @@ export class KanbanPage {
 
   protected async move(card: Card, to: { column: CardColumn; before?: string }): Promise<void> {
     this.moving.set(null);
+    if (card.kind === 'jira') return this.moveInJira(card, to.column);
     await this.board.move(card.id, to.column, to.before);
+    this.focusIn(card.id, '.move');
+  }
+
+  /** Whether a Jira card is being moved in Jira: Jira's being asked, its choices show, or it's moving. */
+  protected movingInJira(card: Card): boolean {
+    return this.inJira()?.card === card.id || this.board.moving(card.id);
+  }
+
+  /**
+   * Moves a Jira card in Jira: into a column, where it shows at once, or
+   * with Change status, to any status Jira allows. Jira is asked which it
+   * allows; one into the column is taken, and several are offered.
+   */
+  protected async moveInJira(card: Card, column?: CardColumn): Promise<void> {
+    const asked = { card: card.id, ...(column ? { column } : {}) };
+    this.inJira.set(asked);
+    this.board.jiraNote.set(null);
+    if (column) this.board.hold(card.id, column);
+    const choices = await this.board.transitions(card.id, column);
+    // Cancelled meanwhile.
+    if (this.inJira() !== asked) return;
+    if (!choices?.length) {
+      this.endInJira(card);
+      if (choices) {
+        const from = card.jira?.status || this.columnName(card.column);
+        this.board.jiraNote.set({
+          card: card.id,
+          text: column
+            ? `Jira doesn’t allow moving from ${from} to ${this.columnName(column)}`
+            : `Jira allows no change of status from ${from}`,
+          openInJira: false,
+        });
+      }
+      return;
+    }
+    if (column && choices.length === 1) return this.transition(card, choices[0]!);
+    this.inJira.set({ ...asked, choices });
+    this.focusIn(card.id, '.moves button');
+  }
+
+  /** A choice of status by its name, and its transition's too where two lead to the same one. */
+  protected choiceLabel(choice: JiraTransition, choices: readonly JiraTransition[]): string {
+    const twice = choices.some((other) => other !== choice && other.status === choice.status);
+    return twice && choice.name !== choice.status ? `${choice.status} (${choice.name})` : choice.status;
+  }
+
+  /** Changes a Jira card's status by the transition picked, or the one Jira allows. */
+  protected async transition(card: Card, transition: JiraTransition): Promise<void> {
+    this.inJira.set(null);
+    await this.board.transition(card.id, transition);
+    this.focusIn(card.id, '.move');
+  }
+
+  /** Leaves a Jira card where Jira has it: Jira's being asked, or its choices show. */
+  protected endInJira(card: Card): void {
+    this.inJira.set(null);
+    this.board.release(card.id);
     this.focusIn(card.id, '.move');
   }
 
@@ -204,7 +281,7 @@ export class KanbanPage {
   }
 
   protected dragStart(event: DragEvent, card: Card): void {
-    if (this.editing() === card.id || card.kind === 'jira') return event.preventDefault();
+    if (this.editing() === card.id || this.movingInJira(card)) return event.preventDefault();
     this.dragging.set(card.id);
     this.moving.set(null);
     if (event.dataTransfer) {
@@ -227,12 +304,21 @@ export class KanbanPage {
     }
   }
 
-  /** Drops the card dragged before the card it's over, or after it from its lower half, or at the column's foot. */
+  /**
+   * Drops the card dragged before the card it's over, or after it from its
+   * lower half, or at the column's foot. A Jira card moves in Jira, into
+   * another column only.
+   */
   protected drop(event: DragEvent, column: CardColumn): void {
     const id = this.dragging();
     this.dragEnd();
     if (!id) return;
     event.preventDefault();
+    const dragged = this.board.all()?.find((card) => card.id === id);
+    if (dragged?.kind === 'jira') {
+      if (dragged.column !== column) void this.moveInJira(dragged, column);
+      return;
+    }
     const target = (event.target as Element).closest<HTMLElement>('[data-card]');
     const cards = this.byColumn()[column];
     let before: string | undefined;

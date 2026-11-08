@@ -200,6 +200,19 @@ h3 {
   font-style: italic;
 }
 
+/* Why a Jira card didn't move, in rubric, until the next move. */
+.jira-note {
+  margin: var(--gr-aside-gap) 0 0;
+  font-style: italic;
+  font-size: var(--gr-size-label);
+  color: var(--gr-rubric);
+  overflow-wrap: anywhere;
+}
+
+.jira-note .gr-link {
+  font-style: normal;
+}
+
 /* Who added it, when an agent did, and the chat it was added in. */
 .made-in {
   margin: var(--gr-aside-gap) 0 0;

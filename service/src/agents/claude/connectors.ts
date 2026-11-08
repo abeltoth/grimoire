@@ -10,6 +10,16 @@ export interface ToolResult {
   structuredContent?: unknown;
 }
 
+/** A connector's tool that answered with an error, and what it said, as its server said it. */
+export class ToolFailed extends Error {
+  constructor(
+    readonly tool: string,
+    readonly said: string,
+  ) {
+    super(`${tool} failed: ${said || 'it said no more'}`);
+  }
+}
+
 /** One of your claude.ai connectors, as Claude Code has it. */
 export interface Connector {
   /** Its name, such as "claude.ai Atlassian". */
@@ -149,8 +159,7 @@ async function callTool(
   }
   const content = Array.isArray(response?.content) ? (response.content as ToolResult['content']) : [];
   if (response?.isError) {
-    const said = content.map((block) => block.text ?? '').join(' ').trim();
-    throw new Error(`${tool} failed: ${said || 'it said no more'}`);
+    throw new ToolFailed(tool, content.map((block) => block.text ?? '').join(' ').trim());
   }
   return {
     content,

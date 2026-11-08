@@ -56,7 +56,7 @@
               [class.jira]="card.kind === 'jira'"
               [attr.data-card]="card.id"
               [class.dragged]="dragging() === card.id"
-              [attr.draggable]="editing() !== card.id && card.kind !== 'jira'"
+              [attr.draggable]="editing() !== card.id && !movingInJira(card)"
               (dragstart)="dragStart($event, card)"
               (dragend)="dragEnd()"
             >
@@ -120,6 +120,17 @@
                   </ul>
                 }
 
+                @if (board.jiraNote(); as note) {
+                  @if (note.card === card.id) {
+                    <p class="jira-note" role="alert">
+                      {{ note.text }}
+                      @if (note.openInJira && card.jira?.url) {
+                        <button type="button" class="gr-link" (click)="board.openInJira(card)">Open in Jira</button>
+                      }
+                    </p>
+                  }
+                }
+
                 <div class="actions">
                   @if (moving() === card.id) {
                     <span class="moves" role="group" aria-label="Move to" (keydown.escape)="$event.preventDefault(); closeMoves(card)">
@@ -129,18 +140,41 @@
                       }
                       <button type="button" class="gr-link" (click)="closeMoves(card)">Cancel</button>
                     </span>
+                  } @else if (board.moving(card.id)) {
+                    <span class="ask" role="status">Moving in Jira…</span>
+                  } @else if (inJira()?.card === card.id) {
+                    @if (inJira()!.choices; as choices) {
+                      <span
+                        class="moves"
+                        role="group"
+                        [attr.aria-label]="inJira()!.column ? 'Move to' : 'Change status to'"
+                        (keydown.escape)="$event.preventDefault(); endInJira(card)"
+                      >
+                        <span class="ask">{{ inJira()!.column ? 'Move to' : 'Change status to' }}</span>
+                        @for (choice of choices; track choice.id) {
+                          <button type="button" class="gr-link" [attr.title]="choice.name" (click)="transition(card, choice)">
+                            {{ choiceLabel(choice, choices) }}
+                          </button>
+                        }
+                        <button type="button" class="gr-link" (click)="endInJira(card)">Cancel</button>
+                      </span>
+                    } @else {
+                      <span class="ask" role="status">Asking Jira…</span>
+                      <button type="button" class="gr-link" (click)="endInJira(card)">Cancel</button>
+                    }
                   } @else {
                     <button type="button" class="gr-link begin" (click)="board.newChat(card, folder() ?? undefined)">
                       {{ wording.say('New chapter', 'New chat') }}
                     </button>
+                    <button type="button" class="gr-link move" (click)="openMoves(card)">Move to…</button>
                     @if (card.jira; as issue) {
+                      <button type="button" class="gr-link" (click)="moveInJira(card)">Change status…</button>
                       @if (issue.url) {
                         <button type="button" class="gr-link" [attr.title]="issue.url" (click)="board.openInJira(card)">
                           Open in Jira
                         </button>
                       }
                     } @else {
-                      <button type="button" class="gr-link move" (click)="openMoves(card)">Move to…</button>
                       <button type="button" class="gr-link" (click)="editing.set(card.id)">Change</button>
                     }
                     <button type="button" class="gr-link" (click)="board.close(card.id, true)">Close</button>

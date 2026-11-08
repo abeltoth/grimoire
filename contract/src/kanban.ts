@@ -31,6 +31,18 @@ export interface JiraIssue {
   status: string;
 }
 
+/** A change of status Jira allows an issue now, by its workflow. */
+export interface JiraTransition {
+  /** Jira's ID for it, to make it by. */
+  id: string;
+  /** Its name in the workflow, such as Start review. */
+  name: string;
+  /** The status it leads to, such as In Review. */
+  status: string;
+  /** The column that status's category puts the card in. */
+  column: CardColumn;
+}
+
 /**
  * Where the board's Jira issues stand: `none` while there's no Atlassian
  * connector here, or none was ever reached; `needs-auth` when the
@@ -68,7 +80,7 @@ export interface Card {
    * chats begin where new chats do.
    */
   cwd: string;
-  /** Its column: for a Jira card, as its status's category says, which only Jira changes. */
+  /** Its column: for a Jira card, as its status's category says, which changes in Jira. */
   column: CardColumn;
   /** When it was made, in ms since the epoch. */
   createdAt: number;
@@ -104,7 +116,8 @@ declare module './commands' {
     'kanban.save': { request: CardDraft; response: Card[] };
     /**
      * Moves a card into a column, before the card `before` there, or to its
-     * foot when that's left out. Returns them all. A Jira card moves in Jira.
+     * foot when that's left out. Returns them all. A Jira card moves in
+     * Jira, by kanban.transition.
      */
     'kanban.move': {
       request: { id: string; column: CardColumn; before?: string };
@@ -130,6 +143,17 @@ declare module './commands' {
      * sync began less than that many ms ago. Returns where they stand.
      */
     'kanban.syncJira': { request: { ifOlderThan?: number }; response: JiraSync };
+    /**
+     * The changes of status Jira allows a Jira card's issue now, asked of
+     * Jira; only those into `column` when it's given.
+     */
+    'kanban.transitions': { request: { id: string; column?: CardColumn }; response: JiraTransition[] };
+    /**
+     * Changes a Jira card's issue's status in Jira, by one of the changes
+     * kanban.transitions listed, then reads the issue again for its card.
+     * Rejects with what Jira said when it refuses. Returns them all.
+     */
+    'kanban.transition': { request: { id: string; transition: JiraTransition }; response: Card[] };
   }
 }
 

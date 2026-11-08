@@ -1,12 +1,14 @@
-import type { CardColumn, JiraIssue } from '@grimoire/contract';
-import type { Connector, Connectors, ToolResult } from '../agents/claude/connectors';
+import type { CardColumn, JiraIssue, JiraTransition } from '@grimoire/contract';
+import { type Connector, type Connectors, ToolFailed, type ToolResult } from '../agents/claude/connectors';
 
 /**
  * Your Jira issues, through your claude.ai Atlassian connector: the one
  * place that knows the connector's tools, what they take and what they
- * answer. None of it is confirmed against the real connector yet; each
- * answer is read with care, and one that doesn't match says what didn't.
- * `npm run jira:check` shows what the connector really has and answers.
+ * answer. The sites and the search are confirmed against the real
+ * connector; an issue's transitions, making one and reading the issue
+ * again aren't yet. Each answer is read with care, and one that doesn't
+ * match says what didn't. `npm run jira:check` shows what the connector
+ * really has and answers.
  */
 
 /** The connector, by its name on claude.ai, such as "claude.ai Atlassian". */
@@ -18,18 +20,39 @@ export const JIRA_TOOLS = {
   sites: 'getAccessibleAtlassianResources',
   /** The issues a JQL query finds, a page at a time. */
   search: 'searchJiraIssuesUsingJql',
+  /** One issue, with the fields asked for: read again once its status changed. */
+  issue: 'getJiraIssue',
+  /** The changes of status an issue's workflow allows it now. */
+  transitions: 'getTransitionsForJiraIssue',
+  /** Changes an issue's status by one of those: the one tool Grimoire calls that writes to Jira. */
+  transition: 'transitionJiraIssue',
 } as const;
 
+/** The tools the sync calls; the Atlassian connector is the one that has them. */
+const SYNC_TOOLS = [JIRA_TOOLS.sites, JIRA_TOOLS.search];
+/** The tools moving a card calls. */
+const MOVE_TOOLS = [JIRA_TOOLS.sites, JIRA_TOOLS.transitions, JIRA_TOOLS.transition, JIRA_TOOLS.issue];
+
 /**
- * Every tool of the connector Grimoire may call: only ones that read. A
- * direct call asks no permission, so nothing else can be called.
+ * The tools of the connector the sync and `npm run jira:check` may call:
+ * only ones that read. A direct call asks no permission, so nothing else
+ * can be called on their Claude Code processes.
  */
 export const JIRA_READ_ONLY: ReadonlySet<string> = new Set([
   JIRA_TOOLS.sites,
   JIRA_TOOLS.search,
-  'getJiraIssue',
+  JIRA_TOOLS.issue,
+  JIRA_TOOLS.transitions,
   'atlassianUserInfo',
 ]);
+
+/**
+ * Every tool of the connector Grimoire may call, on the Claude Code
+ * process that moves cards: those that read, and transitionJiraIssue, the
+ * one that writes, which changes an issue's status as you move its card.
+ * Nothing else can change Jira.
+ */
+export const JIRA_ALLOWED: ReadonlySet<string> = new Set([...JIRA_READ_ONLY, JIRA_TOOLS.transition]);
 
 /** The most issues on the board, and how many are asked for at a time. */
 export const MAX_ISSUES = 100;
@@ -61,8 +84,7 @@ export type JiraFetch =
  */
 export function atlassianIn(connectors: readonly Connector[]): Connector | undefined {
   const atlassian = connectors.filter((connector) => ATLASSIAN.test(connector.name));
-  const syncs = (connector: Connector) =>
-    Object.values(JIRA_TOOLS).every((tool) => connector.tools.includes(tool));
+  const syncs = (connector: Connector) => SYNC_TOOLS.every((tool) => connector.tools.includes(tool));
   return (
     atlassian.find(syncs) ??
     atlassian.find((connector) => connector.status === 'connected') ??
@@ -81,22 +103,9 @@ export async function fetchJira(
   let connectors: Connectors | undefined;
   try {
     connectors = await open(JIRA_READ_ONLY);
-    const atlassian = atlassianIn(await connectors.list());
-    if (!atlassian || atlassian.status === 'disabled') return { outcome: 'none' };
-    if (atlassian.status === 'needs-auth') return { outcome: 'needs-auth' };
-    if (atlassian.status === 'pending') {
-      return { outcome: 'failed', error: `${atlassian.name} took too long to connect` };
-    }
-    if (atlassian.status === 'failed') {
-      return { outcome: 'failed', error: atlassian.error || `${atlassian.name} failed to connect` };
-    }
-    const missing = Object.values(JIRA_TOOLS).filter((tool) => !atlassian.tools.includes(tool));
-    if (missing.length) {
-      return {
-        outcome: 'failed',
-        error: `${atlassian.name} has no ${missing.join(' or ')}; it has ${atlassian.tools.join(', ') || 'no tools'}`,
-      };
-    }
+    const reached = await reach(connectors, SYNC_TOOLS);
+    if (reached.outcome !== 'reached') return reached;
+    const { atlassian } = reached;
     const call = (tool: string, args: Record<string, unknown>) =>
       connectors!.call(atlassian, tool, args);
     const site = readSite(await call(JIRA_TOOLS.sites, {}));
@@ -123,6 +132,161 @@ export async function fetchJira(
     return { outcome: 'failed', error: error instanceof Error ? error.message : String(error) };
   } finally {
     connectors?.close();
+  }
+}
+
+/**
+ * The Atlassian connector among those Claude Code lists, connected and
+ * with these tools; or there's none, it needs connecting again, or why it
+ * can't be used.
+ */
+async function reach(
+  connectors: Connectors,
+  tools: readonly string[],
+): Promise<{ outcome: 'reached'; atlassian: Connector } | Exclude<JiraFetch, { outcome: 'synced' }>> {
+  const atlassian = atlassianIn(await connectors.list());
+  if (!atlassian || atlassian.status === 'disabled') return { outcome: 'none' };
+  if (atlassian.status === 'needs-auth') return { outcome: 'needs-auth' };
+  if (atlassian.status === 'pending') {
+    return { outcome: 'failed', error: `${atlassian.name} took too long to connect` };
+  }
+  if (atlassian.status === 'failed') {
+    return { outcome: 'failed', error: atlassian.error || `${atlassian.name} failed to connect` };
+  }
+  const missing = tools.filter((tool) => !atlassian.tools.includes(tool));
+  if (missing.length) {
+    return {
+      outcome: 'failed',
+      error: `${atlassian.name} has no ${missing.join(' or ')}; it has ${atlassian.tools.join(', ') || 'no tools'}`,
+    };
+  }
+  return { outcome: 'reached', atlassian };
+}
+
+/**
+ * The Atlassian connector reached to move cards: its tools called on the
+ * site the board searches, on a Claude Code process kept for it.
+ */
+export interface JiraSite {
+  call(tool: string, args: Record<string, unknown>): Promise<ToolResult>;
+  cloudId: string;
+  /** The site's address, such as https://acme.atlassian.net; empty when it isn't https. */
+  url: string;
+  close(): void;
+}
+
+/**
+ * Reaches the Atlassian connector to move cards, through a Claude Code
+ * process `open` starts that may call transitionJiraIssue too. Rejects,
+ * saying why, when there's none here or it can't be used; the process is
+ * stopped then.
+ */
+export async function openJira(open: (allowed: ReadonlySet<string>) => Promise<Connectors>): Promise<JiraSite> {
+  const connectors = await open(JIRA_ALLOWED);
+  try {
+    const reached = await reach(connectors, MOVE_TOOLS);
+    if (reached.outcome === 'none') throw new Error('There’s no Atlassian connector here');
+    if (reached.outcome === 'needs-auth') {
+      throw new Error('The Atlassian connector needs connecting again on claude.ai');
+    }
+    if (reached.outcome === 'failed') throw new Error(reached.error);
+    const { atlassian } = reached;
+    const call = (tool: string, args: Record<string, unknown>) => connectors.call(atlassian, tool, args);
+    const site = readSite(await call(JIRA_TOOLS.sites, {}));
+    return { call, ...site, close: () => connectors.close() };
+  } catch (error) {
+    connectors.close();
+    throw error;
+  }
+}
+
+/** The changes of status Jira allows the issue now. */
+export async function transitionsOf(jira: JiraSite, key: string): Promise<JiraTransition[]> {
+  return readTransitions(await jira.call(JIRA_TOOLS.transitions, { cloudId: jira.cloudId, issueIdOrKey: key }));
+}
+
+/**
+ * Changes the issue's status in Jira by one of the transitions it allows;
+ * what it answers when it does isn't read. Rejects when Jira refuses,
+ * such as for a field the change needs that only Jira asks for.
+ */
+export async function transitionIssue(jira: JiraSite, key: string, transition: string): Promise<void> {
+  await jira.call(JIRA_TOOLS.transition, {
+    cloudId: jira.cloudId,
+    issueIdOrKey: key,
+    transition: { id: transition },
+  });
+}
+
+/** The issue as Jira has it now. */
+export async function issueOf(jira: JiraSite, key: string): Promise<FetchedIssue> {
+  return readOne(
+    await jira.call(JIRA_TOOLS.issue, { cloudId: jira.cloudId, issueIdOrKey: key, fields: FIELDS }),
+    jira.url,
+  );
+}
+
+/** The transitions an issue allows, from Jira's own shape, a plain list, or a list under another name. */
+export function readTransitions(result: ToolResult): JiraTransition[] {
+  const tool = JIRA_TOOLS.transitions;
+  const json = jsonOf(result, tool);
+  const list = Array.isArray(json) ? json : arrayIn(json, ['transitions', 'values', 'results']);
+  if (!list) throw new Error(`${tool} answered with no list of transitions (it has ${membersOf(json)})`);
+  return list.map((transition, i) => readTransition(transition, i));
+}
+
+/**
+ * A transition: its ID and name, and the status it leads to, under `to`
+ * as Jira has it, or flat; the status's category says its column.
+ */
+function readTransition(transition: unknown, i: number): JiraTransition {
+  const tool = JIRA_TOOLS.transitions;
+  if (!isObject(transition)) throw new Error(`${tool}'s transition ${i + 1} isn't an object`);
+  const id = transition['id'];
+  if ((typeof id !== 'string' && typeof id !== 'number') || id === '') {
+    throw new Error(`${tool}'s transition ${i + 1} has no ID (it has ${membersOf(transition)})`);
+  }
+  const name = nameOf(transition);
+  const to = isObject(transition['to']) ? transition['to'] : undefined;
+  const status = nameOf(to ?? transition['to'] ?? transition['toStatus']) || name;
+  const category = to?.['statusCategory'] ?? transition['statusCategory'];
+  if (category === undefined || category === null) {
+    throw new Error(
+      `${tool}'s transition "${name || id}" says no category of the status it leads to (it has ${membersOf(to ?? transition)})`,
+    );
+  }
+  return { id: String(id), name: name || status, status: status || String(id), column: columnOf(category) };
+}
+
+/** The issue a read of one answered with: Jira's own shape, or it under `issue`. */
+export function readOne(result: ToolResult, site: string): FetchedIssue {
+  const json = jsonOf(result, JIRA_TOOLS.issue);
+  const issue = isObject(json) && isObject(json['issue']) ? json['issue'] : json;
+  return readIssue(issue, site, 0, JIRA_TOOLS.issue);
+}
+
+/**
+ * What Jira said when one of the connector's tools failed: the messages
+ * of its own error answer, such as {"errorMessages":[],"errors":
+ * {"resolution":"Resolution is required."}}, when the tool passed it on,
+ * or the tool's text as it is.
+ */
+export function jiraSaid(error: unknown): string {
+  if (!(error instanceof ToolFailed)) return error instanceof Error ? error.message : String(error);
+  const said = error.said;
+  if (!said) return 'it said no more';
+  const at = said.indexOf('{');
+  if (at === -1) return said;
+  try {
+    const json = JSON.parse(said.slice(at)) as unknown;
+    if (!isObject(json)) return said;
+    const messages = [
+      ...(Array.isArray(json['errorMessages']) ? json['errorMessages'] : []),
+      ...(isObject(json['errors']) ? Object.values(json['errors']) : []),
+    ].filter((message): message is string => typeof message === 'string' && !!message.trim());
+    return messages.length ? messages.join(' ') : said;
+  } catch {
+    return said;
   }
 }
 
@@ -184,15 +348,18 @@ export function readSearch(
   return { issues, ...(next ? { next } : {}) };
 }
 
-/** An issue as the search answered it: Jira's own shape, its fields under `fields`, or the same fields flat. */
-function readIssue(issue: unknown, site: string, i: number): FetchedIssue {
+/**
+ * An issue as the search, or a read of one, answered it: Jira's own shape,
+ * its fields under `fields`, or the same fields flat.
+ */
+function readIssue(issue: unknown, site: string, i: number, tool: string = JIRA_TOOLS.search): FetchedIssue {
   if (!isObject(issue) || typeof issue['key'] !== 'string' || !issue['key']) {
-    throw new Error(`${JIRA_TOOLS.search}'s issue ${i + 1} has no key`);
+    throw new Error(`${tool}'s issue ${i + 1} has no key`);
   }
   const key = issue['key'];
   const fields = isObject(issue['fields']) ? issue['fields'] : issue;
   const summary = typeof fields['summary'] === 'string' ? fields['summary'].trim() : '';
-  if (!summary) throw new Error(`${JIRA_TOOLS.search}'s issue ${key} has no summary`);
+  if (!summary) throw new Error(`${tool}'s issue ${key} has no summary`);
   const status = fields['status'];
   const category = isObject(status) ? status['statusCategory'] : fields['statusCategory'];
   const description = plainText(fields['description']);
@@ -294,6 +461,11 @@ function arrayIn(json: unknown, names: string[]): unknown[] | undefined {
     if (isObject(member) && Array.isArray(member['nodes'])) return member['nodes'];
   }
   return undefined;
+}
+
+/** What an answer has: an object's members, or what it is otherwise. */
+function membersOf(json: unknown): string {
+  return isObject(json) ? Object.keys(json).join(', ') || 'nothing' : Array.isArray(json) ? 'a list' : typeof json;
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {

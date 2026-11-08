@@ -36,6 +36,7 @@ import { registerFiles } from './files/commands';
 import { Files } from './files/files';
 import { Worktrees } from './git/worktrees';
 import { registerJira, registerKanban } from './kanban/commands';
+import { JiraMoves } from './kanban/jira-moves';
 import { JiraSyncer } from './kanban/jira-sync';
 import { CardStore } from './kanban/store';
 import { CommandRegistry } from './registry';
@@ -168,9 +169,11 @@ const scheduler = new Scheduler(
 registerSchedules(registry, scheduler);
 
 registerKanban(registry, cards, broadcast);
-// Your Jira issues come through your claude.ai Atlassian connector, on a Claude Code process of their own.
+// Your Jira issues come through your claude.ai Atlassian connector, on a Claude Code process of their own;
+// moving one in Jira, on another, the one that may change Jira.
 const jira = new JiraSyncer(cards, () => settingsStore.get().jiraQuery, openConnectors, broadcast, log);
-registerJira(registry, jira);
+const jiraMoves = new JiraMoves(cards, openConnectors, broadcast, log);
+registerJira(registry, jira, jiraMoves);
 
 registerProfiles(
   registry,
@@ -202,6 +205,7 @@ const endpoint = endpointFor(dataDir);
 
 async function stop(): Promise<void> {
   hub.closeAll();
+  jiraMoves.close();
   terminals.closeAll();
   files.dispose();
   search.close();

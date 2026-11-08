@@ -1,5 +1,6 @@
 import type { Card, EventName, EventPayload } from '@grimoire/contract';
 import type { CommandRegistry } from '../registry';
+import type { JiraMoves } from './jira-moves';
 import type { JiraSyncer } from './jira-sync';
 import type { CardStore } from './store';
 
@@ -18,10 +19,15 @@ export function registerKanban(registry: CommandRegistry, cards: CardStore, emit
   registry.register('kanban.link', ({ id, ...chat }) => changed(cards.link(id, chat)));
 }
 
-/** Where the board's Jira issues stand, and syncing them now; the syncer tells every window. */
-export function registerJira(registry: CommandRegistry, jira: JiraSyncer): void {
+/**
+ * Where the board's Jira issues stand, syncing them now, and moving one in
+ * Jira; the syncer and the moves tell every window.
+ */
+export function registerJira(registry: CommandRegistry, jira: JiraSyncer, moves: JiraMoves): void {
   registry.register('kanban.jira', () => jira.state());
   registry.register('kanban.syncJira', ({ ifOlderThan }) =>
     jira.sync(ifOlderThan !== undefined ? { ifOlderThan } : {}),
   );
+  registry.register('kanban.transitions', ({ id, column }) => moves.transitions(id, column));
+  registry.register('kanban.transition', ({ id, transition }) => moves.transition(id, transition));
 }
