@@ -17,7 +17,8 @@
     "typecheck": "tsc -p contract && tsc -p service && tsc -p app",
     "service:stop": "node scripts/stop-service.mjs",
     "capture": "npm run build && electron app --capture",
-    "capture:design": "electron scripts/capture-design.cjs"
+    "capture:design": "electron scripts/capture-design.cjs",
+    "jira:check": "node scripts/jira-check.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",

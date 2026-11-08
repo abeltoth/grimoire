@@ -2,7 +2,7 @@
  * The Electron app: windows only (ADR-010). All state lives in the
  * background service, which this process starts and relays to.
  */
-import { app, BrowserWindow, dialog, ipcMain, net, protocol, screen, type WebFrameMain } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, net, protocol, screen, shell, type WebFrameMain } from 'electron';
 import { existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -134,6 +134,12 @@ ipcMain.on('grimoire:window', (event, action: unknown) => {
 ipcMain.on('grimoire:popOut', (event, chatId: unknown) => {
   if (!isTrusted(event.senderFrame) || typeof chatId !== 'string' || !chatId) return;
   openLeaf({ chatId });
+});
+
+// A web page, such as a Jira issue, opens in the system's browser; nothing but https does.
+ipcMain.on('grimoire:openExternal', (event, url: unknown) => {
+  if (!isTrusted(event.senderFrame) || typeof url !== 'string') return;
+  if (originOf(url).startsWith('https://')) void shell.openExternal(url);
 });
 
 /** The book's window: the one that holds every chapter not popped out. */

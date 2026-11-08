@@ -152,4 +152,5 @@ subscription                  session files
 
 - Claude Code itself handles MCP servers, plugins, skills and hooks. Grimoire never talks to them directly.
 - One exception: Grimoire gives Claude Code a small tool server of its own, run in the service's process through the Agent SDK. Its one tool lets the agent offer separate tasks as cards that open new chats. It isn't listed among the MCP servers and can't be turned off with them; the Colophon turns it off.
+- A second exception: the Kanban board's Jira cards come from the user's claude.ai Atlassian connector. The service starts a hidden Claude Code process that loads no settings and saves nothing, and calls the connector's tools through the SDK's control channel (`mcp_call`, with no model turn and no tokens). That channel skips permission checks, so only an explicit list of read-only Jira tools can be called.
 - The later release notes scraper will add the web as another external system.

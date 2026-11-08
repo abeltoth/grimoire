@@ -1,5 +1,6 @@
 import type { Card, EventName, EventPayload } from '@grimoire/contract';
 import type { CommandRegistry } from '../registry';
+import type { JiraSyncer } from './jira-sync';
 import type { CardStore } from './store';
 
 type Emit = <K extends EventName>(event: K, payload: EventPayload<K>) => void;
@@ -15,4 +16,12 @@ export function registerKanban(registry: CommandRegistry, cards: CardStore, emit
   registry.register('kanban.move', ({ id, column, before }) => changed(cards.move(id, column, before)));
   registry.register('kanban.close', ({ id, closed }) => changed(cards.close(id, closed)));
   registry.register('kanban.link', ({ id, ...chat }) => changed(cards.link(id, chat)));
+}
+
+/** Where the board's Jira issues stand, and syncing them now; the syncer tells every window. */
+export function registerJira(registry: CommandRegistry, jira: JiraSyncer): void {
+  registry.register('kanban.jira', () => jira.state());
+  registry.register('kanban.syncJira', ({ ifOlderThan }) =>
+    jira.sync(ifOlderThan !== undefined ? { ifOlderThan } : {}),
+  );
 }

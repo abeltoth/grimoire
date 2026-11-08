@@ -118,6 +118,7 @@ function fakeBridge(overrides: Partial<GrimoireBridge> = {}) {
       leafListeners.add(listener);
       return () => leafListeners.delete(listener);
     }),
+    openExternal: vi.fn(),
     ...overrides,
   };
   const emit = <K extends EventName>(event: K, payload: EventPayload<K>) =>
@@ -3325,10 +3326,26 @@ describe('App', () => {
         );
       fake.answers['kanban.link'] = ({ id, ...chat }: CommandRequest<'kanban.link'>) => {
         cards = cards.map((c) => (c.id === id ? { ...c, chats: [...c.chats, { ...chat, at: 0 }] } : c));
-        return changed(cards.find((c) => c.id === id)!.column === 'todo' ? place(id, 'doing') : cards);
+        const linked = cards.find((c) => c.id === id)!;
+        return changed(linked.kind === 'task' && linked.column === 'todo' ? place(id, 'doing') : cards);
       };
       return fake;
     }
+
+    /** An issue from Jira, as the service lists it. */
+    const issue = (id: string, key: string, title: string, column: CardColumn, change: Partial<Card> = {}): Card =>
+      card(id, title, column, {
+        kind: 'jira',
+        cwd: '',
+        jira: {
+          key,
+          url: `https://acme.atlassian.net/browse/${key}`,
+          type: 'Bug',
+          priority: 'High',
+          status: column === 'doing' ? 'In Review' : 'To Do',
+        },
+        ...change,
+      });
 
     async function openBoard(fixture: { whenStable(): Promise<unknown> }, el: HTMLElement) {
       [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
@@ -3640,6 +3657,118 @@ describe('App', () => {
       expect(texts('gr-chapter-page .note > *')).toEqual([]);
       expect(calls.filter((c) => c.command === 'kanban.link')).toEqual([]);
     });
+
+    it('shows your Jira issues as cards of their own, which only Jira moves, each opening in Jira', async () => {
+      const synced = new Date(2026, 10, 8, 9, 5).getTime();
+      const { bridge, calls, answers } = withBoard([
+        card('a', 'Mine', 'doing'),
+        issue('j1', 'GRIM-12', 'Context meter', 'doing', { notes: 'Fill it in.' }),
+      ]);
+      answers['kanban.jira'] = () => ({ status: 'synced', syncedAt: synced, syncing: false });
+      answers['kanban.syncJira'] = () => ({ status: 'synced', syncedAt: synced, syncing: false });
+      const { fixture, el, texts } = await render(bridge);
+      await openBoard(fixture, el);
+      // Opening the board syncs them, unless that was done a minute ago.
+      expect(calls.filter((c) => c.command === 'kanban.syncJira').map((c) => c.request)).toEqual([
+        { ifOlderThan: 60_000 },
+      ]);
+
+      expect(board(texts).doing).toEqual(['Mine', 'Context meter']);
+      const jira = cardEl(el, 'Context meter');
+      expect(jira.classList).toContain('jira');
+      expect(cardEl(el, 'Mine').classList).not.toContain('jira');
+      expect(texts('[data-card="j1"] .issue > *')).toEqual(['Jira', 'GRIM-12', 'Bug', 'High']);
+      expect(texts('[data-card="j1"] .notes')).toEqual(['Fill it in.']);
+      expect(texts('[data-card="j1"] .where')).toEqual(['In Review']);
+      expect(texts('[data-card="j1"] .actions button')).toEqual(['New chapter', 'Open in Jira', 'Close']);
+      expect(texts('[data-card="a"] .actions button')).toEqual(['New chapter', 'Move to…', 'Change', 'Close']);
+
+      // It isn't dragged.
+      expect(jira.getAttribute('draggable')).toBe('false');
+      drag('dragstart', jira);
+      drag('dragover', el.querySelector('[aria-labelledby="gr-kanban-done"]')!);
+      drag('drop', el.querySelector('[aria-labelledby="gr-kanban-done"] h3')!);
+      await fixture.whenStable();
+      expect(jira.classList).not.toContain('dragged');
+      expect(calls.filter((c) => c.command === 'kanban.move')).toEqual([]);
+
+      button(jira, 'Open in Jira').click();
+      expect(bridge.openExternal).toHaveBeenCalledWith('https://acme.atlassian.net/browse/GRIM-12');
+
+      // Where they stand shows above the board, with a refresh.
+      const time = new Date(synced).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      expect(texts('gr-kanban-page .jira-sync > *')).toEqual(['Jira', `synced at ${time}`, 'Refresh']);
+      button(el.querySelector('gr-kanban-page .jira-sync')!, 'Refresh').click();
+      await fixture.whenStable();
+      expect(calls.filter((c) => c.command === 'kanban.syncJira').at(-1)!.request).toEqual({});
+
+      // Closed, it says its status and key.
+      button(jira, 'Close').click();
+      await fixture.whenStable();
+      el.querySelector<HTMLButtonElement>('gr-kanban-page .closed > button')!.click();
+      await fixture.whenStable();
+      expect(texts('gr-kanban-page .closed li')).toEqual(['Context meter In Review · GRIM-12 Reopen']);
+    });
+
+    it('opens a chapter from a Jira card with its key, summary and description written in, where the board shows', async () => {
+      const { bridge, calls, answers } = withBoard([
+        card('a', 'A', 'todo'),
+        card('b', 'B', 'todo', { cwd: 'C:/Users/me/git/breeder' }),
+        issue('j1', 'GRIM-12', 'Context meter', 'todo', { notes: 'Fill it in.\n\n- From the usage events' }),
+      ]);
+      answers['layout.get'] = () => ({
+        current: null,
+        lastUsed: { agent: 'claude-code', settings: { cwd: 'C:/Users/me/git/grimoire' } },
+      });
+      const { fixture, el, texts } = await render(bridge);
+      await openBoard(fixture, el);
+      // It belongs to no folder: it shows whichever is picked.
+      expect(texts('gr-kanban-page .folders button')).toEqual(['All', '~/git/grimoire', '~/git/breeder']);
+      button(el.querySelector('gr-kanban-page .folders')!, '~/git/breeder').click();
+      await fixture.whenStable();
+      expect(board(texts).todo).toEqual(['B', 'Context meter']);
+
+      button(cardEl(el, 'Context meter'), 'New chapter').click();
+      await fixture.whenStable();
+      expect(el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!.value).toBe(
+        'GRIM-12: Context meter\n\nFill it in.\n\n- From the usage events',
+      );
+      await write(fixture, el, 'GRIM-12: Context meter');
+      const start = calls.find((c) => c.command === 'agents.start')!.request as CommandRequest<'agents.start'>;
+      expect(start.settings.cwd).toBe('C:/Users/me/git/breeder');
+      expect(calls.filter((c) => c.command === 'kanban.link').map((c) => c.request)).toEqual([
+        { id: 'j1', chatId: 'chat-1', agent: 'claude-code', cwd: 'C:/Users/me/git/breeder' },
+      ]);
+      // Its chat is listed on it, which stays where Jira has it.
+      expect(board(texts).todo).toEqual(['B', 'Context meter']);
+      expect(texts('[data-card="j1"] .chats li')).toEqual(['Untitled chapter thinking']);
+    });
+
+    it('says quietly when Jira can’t be reached, and nothing where there’s no Atlassian connector', async () => {
+      const { bridge, answers, emit } = withBoard([card('a', 'Mine', 'todo')]);
+      answers['kanban.jira'] = () => ({ status: 'none', syncing: false });
+      const { fixture, el, texts } = await render(bridge);
+      await openBoard(fixture, el);
+      expect(el.querySelector('gr-kanban-page .jira-sync')).toBeNull();
+      emit('kanban.jira', { jira: { status: 'none', syncing: true } });
+      await fixture.whenStable();
+      expect(el.querySelector('gr-kanban-page .jira-sync')).toBeNull();
+
+      emit('kanban.jira', { jira: { status: 'needs-auth', syncing: false } });
+      await fixture.whenStable();
+      expect(texts('gr-kanban-page .jira-sync > *')).toEqual([
+        'Jira',
+        'the Atlassian connector needs connecting again on claude.ai',
+        'Refresh',
+      ]);
+      emit('kanban.jira', { jira: { status: 'failed', error: 'HTTP 503', syncing: false } });
+      await fixture.whenStable();
+      expect(texts('gr-kanban-page .jira-sync > *')).toEqual(['Jira', 'couldn’t sync: HTTP 503', 'Refresh']);
+      emit('kanban.jira', { jira: { status: 'failed', error: 'HTTP 503', syncing: true } });
+      await fixture.whenStable();
+      expect(texts('gr-kanban-page .jira-sync > *')).toEqual(['Jira', 'syncing…', 'Refresh']);
+      expect(button(el.querySelector('gr-kanban-page .jira-sync')!, 'Refresh').disabled).toBe(true);
+    });
   });
 
   describe('profiles', () => {
@@ -3865,6 +3994,7 @@ describe('App', () => {
       'Suggest the next entry',
       'Suggest separate chapters',
       'MCP servers in every chapter',
+      'Jira issues on the Kanban board',
     ]);
     expect(checked()).toEqual(['The book’s', 'Drawn', 'The one used last', 'Your last settings', 'On', 'On']);
     expect(texts('gr-colophon-page [aria-labelledby="gr-colophon-mcp"] .none')).toEqual(['None']);
@@ -3892,6 +4022,20 @@ describe('App', () => {
     word('Left out').click();
     await fixture.whenStable();
     expect(document.documentElement.dataset['drawings']).toBe('off');
+
+    const jql = el.querySelector<HTMLTextAreaElement>('#gr-colophon-jira')!;
+    expect(jql.value).toBe(DEFAULT_SETTINGS.jiraQuery);
+    jql.value = ' project = GRIM ';
+    jql.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    jql.value = ' ';
+    jql.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    expect(calls.filter((c) => c.command === 'settings.set').slice(-2).map((c) => c.request)).toEqual([
+      { jiraQuery: 'project = GRIM' },
+      { jiraQuery: DEFAULT_SETTINGS.jiraQuery },
+    ]);
+    expect(jql.value).toBe(DEFAULT_SETTINGS.jiraQuery);
 
     // Another window changed them back.
     kept = { ...DEFAULT_SETTINGS };

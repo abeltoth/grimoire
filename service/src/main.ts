@@ -21,6 +21,7 @@ import {
 } from '@grimoire/contract';
 import { ClaudeAdapter } from './agents/claude/claude-adapter';
 import { useClaudeFolder } from './agents/claude/config-dir';
+import { openConnectors } from './agents/claude/connectors';
 import { registerAgentCommands } from './agents/commands';
 import { AgentHub, hubStore } from './agents/hub';
 import { LayoutStore, registerLayout } from './core/layout';
@@ -34,7 +35,8 @@ import { Git } from './git/git';
 import { registerFiles } from './files/commands';
 import { Files } from './files/files';
 import { Worktrees } from './git/worktrees';
-import { registerKanban } from './kanban/commands';
+import { registerJira, registerKanban } from './kanban/commands';
+import { JiraSyncer } from './kanban/jira-sync';
 import { CardStore } from './kanban/store';
 import { CommandRegistry } from './registry';
 import { AlreadyRunningError, startServer, type ServiceServer } from './server';
@@ -166,6 +168,9 @@ const scheduler = new Scheduler(
 registerSchedules(registry, scheduler);
 
 registerKanban(registry, cards, broadcast);
+// Your Jira issues come through your claude.ai Atlassian connector, on a Claude Code process of their own.
+const jira = new JiraSyncer(cards, () => settingsStore.get().jiraQuery, openConnectors, broadcast, log);
+registerJira(registry, jira);
 
 registerProfiles(
   registry,
@@ -185,6 +190,7 @@ registerProfiles(
       broadcast('settings.changed', { settings: settingsStore.get() });
       broadcast('schedules.changed', { schedules: scheduler.list() });
       broadcast('kanban.changed', { cards: cards.list() });
+      broadcast('kanban.jira', { jira: jira.state() });
       void hub.announceAccounts();
     },
   },
@@ -222,6 +228,8 @@ renameSync(`${infoFile}.tmp`, infoFile);
 log(`Listening on ${endpoint}, build ${buildId}`);
 // Checked twice a minute, which also notices a time that passed while the computer slept.
 scheduler.checkEvery(30_000);
+// The board's Jira issues are synced every hour, as well as when the board opens.
+jira.syncEvery(60 * 60_000);
 search.warm();
 
 process.on('SIGTERM', () => void stop());

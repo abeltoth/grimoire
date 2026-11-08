@@ -28,5 +28,6 @@ function outsideTheApp(): GrimoireBridge {
     window: { minimize() {}, toggleMaximize() {}, close() {} },
     popOut: () => {},
     onLeafClosed: () => () => {},
+    openExternal: () => {},
   };
 }

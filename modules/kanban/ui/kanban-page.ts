@@ -25,6 +25,9 @@ const STATUS: Record<Chapter['status'], { text: string; icon?: IconName; motion?
   blank: { text: 'blank page', icon: 'page' },
 };
 
+/** How long after a sync of your Jira issues opening the board doesn't sync them again. */
+const JIRA_FRESH_MS = 60_000;
+
 /** A chat begun from a card, as its card lists it. */
 interface ListedChat {
   chat: CardChat;
@@ -42,6 +45,13 @@ interface ListedChat {
  * the chat it was added in; closed cards are kept, to open again. An empty
  * card at the foot of To do writes a new one. The board can show one
  * folder's cards only.
+ *
+ * Your Jira issues are cards too, after your own in each column, as Jira's
+ * status categories place them: each with its key, type, priority and
+ * status, an edge of its own, and a link to it in Jira. Only Jira moves
+ * them; they belong to no folder, so show whichever is picked, and their
+ * chats begin in it. Opening the board syncs them, unless that was done a
+ * minute ago; it says when they were synced, or why they couldn't be.
  */
 @Component({
   selector: 'gr-kanban-page',
@@ -71,7 +81,9 @@ export class KanbanPage {
   private readonly titles = signal<ReadonlyMap<string, string>>(new Map());
 
   /** The folders the cards on the board are in, in the order they first appear. */
-  protected readonly folders = computed(() => [...new Set(this.board.open().map((card) => card.cwd))]);
+  protected readonly folders = computed(() => [
+    ...new Set(this.board.open().flatMap((card) => (card.cwd ? [card.cwd] : []))),
+  ]);
   /** The folder whose cards show, while it has any. */
   protected readonly folder = computed(() => {
     const picked = this.picked();
@@ -79,7 +91,13 @@ export class KanbanPage {
   });
   private readonly shown = computed(() => {
     const folder = this.folder();
-    return (this.board.all() ?? []).filter((card) => !folder || card.cwd === folder);
+    return (this.board.all() ?? []).filter((card) => !folder || !card.cwd || card.cwd === folder);
+  });
+  /** Where the Jira issues stand, said once there's a connector, or issues from one. */
+  protected readonly jira = computed(() => {
+    const jira = this.board.jira();
+    const any = (this.board.all() ?? []).some((card) => card.kind === 'jira');
+    return jira && (jira.status !== 'none' || any) ? jira : undefined;
   });
   protected readonly byColumn = computed(() => {
     const open = this.shown().filter((card) => card.closedAt === undefined);
@@ -96,6 +114,7 @@ export class KanbanPage {
 
   constructor() {
     void this.board.load();
+    void this.board.syncJira(JIRA_FRESH_MS);
     void this.loadTitles();
     // A chat closed while the board shows keeps the title it had.
     effect(() => {
@@ -139,9 +158,19 @@ export class KanbanPage {
     });
   }
 
-  /** "In progress · ~/git/grimoire", for a closed card. */
+  /** "In progress · ~/git/grimoire", or "In Review · GRIM-12" for a Jira card, for a closed card. */
   protected closedLine(card: Card): string {
+    if (card.jira) return `${card.jira.status || this.columnName(card.column)} · ${card.jira.key}`;
     return `${this.columnName(card.column)} · ${this.chats.folderName(card.cwd)}`;
+  }
+
+  /** "synced at 10:42", or on another day "synced 3 Nov, 10:42". */
+  protected synced(at: number): string {
+    const when = new Date(at);
+    const time = { hour: 'numeric', minute: '2-digit' } as const;
+    return when.toDateString() === new Date().toDateString()
+      ? `synced at ${when.toLocaleTimeString([], time)}`
+      : `synced ${when.toLocaleString([], { day: 'numeric', month: 'short', ...time })}`;
   }
 
   /** Where Move to can take a card: the other columns, and up or down its own. */
@@ -175,7 +204,7 @@ export class KanbanPage {
   }
 
   protected dragStart(event: DragEvent, card: Card): void {
-    if (this.editing() === card.id) return event.preventDefault();
+    if (this.editing() === card.id || card.kind === 'jira') return event.preventDefault();
     this.dragging.set(card.id);
     this.moving.set(null);
     if (event.dataTransfer) {

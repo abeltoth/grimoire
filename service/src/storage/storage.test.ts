@@ -141,6 +141,8 @@ describe('storage', () => {
       mcpOff: [],
       suggestions: true,
       followUps: true,
+      jiraQuery:
+        'assignee = currentUser() AND (statusCategory != Done OR statusCategoryChangedDate >= -14d) ORDER BY updated DESC',
     });
     settings.set({ wording: 'plain', newChapter: { from: 'preset', preset: 'Bug fix' } });
     settings.set({ themeName: 'night', theme: { '--gr-page': '#fffaf0', '--gr-size-text': '18px' } });
@@ -152,6 +154,8 @@ describe('storage', () => {
     expect(() => settings.set({ suggestions: 'no' } as never)).toThrow('"suggestions"');
     settings.set({ followUps: false });
     expect(() => settings.set({ followUps: 'rarely' } as never)).toThrow('"followUps"');
+    settings.set({ jiraQuery: 'project = GRIM ORDER BY rank' });
+    expect(() => settings.set({ jiraQuery: ' ' })).toThrow('"jiraQuery"');
     expect(() => settings.set({ wording: 'fancy' } as never)).toThrow(`"wording" can't be "fancy"`);
     expect(() => settings.set({ newChapter: { from: 'preset', preset: '' } })).toThrow('"newChapter"');
     expect(() => settings.set({ shelf: 'x' } as never)).toThrow(`There's no setting "shelf"`);
@@ -181,6 +185,7 @@ describe('storage', () => {
       mcpOff: ['github', 'claude.ai Gmail'],
       suggestions: false,
       followUps: false,
+      jiraQuery: 'project = GRIM ORDER BY rank',
     });
     again.close();
   });

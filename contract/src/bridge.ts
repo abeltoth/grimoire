@@ -30,6 +30,8 @@ export interface GrimoireBridge {
    * back. Returns a function that stops listening.
    */
   onLeafClosed(listener: (chatId: ChatId) => void): () => void;
+  /** Opens a web page in the system's browser; only https addresses open. */
+  openExternal(url: string): void;
 }
 
 /** For the window controls Grimoire draws itself (Windows and Linux). */

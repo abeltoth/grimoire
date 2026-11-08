@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import { CARD_COLUMNS, type Card, type CardChat, type CardColumn, type CardDraft } from '@grimoire/contract';
 import { activeProfile } from '../storage/app-state';
+import { JiraCards } from './jira-store';
 
 interface CardRow {
   id: string;
@@ -29,30 +30,43 @@ interface ChatRow {
  * The Kanban board's cards and the chats each began, kept in SQLite. Each
  * card has its place in its column; a closed card keeps its column, off the
  * board, until it's opened again. Each belongs to the profile it was made
- * in; the board is the profile in use's, as `profile` says.
+ * in; the board is the profile in use's, as `profile` says. Your Jira
+ * issues, as last synced, are on it too, each column's after your own
+ * cards; only Jira moves or changes them.
  */
 export class CardStore {
+  /** The Jira issues on each profile's board. */
+  readonly jira: JiraCards;
+
   constructor(
     private readonly db: DatabaseSync,
-    private readonly profile: () => string = () => activeProfile(db),
+    readonly profile: () => string = () => activeProfile(db),
     private readonly now: () => number = Date.now,
-  ) {}
+  ) {
+    this.jira = new JiraCards(db);
+  }
 
-  /** Every card, on the board or closed, column by column, each column in its order. */
+  /** Every card, on the board or closed, column by column, each column your cards in your order, then Jira's. */
   list(): Card[] {
+    const profile = this.profile();
     const rows = this.db
       .prepare(
         `SELECT * FROM cards WHERE profile = ?
          ORDER BY CASE column_id WHEN 'todo' THEN 0 WHEN 'doing' THEN 1 ELSE 2 END, position`,
       )
-      .all(this.profile()) as unknown as CardRow[];
+      .all(profile) as unknown as CardRow[];
     const chats = this.db
       .prepare(
-        `SELECT card_chats.* FROM card_chats JOIN cards ON cards.id = card_chats.card_id
-         WHERE cards.profile = ? ORDER BY card_chats.at`,
+        `SELECT * FROM card_chats WHERE card_id IN (
+           SELECT id FROM cards WHERE profile = ? UNION SELECT id FROM jira_cards WHERE profile = ?
+         ) ORDER BY at`,
       )
-      .all(this.profile()) as unknown as ChatRow[];
-    return rows.map((row) => ({
+      .all(profile, profile) as unknown as ChatRow[];
+    const chatsOf = (id: string) =>
+      chats
+        .filter((chat) => chat.card_id === id)
+        .map(({ chat_id, agent, cwd, at }): CardChat => ({ chatId: chat_id, agent, cwd, at }));
+    const own = rows.map((row): Card => ({
       id: row.id,
       kind: row.kind,
       title: row.title,
@@ -61,13 +75,16 @@ export class CardStore {
       column: row.column_id,
       createdAt: row.created_at,
       ...(row.closed_at !== null ? { closedAt: row.closed_at } : {}),
-      chats: chats
-        .filter((chat) => chat.card_id === row.id)
-        .map(({ chat_id, agent, cwd, at }): CardChat => ({ chatId: chat_id, agent, cwd, at })),
+      chats: chatsOf(row.id),
       ...(row.made_in_chat !== null
         ? { madeIn: { chatId: row.made_in_chat, agent: row.made_in_agent!, cwd: row.made_in_cwd! } }
         : {}),
     }));
+    const jira = this.jira.list(profile).map((card): Card => ({ ...card, chats: chatsOf(card.id) }));
+    return CARD_COLUMNS.flatMap((column) => [
+      ...own.filter((card) => card.column === column),
+      ...jira.filter((card) => card.column === column),
+    ]);
   }
 
   /**
@@ -131,8 +148,15 @@ export class CardStore {
     return this.list();
   }
 
-  /** Takes a card off the board, keeping it; or puts it back, at the foot of its column. */
+  /**
+   * Takes a card off the board, keeping it; or puts it back, at the foot of
+   * its column. A Jira card goes back where Jira has it.
+   */
   close(id: string, closed: boolean): Card[] {
+    if (this.jira.has(this.profile(), id)) {
+      this.jira.close(this.profile(), id, closed, this.now());
+      return this.list();
+    }
     const card = this.known(id);
     if (closed) {
       if (card.closed_at === null) {
@@ -146,21 +170,26 @@ export class CardStore {
     return this.list();
   }
 
-  /** Notes a chat begun from a card; a card still to do is now in progress, at the foot of it. */
+  /**
+   * Notes a chat begun from a card; a task still to do is now in progress,
+   * at the foot of it. A Jira card stays where Jira has it.
+   */
   link(id: string, chat: Omit<CardChat, 'at'>): Card[] {
-    const card = this.known(id);
+    const jira = this.jira.has(this.profile(), id);
+    const card = jira ? undefined : this.known(id);
     this.db
       .prepare(
         `INSERT INTO card_chats (card_id, chat_id, agent, cwd, at) VALUES (?, ?, ?, ?, ?)
          ON CONFLICT (card_id, chat_id) DO NOTHING`,
       )
       .run(id, chat.chatId, chat.agent, chat.cwd, this.now());
-    if (card.column_id === 'todo') return this.move(id, 'doing');
+    if (card?.column_id === 'todo') return this.move(id, 'doing');
     return this.list();
   }
 
-  /** The card, if it's the profile in use's. */
+  /** The task, if it's the profile in use's; a Jira card only Jira changes. */
   private known(id: string): CardRow {
+    if (this.jira.has(this.profile(), id)) throw new Error('A Jira card changes in Jira');
     const row = this.db
       .prepare('SELECT * FROM cards WHERE id = ? AND profile = ?')
       .get(id, this.profile()) as CardRow | undefined;

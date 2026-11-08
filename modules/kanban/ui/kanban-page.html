@@ -17,6 +17,25 @@
     </p>
   }
 
+  @if (jira(); as sync) {
+    <p class="jira-sync" role="status">
+      <span class="label">Jira</span>
+      @if (sync.syncing) {
+        <span>syncing…</span>
+      } @else if (sync.status === 'needs-auth') {
+        <span class="trouble">the Atlassian connector needs connecting again on claude.ai</span>
+      } @else if (sync.status === 'failed') {
+        <span class="trouble">couldn’t sync: {{ sync.error }}</span>
+      } @else if (sync.status === 'none') {
+        <span class="trouble">the Atlassian connector isn’t here</span>
+      }
+      @if (sync.syncedAt && !sync.syncing) {
+        <span>{{ sync.status === 'synced' ? '' : 'last ' }}{{ synced(sync.syncedAt) }}</span>
+      }
+      <button type="button" class="gr-link" [disabled]="sync.syncing" (click)="board.syncJira()">Refresh</button>
+    </p>
+  }
+
   <div class="board">
     @for (c of columns; track c.column) {
       <section
@@ -34,20 +53,39 @@
           @for (card of byColumn()[c.column]; track card.id) {
             <li
               class="card"
+              [class.jira]="card.kind === 'jira'"
               [attr.data-card]="card.id"
               [class.dragged]="dragging() === card.id"
-              [attr.draggable]="editing() !== card.id"
+              [attr.draggable]="editing() !== card.id && card.kind !== 'jira'"
               (dragstart)="dragStart($event, card)"
               (dragend)="dragEnd()"
             >
               @if (editing() === card.id) {
                 <gr-card-form [card]="card" (done)="editing.set(null)" />
               } @else {
+                @if (card.jira; as issue) {
+                  <p class="issue">
+                    <span class="mark" title="From Jira">Jira</span>
+                    <span class="key">{{ issue.key }}</span>
+                    @if (issue.type) {
+                      <span class="type">{{ issue.type }}</span>
+                    }
+                    @if (issue.priority) {
+                      <span class="priority" [attr.title]="issue.priority + ' priority'">{{ issue.priority }}</span>
+                    }
+                  </p>
+                }
                 <p class="name">{{ card.title }}</p>
                 @if (card.notes) {
                   <p class="notes" [attr.title]="card.notes">{{ card.notes }}</p>
                 }
-                <p class="where"><code>{{ chats.folderName(card.cwd) }}</code></p>
+                @if (card.jira; as issue) {
+                  @if (issue.status) {
+                    <p class="where status-name">{{ issue.status }}</p>
+                  }
+                } @else {
+                  <p class="where"><code>{{ chats.folderName(card.cwd) }}</code></p>
+                }
                 @if (card.madeIn; as made) {
                   <p class="made-in">
                     From {{ chats.agentName(made.agent) }}, in
@@ -92,11 +130,19 @@
                       <button type="button" class="gr-link" (click)="closeMoves(card)">Cancel</button>
                     </span>
                   } @else {
-                    <button type="button" class="gr-link begin" (click)="board.newChat(card)">
+                    <button type="button" class="gr-link begin" (click)="board.newChat(card, folder() ?? undefined)">
                       {{ wording.say('New chapter', 'New chat') }}
                     </button>
-                    <button type="button" class="gr-link move" (click)="openMoves(card)">Move to…</button>
-                    <button type="button" class="gr-link" (click)="editing.set(card.id)">Change</button>
+                    @if (card.jira; as issue) {
+                      @if (issue.url) {
+                        <button type="button" class="gr-link" [attr.title]="issue.url" (click)="board.openInJira(card)">
+                          Open in Jira
+                        </button>
+                      }
+                    } @else {
+                      <button type="button" class="gr-link move" (click)="openMoves(card)">Move to…</button>
+                      <button type="button" class="gr-link" (click)="editing.set(card.id)">Change</button>
+                    }
                     <button type="button" class="gr-link" (click)="board.close(card.id, true)">Close</button>
                   }
                 </div>

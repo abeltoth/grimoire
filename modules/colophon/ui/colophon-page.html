@@ -215,6 +215,21 @@
       }}
     </p>
 
+    <label class="label" for="gr-colophon-jira">Jira issues on the Kanban board</label>
+    <textarea
+      #jiraField
+      id="gr-colophon-jira"
+      class="line prompt"
+      rows="2"
+      spellcheck="false"
+      [value]="all.jiraQuery"
+      (change)="setJiraQuery(jiraField)"
+    ></textarea>
+    <p class="note">
+      Those this Jira query finds, through your claude.ai Atlassian connector. Emptied, it finds yours
+      not done, and those done in the last two weeks.
+    </p>
+
     @if (accounts.agent(); as agent) {
       @let signIn = accounts.state();
       <span class="label" id="gr-colophon-account">{{ agent.name }} signs in as</span>

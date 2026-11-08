@@ -56,7 +56,12 @@ const VALID: { [K in keyof GrimoireSettings]: (value: unknown) => boolean } = {
   mcpOff: (value) => mcpNames(value),
   suggestions: (value) => typeof value === 'boolean',
   followUps: (value) => typeof value === 'boolean',
+  jiraQuery: (value) =>
+    typeof value === 'string' && value.trim() !== '' && value.length <= MAX_JIRA_QUERY,
 };
+
+/** The longest Jira query kept: longer than anyone writes by hand. */
+const MAX_JIRA_QUERY = 2000;
 
 /** The most MCP servers kept off: more than anyone has. */
 const MAX_MCP_SERVERS = 200;

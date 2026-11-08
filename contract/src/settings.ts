@@ -34,7 +34,16 @@ export interface GrimoireSettings {
    * that opens a new chat; open chats stop when their process next starts again.
    */
   followUps: boolean;
+  /**
+   * The Jira query (JQL) whose issues show on the Kanban board, fetched
+   * through your claude.ai Atlassian connector.
+   */
+  jiraQuery: string;
 }
+
+/** The Jira issues on the board unless you say otherwise: yours not done, and those done in the last fortnight. */
+export const DEFAULT_JIRA_QUERY =
+  'assignee = currentUser() AND (statusCategory != Done OR statusCategoryChangedDate >= -14d) ORDER BY updated DESC';
 
 export const DEFAULT_SETTINGS: GrimoireSettings = {
   wording: 'book',
@@ -47,6 +56,7 @@ export const DEFAULT_SETTINGS: GrimoireSettings = {
   mcpOff: [],
   suggestions: true,
   followUps: true,
+  jiraQuery: DEFAULT_JIRA_QUERY,
 };
 
 declare module './commands' {

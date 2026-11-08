@@ -153,6 +153,29 @@ const MIGRATIONS = [
   `ALTER TABLE cards ADD COLUMN made_in_chat TEXT;
    ALTER TABLE cards ADD COLUMN made_in_agent TEXT;
    ALTER TABLE cards ADD COLUMN made_in_cwd TEXT;`,
+  // Jira issues on the board: each profile's, as last synced, and how its last sync went.
+  `CREATE TABLE jira_cards (
+     id TEXT PRIMARY KEY,
+     profile TEXT NOT NULL,
+     issue_key TEXT NOT NULL,
+     summary TEXT NOT NULL,
+     description TEXT NOT NULL,
+     url TEXT NOT NULL,
+     issue_type TEXT NOT NULL,
+     priority TEXT NOT NULL,
+     status TEXT NOT NULL,
+     column_id TEXT NOT NULL,
+     position INTEGER NOT NULL,
+     created_at INTEGER NOT NULL,
+     closed_at INTEGER,
+     UNIQUE (profile, issue_key)
+   );
+   CREATE TABLE jira_syncs (
+     profile TEXT PRIMARY KEY,
+     status TEXT NOT NULL,
+     error TEXT,
+     synced_at INTEGER
+   );`,
 ];
 
 /**

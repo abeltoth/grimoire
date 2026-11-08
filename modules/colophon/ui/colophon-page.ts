@@ -12,6 +12,7 @@ import {
 } from '@angular/core';
 import {
   type AgentId,
+  DEFAULT_JIRA_QUERY,
   type GrimoireSettings,
   PERSONAL_PROFILE,
   type Preset,
@@ -34,8 +35,9 @@ import { ThemeEditor } from './theme-editor';
  * in as. Below them, the presets, each with the first entry its chapters
  * begin with, to rename or remove; then the theme. The MCP servers your
  * agents load in your home folder, and those turned off, can be turned off
- * or on in every chapter. Last, the profiles: each with its Claude folder,
- * to make, rename, switch to or delete.
+ * or on in every chapter. The Jira query picks the issues on the Kanban
+ * board. Last, the profiles: each with its Claude folder, to make, rename,
+ * switch to or delete.
  */
 @Component({
   selector: 'gr-colophon-page',
@@ -215,6 +217,13 @@ export class ColophonPage {
 
   protected set(change: Partial<GrimoireSettings>): void {
     void this.settings.set(change);
+  }
+
+  /** Keeps the Jira query written; emptied, it's the one the board began with. */
+  protected setJiraQuery(field: HTMLTextAreaElement): void {
+    const query = field.value.trim() || DEFAULT_JIRA_QUERY;
+    field.value = query;
+    if (query !== this.settings.all().jiraQuery) this.set({ jiraQuery: query });
   }
 
   protected pickAgent(agent: AgentId | null): void {

@@ -511,6 +511,10 @@
   --gr-kanban-word-gap: 10px;
   --gr-kanban-actions-gap: 10px;
   --gr-kanban-form-gap: 8px;
+  /* A Jira issue's card: an edge of its own, and its marks above its summary */
+  --gr-kanban-jira-edge: 3px solid var(--gr-lapis);
+  --gr-kanban-jira-mark: var(--gr-lapis);
+  --gr-kanban-jira-marks-gap: 6px;
 
   /* The Colophon: Grimoire's settings, written out as words to pick */
   --gr-colophon-width: 640px;

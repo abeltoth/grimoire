@@ -1,5 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import type { Card, CardChat, CardColumn, CardDraft } from '@grimoire/contract';
+import type { Card, CardChat, CardColumn, CardDraft, JiraSync } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { Chats } from '@ui/app/core/chats';
 
@@ -10,16 +10,21 @@ export const COLUMNS: readonly { column: CardColumn; label: string }[] = [
   { column: 'done', label: 'Done' },
 ];
 
-/** What a card's new chat begins with, written in: its title, and its notes under it. */
-export function promptOf(card: Pick<Card, 'title' | 'notes'>): string {
-  return card.notes ? `${card.title}\n\n${card.notes}` : card.title;
+/**
+ * What a card's new chat begins with, written in: its title, after its
+ * issue's key for a Jira card, and its notes under it.
+ */
+export function promptOf(card: Pick<Card, 'title' | 'notes' | 'jira'>): string {
+  const title = card.jira ? `${card.jira.key}: ${card.title}` : card.title;
+  return card.notes ? `${title}\n\n${card.notes}` : title;
 }
 
 /**
  * The Kanban board, as the window sees it: a mirror of the service's
  * cards, kept current by its events. A card's new chat opens as a blank
  * chapter with the task written in; once its first message is sent, the
- * chat is noted on the card, and a card still to do is in progress.
+ * chat is noted on the card, and a task still to do is in progress. Your
+ * Jira issues are cards too, synced from Jira when you ask.
  */
 @Injectable({ providedIn: 'root' })
 export class Board {
@@ -32,6 +37,8 @@ export class Board {
   readonly all = signal<readonly Card[] | undefined>(undefined);
   /** Why the last change failed, until the next one. */
   readonly failed = signal<string | null>(null);
+  /** Where the board's Jira issues stand; undefined until the service has said. */
+  readonly jira = signal<JiraSync | undefined>(undefined);
   /** The cards on the board, not closed. */
   readonly open = computed(() => (this.all() ?? []).filter((card) => card.closedAt === undefined));
   /** The card on the board the chapter you're on began from, if any. */
@@ -42,6 +49,7 @@ export class Board {
 
   constructor() {
     this.bridge.on('kanban.changed', ({ cards }) => this.all.set(cards));
+    this.bridge.on('kanban.jira', ({ jira }) => this.jira.set(jira));
     this.chats.onBegun((blankId, chat) => {
       const id = this.opening.get(blankId);
       if (!id) return;
@@ -56,9 +64,29 @@ export class Board {
     try {
       const cards = await this.bridge.invoke('kanban.list', {});
       if (cards) this.all.set(cards);
+      const jira = await this.bridge.invoke('kanban.jira', {});
+      if (jira) this.jira.set(jira);
     } catch (error) {
       this.fail(error);
     }
+  }
+
+  /**
+   * Fetches your Jira issues afresh, unless the last sync began less than
+   * `ifOlderThan` ms ago; the cards and where they stand come as events.
+   */
+  async syncJira(ifOlderThan?: number): Promise<void> {
+    try {
+      const jira = await this.bridge.invoke('kanban.syncJira', ifOlderThan ? { ifOlderThan } : {});
+      if (jira) this.jira.set(jira);
+    } catch (error) {
+      this.fail(error);
+    }
+  }
+
+  /** Opens a Jira card's issue in Jira, in the browser. */
+  openInJira(card: Card): void {
+    if (card.jira?.url) this.bridge.openExternal(card.jira.url);
   }
 
   /** Saves a card; false when the service turned it away, and why shows. */
@@ -81,18 +109,21 @@ export class Board {
   /**
    * Opens a new chapter in the card's folder with its title and notes
    * written in, not sent, and with what new chapters begin with otherwise.
-   * One opened from the card before and still blank is turned to instead.
+   * A Jira card has no folder: its chapter begins in `folder`, the one the
+   * board shows, or where new chapters do. One opened from the card before
+   * and still blank is turned to instead.
    */
-  newChat(card: Card): void {
+  newChat(card: Card, folder?: string): void {
     for (const [chapter, id] of this.opening) {
       if (id !== card.id) continue;
       if (this.chats.has(chapter)) return this.chats.open(chapter);
       this.opening.delete(chapter);
     }
     const { agent, settings } = this.chats.startOf();
+    const cwd = card.cwd || folder || settings.cwd;
     const chapter = this.chats.newChapter({
       agent,
-      settings: { ...settings, cwd: card.cwd },
+      settings: { ...settings, ...(cwd ? { cwd } : {}) },
       prompt: promptOf(card),
     });
     this.opening.set(chapter, card.id);

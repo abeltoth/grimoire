@@ -41,6 +41,7 @@ const bridge: GrimoireBridge = {
     ipcRenderer.on('grimoire:leafClosed', handler);
     return () => ipcRenderer.removeListener('grimoire:leafClosed', handler);
   },
+  openExternal: (url) => ipcRenderer.send('grimoire:openExternal', url),
 };
 
 contextBridge.exposeInMainWorld('grimoire', bridge);
