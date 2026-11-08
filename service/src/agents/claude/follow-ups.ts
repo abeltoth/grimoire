@@ -1,27 +1,19 @@
-import type { Options, createSdkMcpServer, tool } from '@anthropic-ai/claude-agent-sdk';
 import type { FollowUp } from '@grimoire/contract';
 import { z } from 'zod';
+import type { ServerMaker } from './grimoire-tools';
 import { type ClaudeMessage, FOLLOW_UPS_TOOL, isYourEntry } from './transcript';
 
 /**
- * Grimoire's own tool server, in the service's process: the one exception
- * to Grimoire never talking to MCP servers (ADR-011). Its one tool lets
- * the agent offer, now and then, a separate task as a card that opens a
- * new chat.
+ * The tool on Grimoire's own tool server (grimoire-tools.ts) that lets the
+ * agent offer, now and then, a separate task as a card that opens a new
+ * chat: its own name; Claude Code calls it FOLLOW_UPS_TOOL, after the server.
  */
-export const FOLLOW_UPS_SERVER = 'grimoire';
-
-/** Its tool's own name; Claude Code calls it FOLLOW_UPS_TOOL, after the server. */
 export const FOLLOW_UPS_TOOL_NAME = 'suggest_follow_ups';
 
 /** The most tasks offered after one reply. */
 export const MAX_FOLLOW_UPS = 3;
 
-/**
- * What the agent is told of the tool. Without it, the SDK gives Claude
- * Code an empty system prompt, its tools' own words aside; this is the
- * whole of it, so nothing else the agent is told changes.
- */
+/** What the agent is told of the tool, in its system prompt. */
 export const FOLLOW_UPS_PROMPT =
   'Grimoire, the app this chat is in, gives you the tool suggest_follow_ups. Call it rarely: only when ' +
   'a clearly separate, substantial piece of work has come up that the user would plausibly want in its ' +
@@ -68,22 +60,9 @@ export class FollowUpsKept {
   }
 }
 
-/** The parts of the Agent SDK the server is made with, loaded when a process starts. */
-export interface ServerMaker {
-  createSdkMcpServer: typeof createSdkMcpServer;
-  tool: typeof tool;
-}
-
-/**
- * The options that give a Claude Code process the tool, and tell the agent
- * of it, its calls kept in `kept`. The tool is allowed without asking, and
- * always loaded, never deferred behind tool search.
- */
-export function followUpOptions(
-  sdk: ServerMaker,
-  kept: FollowUpsKept,
-): Pick<Options, 'mcpServers' | 'allowedTools' | 'systemPrompt'> {
-  const suggest = sdk.tool(
+/** The tool, its calls kept in `kept`; always loaded, never deferred behind tool search. */
+export function followUpsTool(sdk: ServerMaker, kept: FollowUpsKept) {
+  return sdk.tool(
     FOLLOW_UPS_TOOL_NAME,
     DESCRIPTION,
     INPUT,
@@ -93,13 +72,6 @@ export function followUpOptions(
     },
     { annotations: { readOnlyHint: true }, alwaysLoad: true },
   );
-  return {
-    mcpServers: {
-      [FOLLOW_UPS_SERVER]: sdk.createSdkMcpServer({ name: FOLLOW_UPS_SERVER, tools: [suggest], alwaysLoad: true }),
-    },
-    allowedTools: [FOLLOW_UPS_TOOL],
-    systemPrompt: FOLLOW_UPS_PROMPT,
-  };
 }
 
 /** The tasks as cards: each trimmed, those without a title or prompt left out, at most three. */

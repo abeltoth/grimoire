@@ -44,6 +44,11 @@ export interface Card {
   closedAt?: number;
   /** The chats begun from it, oldest first. */
   chats: CardChat[];
+  /**
+   * The chat whose agent added it to the board, when one did: to open it
+   * again. It isn't among the chats begun from it.
+   */
+  madeIn?: Omit<CardChat, 'at'>;
 }
 
 /** A card as you write it: a new one has no ID yet, and goes at the foot of To do. */

@@ -141,6 +141,19 @@ h3 {
   color: var(--gr-ink-soft);
 }
 
+/* Who added it, when an agent did, and the chat it was added in. */
+.made-in {
+  margin: var(--gr-aside-gap) 0 0;
+  font-style: italic;
+  font-size: var(--gr-size-label);
+  color: var(--gr-ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.made-in .chat {
+  font-style: normal;
+}
+
 /* The chats it began, the latest with its live status, as the ribbons show it. */
 .chats {
   margin: var(--gr-kanban-card-line-gap) 0 0;

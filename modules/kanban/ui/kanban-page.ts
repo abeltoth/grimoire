@@ -38,7 +38,8 @@ interface ListedChat {
  * Done, each column in your order. Cards are dragged between and within
  * columns, or moved with a card's Move to. A card begins a new chat in its
  * folder, lists the chats it began with the latest one's live status, and
- * stays until you close it; closed cards are kept, to open again. An empty
+ * stays until you close it; one an agent added says so, and links back to
+ * the chat it was added in; closed cards are kept, to open again. An empty
  * card at the foot of To do writes a new one. The board can show one
  * folder's cards only.
  */
@@ -114,12 +115,23 @@ export class KanbanPage {
     return COLUMNS.find((c) => c.column === column)!.label;
   }
 
+  /** A chat's title: as it's open, or as the agents list it, or as it was while open. */
+  protected titleOf(chatId: string): string {
+    const chapter = this.chats.all().find((c) => c.id === chatId);
+    return chapter?.title || this.titles().get(chatId) || this.wording.untitled();
+  }
+
+  /** Turns to the chat an agent added the card in, opening it again when it was closed. */
+  protected openMadeIn(card: Card): void {
+    if (card.madeIn) void this.board.openChat({ ...card.madeIn, at: card.createdAt });
+  }
+
   /** The card's chats, oldest first, the latest with its live status. */
   protected chatsOf(card: Card): ListedChat[] {
     const open = this.chats.all();
     return card.chats.map((chat, i) => {
       const chapter = open.find((c) => c.id === chat.chatId);
-      const title = chapter?.title || this.titles().get(chat.chatId) || this.wording.untitled();
+      const title = this.titleOf(chat.chatId);
       if (i !== card.chats.length - 1) return { chat, title };
       const status = chapter ? STATUS[chapter.status] : { text: 'not open' };
       const text = chapter?.status === 'blank' ? this.wording.say('blank page', 'new chat') : status.text;

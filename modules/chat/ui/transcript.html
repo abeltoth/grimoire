@@ -236,8 +236,8 @@
     type="button"
     class="note"
     [attr.title]="note.target || null"
-    [attr.aria-disabled]="note.fold || showsHelper(note) ? null : true"
-    [attr.aria-expanded]="note.fold && !showsHelper(note) ? isOpen(note.key) : null"
+    [attr.aria-disabled]="note.fold || turnsPage(note) ? null : true"
+    [attr.aria-expanded]="note.fold && !turnsPage(note) ? isOpen(note.key) : null"
     (click)="press(note)"
   >
     <span class="note-head"
@@ -297,7 +297,7 @@
 <!-- The details of the notes you folded out, across the text and the margin. -->
 <ng-template #foldsTemplate let-notes>
   @for (note of notes; track note.key) {
-    @if (note.fold && isOpen(note.key) && !showsHelper(note)) {
+    @if (note.fold && isOpen(note.key) && !turnsPage(note)) {
       @if (note.fold.kind === 'corrections') {
         <gr-corrections
           class="wide"

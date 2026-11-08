@@ -48,6 +48,19 @@
                   <p class="notes" [attr.title]="card.notes">{{ card.notes }}</p>
                 }
                 <p class="where"><code>{{ chats.folderName(card.cwd) }}</code></p>
+                @if (card.madeIn; as made) {
+                  <p class="made-in">
+                    From {{ chats.agentName(made.agent) }}, in
+                    <button
+                      type="button"
+                      class="chat"
+                      [attr.title]="wording.say('The chapter it was added in', 'The chat it was added in')"
+                      (click)="openMadeIn(card)"
+                    >
+                      {{ titleOf(made.chatId) }}
+                    </button>
+                  </p>
+                }
 
                 @if (card.chats.length) {
                   <ul class="chats" [attr.aria-label]="wording.say('Its chapters', 'Its chats')">

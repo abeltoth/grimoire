@@ -3572,6 +3572,74 @@ describe('App', () => {
       await fixture.whenStable();
       expect(board(texts)).toEqual({ todo: ['A'], doing: ['B'], done: ['C'] });
     });
+
+    it('notes a task the agent added, turning to the board, where its card links back to the chapter', async () => {
+      const { bridge, calls, answers, emit } = fakeBridge();
+      let cards: Card[] = [];
+      answers['kanban.list'] = () => cards;
+      answers['agents.open'] = (request: CommandRequest<'agents.open'>): OpenChat => ({
+        id: request.chatId,
+        agent: request.agent,
+        title: 'Track the meter',
+        settings: request.settings,
+        status: 'idle',
+        entries: [],
+        approvals: [],
+        queued: [],
+        plan: [],
+        withdrawn: [],
+        dogEars: [],
+        tags: [],
+        copied: [],
+      });
+      const cwd = 'C:/Users/me/git/grimoire';
+      answers['layout.get'] = () => ({ current: null, lastUsed: { agent: 'claude-code', settings: { cwd } } });
+      const { fixture, el, texts } = await render(bridge);
+      await write(fixture, el, 'Put the context meter on the board');
+      emit('agents.title', { chatId: 'chat-1', title: 'Track the meter' });
+      emit('agents.entry', {
+        chatId: 'chat-1',
+        entry: {
+          kind: 'agent',
+          id: 'a1',
+          blocks: [
+            {
+              kind: 'tool',
+              id: 't1',
+              tool: 'mcp__grimoire__add_todo',
+              input: { title: 'Context meter', notes: 'Fill it in from the usage events.' },
+              result: { text: 'Added "Context meter" to To do on the user\'s Kanban board.', isError: false },
+            },
+            { kind: 'text', text: 'It’s on the board.' },
+          ],
+        },
+      });
+      cards = [card('a', 'Context meter', 'todo', { madeIn: { chatId: 'chat-1', agent: 'claude-code', cwd } })];
+      emit('kanban.changed', { cards });
+      await fixture.whenStable();
+
+      expect(texts('gr-chapter-page .note > *')).toEqual(['*Added to the board', 'Context meter']);
+      el.querySelector<HTMLButtonElement>('gr-chapter-page .note')!.click();
+      await fixture.whenStable();
+      expect(texts('gr-thumb-page .title')).toEqual(['Kanban']);
+      expect(el.querySelector('gr-output')).toBeNull();
+      expect(board(texts).todo).toEqual(['Context meter']);
+      expect(texts('[data-card="a"] .made-in')).toEqual(['From Claude Code, in Track the meter']);
+      expect(el.querySelector('[data-card="a"] .chats')).toBeNull();
+
+      // Closed, the chapter is opened again from the card.
+      button(el.querySelector('gr-chapter-page gr-running-head')!, 'Close').click();
+      await fixture.whenStable();
+      el.querySelector<HTMLButtonElement>('[data-card="a"] .made-in .chat')!.click();
+      await fixture.whenStable();
+      expect(calls.find((c) => c.command === 'agents.open')!.request).toEqual({
+        agent: 'claude-code',
+        chatId: 'chat-1',
+        settings: { cwd },
+      });
+      expect(texts('gr-chapter-page .note > *')).toEqual([]);
+      expect(calls.filter((c) => c.command === 'kanban.link')).toEqual([]);
+    });
   });
 
   describe('profiles', () => {

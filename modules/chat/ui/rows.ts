@@ -17,6 +17,7 @@ export type Deed =
   | 'searched-web'
   | 'helped'
   | 'asked'
+  | 'added'
   | 'other';
 
 /** A margin note: a tool the agent used, marked like a footnote. */
@@ -122,6 +123,9 @@ const UNNOTED_TOOLS = new Set([
   'TodoWrite',
   'ToolSearch',
 ]);
+
+/** The tool Grimoire gives the agent to add a task to your Kanban board with; its input's `title` names it. */
+const ADD_TODO_TOOL = 'mcp__grimoire__add_todo';
 
 /** The tool a helper ends its run with: its report, in its input's `message`, reads as its last reply. */
 const HANDBACK_TOOL = 'SubagentHandback';
@@ -266,6 +270,7 @@ const DEEDS: Record<Deed, (n: number) => string> = {
   'searched-web': (n) => `searched the web ${times(n)}`,
   helped: (n) => `asked ${count(n, 'helper', 'helpers')}`,
   asked: (n) => `asked you ${times(n)}`,
+  added: (n) => `added ${count(n, 'task', 'tasks')} to the board`,
   other: (n) => `used ${count(n, 'other tool', 'other tools')}`,
 };
 
@@ -395,6 +400,8 @@ function describe(
       return resumed ? ['Messaged a helper', text('summary') || text('to'), 'helped'] : [tool, '', 'other'];
     case 'AskUserQuestion':
       return ['Asked you', '', 'asked'];
+    case ADD_TODO_TOOL:
+      return ['Added to the board', text('title').trim(), 'added'];
     default:
       return [tool, '', 'other'];
   }

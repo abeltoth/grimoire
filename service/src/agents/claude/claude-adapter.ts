@@ -30,7 +30,8 @@ import type { AgentAdapter, ChatEvents, ChatHistory, LiveChat, SavedChat, SignIn
 import { CacheTracker, type ReplyUsage } from './cache';
 import { claudeHome } from './config-dir';
 import { readUserSettings } from './effort';
-import { FOLLOW_UPS_SERVER, FollowUpsKept, followUpOptions, savedFollowUps } from './follow-ups';
+import { FollowUpsKept, savedFollowUps } from './follow-ups';
+import { GRIMOIRE_SERVER, grimoireOptions } from './grimoire-tools';
 import { mcpOff, mcpSettings } from './mcp';
 import { memorySettings, readMemories } from './memories';
 import { MessageQueue } from './message-queue';
@@ -41,6 +42,7 @@ import { commandFiles, readSettingsFile, settingsFilesIn, toSetup } from './setu
 import { type AgentToolInput, type PickerSources, RATER_PROMPT, pickFor, readRating } from './subagents';
 import { AUTO_PROMPT, autoPick, entryForRater } from './auto-model';
 import { readAccount, signIn } from './sign-in';
+import { type AddTodo, TodoChat } from './todos';
 import {
   type ClaudeMessage,
   ClaudeTranscript,
@@ -88,6 +90,8 @@ interface Spare {
   mcpOff: string[];
   /** Where its tool keeps the separate tasks offered, for the chat that claims it. */
   followUps: FollowUpsKept;
+  /** The chat its tool adds cards to the board in: the one that claims it. */
+  todoChat: TodoChat;
 }
 
 /**
@@ -104,12 +108,16 @@ export class ClaudeAdapter implements AgentAdapter {
    * `mcpOffEverywhere` names the MCP servers turned off in every chat,
    * `suggestions` says whether Claude Code suggests your next message, and
    * `followUps` whether the agent may offer separate tasks, as they are
-   * when a process starts.
+   * when a process starts. `addTodo` puts a task the agent adds on the
+   * Kanban board.
    */
   constructor(
     private readonly mcpOffEverywhere: () => readonly string[] = () => [],
     private readonly suggestions: () => boolean = () => true,
     private readonly followUps: () => boolean = () => true,
+    private readonly addTodo: AddTodo = () => {
+      throw new Error('There is no Kanban board here');
+    },
   ) {}
 
   readonly info: AgentInfo = {
@@ -348,6 +356,8 @@ export class ClaudeAdapter implements AgentAdapter {
     const input = new MessageQueue<SDKUserMessage>();
     const picking = new Deferred<PickerSources>();
     const followUps = new FollowUpsKept();
+    const todoChat = new TodoChat();
+    todoChat.set({ chatId, agent: this.info.id, cwd: settings.cwd });
     const off = this.mcpOff(settings);
     const offered = this.followUps();
     const started: Promise<Query> = sdk().then((made) =>
@@ -370,7 +380,10 @@ export class ClaudeAdapter implements AgentAdapter {
           env: env(),
           extraArgs: CLI_ARGS,
           ...(resume ? { resume: chatId } : { sessionId: chatId, ...(title ? { title } : {}) }),
-          ...(offered ? followUpOptions(made, followUps) : {}),
+          ...grimoireOptions(made, {
+            ...(offered ? { followUps } : {}),
+            todos: { chat: todoChat, add: this.addTodo },
+          }),
           canUseTool: approvalsTo(async () => events),
           hooks: subagentHooks(() => picking.promise),
         },
@@ -416,6 +429,7 @@ export class ClaudeAdapter implements AgentAdapter {
     const claimedBy = new Deferred<ChatEvents>();
     const picking = new Deferred<PickerSources>();
     const followUps = new FollowUpsKept();
+    const todoChat = new TodoChat();
     const off = this.mcpOff();
     const offered = this.followUps();
     const spare: Spare = {
@@ -423,6 +437,7 @@ export class ClaudeAdapter implements AgentAdapter {
       picking,
       mcpOff: off,
       followUps,
+      todoChat,
       process: sdk().then((made) =>
         made.prewarm({
           options: {
@@ -436,8 +451,11 @@ export class ClaudeAdapter implements AgentAdapter {
             promptSuggestions: this.suggestions(),
             env: env(),
             extraArgs: CLI_ARGS,
-            // Its tool's calls go to the chat that claims it, once its turn ends.
-            ...(offered ? followUpOptions(made, followUps) : {}),
+            // Its tools' calls go to the chat that claims it: its separate tasks once its turn ends.
+            ...grimoireOptions(made, {
+              ...(offered ? { followUps } : {}),
+              todos: { chat: todoChat, add: this.addTodo },
+            }),
             canUseTool: approvalsTo(() => claimedBy.promise),
             hooks: subagentHooks(() => picking.promise),
           },
@@ -462,7 +480,7 @@ export class ClaudeAdapter implements AgentAdapter {
    * server is never among them, whatever another server of that name.
    */
   private mcpOff(settings?: ChatSettings): string[] {
-    return mcpOff(this.mcpOffEverywhere(), settings).filter((name) => name !== FOLLOW_UPS_SERVER);
+    return mcpOff(this.mcpOffEverywhere(), settings).filter((name) => name !== GRIMOIRE_SERVER);
   }
 
   private takeSpare(): Spare | undefined {
@@ -507,6 +525,7 @@ export class ClaudeAdapter implements AgentAdapter {
       chatId = claim.sessionId;
     }
     const events = bind(chatId);
+    spare.todoChat.set({ chatId, agent: this.info.id, cwd: settings.cwd });
     spare.claimedBy.resolve(events);
     return this.drive(chatId, settings, Promise.resolve(query), input, events, spare.picking, spare.followUps);
   }

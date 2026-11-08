@@ -125,6 +125,7 @@ const search = new SearchWorker(
 );
 registerSearch(registry, search);
 
+const worktrees = new Worktrees(new WorktreeRecords(db), log);
 const hub = new AgentHub(
   (event, payload) => {
     server?.broadcast(event, payload);
@@ -133,13 +134,20 @@ const hub = new AgentHub(
   },
   50,
   hubStore(db),
-  new Worktrees(new WorktreeRecords(db), log),
+  worktrees,
   log,
 );
+const cards = new CardStore(db);
 const claude = new ClaudeAdapter(
   () => settingsStore.get().mcpOff,
   () => settingsStore.get().suggestions,
   () => settingsStore.get().followUps,
+  // A task the agent adds goes on the board in use, which every window is told of. One
+  // added in a chat's own worktree is in the folder that was made from: the worktree goes.
+  (draft, madeIn) => {
+    const cwd = worktrees.origin(draft.cwd) ?? draft.cwd;
+    broadcast('kanban.changed', { cards: cards.save({ ...draft, cwd }, madeIn) });
+  },
 );
 hub.addAdapter(claude);
 claude.warm();
@@ -157,7 +165,6 @@ const scheduler = new Scheduler(
 );
 registerSchedules(registry, scheduler);
 
-const cards = new CardStore(db);
 registerKanban(registry, cards, broadcast);
 
 registerProfiles(

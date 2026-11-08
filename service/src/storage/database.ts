@@ -149,6 +149,10 @@ const MIGRATIONS = [
      at INTEGER NOT NULL,
      PRIMARY KEY (card_id, chat_id)
    );`,
+  // A card an agent added to the board: the chat it was added in.
+  `ALTER TABLE cards ADD COLUMN made_in_chat TEXT;
+   ALTER TABLE cards ADD COLUMN made_in_agent TEXT;
+   ALTER TABLE cards ADD COLUMN made_in_cwd TEXT;`,
 ];
 
 /**

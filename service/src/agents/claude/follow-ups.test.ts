@@ -1,30 +1,32 @@
 import { describe, expect, it } from 'vitest';
 import {
   FOLLOW_UPS_PROMPT,
-  FOLLOW_UPS_SERVER,
   FOLLOW_UPS_TOOL_NAME,
   FollowUpsKept,
-  type ServerMaker,
-  followUpOptions,
+  followUpsTool,
   savedFollowUps,
   toFollowUps,
 } from './follow-ups';
+import { GRIMOIRE_SERVER, type ServerMaker, grimoireOptions } from './grimoire-tools';
+import { ADD_TODO_PROMPT, ADD_TODO_TOOL, TodoChat } from './todos';
 import { type ClaudeMessage, ClaudeTranscript, FOLLOW_UPS_TOOL } from './transcript';
 
 const docs = { title: 'Docs', prompt: 'Write the docs' };
 
-/** The SDK's server maker, keeping the tool it's given. */
+/** The SDK's server maker, keeping the follow-ups tool it's given. */
 function maker() {
   const made: { name?: string; description?: string; handler?: (args: { tasks: unknown[] }) => Promise<unknown> } = {};
   const sdk = {
     tool: (name: string, description: string, _input: unknown, handler: typeof made.handler) => {
-      Object.assign(made, { name, description, handler });
+      if (name === FOLLOW_UPS_TOOL_NAME) Object.assign(made, { name, description, handler });
       return { name };
     },
     createSdkMcpServer: (options: { name: string }) => ({ type: 'sdk', name: options.name }),
   } as unknown as ServerMaker;
   return { sdk, made };
 }
+
+const todos = { chat: new TodoChat(), add: () => {} };
 
 const call = (id: string, tasks: unknown, parent: string | null = null): ClaudeMessage => ({
   type: 'assistant',
@@ -45,7 +47,7 @@ const result = (id: string): ClaudeMessage => ({
 
 describe('the follow-ups tool', () => {
   it('is named as Claude Code calls it, after its server', () => {
-    expect(FOLLOW_UPS_TOOL).toBe(`mcp__${FOLLOW_UPS_SERVER}__${FOLLOW_UPS_TOOL_NAME}`);
+    expect(FOLLOW_UPS_TOOL).toBe(`mcp__${GRIMOIRE_SERVER}__${FOLLOW_UPS_TOOL_NAME}`);
   });
 
   it('tells the agent to use it rarely, for separate work only', () => {
@@ -54,17 +56,19 @@ describe('the follow-ups tool', () => {
     expect(FOLLOW_UPS_PROMPT).toContain('Never for the next step of the current task');
     expect(FOLLOW_UPS_PROMPT).toContain('Most turns get none');
     const { sdk, made } = maker();
-    followUpOptions(sdk, new FollowUpsKept());
+    followUpsTool(sdk, new FollowUpsKept());
     expect(made.description).toContain('Use it rarely');
   });
 
   it('is allowed without asking, and its calls kept until the turn ends, answered shortly', async () => {
     const { sdk, made } = maker();
     const kept = new FollowUpsKept();
-    const options = followUpOptions(sdk, kept);
-    expect(options.allowedTools).toEqual([FOLLOW_UPS_TOOL]);
-    expect(Object.keys(options.mcpServers!)).toEqual([FOLLOW_UPS_SERVER]);
-    expect(options.systemPrompt).toBe(FOLLOW_UPS_PROMPT);
+    const options = grimoireOptions(sdk, { followUps: kept, todos });
+    expect(options.allowedTools).toEqual([FOLLOW_UPS_TOOL, ADD_TODO_TOOL]);
+    expect(Object.keys(options.mcpServers!)).toEqual([GRIMOIRE_SERVER]);
+    expect(options.systemPrompt).toBe(`${FOLLOW_UPS_PROMPT}
+
+${ADD_TODO_PROMPT}`);
 
     await expect(made.handler!({ tasks: [{ title: ' Docs ', prompt: ' Write the docs\n' }] })).resolves.toEqual({
       content: [{ type: 'text', text: 'Shown to the user as cards under your reply.' }],

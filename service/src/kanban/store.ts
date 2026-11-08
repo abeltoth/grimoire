@@ -12,6 +12,9 @@ interface CardRow {
   column_id: CardColumn;
   created_at: number;
   closed_at: number | null;
+  made_in_chat: string | null;
+  made_in_agent: string | null;
+  made_in_cwd: string | null;
 }
 
 interface ChatRow {
@@ -61,11 +64,17 @@ export class CardStore {
       chats: chats
         .filter((chat) => chat.card_id === row.id)
         .map(({ chat_id, agent, cwd, at }): CardChat => ({ chatId: chat_id, agent, cwd, at })),
+      ...(row.made_in_chat !== null
+        ? { madeIn: { chatId: row.made_in_chat, agent: row.made_in_agent!, cwd: row.made_in_cwd! } }
+        : {}),
     }));
   }
 
-  /** Saves a card's title, notes and folder; a new one goes at the foot of To do. */
-  save(draft: CardDraft): Card[] {
+  /**
+   * Saves a card's title, notes and folder; a new one goes at the foot of
+   * To do, noting the chat it was added in, when an agent added it.
+   */
+  save(draft: CardDraft, madeIn?: Card['madeIn']): Card[] {
     const title = draft.title.trim();
     const notes = draft.notes.trim();
     const cwd = draft.cwd.trim();
@@ -79,10 +88,22 @@ export class CardStore {
     } else {
       this.db
         .prepare(
-          `INSERT INTO cards (id, profile, kind, title, notes, cwd, column_id, position, created_at)
-           VALUES (?, ?, 'task', ?, ?, ?, 'todo', ?, ?)`,
+          `INSERT INTO cards (id, profile, kind, title, notes, cwd, column_id, position, created_at,
+             made_in_chat, made_in_agent, made_in_cwd)
+           VALUES (?, ?, 'task', ?, ?, ?, 'todo', ?, ?, ?, ?, ?)`,
         )
-        .run(randomUUID(), this.profile(), title, notes, cwd, this.foot('todo'), this.now());
+        .run(
+          randomUUID(),
+          this.profile(),
+          title,
+          notes,
+          cwd,
+          this.foot('todo'),
+          this.now(),
+          madeIn?.chatId ?? null,
+          madeIn?.agent ?? null,
+          madeIn?.cwd ?? null,
+        );
     }
     return this.list();
   }

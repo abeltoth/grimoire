@@ -107,6 +107,19 @@ describe('Kanban cards', () => {
     ]);
   });
 
+  it('notes the chat a card an agent added was made in, apart from the chats it began, and keeps it', () => {
+    const madeIn = { chatId: 'chat-1', agent: 'claude-code', cwd: '/git/grimoire' };
+    const a = cards.save({ title: 'Context meter', notes: '', cwd: '/git/breeder' }, madeIn).at(-1)!;
+    expect(a).toMatchObject({ column: 'todo', cwd: '/git/breeder', chats: [], madeIn });
+    cards.save({ id: a.id, title: 'Context meter', notes: 'From the usage events.', cwd: '/git/breeder' });
+    cards.link(a.id, { chatId: 'chat-2', agent: 'claude-code', cwd: '/git/breeder' });
+    const card = cards.list()[0]!;
+    expect(card.madeIn).toEqual(madeIn);
+    expect(card.chats.map((chat) => chat.chatId)).toEqual(['chat-2']);
+    add('Mine');
+    expect(cards.list().find((c) => c.title === 'Mine')).not.toHaveProperty('madeIn');
+  });
+
   it('keeps each profile’s board apart', () => {
     const a = add('Personal');
     setActiveProfile(db, 'work');

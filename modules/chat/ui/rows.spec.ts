@@ -153,6 +153,23 @@ describe('toRows', () => {
     ]);
   });
 
+  it('notes a task the agent added to the Kanban board by its title, and sums them up', () => {
+    const added = { text: 'Added "Context meter" to To do on the user\'s Kanban board.', isError: false };
+    const rows = toRows([
+      agent(
+        'a1',
+        tool('mcp__grimoire__add_todo', { title: ' Context meter ', notes: 'From the usage events.' }, added),
+        { ...tool('mcp__grimoire__add_todo', { title: 'Ribbon tests' }), id: 'second-id' },
+      ),
+    ]);
+    const notes = rows[0]!.kind === 'notes' ? rows[0]!.notes : [];
+    expect(notes.map(({ verb, label, did, running }) => ({ verb, label, did, running }))).toEqual([
+      { verb: 'Added to the board', label: 'Context meter', did: 'added', running: false },
+      { verb: 'Added to the board', label: 'Ribbon tests', did: 'added', running: true },
+    ]);
+    expect(rows[0]).toMatchObject({ summary: { text: 'Added 2 tasks to the board' } });
+  });
+
   it('sums up a run of notes, but not a note on its own', () => {
     const done = { text: 'ok', isError: false };
     const rows = toRows(

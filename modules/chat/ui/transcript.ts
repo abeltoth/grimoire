@@ -32,11 +32,15 @@ import { hookOutcome, hookTook, hookWhen, hooksRan } from './hook-log';
 import { tokenCount, usesInWords } from '@ui/app/core/tokens';
 import { Wording } from '@ui/app/core/wording';
 
+/** The Kanban board's thumb tab, which a note for a task the agent added there turns to. */
+const BOARD = 'kanban';
+
 /**
  * The chapter's transcript: your entries, the agent's replies, its tools
  * as margin notes, and Stop while a turn runs. It keeps the newest text
  * in view unless you scrolled back. A note for a task handed to a helper
- * turns the facing page to what the helper did, where there's one.
+ * turns the facing page to what the helper did, where there's one; one for
+ * a task the agent added to the Kanban board, to the board.
  *
  * As a helper's run, it only reads: its task is signed `askedBy`, its
  * replies `by`, and it has no Stop, Undo or Fork. What's put inside it
@@ -211,8 +215,22 @@ export class Transcript {
     return !!note.helper && this.helpers.canShow();
   }
 
+  /**
+   * Whether a note turns the facing page to the Kanban board, rather than
+   * folding out: one for a task the agent added there, where there's one.
+   */
+  protected showsBoard(note: Note): boolean {
+    return note.did === 'added' && !note.running && !note.failed && !!this.shell.thumbs.get(BOARD);
+  }
+
+  /** Whether a note turns the facing page, to its helper's run or to the board. */
+  protected turnsPage(note: Note): boolean {
+    return this.showsHelper(note) || this.showsBoard(note);
+  }
+
   protected press(note: Note): void {
     if (this.showsHelper(note)) this.helpers.show(this.chapter().id, note.helper!);
+    else if (this.showsBoard(note)) this.facing.openThumb(BOARD);
     else if (note.fold) this.toggle(note.key);
   }
 
