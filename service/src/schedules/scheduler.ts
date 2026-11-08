@@ -40,6 +40,7 @@ export function runTitle(name: string, dueAt: number): string {
  * what it does. A time that passed while the service wasn't
  * running begins once it's back, unless that is more than CATCH_UP_MS
  * late; then, like any earlier time it was away for, it counts as missed.
+ * A schedule of a profile not in use doesn't run: its time is skipped.
  */
 export class Scheduler {
   private checking: Promise<void> | undefined;
@@ -95,7 +96,8 @@ export class Scheduler {
 
   private async dueNow(): Promise<void> {
     let changed = false;
-    for (const schedule of this.store.list()) {
+    // Every profile's: one not in use counts its time skipped, so it doesn't run when it's back.
+    for (const schedule of this.store.all()) {
       if (!schedule.enabled) continue;
       const now = this.now();
       const due = dueTimes(schedule, this.store.handledUntil(schedule.id), now, LOOK_BACK_MS);
@@ -105,8 +107,13 @@ export class Scheduler {
       this.store.setHandledUntil(schedule.id, last);
       changed = true;
       for (const dueAt of due) this.store.addRun({ scheduleId: schedule.id, dueAt, outcome: 'missed' });
-      if (now - last <= CATCH_UP_MS) await this.start(schedule, last);
-      else this.store.addRun({ scheduleId: schedule.id, dueAt: last, outcome: 'missed' });
+      if (now - last > CATCH_UP_MS) {
+        this.store.addRun({ scheduleId: schedule.id, dueAt: last, outcome: 'missed' });
+      } else if (!this.store.inUse(schedule.id)) {
+        this.store.addRun({ scheduleId: schedule.id, dueAt: last, outcome: 'skipped' });
+      } else {
+        await this.start(schedule, last);
+      }
     }
     if (changed) this.changed();
   }

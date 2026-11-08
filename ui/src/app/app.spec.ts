@@ -2876,7 +2876,10 @@ describe('App', () => {
       time: '08:00',
       enabled: true,
       nextAt,
-      runs: [{ scheduleId: 's1', dueAt, outcome: 'missed' }],
+      runs: [
+        { scheduleId: 's1', dueAt, outcome: 'skipped' },
+        { scheduleId: 's1', dueAt: dueAt - 24 * 60 * 60_000, outcome: 'missed' },
+      ],
     };
     answers['schedules.list'] = () => [schedule];
     answers['schedules.save'] = () => [schedule];
@@ -2916,7 +2919,15 @@ describe('App', () => {
     expect(texts('gr-schedules-page .sub')).toEqual([
       `Weekdays at ${clock('08:00')} · Claude Code · Opus 5.5, extra high effort · ~/git/grimoire`,
     ]);
-    expect(texts('gr-schedules-page .runs li')).toEqual([`${when(dueAt)} Missed: the service wasn’t running in time`]);
+    expect(texts('gr-schedules-page .runs li')).toEqual([
+      `${when(dueAt)} Skipped: another volume was open`,
+      `${when(dueAt - 24 * 60 * 60_000)} Missed: the service wasn’t running in time`,
+    ]);
+    emit('settings.changed', { settings: { ...DEFAULT_SETTINGS, wording: 'plain' } });
+    await fixture.whenStable();
+    expect(texts('gr-schedules-page .runs li')[0]).toBe(`${when(dueAt)} Skipped: another profile was in use`);
+    emit('settings.changed', { settings: DEFAULT_SETTINGS });
+    await fixture.whenStable();
 
     // Run now begins its chapter, which joins the book and is turned to.
     [...el.querySelectorAll<HTMLButtonElement>('gr-schedules-page .actions button')].find((b) => b.textContent!.includes('Run now'))!.click();

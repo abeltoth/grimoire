@@ -32,9 +32,10 @@ export interface ScheduleRun {
   dueAt: number;
   /**
    * Began a chapter; missed, because the service wasn't running then and
-   * is back too late to catch up; or failed to begin.
+   * is back too late to catch up; skipped, because the schedule's profile
+   * wasn't the one in use; or failed to begin.
    */
-  outcome: 'began' | 'missed' | 'failed';
+  outcome: 'began' | 'missed' | 'skipped' | 'failed';
   /** When it began, when it did. */
   ranAt?: number;
   /** The chapter it began, and the folder that chat runs in. */

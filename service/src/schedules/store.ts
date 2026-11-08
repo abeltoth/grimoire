@@ -56,6 +56,21 @@ export class ScheduleStore {
     return rows.map(fromRow);
   }
 
+  /** Every profile's schedules, the one in use's and the others'. */
+  all(): Schedule[] {
+    const rows = this.db
+      .prepare('SELECT * FROM schedules ORDER BY position')
+      .all() as unknown as ScheduleRow[];
+    return rows.map(fromRow);
+  }
+
+  /** Whether the schedule is the profile in use's. */
+  inUse(id: string): boolean {
+    return !!this.db
+      .prepare('SELECT 1 FROM schedules WHERE id = ? AND profile = ?')
+      .get(id, this.profile());
+  }
+
   get(id: string): Schedule | undefined {
     const row = this.db.prepare('SELECT * FROM schedules WHERE id = ?').get(id) as ScheduleRow | undefined;
     return row && fromRow(row);

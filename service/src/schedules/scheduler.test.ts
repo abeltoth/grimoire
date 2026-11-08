@@ -1,5 +1,6 @@
 import type { EventName, OpenChat, ScheduleDraft } from '@grimoire/contract';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { setActiveProfile } from '../storage/app-state';
 import { openDatabase } from '../storage/database';
 import { type BeginChat, Scheduler, runTitle } from './scheduler';
 import { ScheduleStore } from './store';
@@ -22,6 +23,7 @@ let begun: Parameters<BeginChat>[];
 let refuse: string | undefined;
 let events: { event: EventName; payload: unknown }[];
 let scheduler: Scheduler;
+let db: ReturnType<typeof openDatabase>;
 
 const chat = (id: string, cwd: string): OpenChat =>
   ({ id, agent: 'claude-code', title: '', settings: { cwd }, status: 'thinking', entries: [] }) as unknown as OpenChat;
@@ -31,8 +33,9 @@ beforeEach(() => {
   begun = [];
   refuse = undefined;
   events = [];
+  db = openDatabase(':memory:');
   scheduler = new Scheduler(
-    new ScheduleStore(openDatabase(':memory:')),
+    new ScheduleStore(db),
     async (...args) => {
       if (refuse) throw new Error(refuse);
       begun.push(args);
@@ -139,5 +142,41 @@ describe('Scheduler', () => {
     expect(scheduler.remove(id)).toEqual([]);
     save();
     expect(runs()).toEqual([]);
+  });
+
+  it('skips a time due in a profile not in use, and doesn’t run it when that profile is back', async () => {
+    const { id } = save();
+    setActiveProfile(db, 'work');
+    expect(scheduler.list()).toEqual([]);
+    now = at(4, 8, 1);
+    await scheduler.check();
+    expect(begun).toEqual([]);
+
+    setActiveProfile(db, 'personal');
+    await scheduler.check();
+    expect(begun).toEqual([]);
+    expect(scheduler.list()[0]!.runs).toEqual([{ scheduleId: id, dueAt: at(4, 8), outcome: 'skipped' }]);
+
+    // Away too long, the earlier times are missed as ever; the last is skipped.
+    setActiveProfile(db, 'work');
+    now = at(6, 8, 1);
+    await scheduler.check();
+    setActiveProfile(db, 'personal');
+    expect(runs()).toEqual([
+      [at(6, 8), 'skipped'],
+      [at(5, 8), 'missed'],
+      [at(4, 8), 'skipped'],
+    ]);
+  });
+
+  it('begins only the time due in the profile in use', async () => {
+    save({ name: 'Personal' });
+    setActiveProfile(db, 'work');
+    save({ name: 'Work' });
+    now = at(4, 8, 1);
+    await scheduler.check();
+    expect(begun.map(([, , , title]) => title)).toEqual([runTitle('Work', at(4, 8))]);
+    setActiveProfile(db, 'personal');
+    expect(runs()).toEqual([[at(4, 8), 'skipped']]);
   });
 });

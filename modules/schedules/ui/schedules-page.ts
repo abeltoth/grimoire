@@ -51,6 +51,12 @@ export class SchedulesPage {
   protected outcome(run: ScheduleRun): string {
     if (run.outcome === 'began') return 'Began';
     if (run.outcome === 'missed') return 'Missed: the service wasn’t running in time';
+    if (run.outcome === 'skipped') {
+      return this.wording.say(
+        'Skipped: another volume was open',
+        'Skipped: another profile was in use',
+      );
+    }
     return `Couldn’t begin: ${run.error ?? 'no reason given'}`;
   }
 
