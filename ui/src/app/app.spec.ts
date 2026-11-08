@@ -1022,7 +1022,7 @@ describe('App', () => {
       const { fixture, el, texts } = await render(bridge);
       expect(texts('gr-running-head .read-only p')).toEqual(['Read-only — “Context meter” is editing']);
       expect(texts('gr-running-head .read-only button')).toEqual(['Make this the editing chapter']);
-      expect(texts('.meta [data-setting="mode"]')).toEqual(['Plan only']);
+      expect(texts('.meta [data-setting="mode"]')).toEqual(['Accept edits']);
 
       el.querySelector<HTMLButtonElement>('gr-running-head .read-only button')!.click();
       await fixture.whenStable();
@@ -1038,36 +1038,30 @@ describe('App', () => {
       expect(texts('gr-running-head .read-only p')).toEqual(['Read-only — “Untitled chapter” is editing']);
     });
 
-    it('keeps its permission at Plan only, saying why, while the rest still changes', async () => {
+    it('changes its permission as any chat does', async () => {
       const { bridge, calls, answers } = fakeBridge();
       answers['agents.openChats'] = () => [opened('c1', 'Context meter'), opened('c2', 'Explain it', reading)];
       answers['layout.get'] = () => ({ current: 'c2' });
-      const { fixture, el, texts } = await render(bridge);
+      const { fixture, el } = await render(bridge);
       el.querySelector<HTMLButtonElement>('.meta [data-setting="mode"]')!.click();
       await fixture.whenStable();
       const modes = [...el.querySelectorAll('gr-settings-card [data-setting="mode"] .choice')];
       expect(modes.map((m) => [m.textContent!.trim().split(/\s+/).slice(0, 2).join(' '), m.getAttribute('aria-checked'), m.getAttribute('aria-disabled')])).toEqual([
-        ['Ask first', 'false', 'true'],
-        ['Accept edits', 'false', 'true'],
-        ['Plan only', 'true', null],
-        ['Full access', 'false', 'true'],
-      ]);
-      expect(texts('gr-settings-card [data-setting="mode"] .none')).toEqual([
-        'Locked while “Context meter” is editing this project',
+        ['Ask first', 'false', null],
+        ['Accept edits', 'true', null],
+        ['Plan only', 'false', null],
+        ['Full access', 'false', null],
       ]);
 
       pick(el, 'Full access');
       await fixture.whenStable();
-      expect(calls.some((c) => c.command === 'agents.configure')).toBe(false);
-      pick(el, 'Sonnet 5.5');
-      await fixture.whenStable();
       expect(calls.filter((c) => c.command === 'agents.configure').map((c) => c.request)).toEqual([
-        { chatId: 'c2', change: { model: 'sonnet' } },
+        { chatId: 'c2', change: { mode: 'allow-all' } },
       ]);
     });
 
-    it('carries out its plan only once you make it the editing chat, or keeps it read-only', async () => {
-      const { bridge, calls, emit, answers } = fakeBridge();
+    it('seals its plan as any approval, without making it the editing chat', async () => {
+      const { bridge, calls, answers } = fakeBridge();
       const plan = { id: 'p1', chatId: 'c2', tool: 'ExitPlanMode', input: { plan: 'Add the meter' } };
       answers['agents.openChats'] = () => [
         opened('c1', 'Context meter'),
@@ -1075,32 +1069,15 @@ describe('App', () => {
       ];
       answers['layout.get'] = () => ({ current: 'c2' });
       const { fixture, el, texts } = await render(bridge);
-      expect(texts('gr-approval-slip .meta')).toEqual([
-        'Read-only — “Context meter” is editing. To carry out the plan, make this the editing chapter.',
-      ]);
-      expect(texts('gr-approval-slip .seal-button')).toEqual(['Make this the editing chapter ⏎']);
-      expect(texts('gr-approval-slip .deny')).toEqual(['Keep it read-only Esc']);
-
-      el.querySelector<HTMLButtonElement>('gr-approval-slip .deny')!.click();
-      await fixture.whenStable();
-      expect(calls.filter((c) => c.command === 'agents.decide').map((c) => c.request)).toEqual([
-        { approvalId: 'p1', decision: 'deny' },
-      ]);
-      expect(calls.some((c) => c.command === 'agents.takeOver')).toBe(false);
+      expect(texts('gr-approval-slip .seal-button')).toEqual(['Allow once ⏎']);
+      expect(texts('gr-approval-slip .deny')).toEqual(['Deny Esc']);
 
       el.querySelector<HTMLButtonElement>('gr-approval-slip .seal-button')!.click();
       await fixture.whenStable();
-      const taken = calls.findIndex((c) => c.command === 'agents.takeOver');
-      expect(calls[taken]?.request).toEqual({ chatId: 'c2' });
-      expect(calls.slice(taken + 1).filter((c) => c.command === 'agents.decide').map((c) => c.request)).toEqual([
+      expect(calls.filter((c) => c.command === 'agents.decide').map((c) => c.request)).toEqual([
         { approvalId: 'p1', decision: 'allow-once' },
       ]);
-
-      // Once it edits, its plan is sealed as any approval is.
-      emit('agents.readOnly', { chatId: 'c2', readOnly: null });
-      await fixture.whenStable();
-      expect(texts('gr-approval-slip .seal-button')).toEqual(['Allow once ⏎']);
-      expect(el.querySelector('gr-approval-slip .meta')).toBeNull();
+      expect(calls.some((c) => c.command === 'agents.takeOver')).toBe(false);
     });
   });
 

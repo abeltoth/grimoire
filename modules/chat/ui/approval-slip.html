@@ -56,28 +56,11 @@
   }
 }
 
-@if (planWhileReading(); as editing) {
-  <div class="meta">
-    <span
-      >Read-only — “{{ editing.title || wording.untitled() }}” is editing. To carry out the plan,
-      make this the editing {{ wording.say('chapter', 'chat') }}.</span
-    >
-  </div>
-}
-
 <div class="choices">
-  @if (planWhileReading()) {
-    <button #allow type="button" class="seal-button" (click)="tookOver.emit()">
-      <span class="wax" aria-hidden="true"><gr-icon name="seal" /></span
-      >{{ wording.say('Make this the editing chapter', 'Make this the editing chat') }}
-      <span class="gr-kbd">⏎</span>
-    </button>
-  } @else {
-    <button #allow type="button" class="seal-button" (click)="decided.emit('allow-once')">
-      <span class="wax" aria-hidden="true"><gr-icon name="seal" /></span>Allow once
-      <span class="gr-kbd">⏎</span>
-    </button>
-  }
+  <button #allow type="button" class="seal-button" (click)="decided.emit('allow-once')">
+    <span class="wax" aria-hidden="true"><gr-icon name="seal" /></span>Allow once
+    <span class="gr-kbd">⏎</span>
+  </button>
   @if (approval().alwaysAllow; as always) {
     <button type="button" class="choice" (click)="decided.emit('allow-always')">
       Always allow
@@ -94,6 +77,6 @@
   }
   <span class="spacer"></span>
   <button type="button" class="choice deny" (click)="decided.emit('deny')">
-    {{ planWhileReading() ? 'Keep it read-only' : 'Deny' }} <span class="gr-kbd">Esc</span>
+    Deny <span class="gr-kbd">Esc</span>
   </button>
 </div>

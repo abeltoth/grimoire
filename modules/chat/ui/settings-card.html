@@ -153,18 +153,12 @@
         type="button"
         class="choice"
         role="radio"
-        [attr.aria-checked]="m.mode === mode()"
-        [attr.aria-disabled]="(c.readOnly && m.mode !== mode()) || null"
-        (click)="c.readOnly || pick({ mode: m.mode })"
+        [attr.aria-checked]="m.mode === (c.settings.mode ?? 'ask')"
+        (click)="pick({ mode: m.mode })"
       >
         <gr-icon name="check" />
         <span>{{ m.label }} <small>{{ m.detail }}</small></span>
       </button>
-    }
-    @if (c.readOnly; as editing) {
-      <p class="none">
-        Locked while “{{ editing.title || wording.untitled() }}” is editing this project
-      </p>
     }
   </div>
 

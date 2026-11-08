@@ -86,7 +86,7 @@ interface ChatState {
   followUps?: FollowUp[];
   /** Its project, as projectOf() gives it: of the open chats on one, one edits it (ADR-011). */
   project: string;
-  /** While another chat edits its project: that chat. This one only reads, in plan mode. */
+  /** While another chat edits its project: that chat. This one can't edit files. */
   editor?: ChatId;
   /** While the agent process runs. */
   live?: LiveChat;
@@ -153,8 +153,8 @@ export function hubStore(db: DatabaseSync): HubStore {
  * they get a chat's state when they open it and its changes as events.
  * Streamed text is batched, at most one event per chat every `textBatchMs`.
  *
- * Of the open chats on one project, one edits it; the others only read, in
- * plan mode (ADR-011). A chat's project is the git repository its folder
+ * Of the open chats on one project, one edits it; the others can't edit
+ * files (ADR-011). A chat's project is the git repository its folder
  * is in, as `repositoryOf` gives its top folder, else the folder itself.
  */
 export class AgentHub {
@@ -178,7 +178,6 @@ export class AgentHub {
     private readonly textBatchMs = 50,
     private readonly store = hubStore(openDatabase(':memory:')),
     private readonly repositoryOf: (cwd: string) => Promise<string | null> = async () => null,
-    private readonly log: (message: string) => void = () => {},
   ) {}
 
   addAdapter(adapter: AgentAdapter): void {
@@ -399,14 +398,14 @@ export class AgentHub {
         }),
       ),
     );
-    void this.settleEditors();
+    this.settleEditors();
     return chats.filter((chat) => chat !== undefined).map((chat) => this.snapshot(chat));
   }
 
   /** Opens a chat as a chapter; it only reads when another open chat edits its project. */
   async open(agent: AgentId, chatId: ChatId, settings: ChatSettings): Promise<OpenChat> {
     const chat = await this.load(agent, chatId, settings);
-    void this.settleEditors();
+    this.settleEditors();
     return this.snapshot(chat);
   }
 
@@ -504,10 +503,7 @@ export class AgentHub {
     return this.snapshot(copy);
   }
 
-  /**
-   * Begins a chat with its first entry, where its settings say: in plan
-   * mode when another open chat edits its project.
-   */
+  /** Begins a chat with its first entry, where its settings say. */
   private async begin(
     agent: AgentId,
     resolved: ChatSettings,
@@ -520,24 +516,22 @@ export class AgentHub {
     if (!adapter.start) {
       const chat = this.track(randomUUID(), adapter, resolved, [], named ?? '', project);
       this.store.chapters.add({ chatId: chat.id, agent, settings: resolved });
-      void this.settleEditors();
-      chat.live = adapter.run(chat.id, this.runSettings(chat), false, this.eventsFor(chat), named);
+      this.settleEditors();
+      chat.live = adapter.run(chat.id, chat.settings, false, this.eventsFor(chat), named);
       this.sendTo(chat, text, false, enclosures);
       return this.snapshot(chat);
     }
-    // The agent picks the chat's ID, on a spare process when it has one. It starts reading
-    // only when another chat is open on the project now; once live, it switches if that changed.
-    const reads = [...this.chats.values()].some((other) => other.project === project);
+    // The agent picks the chat's ID, on a spare process when it has one.
     let chat: ChatState | undefined;
     const id = randomUUID();
     const live = await adapter.start(
-      reads ? { ...resolved, mode: 'plan' } : resolved,
+      resolved,
       text,
       id,
       (chatId) => {
         chat = this.track(chatId, adapter, resolved, [], named ?? '', project);
         this.store.chapters.add({ chatId, agent, settings: resolved });
-        void this.settleEditors();
+        this.settleEditors();
         this.upsert(chat, userEntry(id, text, enclosures));
         this.setStatus(chat, 'thinking');
         return this.eventsFor(chat);
@@ -548,10 +542,7 @@ export class AgentHub {
     if (!chat) throw new Error(`${agent} started a chat without naming it`);
     // Closed while it started.
     if (this.chats.get(chat.id) !== chat) live.close();
-    else {
-      chat.live = live;
-      if (!!chat.editor !== reads) void this.switchMode(chat);
-    }
+    else chat.live = live;
     return this.snapshot(chat);
   }
 
@@ -568,13 +559,10 @@ export class AgentHub {
   /**
    * Changes a chat's model or permission, for its running process too. Its
    * MCP servers can't change in a running process: it starts again, as soon
-   * as no turn runs, continuing the chat. A chat that only reads stays in
-   * plan mode until it's made the editing chat.
+   * as no turn runs, continuing the chat.
    */
   async configure(chatId: ChatId, change: SettingsChange): Promise<void> {
     const chat = this.chat(chatId);
-    if (change.mode && chat.editor)
-      throw new Error(`${this.editing(chat)}: make this the editing chat to change its permission`);
     const { mcpOff, ...live } = change;
     if (mcpOff && !(Array.isArray(mcpOff) && mcpOff.every((name) => typeof name === 'string')))
       throw new Error('MCP servers are turned off by name');
@@ -628,7 +616,7 @@ export class AgentHub {
     if (chat.withdrawn.includes(entryId)) throw new Error('This entry is already undone');
     if (chat.copied.includes(entryId))
       throw new Error("This entry was copied from the chat this one was forked from, so it can't be undone");
-    chat.live ??= chat.agent.run(chat.id, this.runSettings(chat), true, this.eventsFor(chat));
+    chat.live ??= chat.agent.run(chat.id, chat.settings, true, this.eventsFor(chat));
     if (!chat.live.undo) throw new Error(`${chat.agent.info.name} can't undo`);
     await chat.live.undo(entryId);
 
@@ -763,15 +751,11 @@ export class AgentHub {
     this.settle(pending, { answers });
   }
 
-  /**
-   * Makes the chat the one that edits its project, at the permission picked
-   * for it: the chat that edited it only reads from now on. Settles once
-   * both their processes have switched.
-   */
-  async takeOver(chatId: ChatId): Promise<void> {
+  /** Makes the chat the one that edits its project: the chat that edited it only reads from now on. */
+  takeOver(chatId: ChatId): void {
     const chat = this.chat(chatId);
     this.store.editors.set(chat.project, chat.id);
-    await this.settleEditors();
+    this.settleEditors();
   }
 
   /**
@@ -781,7 +765,7 @@ export class AgentHub {
   close(chatId: ChatId): void {
     this.store.chapters.remove(chatId);
     this.release(chatId);
-    void this.settleEditors();
+    this.settleEditors();
   }
 
   /** Stops every chat and spare process, for when the service stops; chats reopen when it starts again. */
@@ -847,15 +831,13 @@ export class AgentHub {
   /**
    * Gives each project one chat that edits it (ADR-011): the one kept for
    * it while that's open, else the open chat on it opened first. The others
-   * only read. Each chat that changed hears so, and its process switches,
-   * to plan mode or back to the permission picked for it; settles once all have.
+   * only read. Each chat that changed hears so.
    */
-  private settleEditors(): Promise<void> {
+  private settleEditors(): void {
     const order = this.store.chapters.list().map((chapter) => chapter.chatId);
     const place = (chat: ChatState) => (order.includes(chat.id) ? order.indexOf(chat.id) : order.length);
     const projects = new Map<string, ChatState[]>();
     for (const chat of this.chats.values()) projects.set(chat.project, [...(projects.get(chat.project) ?? []), chat]);
-    const switching: Promise<void>[] = [];
     for (const [project, chats] of projects) {
       const kept = this.store.editors.of(project);
       const editor =
@@ -865,13 +847,10 @@ export class AgentHub {
       for (const chat of chats) {
         const by = chat === editor ? undefined : editor.id;
         if (chat.editor === by) continue;
-        const switched = !chat.editor !== !by;
         chat.editor = by;
         this.emit('agents.readOnly', { chatId: chat.id, readOnly: this.readOnlyOf(chat) ?? null });
-        if (switched) switching.push(this.switchMode(chat));
       }
     }
-    return Promise.all(switching).then(() => {});
   }
 
   /** The chat that edits the project of one that only reads; undefined for the chat that edits. */
@@ -891,20 +870,6 @@ export class AgentHub {
   private editing(chat: ChatState): string {
     const title = chat.editor && this.chats.get(chat.editor)?.title;
     return `${title ? `"${title}"` : 'Another chat'} is editing this project`;
-  }
-
-  /** The settings its process runs at: in plan mode while another chat edits its project. */
-  private runSettings(chat: ChatState): ChatSettings {
-    return chat.editor ? { ...chat.settings, mode: 'plan' } : chat.settings;
-  }
-
-  /** Switches the chat's process to plan mode while it only reads, else to the permission picked for it. */
-  private async switchMode(chat: ChatState): Promise<void> {
-    try {
-      await chat.live?.configure({ mode: this.runSettings(chat).mode ?? 'ask' });
-    } catch (error) {
-      this.log(`Couldn't switch the permission of ${chat.id}: ${error instanceof Error ? error.message : String(error)}`);
-    }
   }
 
   private track(
@@ -985,7 +950,7 @@ export class AgentHub {
   }
 
   private sendTo(chat: ChatState, text: string, resume: boolean, enclosures: Enclosure[] = []): void {
-    chat.live ??= chat.agent.run(chat.id, this.runSettings(chat), resume, this.eventsFor(chat));
+    chat.live ??= chat.agent.run(chat.id, chat.settings, resume, this.eventsFor(chat));
     const id = randomUUID();
     this.upsert(chat, userEntry(id, text, enclosures));
     if (chat.status === 'idle') this.setStatus(chat, 'thinking');
@@ -1044,8 +1009,8 @@ export class AgentHub {
         }),
       readOnly: () =>
         chat.editor
-          ? `${this.editing(chat)}, so this chat may only read, search, answer and plan: it can't edit ` +
-            'files or run commands. Leave the changes to that chat, unless the user makes this the editing chat.'
+          ? `${this.editing(chat)}, so this chat can't edit files in it. ` +
+            'Leave the edits to that chat, unless the user makes this the editing chat.'
           : undefined,
       context: (context) => {
         if (!current()) return;

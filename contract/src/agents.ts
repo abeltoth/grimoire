@@ -53,10 +53,6 @@ export interface ChatSettings {
    * what it picked; picking another model ends Auto.
    */
   autoModel?: boolean;
-  /**
-   * The permission you picked. A chat that only reads, as another chat on
-   * its project edits it, runs in plan mode whatever this says (ADR-011).
-   */
   mode?: ApprovalMode;
   /**
    * The MCP servers turned off for this chat, by name: they don't start for
@@ -415,8 +411,7 @@ export type DogEar = 'pin' | 'star';
  * The chat that edits a project while another open chat on it only reads
  * (ADR-011). Of the chats open on one project, the git repository a folder
  * is in, or the folder outside one, one edits: the first opened, until you
- * make another the editing chat. The others read, search, answer and plan,
- * in plan mode, but don't change files or run commands.
+ * make another the editing chat. The others can't edit files.
  */
 export interface Editor {
   chatId: ChatId;
@@ -457,7 +452,7 @@ export interface OpenChat {
   suggestion?: string;
   /** The separate tasks the agent offered after its last reply, until a turn begins. */
   followUps?: FollowUp[];
-  /** While another chat edits its project: that chat. This one only reads, in plan mode. */
+  /** While another chat edits its project: that chat. This one can't edit files. */
   readOnly?: Editor;
 }
 
@@ -495,8 +490,8 @@ declare module './commands' {
       response: OpenChat;
     };
     /**
-     * Starts a new chat with a first message. It only reads, in plan mode,
-     * when another open chat edits its project.
+     * Starts a new chat with a first message. It can't edit files when
+     * another open chat edits its project.
      */
     'agents.start': {
       request: {
@@ -515,11 +510,7 @@ declare module './commands' {
       request: { chatId: ChatId; text: string; enclosures?: Enclosure[] };
       response: void;
     };
-    /**
-     * Changes a chat's model or permission; a running chat takes it from its
-     * next request. A chat that only reads stays in plan mode: its
-     * permission changes once it's made the editing chat.
-     */
+    /** Changes a chat's model or permission; a running chat takes it from its next request. */
     'agents.configure': { request: { chatId: ChatId; change: SettingsChange }; response: void };
     /**
      * Restores the files to how they were before one of your entries, while
@@ -582,8 +573,8 @@ declare module './commands' {
      */
     'agents.helper': { request: { chatId: ChatId; toolId: string }; response: HelperRun };
     /**
-     * Makes the chat the one that edits its project, at the permission you
-     * picked for it: the chat that edited it only reads from now on.
+     * Makes the chat the one that edits its project: the chat that edited it
+     * only reads from now on.
      */
     'agents.takeOver': { request: { chatId: ChatId }; response: void };
     /**

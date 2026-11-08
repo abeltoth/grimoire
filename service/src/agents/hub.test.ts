@@ -479,7 +479,7 @@ describe('AgentHub', () => {
       expect(fake.runOf('fork-2')).toMatchObject({
         resume: true,
         sent: ['Colour it'],
-        settings: { cwd: '/work', model: 'small', mode: 'plan' },
+        settings: { cwd: '/work', model: 'small' },
       });
       expect((await hub.openChats()).map((chat) => chat.id)).toEqual(['c1', 'fork-2']);
     });
@@ -526,7 +526,7 @@ describe('AgentHub', () => {
       hub.addAdapter(fake);
     });
 
-    it('makes the first chat open on a project the one that edits it; the others only read, in plan mode', async () => {
+    it('makes the first chat open on a project the one that edits it; the others only read, at the permission picked for them', async () => {
       const first = await hub.start('fake', { ...settings, mode: 'accept-edits' }, 'Add a meter');
       expect(first.readOnly).toBeUndefined();
       expect(fake.runOf(first.id).settings).toEqual({ cwd: '/work', mode: 'accept-edits' });
@@ -535,7 +535,7 @@ describe('AgentHub', () => {
       const second = await hub.start('fake', { cwd: '/work/ui', mode: 'allow-all' }, 'Explain it');
       expect(second.readOnly).toEqual({ chatId: first.id, title: '' });
       expect(second.settings).toEqual({ cwd: '/work/ui', mode: 'allow-all' });
-      expect(fake.runOf(second.id).settings).toEqual({ cwd: '/work/ui', mode: 'plan' });
+      expect(fake.runOf(second.id).settings).toEqual({ cwd: '/work/ui', mode: 'allow-all' });
       expect(readOnlyEvents()).toEqual([{ chatId: second.id, readOnly: { chatId: first.id, title: '' } }]);
 
       // Another repository, and a folder outside any, are projects of their own.
@@ -543,12 +543,12 @@ describe('AgentHub', () => {
       expect((await hub.start('fake', { cwd: '/plain' }, 'Hi')).readOnly).toBeUndefined();
     });
 
-    it("tells the agent why it may only read, naming the chat that edits, and keeps its permission and undo from changing", async () => {
+    it("tells the agent why it can't edit files, naming the chat that edits, and keeps undo from it, not its permission", async () => {
       const first = await hub.start('fake', settings, 'Add a meter');
       const second = await hub.start('fake', settings, 'Explain it');
       const reader = fake.runOf(second.id);
       expect(fake.runOf(first.id).events.readOnly()).toBeUndefined();
-      expect(reader.events.readOnly()).toMatch(/^Another chat is editing this project, so this chat may only read/);
+      expect(reader.events.readOnly()).toMatch(/^Another chat is editing this project, so this chat can't edit files in it/);
 
       fake.runOf(first.id).events.title('Context meter');
       expect(reader.events.readOnly()).toMatch(/^"Context meter" is editing this project/);
@@ -557,11 +557,9 @@ describe('AgentHub', () => {
         readOnly: { chatId: first.id, title: 'Context meter' },
       });
 
-      await expect(hub.configure(second.id, { mode: 'allow-all' })).rejects.toThrow(
-        '"Context meter" is editing this project: make this the editing chat to change its permission',
-      );
+      await hub.configure(second.id, { mode: 'allow-all' });
       await hub.configure(second.id, { model: 'small' });
-      expect(reader.configured).toEqual([{ model: 'small' }]);
+      expect(reader.configured).toEqual([{ mode: 'allow-all' }, { model: 'small' }]);
       reader.events.turnEnded();
       await expect(hub.undo(second.id, reader.sentIds[0]!)).rejects.toThrow('make this the editing chat to undo');
     });
@@ -578,8 +576,8 @@ describe('AgentHub', () => {
         { chatId: second.id, readOnly: null },
         { chatId: third.id, readOnly: { chatId: second.id, title: '' } },
       ]);
-      // Its process goes back to the permission picked for it; the third's stays in plan mode.
-      expect(fake.runOf(second.id).configured).toEqual([{ mode: 'accept-edits' }]);
+      // Their permissions stay as picked.
+      expect(fake.runOf(second.id).configured).toEqual([]);
       expect(fake.runOf(third.id).configured).toEqual([]);
       expect(fake.runOf(second.id).events.readOnly()).toBeUndefined();
 
@@ -590,14 +588,16 @@ describe('AgentHub', () => {
       expect(readOnlyEvents()).toEqual([]);
     });
 
-    it('switches both live chats at once when you make another the editing chat', async () => {
+    it('makes another the editing chat, leaving both live chats at their permissions', async () => {
       const first = await hub.start('fake', { ...settings, mode: 'accept-edits' }, 'One');
       const second = await hub.start('fake', { ...settings, mode: 'allow-all' }, 'Two');
       sent = [];
 
-      await hub.takeOver(second.id);
-      expect(fake.runOf(second.id).configured).toEqual([{ mode: 'allow-all' }]);
-      expect(fake.runOf(first.id).configured).toEqual([{ mode: 'plan' }]);
+      hub.takeOver(second.id);
+      expect(fake.runOf(first.id).events.readOnly()).toMatch(/is editing this project/);
+      expect(fake.runOf(second.id).events.readOnly()).toBeUndefined();
+      expect(fake.runOf(second.id).configured).toEqual([]);
+      expect(fake.runOf(first.id).configured).toEqual([]);
       expect(readOnlyEvents()).toEqual([
         { chatId: first.id, readOnly: { chatId: second.id, title: '' } },
         { chatId: second.id, readOnly: null },
@@ -605,15 +605,6 @@ describe('AgentHub', () => {
       expect((await hub.open('fake', first.id, settings)).readOnly).toEqual({ chatId: second.id, title: '' });
       expect((await hub.open('fake', second.id, settings)).readOnly).toBeUndefined();
 
-      // A process started from now on starts as the chat now is.
-      hub.close(first.id);
-      hub.close(second.id);
-      fake.transcripts.set(first.id, []);
-      fake.transcripts.set(second.id, []);
-      await hub.open('fake', second.id, { ...settings, mode: 'allow-all' });
-      await hub.open('fake', first.id, { ...settings, mode: 'accept-edits' });
-      hub.send(first.id, 'Go on');
-      expect(fake.runOf(first.id).settings).toEqual({ cwd: '/work', mode: 'plan' });
     });
 
     it('keeps the chat that edits each project across a restart', async () => {
@@ -621,7 +612,7 @@ describe('AgentHub', () => {
       await hub.open('fake', 'c1', settings);
       await hub.open('fake', 'c2', settings);
       await hub.open('fake', 'c3', { cwd: '/notes' });
-      await hub.takeOver('c2');
+      hub.takeOver('c2');
       hub.closeAll();
 
       // The service starts again on the same database; the chapters reopen in any order.
@@ -635,25 +626,25 @@ describe('AgentHub', () => {
         ['c3', undefined],
       ]);
       again.send('c1', 'Go on');
-      expect(fake.runOf('c1').settings.mode).toBe('plan');
+      expect(fake.runOf('c1').events.readOnly()).toMatch(/is editing this project/);
 
       // Once it's closed, the chat opened first edits.
       again.close('c2');
       expect((await again.open('fake', 'c1', settings)).readOnly).toBeUndefined();
     });
 
-    it('starts a chat whose agent picks its ID in plan mode when another edits the project', async () => {
+    it('starts a chat whose agent picks its ID at its permission, only reading, when another edits the project', async () => {
       fake.transcripts.set('c1', []);
       await hub.open('fake', 'c1', settings);
       const picking = new PickingAdapter();
       hub.addAdapter(picking);
       const chat = await hub.start('fake', { ...settings, mode: 'allow-all' }, 'Explain it');
-      expect(picking.started?.settings).toEqual({ cwd: '/work', mode: 'plan' });
+      expect(picking.started?.settings).toEqual({ cwd: '/work', mode: 'allow-all' });
       expect(chat).toMatchObject({ id: 'picked', readOnly: { chatId: 'c1' }, settings: { mode: 'allow-all' } });
       expect(picking.started?.events.readOnly()).toMatch(/is editing this project/);
     });
 
-    it("switches a chat that started as the one that edits, once live, when another took that on as it started", async () => {
+    it("makes a chat only read when another took on editing the project as it started", async () => {
       const picking = new PickingAdapter();
       let named = () => {};
       picking.gate = new Promise((resolve) => (named = resolve));
@@ -667,8 +658,9 @@ describe('AgentHub', () => {
       const chat = await starting;
       expect(picking.started?.settings).toEqual({ cwd: '/work' });
       expect(chat.readOnly).toEqual({ chatId: 'c1', title: '' });
+      expect(picking.started?.events.readOnly()).toMatch(/is editing this project/);
       await settle();
-      expect(picking.started?.live.configured).toEqual([{ mode: 'plan' }]);
+      expect(picking.started?.live.configured).toEqual([]);
     });
   });
 

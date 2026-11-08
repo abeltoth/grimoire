@@ -38,7 +38,7 @@ import { memorySettings, readMemories } from './memories';
 import { MessageQueue } from './message-queue';
 import { toAgentModels } from './models';
 import { ASK_TOOL, alwaysAllowOf, toClaudeAnswers, toQuestions } from './permissions';
-import { PLAN_TOOL, asksWhileReading, readOnlyHooks } from './read-only';
+import { readOnlyHooks } from './read-only';
 import { withReferences } from './references';
 import { commandFiles, readSettingsFile, settingsFilesIn, toSetup } from './setup';
 import { type AgentToolInput, type PickerSources, RATER_PROMPT, pickFor, readRating } from './subagents';
@@ -616,7 +616,7 @@ function timeOf(message: object): number {
 /**
  * A chat's hooks, once the chat whose process this is is known: each
  * subagent's model and effort picked for its task, as `sources` says, and
- * no edits or commands while the chat only reads, as `events` say.
+ * no edits while the chat only reads, as `events` say.
  */
 function chatHooks(sources: () => Promise<PickerSources>, events: () => Promise<ChatEvents>): Options['hooks'] {
   return { PreToolUse: [subagentHook(sources), readOnlyHooks(events)] };
@@ -864,20 +864,14 @@ function userMessage(
   };
 }
 
-/**
- * Asks the chat's events for each approval, and answers Claude Code the way
- * it expects. A chat that only reads asks for nothing that changes things,
- * and doesn't carry out its plan, approved or not, until it's made the
- * editing chat (ADR-011).
- */
-export function approvalsTo(events: () => Promise<ChatEvents>): CanUseTool {
+/** Asks the chat's events for each approval, and answers Claude Code the way it expects. */
+function approvalsTo(events: () => Promise<ChatEvents>): CanUseTool {
   return async (tool, toolInput, { signal, suggestions, title, toolUseID }) => {
-    const chat = await events();
-    const reading = chat.readOnly();
-    if (reading && !asksWhileReading(tool)) return { behavior: 'deny', message: reading };
     const asks = tool === ASK_TOOL;
     const alwaysAllow = asks ? undefined : alwaysAllowOf(suggestions);
-    const verdict = await chat.approval(
+    const verdict = await (
+      await events()
+    ).approval(
       {
         id: toolUseID ?? randomUUID(),
         tool,
@@ -888,9 +882,7 @@ export function approvalsTo(events: () => Promise<ChatEvents>): CanUseTool {
       },
       signal,
     );
-    const stillReading = tool === PLAN_TOOL ? chat.readOnly() : undefined;
-    if (verdict === 'deny' || stillReading)
-      return { behavior: 'deny', message: stillReading ?? 'The user declined this.' };
+    if (verdict === 'deny') return { behavior: 'deny', message: 'The user declined this.' };
     if (typeof verdict === 'object')
       return {
         behavior: 'allow',

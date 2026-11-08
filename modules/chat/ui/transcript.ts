@@ -171,11 +171,6 @@ export class Transcript {
     void this.chats.decide(this.chapter().id, approvalId, decision);
   }
 
-  /** Makes the chapter's chat the one that edits, then allows the approval, its plan. */
-  protected takeOver(approvalId: string): void {
-    void this.chats.takeOver(this.chapter().id, approvalId);
-  }
-
   protected answer(approvalId: string, answers: Answer[]): void {
     void this.chats.answer(this.chapter().id, approvalId, answers);
   }

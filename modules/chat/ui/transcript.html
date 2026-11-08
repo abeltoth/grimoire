@@ -171,9 +171,7 @@
         [approval]="approval"
         [agentName]="agentName()"
         [cwd]="chapter().settings.cwd"
-        [readOnly]="chapter().readOnly"
         (decided)="decide(approval.id, $event)"
-        (tookOver)="takeOver(approval.id)"
       />
     }
   </div>

@@ -166,8 +166,7 @@ export class ChapterPage {
       { key: 'model', label: this.chats.modelLabel(agent, settings, begun) },
       // Only for a model that takes effort levels.
       ...(effortShown ? [{ key: 'effort' as const, label: effortName(effort.level) }] : []),
-      // Plan only while it only reads, whatever you picked.
-      { key: 'mode', label: modeName(chapter.readOnly ? 'plan' : settings.mode) },
+      { key: 'mode', label: modeName(settings.mode) },
       { key: 'folder', label: this.chats.folderName(settings.cwd) },
       { key: 'preset', label: this.presets.of(chapter)?.name ?? 'No preset' },
     ] satisfies { key: Setting; label: string }[];

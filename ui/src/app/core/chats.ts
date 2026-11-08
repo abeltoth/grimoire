@@ -66,7 +66,7 @@ export interface Chapter {
   followUps?: readonly FollowUp[];
   /**
    * While another chapter's chat edits its project: that chat. This one
-   * only reads, in plan mode, until it's made the editing chat (ADR-011).
+   * can't edit files until it's made the editing chat (ADR-011).
    */
   readOnly?: Editor;
   /** Why the last turn failed, until the next message. */
@@ -277,9 +277,8 @@ export class Chats {
 
   /**
    * Changes a chapter's settings. A blank chapter takes any of them; a
-   * chapter that has begun only a new model or permission, and no
-   * permission while it only reads. A new chapter takes the settings
-   * picked last.
+   * chapter that has begun only a new model or permission. A new chapter
+   * takes the settings picked last.
    */
   async configure(id: string, pick: SettingsPick): Promise<void> {
     const chapter = this.find(id);
@@ -299,14 +298,12 @@ export class Chats {
       this.update(id, (c) => ({ ...c, agent, settings }));
       return this.remember({ agent, settings });
     }
-    // While it only reads, its permission stays plan only.
     const change = {
       ...(pick.model ? { model: pick.model } : {}),
       ...(pick.effort ? { effort: pick.effort } : {}),
-      ...(pick.mode && !chapter.readOnly ? { mode: pick.mode } : {}),
+      ...(pick.mode ? { mode: pick.mode } : {}),
       ...(pick.mcpOff ? { mcpOff: pick.mcpOff } : {}),
     };
-    if (!Object.keys(change).length) return;
     try {
       await this.bridge.invoke('agents.configure', { chatId: id, change });
       const { autoModel, ...kept } = chapter.settings;
@@ -690,14 +687,12 @@ export class Chats {
 
   /**
    * Makes the chapter's chat the one that edits its project: the one that
-   * did only reads from now on. With an approval, such as its plan, that
-   * waited for it, allows that once it's the editing chat.
+   * did only reads from now on.
    */
-  async takeOver(id: string, approvalId?: string): Promise<void> {
+  async takeOver(id: string): Promise<void> {
     this.update(id, ({ error: _, ...c }) => c);
     try {
       await this.bridge.invoke('agents.takeOver', { chatId: id });
-      if (approvalId) await this.bridge.invoke('agents.decide', { approvalId, decision: 'allow-once' });
     } catch (error) {
       this.fail(id, error);
     }
