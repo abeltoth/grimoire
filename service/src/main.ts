@@ -34,7 +34,6 @@ import { registerGit } from './git/commands';
 import { Git } from './git/git';
 import { registerFiles } from './files/commands';
 import { Files } from './files/files';
-import { Worktrees } from './git/worktrees';
 import { registerJira, registerKanban } from './kanban/commands';
 import { JiraMoves } from './kanban/jira-moves';
 import { JiraSyncer } from './kanban/jira-sync';
@@ -47,7 +46,6 @@ import { ScheduleStore } from './schedules/store';
 import { registerSearch } from './search/commands';
 import { SearchWorker, forkWorker } from './search/search-worker';
 import { openDatabase } from './storage/database';
-import { WorktreeRecords } from './storage/worktrees';
 import { registerTerminals } from './terminal/commands';
 import { Terminals } from './terminal/terminals';
 
@@ -128,7 +126,6 @@ const search = new SearchWorker(
 );
 registerSearch(registry, search);
 
-const worktrees = new Worktrees(new WorktreeRecords(db), log);
 const hub = new AgentHub(
   (event, payload) => {
     server?.broadcast(event, payload);
@@ -137,7 +134,8 @@ const hub = new AgentHub(
   },
   50,
   hubStore(db),
-  worktrees,
+  // A chat's project is the git repository its folder is in (ADR-011).
+  (cwd) => git.root(cwd),
   log,
 );
 const cards = new CardStore(db);
@@ -145,12 +143,8 @@ const claude = new ClaudeAdapter(
   () => settingsStore.get().mcpOff,
   () => settingsStore.get().suggestions,
   () => settingsStore.get().followUps,
-  // A task the agent adds goes on the board in use, which every window is told of. One
-  // added in a chat's own worktree is in the folder that was made from: the worktree goes.
-  (draft, madeIn) => {
-    const cwd = worktrees.origin(draft.cwd) ?? draft.cwd;
-    broadcast('kanban.changed', { cards: cards.save({ ...draft, cwd }, madeIn) });
-  },
+  // A task the agent adds goes on the board in use, which every window is told of.
+  (draft, madeIn) => broadcast('kanban.changed', { cards: cards.save(draft, madeIn) }),
 );
 hub.addAdapter(claude);
 claude.warm();

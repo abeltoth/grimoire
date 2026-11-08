@@ -10,6 +10,7 @@ import { ScheduleStore } from '../schedules/store';
 import { Chapters } from './chapters';
 import { openDatabase } from './database';
 import { DogEars } from './dog-ears';
+import { Editors } from './editors';
 import { EntryIds } from './entry-ids';
 
 const dirs: string[] = [];
@@ -52,6 +53,68 @@ describe('storage', () => {
     expect(new Chapters(db).list()).toEqual([{ chatId: 'a', agent: 'claude-code', settings: {} }]);
     expect(new ScheduleStore(db).list().map((schedule) => schedule.name)).toEqual(['Morning']);
     db.close();
+  });
+
+  it('moves what worked in a worktree Grimoire made for a chat to the folder it was made from', () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'grimoire-db-'));
+    dirs.push(dir);
+    const file = path.join(dir, 'grimoire.db');
+    const tree = 'C:\\git\\app\\.claude\\worktrees\\meter';
+
+    const old = openDatabase(file, 16);
+    old.exec(
+      `INSERT INTO worktrees (path, repo, branch, created_at) VALUES
+         ('${tree}', 'C:\\git\\app', 'grimoire/meter', 1),
+         ('/home/me/app/.claude/worktrees/x', '/home/me/app', 'grimoire/x', 1)`,
+    );
+    const chapter = (id: string, settings: object) =>
+      old
+        .prepare('INSERT INTO chapters (chat_id, agent, settings, position) VALUES (?, ?, ?, ?)')
+        .run(id, 'claude-code', JSON.stringify(settings), id.charCodeAt(0));
+    chapter('a', { cwd: tree, worktree: true, model: 'opus' });
+    // A folder inside it, written in another case.
+    chapter('b', { cwd: 'c:\\git\\app\\.claude\\worktrees\\meter\\ui', worktree: true });
+    chapter('c', { cwd: '/home/me/app/.claude/worktrees/x/src', worktree: true });
+    // A folder whose name only begins like one.
+    chapter('d', { cwd: `${tree}-2` });
+    old.exec(
+      `INSERT INTO card_chats (card_id, chat_id, agent, cwd, at) VALUES ('k', 'a', 'claude-code', '${tree}', 1);
+       INSERT INTO cards (id, profile, kind, title, notes, cwd, column_id, position, created_at, made_in_chat, made_in_agent, made_in_cwd)
+         VALUES ('k', 'personal', 'task', 'Meter', '', 'C:\\git\\app', 'todo', 1, 1, 'a', 'claude-code', '${tree}');
+       INSERT INTO schedule_runs (schedule_id, due_at, outcome, chat_id, cwd) VALUES ('s', 1, 'ran', 'a', '${tree}');
+       INSERT INTO presets (profile, name, agent, settings, position) VALUES ('personal', 'Own tree', 'claude-code', '{"worktree":true,"mode":"plan"}', 1);
+       INSERT INTO layout (profile, key, value) VALUES ('personal', 'lastUsed', '{"agent":"claude-code","settings":{"cwd":"C:\\\\git\\\\app","worktree":true}}');`,
+    );
+    old.close();
+
+    const db = openDatabase(file);
+    expect(new Chapters(db).list().map((c) => c.settings)).toEqual([
+      { cwd: 'C:\\git\\app', model: 'opus' },
+      { cwd: 'C:\\git\\app\\ui' },
+      { cwd: '/home/me/app/src' },
+      { cwd: `${tree}-2` },
+    ]);
+    const cwdOf = (sql: string) => (db.prepare(sql).get() as { cwd: string }).cwd;
+    expect(cwdOf('SELECT cwd FROM card_chats')).toBe('C:\\git\\app');
+    expect(cwdOf('SELECT made_in_cwd AS cwd FROM cards')).toBe('C:\\git\\app');
+    expect(cwdOf('SELECT cwd FROM schedule_runs')).toBe('C:\\git\\app');
+    expect(new PresetStore(db).list()[0]?.settings).toEqual({ mode: 'plan' });
+    expect(new LayoutStore(db).get().lastUsed).toEqual({ agent: 'claude-code', settings: { cwd: 'C:\\git\\app' } });
+    expect(db.prepare("SELECT name FROM sqlite_master WHERE name = 'worktrees'").get()).toBeUndefined();
+    db.close();
+  });
+
+  it('keeps the chat that edits each project, per profile', () => {
+    const db = openDatabase(':memory:');
+    let profile = 'personal';
+    const editors = new Editors(db, () => profile);
+    editors.set('c:\\git\\app', 'a');
+    editors.set('c:\\git\\app', 'b');
+    editors.set('c:\\notes', 'c');
+    expect(editors.of('c:\\git\\app')).toBe('b');
+    expect(editors.of('c:\\notes')).toBe('c');
+    profile = 'work';
+    expect(editors.of('c:\\git\\app')).toBeUndefined();
   });
 
   it('keeps open chapters in order across restarts', () => {

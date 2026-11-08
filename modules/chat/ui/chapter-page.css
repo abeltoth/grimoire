@@ -76,6 +76,16 @@
   color: var(--gr-ink);
 }
 
+/* A chapter whose chat only reads, as another edits its project. */
+.read-only {
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.read-only p {
+  margin: 0;
+}
+
 /* The setting whose card is open. */
 .meta button.on {
   color: var(--gr-ink);

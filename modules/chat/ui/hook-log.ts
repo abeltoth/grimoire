@@ -89,18 +89,6 @@ export function hookTook(ms: number): string {
   return ms < 1000 ? `${Math.max(0, Math.round(ms))}ms` : duration(ms);
 }
 
-/** How a worktree's setup went, in words: "Setting up the worktree…", then whether it did. */
-export function setupSays(run: HookRun): string {
-  switch (run.outcome) {
-    case 'running':
-      return 'Setting up the worktree…';
-    case 'passed':
-      return 'Set up the worktree';
-    default:
-      return 'Setting up the worktree';
-  }
-}
-
 /** A turn's hooks counted up: "3 hooks ran", or while one runs, "3 hooks". */
 export function hooksRan(log: HookLog): string {
   const count = `${log.runs.length} ${log.runs.length === 1 ? 'hook' : 'hooks'}`;

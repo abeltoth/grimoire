@@ -42,11 +42,12 @@ export const SECOND_CHAPTER = 'second-chapter';
 
 /**
  * The open chapter on the left page: its running head with the chat's
- * settings, the transcript (or a blank chapter's opening page, until your
- * first entry shows on it while its worktree is set up) with any
+ * settings, the transcript (or a blank chapter's opening page) with any
  * separate tasks the agent offered under its last reply, the next page to
  * write on, and the running foot. The settings in the running head
- * open the chapter's settings card. Esc closes the card, or else denies the
+ * open the chapter's settings card. While another chapter's chat edits
+ * its project, the running head says it only reads, and offers to make
+ * it the editing chat (ADR-011). Esc closes the card, or else denies the
  * approval awaiting your seal, or else stops the running turn and puts the
  * queued messages back on the next page. While the facing page shows the
  * slips, Esc is theirs. The pen beside the title rewrites it in place, for
@@ -165,13 +166,9 @@ export class ChapterPage {
       { key: 'model', label: this.chats.modelLabel(agent, settings, begun) },
       // Only for a model that takes effort levels.
       ...(effortShown ? [{ key: 'effort' as const, label: effortName(effort.level) }] : []),
-      { key: 'mode', label: modeName(settings.mode) },
-      {
-        key: 'folder',
-        label:
-          this.chats.folderName(settings.cwd) +
-          (settings.worktree && chapter.status === 'blank' ? ', own worktree' : ''),
-      },
+      // Plan only while it only reads, whatever you picked.
+      { key: 'mode', label: modeName(chapter.readOnly ? 'plan' : settings.mode) },
+      { key: 'folder', label: this.chats.folderName(settings.cwd) },
       { key: 'preset', label: this.presets.of(chapter)?.name ?? 'No preset' },
     ] satisfies { key: Setting; label: string }[];
   });

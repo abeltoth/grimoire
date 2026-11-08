@@ -138,25 +138,6 @@
         Choose another folder…
       </button>
     }
-    @if (!begun() || c.settings.worktree) {
-      <button
-        type="button"
-        class="choice"
-        role="checkbox"
-        [attr.aria-checked]="!!c.settings.worktree"
-        [attr.aria-disabled]="begun() || null"
-        (click)="begun() || pick({ worktree: !c.settings.worktree })"
-      >
-        <gr-icon name="check" />
-        <span>
-          In a worktree of its own
-          <small
-            >on a branch of its own, so {{ wording.say('chapters', 'chats') }} on one repository
-            don’t collide</small
-          >
-        </span>
-      </button>
-    }
   </div>
 
   <div
@@ -172,12 +153,18 @@
         type="button"
         class="choice"
         role="radio"
-        [attr.aria-checked]="m.mode === (c.settings.mode ?? 'ask')"
-        (click)="pick({ mode: m.mode })"
+        [attr.aria-checked]="m.mode === mode()"
+        [attr.aria-disabled]="(c.readOnly && m.mode !== mode()) || null"
+        (click)="c.readOnly || pick({ mode: m.mode })"
       >
         <gr-icon name="check" />
         <span>{{ m.label }} <small>{{ m.detail }}</small></span>
       </button>
+    }
+    @if (c.readOnly; as editing) {
+      <p class="none">
+        Locked while “{{ editing.title || wording.untitled() }}” is editing this project
+      </p>
     }
   </div>
 

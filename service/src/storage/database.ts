@@ -176,7 +176,37 @@ const MIGRATIONS = [
      error TEXT,
      synced_at INTEGER
    );`,
+  // Worktrees per chat gave way to one chat editing each project (ADR-011): the chats,
+  // and what refers to them, work in the repository's folder each worktree was made from.
+  // The worktrees and their branches stay on disk, for you to prune.
+  `UPDATE chapters SET settings = json_set(settings, '$.cwd', ${outOfWorktree("json_extract(settings, '$.cwd')")})
+     WHERE json_extract(settings, '$.cwd') IS NOT NULL;
+   UPDATE chapters SET settings = json_remove(settings, '$.worktree');
+   UPDATE card_chats SET cwd = ${outOfWorktree('cwd')};
+   UPDATE cards SET made_in_cwd = ${outOfWorktree('made_in_cwd')} WHERE made_in_cwd IS NOT NULL;
+   UPDATE schedule_runs SET cwd = ${outOfWorktree('cwd')} WHERE cwd IS NOT NULL;
+   UPDATE presets SET settings = json_remove(settings, '$.worktree');
+   UPDATE schedules SET settings = json_remove(settings, '$.worktree');
+   UPDATE layout SET value = json_remove(value, '$.settings.worktree')
+     WHERE key = 'lastUsed' AND json_type(value, '$.settings') = 'object';
+   DROP TABLE worktrees;
+   CREATE TABLE editors (
+     profile TEXT NOT NULL,
+     project TEXT NOT NULL,
+     chat_id TEXT NOT NULL,
+     PRIMARY KEY (profile, project)
+   );`,
 ];
+
+/**
+ * A folder, in SQL, moved out of a worktree Grimoire made for a chat into
+ * the same folder of the repository it was made from; any other stays.
+ */
+function outOfWorktree(folder: string): string {
+  return `COALESCE((SELECT w.repo || substr(${folder}, length(w.path) + 1) FROM worktrees w
+     WHERE lower(${folder}) = lower(w.path)
+       OR substr(lower(${folder}), 1, length(w.path) + 1) IN (lower(w.path) || '\\', lower(w.path) || '/')), ${folder})`;
+}
 
 /**
  * Grimoire's own data (ADR-009) in one SQLite file, migrated to the latest

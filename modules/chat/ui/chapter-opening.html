@@ -10,9 +10,6 @@
 <p class="note">
   {{ wording.say('Write your first entry on the page below.', 'Write your first message below.') }}
   {{ agentName() }} works in
-  @if (worktree()) {
-    a worktree of its own, on a branch of its own, made from
-  }
   @if (cwd(); as cwd) {
     <code>{{ cwd }}</code>
   } @else {

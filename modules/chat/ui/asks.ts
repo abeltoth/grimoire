@@ -8,6 +8,9 @@ export type Ask =
   | { kind: 'file'; asks: string; file: string; path: string; lines: DiffLine[]; about?: string }
   | { kind: 'tool'; asks: string; detail: string; about?: string };
 
+/** The agent's tool that ends plan mode, to carry out its plan once you approve it. */
+export const PLAN_TOOL = 'ExitPlanMode';
+
 const FILE_ASKS: Record<string, string> = {
   Edit: 'asks to correct this file',
   MultiEdit: 'asks to correct this file',

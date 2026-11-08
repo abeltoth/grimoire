@@ -11,9 +11,9 @@ import {
 import { Chats } from '@ui/app/core/chats';
 import { Wording } from '@ui/app/core/wording';
 import { ShellRegistry } from '@ui/app/shell/shell-registry';
-import type { Approval, ApprovalDecision } from '@grimoire/contract';
+import type { Approval, ApprovalDecision, Editor } from '@grimoire/contract';
 import { Icon } from '@ui/design-system/icon';
-import { askOf, scopeText } from './asks';
+import { PLAN_TOOL, askOf, scopeText } from './asks';
 import { Corrections } from '@ui/design-system/corrections';
 
 /**
@@ -21,6 +21,10 @@ import { Corrections } from '@ui/design-system/corrections';
  * shows exactly what the agent wants to do, then Allow once (Enter), Always
  * allow (Shift+Enter) or Deny (Esc, see the chapter page). On the facing
  * page it says which chapter it's from, and Esc turns back instead.
+ *
+ * A plan to carry out, while the chapter's chat only reads as another
+ * edits its project (ADR-011), goes ahead only once this is the editing
+ * chat: Make this the editing chat (Enter) or Keep it read-only (Esc).
  */
 @Component({
   selector: 'gr-approval-slip',
@@ -43,13 +47,21 @@ export class ApprovalSlip {
   readonly from = input<string>();
   /** Takes the focus when it appears, unless you're writing. */
   readonly autofocus = input(true);
+  /** While another chat edits the chapter's project: that chat. */
+  readonly readOnly = input<Editor>();
   readonly decided = output<ApprovalDecision>();
+  /** Make the chapter's chat the one that edits, then allow its plan. */
+  readonly tookOver = output<void>();
   /** Open the chapter it's from. */
   readonly opened = output<void>();
 
   private readonly allow = viewChild.required<ElementRef<HTMLButtonElement>>('allow');
 
   protected readonly ask = computed(() => askOf(this.approval(), this.cwd()));
+  /** The plan to carry out, while the chat only reads: who edits instead. */
+  protected readonly planWhileReading = computed(() =>
+    this.approval().tool === PLAN_TOOL ? this.readOnly() : undefined,
+  );
   private readonly chats = inject(Chats);
   protected readonly shell = inject(ShellRegistry);
   protected readonly wording = inject(Wording);

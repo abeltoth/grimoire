@@ -13,12 +13,12 @@ import type {
   ContextUsage,
   DogEar,
   EffortLevel,
+  Editor,
   Enclosure,
   Entry,
   EventName,
   EventPayload,
   FollowUp,
-  HookRun,
   NewChatSettings,
   OpenChat,
   ParallelFrom,
@@ -26,7 +26,6 @@ import type {
   PromptCache,
   QueuedEntry,
   RecentFolders,
-  UserEntry,
 } from '@grimoire/contract';
 import { fitEffort } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from './bridge';
@@ -65,8 +64,11 @@ export interface Chapter {
   suggestion?: string;
   /** The separate tasks the agent offered after its last reply, until a turn begins. */
   followUps?: readonly FollowUp[];
-  /** The worktree's setup, run as the chat reopened, until your next entry takes it. */
-  setup?: HookRun;
+  /**
+   * While another chapter's chat edits its project: that chat. This one
+   * only reads, in plan mode, until it's made the editing chat (ADR-011).
+   */
+  readOnly?: Editor;
   /** Why the last turn failed, until the next message. */
   error?: string;
   /** When a blank chapter was opened, in ms since the epoch. */
@@ -89,8 +91,6 @@ export interface SettingsPick {
   effort?: EffortLevel;
   mode?: ApprovalMode;
   cwd?: string;
-  /** Whether a new chapter works in a worktree of its own. */
-  worktree?: boolean;
   /** The MCP servers turned off for this chapter, by name. */
   mcpOff?: string[];
 }
@@ -127,8 +127,6 @@ export class Chats {
   private readonly begun = new Set<(blankId: string, chat: OpenChat) => void>();
   /** The blank chapters whose chats are starting, by local ID: each gives the chat's ID, unless it couldn't start. */
   private readonly starting = new Map<string, Promise<string | undefined>>();
-  /** The first entries of chats starting in worktrees of their own, shown on their blank chapters while the setup runs, by page. */
-  private readonly pages = new Map<string, { id: string; entry: UserEntry }>();
   readonly all = signal<readonly Chapter[]>([]);
   readonly currentId = signal<string | undefined>(undefined);
   readonly current = computed(() => this.all().find((chapter) => chapter.id === this.currentId()));
@@ -195,19 +193,9 @@ export class Chats {
         ...(followUps !== null ? { followUps } : {}),
       })),
     );
-    this.listen('agents.worktreeSetup', (setup) => {
-      if ('chatId' in setup)
-        return this.update(setup.chatId, ({ setup: _, ...c }) => ({
-          ...c,
-          ...(setup.run ? { setup: setup.run } : {}),
-        }));
-      // A chat starting from a blank chapter: your entry shows, with its setup.
-      const page = this.pages.get(setup.page);
-      if (page)
-        this.update(page.id, (c) =>
-          c.status === 'blank' ? { ...c, entries: [{ ...page.entry, setup: setup.run }] } : c,
-        );
-    });
+    this.listen('agents.readOnly', ({ chatId, readOnly }) =>
+      this.update(chatId, ({ readOnly: _, ...c }) => ({ ...c, ...(readOnly ? { readOnly } : {}) })),
+    );
     this.bridge.invoke('agents.list', {}).then(
       (agents) => {
         this.agents.set(agents ?? []);
@@ -289,8 +277,9 @@ export class Chats {
 
   /**
    * Changes a chapter's settings. A blank chapter takes any of them; a
-   * chapter that has begun only a new model or permission. A new chapter
-   * takes the settings picked last.
+   * chapter that has begun only a new model or permission, and no
+   * permission while it only reads. A new chapter takes the settings
+   * picked last.
    */
   async configure(id: string, pick: SettingsPick): Promise<void> {
     const chapter = this.find(id);
@@ -310,12 +299,14 @@ export class Chats {
       this.update(id, (c) => ({ ...c, agent, settings }));
       return this.remember({ agent, settings });
     }
+    // While it only reads, its permission stays plan only.
     const change = {
       ...(pick.model ? { model: pick.model } : {}),
       ...(pick.effort ? { effort: pick.effort } : {}),
-      ...(pick.mode ? { mode: pick.mode } : {}),
+      ...(pick.mode && !chapter.readOnly ? { mode: pick.mode } : {}),
       ...(pick.mcpOff ? { mcpOff: pick.mcpOff } : {}),
     };
+    if (!Object.keys(change).length) return;
     try {
       await this.bridge.invoke('agents.configure', { chatId: id, change });
       const { autoModel, ...kept } = chapter.settings;
@@ -519,27 +510,20 @@ export class Chats {
     }
   }
 
-  /**
-   * Starts a blank chapter's chat with its first message. In a worktree of
-   * its own, your entry shows on the page as the worktree's setup runs.
-   */
+  /** Starts a blank chapter's chat with its first message. */
   private async start(
     chapter: Chapter,
     text: string,
     enclosures: readonly Enclosure[],
   ): Promise<string | undefined> {
     const { id } = chapter;
-    const enclosed = enclosures.length ? { enclosures: [...enclosures] } : {};
-    const page = chapter.settings.worktree ? crypto.randomUUID() : undefined;
-    if (page) this.pages.set(page, { id, entry: { kind: 'user', id: `page-${page}`, text, ...enclosed, at: Date.now() } });
     try {
       const chat = await this.bridge.invoke('agents.start', {
         agent: chapter.agent,
         settings: chapter.settings,
         text,
-        ...enclosed,
+        ...(enclosures.length ? { enclosures: [...enclosures] } : {}),
         ...(chapter.title ? { title: chapter.title } : {}),
-        ...(page ? { page } : {}),
       });
       // Tags given to the blank page go to its chat.
       const tags = this.find(id)?.tags ?? [];
@@ -551,12 +535,8 @@ export class Chats {
       if (tags.length) await this.tag(chat.id, tags);
       return chat.id;
     } catch (error) {
-      // The chapter is blank again, saying why.
-      if (page) this.update(id, (c) => (c.status === 'blank' ? { ...c, entries: [] } : c));
       this.fail(id, error);
       return undefined;
-    } finally {
-      if (page) this.pages.delete(page);
     }
   }
 
@@ -708,6 +688,21 @@ export class Chats {
     }
   }
 
+  /**
+   * Makes the chapter's chat the one that edits its project: the one that
+   * did only reads from now on. With an approval, such as its plan, that
+   * waited for it, allows that once it's the editing chat.
+   */
+  async takeOver(id: string, approvalId?: string): Promise<void> {
+    this.update(id, ({ error: _, ...c }) => c);
+    try {
+      await this.bridge.invoke('agents.takeOver', { chatId: id });
+      if (approvalId) await this.bridge.invoke('agents.decide', { approvalId, decision: 'allow-once' });
+    } catch (error) {
+      this.fail(id, error);
+    }
+  }
+
   /** Seals or denies an approval; a failure shows as the chapter's error. */
   decide(id: string, approvalId: string, decision: ApprovalDecision): Promise<void> {
     return this.settle(id, this.bridge.invoke('agents.decide', { approvalId, decision }));
@@ -842,7 +837,7 @@ function fromOpenChat(chat: OpenChat): Chapter {
     ...(chat.cache ? { cache: chat.cache } : {}),
     ...(chat.suggestion ? { suggestion: chat.suggestion } : {}),
     ...(chat.followUps?.length ? { followUps: chat.followUps } : {}),
-    ...(chat.setup ? { setup: chat.setup } : {}),
+    ...(chat.readOnly ? { readOnly: chat.readOnly } : {}),
   };
 }
 

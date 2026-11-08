@@ -66,6 +66,10 @@ export class SettingsCard {
   protected readonly caret = signal(0);
 
   protected readonly begun = computed(() => this.chapter().status !== 'blank');
+  /** The permission it runs at: plan only while it only reads, whatever was picked. */
+  protected readonly mode = computed(() =>
+    this.chapter().readOnly ? 'plan' : (this.chapter().settings.mode ?? 'ask'),
+  );
   /** The preset the chapter is on, if any. */
   protected readonly preset = computed(() => this.presets.of(this.chapter()));
   /** Whether a preset is being named; never on a chapter you've just opened the card for. */

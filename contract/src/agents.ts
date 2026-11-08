@@ -53,13 +53,11 @@ export interface ChatSettings {
    * what it picked; picking another model ends Auto.
    */
   autoModel?: boolean;
-  mode?: ApprovalMode;
   /**
-   * Works in a worktree of its own, on a branch of its own, so chats on one
-   * repository don't change each other's files. For a new chat the folder
-   * is the one its worktree is made from; once begun, it's the worktree.
+   * The permission you picked. A chat that only reads, as another chat on
+   * its project edits it, runs in plan mode whatever this says (ADR-011).
    */
-  worktree?: boolean;
+  mode?: ApprovalMode;
   /**
    * The MCP servers turned off for this chat, by name: they don't start for
    * it, nor take room in its context. Those off in every chat are in
@@ -216,21 +214,12 @@ export interface UserEntry {
   tokens?: TurnTokens;
   /** The hooks that ran on the turn it began, in the order they began, while the chat is live. */
   hooks?: HookRun[];
-  /**
-   * The worktree's setup, run before the turn it began, while the chat is
-   * live: on a new chat's first entry, or on the first sent after the
-   * setup that ran as the chat reopened.
-   */
-  setup?: HookRun;
 }
 
-/**
- * A hook the agent ran, such as your command after each edit, and how it
- * went. A worktree's setup is told the same way, its event "WorktreeSetup".
- */
+/** A hook the agent ran, such as your command after each edit, and how it went. */
 export interface HookRun {
   id: string;
-  /** As the agent names it, such as "PostToolUse:Edit"; a worktree's setup, by its command. */
+  /** As the agent names it, such as "PostToolUse:Edit". */
   name: string;
   /** What it ran on, such as "PostToolUse". */
   event: string;
@@ -422,6 +411,19 @@ export interface FollowUp {
 /** A dog-ear on a chapter's page: the top corner pins it, the bottom one stars it. */
 export type DogEar = 'pin' | 'star';
 
+/**
+ * The chat that edits a project while another open chat on it only reads
+ * (ADR-011). Of the chats open on one project, the git repository a folder
+ * is in, or the folder outside one, one edits: the first opened, until you
+ * make another the editing chat. The others read, search, answer and plan,
+ * in plan mode, but don't change files or run commands.
+ */
+export interface Editor {
+  chatId: ChatId;
+  /** Empty until the agent names the chat. */
+  title: string;
+}
+
 /** A chat the hub has open: its transcript so far and what it's doing. */
 export interface OpenChat {
   id: ChatId;
@@ -455,12 +457,8 @@ export interface OpenChat {
   suggestion?: string;
   /** The separate tasks the agent offered after its last reply, until a turn begins. */
   followUps?: FollowUp[];
-  /**
-   * The worktree's setup, run in the background as the chat reopened in a
-   * worktree that had to be put back: until it ends, messages wait for it.
-   * Your next entry takes it.
-   */
-  setup?: HookRun;
+  /** While another chat edits its project: that chat. This one only reads, in plan mode. */
+  readOnly?: Editor;
 }
 
 declare module './commands' {
@@ -497,8 +495,8 @@ declare module './commands' {
       response: OpenChat;
     };
     /**
-     * Starts a new chat with a first message. In a worktree of its own, the
-     * repository's setup runs first; the agent's turn starts once it ended.
+     * Starts a new chat with a first message. It only reads, in plan mode,
+     * when another open chat edits its project.
      */
     'agents.start': {
       request: {
@@ -507,11 +505,6 @@ declare module './commands' {
         text: string;
         enclosures?: Enclosure[];
         title?: string;
-        /**
-         * The window's own name for the page the chat starts on, which the
-         * worktree's setup reports to: the chat has no ID until it begins.
-         */
-        page?: string;
       };
       response: OpenChat;
     };
@@ -522,11 +515,16 @@ declare module './commands' {
       request: { chatId: ChatId; text: string; enclosures?: Enclosure[] };
       response: void;
     };
-    /** Changes a chat's model or permission; a running chat takes it from its next request. */
+    /**
+     * Changes a chat's model or permission; a running chat takes it from its
+     * next request. A chat that only reads stays in plan mode: its
+     * permission changes once it's made the editing chat.
+     */
     'agents.configure': { request: { chatId: ChatId; change: SettingsChange }; response: void };
     /**
      * Restores the files to how they were before one of your entries, while
-     * the chat is idle. The edits of that entry and those after it are withdrawn.
+     * the chat is idle and edits its project. The edits of that entry and
+     * those after it are withdrawn.
      */
     'agents.undo': { request: { chatId: ChatId; entryId: string }; response: void };
     /**
@@ -536,11 +534,11 @@ declare module './commands' {
      */
     'agents.fork': { request: { chatId: ChatId; entryId: string }; response: OpenChat };
     /**
-     * Sends one entry to a second model too, in a chat of its own, which
-     * works in a worktree of its own when the folder is in a git
-     * repository. From a chat that has begun, the second is a copy of it,
-     * and the entry goes to both. From a new chapter's settings, the second
-     * starts afresh; start the first with agents.start, before this.
+     * Sends one entry to a second model too, in a chat of its own, in the
+     * same folder: while the first edits the project, the second only reads.
+     * From a chat that has begun, the second is a copy of it, and the entry
+     * goes to both. From a new chapter's settings, the second starts afresh;
+     * start the first with agents.start, before this.
      */
     'agents.parallel': {
       request: { from: ParallelFrom; model: string; text: string; enclosures?: Enclosure[] };
@@ -557,8 +555,7 @@ declare module './commands' {
      * Takes one of the separate tasks offered, by its place among them: it
      * goes from the chat, and what a new chapter for it begins with comes
      * back. The new chat works where this one does, with its model, effort,
-     * permission and MCP servers; a chat in a worktree of its own gives the
-     * folder that worktree was made from, and a worktree of its own too.
+     * permission and MCP servers.
      */
     'agents.takeFollowUp': {
       request: { chatId: ChatId; index: number };
@@ -585,8 +582,14 @@ declare module './commands' {
      */
     'agents.helper': { request: { chatId: ChatId; toolId: string }; response: HelperRun };
     /**
+     * Makes the chat the one that edits its project, at the permission you
+     * picked for it: the chat that edited it only reads from now on.
+     */
+    'agents.takeOver': { request: { chatId: ChatId }; response: void };
+    /**
      * Closes a chat's chapter and stops its agent process. The chat itself
-     * stays with the agent.
+     * stays with the agent. When it edited its project, the chat on it
+     * opened first after it edits from now on.
      */
     'agents.close': { request: { chatId: ChatId }; response: void };
   }
@@ -629,11 +632,7 @@ declare module './events' {
     'agents.suggestion': { chatId: ChatId; suggestion: string | null };
     /** The agent offered separate tasks after its reply; null once none stands. */
     'agents.followUps': { chatId: ChatId; followUps: FollowUp[] | null };
-    /**
-     * A worktree's setup began, printed something, or ended: a new chat's,
-     * on the page its agents.start named; a reopened chat's, by its ID, and
-     * null once your next entry took it.
-     */
-    'agents.worktreeSetup': { page: string; run: HookRun } | { chatId: ChatId; run: HookRun | null };
+    /** Another chat now edits the chat's project, so it only reads; null once it's the one that edits. */
+    'agents.readOnly': { chatId: ChatId; readOnly: Editor | null };
   }
 }

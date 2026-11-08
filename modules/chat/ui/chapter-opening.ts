@@ -26,8 +26,6 @@ export class ChapterOpening {
   /** The chapter's folder; missing for your home folder. */
   readonly cwd = input<string>();
   readonly mode = input<ApprovalMode>();
-  /** Whether it works in a worktree of its own, made from the folder. */
-  readonly worktree = input(false);
   /** When the blank chapter was opened, in ms since the epoch. */
   readonly begunAt = input.required<number>();
   /** Why the chapter couldn't start. */

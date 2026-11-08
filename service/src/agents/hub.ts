@@ -23,6 +23,7 @@ import type {
   PromptCache,
   Enclosure,
   DogEar,
+  Editor,
   Entry,
   EventName,
   EventPayload,
@@ -46,6 +47,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { Chapters } from '../storage/chapters';
 import { openDatabase } from '../storage/database';
 import { DogEars } from '../storage/dog-ears';
+import { Editors } from '../storage/editors';
 import { EntryIds } from '../storage/entry-ids';
 import { Tags } from '../storage/tags';
 import { UsageReadings, sameAccount } from '../storage/usage-readings';
@@ -82,10 +84,10 @@ interface ChatState {
   suggestion?: string;
   /** The separate tasks the agent offered after its last reply, until a turn begins or you take each. */
   followUps?: FollowUp[];
-  /** The worktree's setup, as it runs in the background or once it ended, until your next entry takes it. */
-  setup?: HookRun;
-  /** While the worktree's setup runs in the background: messages wait for it. */
-  settingUp: boolean;
+  /** Its project, as projectOf() gives it: of the open chats on one, one edits it (ADR-011). */
+  project: string;
+  /** While another chat edits its project: that chat. This one only reads, in plan mode. */
+  editor?: ChatId;
   /** While the agent process runs. */
   live?: LiveChat;
   /** How many processes the chat has had; what an earlier one still reports is dropped. */
@@ -114,29 +116,6 @@ interface PendingApproval {
   resolve: (verdict: Verdict) => void;
 }
 
-/** Where chats that ask for a worktree of their own work (ADR-011). */
-export interface Workplaces {
-  /** Whether a chat in the folder can have a worktree of its own: it's in a git repository. */
-  inRepository(cwd: string): Promise<boolean>;
-  /** Makes a new chat's worktree from the folder; gives the folder the chat works in. */
-  make(cwd: string, name: string): Promise<string>;
-  /**
-   * Whether the chat's folder is a worktree made for it: false when it
-   * isn't, else whether it was there or had to be put back, as it is first.
-   */
-  restore(cwd: string): Promise<false | 'there' | 'put back'>;
-  /**
-   * Starts the repository's setup in the chat's worktree; nothing when it
-   * has none. `progress` hears the run as it begins, prints and ends;
-   * `ended` gives how it went, and never rejects.
-   */
-  setUp(cwd: string, progress: (run: HookRun) => void): Promise<{ ended: Promise<HookRun> } | undefined>;
-  /** Clears its worktree away when its chapter closes, if nothing would be lost. */
-  release(cwd: string): Promise<unknown>;
-  /** The folder a chat's worktree was made from; undefined when the folder isn't one made for a chat. */
-  origin(cwd: string): string | undefined;
-}
-
 /** What the hub keeps across restarts, in Grimoire's database (ADR-009). */
 export interface HubStore {
   /** The chats open as chapters, so they reopen after a restart. */
@@ -151,6 +130,8 @@ export interface HubStore {
   tags: Tags;
   /** Each reading of the agents' plan limits. */
   usage: UsageReadings;
+  /** The chat that edits each project. */
+  editors: Editors;
 }
 
 export function hubStore(db: DatabaseSync): HubStore {
@@ -161,6 +142,7 @@ export function hubStore(db: DatabaseSync): HubStore {
     dogEars: new DogEars(db),
     tags: new Tags(db),
     usage: new UsageReadings(db),
+    editors: new Editors(db),
   };
 }
 
@@ -170,6 +152,10 @@ export function hubStore(db: DatabaseSync): HubStore {
  * `store`. Windows are views of it:
  * they get a chat's state when they open it and its changes as events.
  * Streamed text is batched, at most one event per chat every `textBatchMs`.
+ *
+ * Of the open chats on one project, one edits it; the others only read, in
+ * plan mode (ADR-011). A chat's project is the git repository its folder
+ * is in, as `repositoryOf` gives its top folder, else the folder itself.
  */
 export class AgentHub {
   private readonly adapters = new Map<AgentId, AgentAdapter>();
@@ -191,7 +177,7 @@ export class AgentHub {
     private readonly emit: Emit,
     private readonly textBatchMs = 50,
     private readonly store = hubStore(openDatabase(':memory:')),
-    private readonly workplaces?: Workplaces,
+    private readonly repositoryOf: (cwd: string) => Promise<string | null> = async () => null,
     private readonly log: (message: string) => void = () => {},
   ) {}
 
@@ -399,35 +385,43 @@ export class AgentHub {
     );
   }
 
-  /** The chats open as chapters, in ribbon order. Those that no longer open are forgotten. */
+  /**
+   * The chats open as chapters, in ribbon order. Those that no longer open
+   * are forgotten. Once all are open, each project's editing chat is the
+   * one that was before.
+   */
   async openChats(): Promise<OpenChat[]> {
     const chats = await Promise.all(
       this.store.chapters.list().map(({ agent, chatId, settings }) =>
-        this.open(agent, chatId, settings).catch(() => {
+        this.load(agent, chatId, settings).catch(() => {
           this.store.chapters.remove(chatId);
           return undefined;
         }),
       ),
     );
-    return chats.filter((chat) => chat !== undefined);
+    void this.settleEditors();
+    return chats.filter((chat) => chat !== undefined).map((chat) => this.snapshot(chat));
   }
 
+  /** Opens a chat as a chapter; it only reads when another open chat edits its project. */
   async open(agent: AgentId, chatId: ChatId, settings: ChatSettings): Promise<OpenChat> {
+    const chat = await this.load(agent, chatId, settings);
+    void this.settleEditors();
+    return this.snapshot(chat);
+  }
+
+  /** Opens a chat as a chapter, unless it's open already, leaving who edits its project as it was. */
+  private async load(agent: AgentId, chatId: ChatId, settings: ChatSettings): Promise<ChatState> {
     let chat = this.chats.get(chatId);
     if (!chat) {
       const adapter = this.adapter(agent);
-      // A chat in a worktree of its own gets it back if its chapter's closing removed it.
-      const restored = await this.workplaces?.restore(settings.cwd).catch((error: unknown) => {
-        this.log(`Couldn't put back the worktree ${settings.cwd}: ${error instanceof Error ? error.message : String(error)}`);
-        return 'there' as const;
-      });
-      if (restored) settings = { ...settings, worktree: true };
-      const [history, title] = await Promise.all([
+      const [history, title, project] = await Promise.all([
         adapter.history(chatId, settings.cwd),
         adapter.title(chatId, settings.cwd),
+        this.projectOf(settings.cwd),
       ]);
       // Another window may have opened it meanwhile.
-      chat = this.chats.get(chatId) ?? this.track(chatId, adapter, settings, history.entries, title);
+      chat = this.chats.get(chatId) ?? this.track(chatId, adapter, settings, history.entries, title, project);
       chat.plan = history.plan;
       if (history.cache && !chat.cache) chat.cache = history.cache;
       chat.withdrawn = this.store.withdrawn.list(chatId);
@@ -436,35 +430,27 @@ export class AgentHub {
       chat.copied = this.store.copied.list(chatId);
       // What the last turn offered stands, unless the chat went on meanwhile.
       if (history.followUps?.length && chat.status === 'idle' && !chat.followUps) chat.followUps = history.followUps;
-      if (restored === 'put back') await this.setUpAgain(chat);
     }
     this.store.chapters.add({ chatId, agent, settings: chat.settings });
-    return this.snapshot(chat);
+    return chat;
   }
 
-  /**
-   * Starts a new chat with its first entry. In a worktree of its own, the
-   * repository's setup runs first, the page that started it hearing how it
-   * goes, and goes on the entry; the agent's turn starts once it ended.
-   */
+  /** A folder's project, to compare by: the git repository it's in, else the folder itself. */
+  private async projectOf(cwd: string): Promise<string> {
+    return samePath((await this.repositoryOf(cwd).catch(() => null)) ?? cwd);
+  }
+
+  /** Starts a new chat with its first entry; it only reads when another open chat edits its project. */
   async start(
     agent: AgentId,
     settings: NewChatSettings,
     text: string,
     title?: string,
     enclosures: Enclosure[] = [],
-    page?: string,
   ): Promise<OpenChat> {
     let resolved: ChatSettings = { ...settings, cwd: settings.cwd ?? homedir() };
     if (resolved.autoModel) resolved = await this.autoPicked(agent, resolved, text);
-    const named = title?.trim() || undefined;
-    let setup: HookRun | undefined;
-    if (resolved.worktree) {
-      if (!this.workplaces) throw new Error('Chats can’t have worktrees of their own here');
-      resolved = { ...resolved, cwd: await this.workplaces.make(resolved.cwd, named ?? text) };
-      setup = await this.setUpNew(resolved.cwd, page);
-    }
-    return this.begin(agent, resolved, text, named, enclosures, setup);
+    return this.begin(agent, resolved, text, title?.trim() || undefined, enclosures);
   }
 
   /**
@@ -483,8 +469,8 @@ export class AgentHub {
    * Sends one entry to a second model too, in a chat of its own: from a
    * chat that has begun, a copy of it, after the entry goes to the chat
    * itself; from a new chapter's settings, a chat begun afresh. The second
-   * works in a worktree of its own when the folder is in a git repository,
-   * so the two don't change each other's files; else in the same folder.
+   * works in the same folder, so while the first edits the project, the
+   * second only reads (ADR-011).
    */
   async parallel(from: ParallelFrom, model: string, text: string, enclosures: Enclosure[] = []): Promise<OpenChat> {
     if (!text.trim() && !enclosures.length) throw new Error('Write something, or attach something, to send');
@@ -492,10 +478,9 @@ export class AgentHub {
       const cwd = from.settings.cwd ?? homedir();
       const named = from.title?.trim();
       const title = named ? await this.variantTitle(this.adapter(from.agent), named, cwd) : undefined;
-      const own = await this.ownPlace(cwd, title ?? text);
       // The second model is the one asked for, not Auto's.
       const { autoModel: _, ...settings } = from.settings;
-      return this.begin(from.agent, { ...settings, cwd, model, ...own.place }, text, title, enclosures, own.setup);
+      return this.begin(from.agent, { ...settings, cwd, model }, text, title, enclosures);
     }
     const chat = this.chat(from.chatId);
     if (!chat.agent.fork) throw new Error(`${chat.agent.info.name} can't copy a chat to another model`);
@@ -504,11 +489,10 @@ export class AgentHub {
     if (!last) throw new Error('This chat has nothing to copy yet');
     const title = await this.variantTitle(chat.agent, chat.title, chat.settings.cwd);
     const forkId = await chat.agent.fork(chat.id, chat.settings.cwd, last.id, title);
-    // The chat goes on at once; its copy follows once it has a place to work.
+    // The chat goes on at once; its copy follows once it's open.
     this.send(chat.id, text, enclosures);
-    const own = await this.ownPlace(chat.settings.cwd, title);
     const { autoModel: _, ...settings } = chat.settings;
-    const variant = await this.open(chat.agent.info.id, forkId, { ...settings, model, ...own.place });
+    const variant = await this.open(chat.agent.info.id, forkId, { ...settings, model });
     // The copy's entries are copies, without the original's file checkpoints.
     this.store.copied.add(
       forkId,
@@ -516,87 +500,45 @@ export class AgentHub {
     );
     const copy = this.chat(forkId);
     copy.copied = this.store.copied.list(forkId);
-    // The entry it's sent takes its worktree's setup.
-    if (own.setup) copy.setup = own.setup;
     this.send(forkId, text, enclosures);
     return this.snapshot(copy);
   }
 
   /**
-   * A worktree of its own for a chat in the folder, when it's in a git
-   * repository, after the repository's setup; else nothing changes.
+   * Begins a chat with its first entry, where its settings say: in plan
+   * mode when another open chat edits its project.
    */
-  private async ownPlace(cwd: string, name: string): Promise<{ place: Partial<ChatSettings>; setup?: HookRun }> {
-    if (!this.workplaces || !(await this.workplaces.inRepository(cwd))) return { place: {} };
-    const tree = await this.workplaces.make(cwd, name);
-    const setup = await this.setUpNew(tree);
-    return { place: { cwd: tree, worktree: true }, ...(setup ? { setup } : {}) };
-  }
-
-  /**
-   * Runs the repository's setup in a new chat's worktree, telling the page
-   * that started the chat how it goes; nothing when it has none.
-   */
-  private async setUpNew(cwd: string, page?: string): Promise<HookRun | undefined> {
-    const settingUp = await this.workplaces
-      ?.setUp(cwd, (run) => {
-        if (page) this.emit('agents.worktreeSetup', { page, run });
-      })
-      .catch(() => undefined);
-    return settingUp?.ended;
-  }
-
-  /**
-   * Runs the setup again for a reopened chat whose worktree was put back,
-   * in the background: what you send meanwhile waits for it, then goes.
-   * It shows on the chat until your next entry takes it.
-   */
-  private async setUpAgain(chat: ChatState): Promise<void> {
-    if (!this.workplaces || chat.settingUp || chat.setup) return;
-    chat.settingUp = true;
-    const current = () => this.chats.get(chat.id) === chat;
-    const show = (run: HookRun) => {
-      if (!current()) return;
-      chat.setup = run;
-      this.emit('agents.worktreeSetup', { chatId: chat.id, run });
-    };
-    const settled = () => {
-      chat.settingUp = false;
-      if (current() && chat.status === 'idle') this.sendQueued(chat);
-    };
-    const settingUp = await this.workplaces.setUp(chat.settings.cwd, show).catch(() => undefined);
-    if (!settingUp) return settled();
-    void settingUp.ended.then(settled);
-  }
-
-  /** Begins a chat with its first entry, where its settings say, after any setup its worktree had. */
   private async begin(
     agent: AgentId,
     resolved: ChatSettings,
     text: string,
     named: string | undefined,
     enclosures: Enclosure[],
-    setup?: HookRun,
   ): Promise<OpenChat> {
     const adapter = this.adapter(agent);
+    const project = await this.projectOf(resolved.cwd);
     if (!adapter.start) {
-      const chat = this.track(randomUUID(), adapter, resolved, [], named ?? '');
+      const chat = this.track(randomUUID(), adapter, resolved, [], named ?? '', project);
       this.store.chapters.add({ chatId: chat.id, agent, settings: resolved });
-      chat.live = adapter.run(chat.id, resolved, false, this.eventsFor(chat), named);
-      this.sendTo(chat, text, false, enclosures, setup);
+      void this.settleEditors();
+      chat.live = adapter.run(chat.id, this.runSettings(chat), false, this.eventsFor(chat), named);
+      this.sendTo(chat, text, false, enclosures);
       return this.snapshot(chat);
     }
-    // The agent picks the chat's ID, on a spare process when it has one.
+    // The agent picks the chat's ID, on a spare process when it has one. It starts reading
+    // only when another chat is open on the project now; once live, it switches if that changed.
+    const reads = [...this.chats.values()].some((other) => other.project === project);
     let chat: ChatState | undefined;
     const id = randomUUID();
     const live = await adapter.start(
-      resolved,
+      reads ? { ...resolved, mode: 'plan' } : resolved,
       text,
       id,
       (chatId) => {
-        chat = this.track(chatId, adapter, resolved, [], named ?? '');
+        chat = this.track(chatId, adapter, resolved, [], named ?? '', project);
         this.store.chapters.add({ chatId, agent, settings: resolved });
-        this.upsert(chat, { ...userEntry(id, text, enclosures), ...(setup ? { setup } : {}) });
+        void this.settleEditors();
+        this.upsert(chat, userEntry(id, text, enclosures));
         this.setStatus(chat, 'thinking');
         return this.eventsFor(chat);
       },
@@ -606,15 +548,18 @@ export class AgentHub {
     if (!chat) throw new Error(`${agent} started a chat without naming it`);
     // Closed while it started.
     if (this.chats.get(chat.id) !== chat) live.close();
-    else chat.live = live;
+    else {
+      chat.live = live;
+      if (!!chat.editor !== reads) void this.switchMode(chat);
+    }
     return this.snapshot(chat);
   }
 
-  /** Sends a message, or queues it while a turn, or the worktree's setup, runs. */
+  /** Sends a message, or queues it while a turn runs. */
   send(chatId: ChatId, text: string, enclosures: Enclosure[] = []): void {
     const chat = this.chat(chatId);
     if (!text.trim() && !enclosures.length) throw new Error('Write something, or attach something, to send');
-    if (chat.status === 'idle' && !chat.settingUp) return this.sendTo(chat, text, true, enclosures);
+    if (chat.status === 'idle') return this.sendTo(chat, text, true, enclosures);
     chat.queued.push({ id: randomUUID(), text, ...(enclosures.length ? { enclosures } : {}) });
     this.dropSuggestion(chat);
     this.emitQueued(chat);
@@ -623,10 +568,13 @@ export class AgentHub {
   /**
    * Changes a chat's model or permission, for its running process too. Its
    * MCP servers can't change in a running process: it starts again, as soon
-   * as no turn runs, continuing the chat.
+   * as no turn runs, continuing the chat. A chat that only reads stays in
+   * plan mode until it's made the editing chat.
    */
   async configure(chatId: ChatId, change: SettingsChange): Promise<void> {
     const chat = this.chat(chatId);
+    if (change.mode && chat.editor)
+      throw new Error(`${this.editing(chat)}: make this the editing chat to change its permission`);
     const { mcpOff, ...live } = change;
     if (mcpOff && !(Array.isArray(mcpOff) && mcpOff.every((name) => typeof name === 'string')))
       throw new Error('MCP servers are turned off by name');
@@ -668,17 +616,19 @@ export class AgentHub {
   /**
    * Restores the files to how they were before one of your entries, starting
    * the agent's process when the chat has none. That entry's edits, and those
-   * of every entry after it, are withdrawn.
+   * of every entry after it, are withdrawn. Only the chat that edits its
+   * project can.
    */
   async undo(chatId: ChatId, entryId: string): Promise<void> {
     const chat = this.chat(chatId);
+    if (chat.editor) throw new Error(`${this.editing(chat)}: make this the editing chat to undo`);
     if (chat.status !== 'idle') throw new Error('Stop the turn before undoing');
     const from = chat.entries.findIndex((entry) => entry.kind === 'user' && entry.id === entryId);
     if (from === -1) throw new Error('This entry is not in the chat');
     if (chat.withdrawn.includes(entryId)) throw new Error('This entry is already undone');
     if (chat.copied.includes(entryId))
       throw new Error("This entry was copied from the chat this one was forked from, so it can't be undone");
-    chat.live ??= chat.agent.run(chat.id, chat.settings, true, this.eventsFor(chat));
+    chat.live ??= chat.agent.run(chat.id, this.runSettings(chat), true, this.eventsFor(chat));
     if (!chat.live.undo) throw new Error(`${chat.agent.info.name} can't undo`);
     await chat.live.undo(entryId);
 
@@ -731,6 +681,7 @@ export class AgentHub {
     await chat.agent.rename(chatId, chat.settings.cwd, named);
     chat.title = named;
     this.emit('agents.title', { chatId, title: named });
+    this.retitled(chat);
   }
 
   dogEar(chatId: ChatId, dogEar: DogEar, folded: boolean): void {
@@ -757,8 +708,7 @@ export class AgentHub {
    * Takes one of the separate tasks the chat offered, by its place among
    * them: it goes from the chat, and what a new chapter for it begins with
    * comes back. It works where the chat does, at its model, effort,
-   * permission and MCP servers; from a worktree of its own, in the folder
-   * that was made from, with a worktree of its own too.
+   * permission and MCP servers.
    */
   takeFollowUp(chatId: ChatId, index: number): { agent: AgentId; settings: NewChatSettings; prompt: string } {
     const chat = this.chat(chatId);
@@ -767,15 +717,13 @@ export class AgentHub {
     const rest = chat.followUps!.filter((_, i) => i !== index);
     chat.followUps = rest.length ? rest : undefined;
     this.emit('agents.followUps', { chatId, followUps: rest.length ? [...rest] : null });
-    const { cwd, model, effort, mode, mcpOff, worktree } = chat.settings;
-    const origin = worktree ? this.workplaces?.origin(cwd) : undefined;
+    const { cwd, model, effort, mode, mcpOff } = chat.settings;
     const settings: NewChatSettings = {
-      cwd: origin ?? cwd,
+      cwd,
       ...(model ? { model } : {}),
       ...(effort ? { effort } : {}),
       ...(mode ? { mode } : {}),
       ...(mcpOff?.length ? { mcpOff: [...mcpOff] } : {}),
-      ...(origin ? { worktree: true } : {}),
     };
     return { agent: chat.agent.info.id, settings, prompt: taken.prompt };
   }
@@ -815,17 +763,25 @@ export class AgentHub {
     this.settle(pending, { answers });
   }
 
-  /** Closes a chat's chapter: it's no longer open after a restart. */
+  /**
+   * Makes the chat the one that edits its project, at the permission picked
+   * for it: the chat that edited it only reads from now on. Settles once
+   * both their processes have switched.
+   */
+  async takeOver(chatId: ChatId): Promise<void> {
+    const chat = this.chat(chatId);
+    this.store.editors.set(chat.project, chat.id);
+    await this.settleEditors();
+  }
+
+  /**
+   * Closes a chat's chapter: it's no longer open after a restart. When it
+   * edited its project, the chat on it opened first after it edits from now on.
+   */
   close(chatId: ChatId): void {
-    const settings = this.chats.get(chatId)?.settings;
     this.store.chapters.remove(chatId);
     this.release(chatId);
-    // Its worktree goes too, unless another open chat, such as a fork, works there.
-    if (settings?.worktree && ![...this.chats.values()].some((chat) => chat.settings.cwd === settings.cwd)) {
-      this.workplaces?.release(settings.cwd).catch((error: unknown) =>
-        this.log(`Couldn't remove the worktree ${settings.cwd}: ${error instanceof Error ? error.message : String(error)}`),
-      );
-    }
+    void this.settleEditors();
   }
 
   /** Stops every chat and spare process, for when the service stops; chats reopen when it starts again. */
@@ -888,12 +844,76 @@ export class AgentHub {
     clearTimeout(chat.flushTimer);
   }
 
+  /**
+   * Gives each project one chat that edits it (ADR-011): the one kept for
+   * it while that's open, else the open chat on it opened first. The others
+   * only read. Each chat that changed hears so, and its process switches,
+   * to plan mode or back to the permission picked for it; settles once all have.
+   */
+  private settleEditors(): Promise<void> {
+    const order = this.store.chapters.list().map((chapter) => chapter.chatId);
+    const place = (chat: ChatState) => (order.includes(chat.id) ? order.indexOf(chat.id) : order.length);
+    const projects = new Map<string, ChatState[]>();
+    for (const chat of this.chats.values()) projects.set(chat.project, [...(projects.get(chat.project) ?? []), chat]);
+    const switching: Promise<void>[] = [];
+    for (const [project, chats] of projects) {
+      const kept = this.store.editors.of(project);
+      const editor =
+        chats.find((chat) => chat.id === kept) ??
+        chats.reduce((first, chat) => (place(chat) < place(first) ? chat : first));
+      if (editor.id !== kept) this.store.editors.set(project, editor.id);
+      for (const chat of chats) {
+        const by = chat === editor ? undefined : editor.id;
+        if (chat.editor === by) continue;
+        const switched = !chat.editor !== !by;
+        chat.editor = by;
+        this.emit('agents.readOnly', { chatId: chat.id, readOnly: this.readOnlyOf(chat) ?? null });
+        if (switched) switching.push(this.switchMode(chat));
+      }
+    }
+    return Promise.all(switching).then(() => {});
+  }
+
+  /** The chat that edits the project of one that only reads; undefined for the chat that edits. */
+  private readOnlyOf(chat: ChatState): Editor | undefined {
+    return chat.editor ? { chatId: chat.editor, title: this.chats.get(chat.editor)?.title ?? '' } : undefined;
+  }
+
+  /** The chats that only read while this one edits hear its new title. */
+  private retitled(chat: ChatState): void {
+    for (const reader of this.chats.values()) {
+      const readOnly = reader.editor === chat.id && this.readOnlyOf(reader);
+      if (readOnly) this.emit('agents.readOnly', { chatId: reader.id, readOnly });
+    }
+  }
+
+  /** Who edits the project of a chat that only reads, as what it's told says. */
+  private editing(chat: ChatState): string {
+    const title = chat.editor && this.chats.get(chat.editor)?.title;
+    return `${title ? `"${title}"` : 'Another chat'} is editing this project`;
+  }
+
+  /** The settings its process runs at: in plan mode while another chat edits its project. */
+  private runSettings(chat: ChatState): ChatSettings {
+    return chat.editor ? { ...chat.settings, mode: 'plan' } : chat.settings;
+  }
+
+  /** Switches the chat's process to plan mode while it only reads, else to the permission picked for it. */
+  private async switchMode(chat: ChatState): Promise<void> {
+    try {
+      await chat.live?.configure({ mode: this.runSettings(chat).mode ?? 'ask' });
+    } catch (error) {
+      this.log(`Couldn't switch the permission of ${chat.id}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
   private track(
     id: ChatId,
     agent: AgentAdapter,
     settings: ChatSettings,
     entries: Entry[],
     title: string,
+    project: string,
   ): ChatState {
     const chat: ChatState = {
       id,
@@ -908,7 +928,7 @@ export class AgentHub {
       dogEars: [],
       tags: [],
       copied: [],
-      settingUp: false,
+      project,
       processes: 0,
       restart: false,
       helpers: new Map(),
@@ -964,33 +984,16 @@ export class AgentHub {
     live?.close();
   }
 
-  /** Sends your entry; it takes the worktree's setup that ended before it, if one did. */
-  private sendTo(
-    chat: ChatState,
-    text: string,
-    resume: boolean,
-    enclosures: Enclosure[] = [],
-    setup = this.takeSetup(chat),
-  ): void {
-    chat.live ??= chat.agent.run(chat.id, chat.settings, resume, this.eventsFor(chat));
+  private sendTo(chat: ChatState, text: string, resume: boolean, enclosures: Enclosure[] = []): void {
+    chat.live ??= chat.agent.run(chat.id, this.runSettings(chat), resume, this.eventsFor(chat));
     const id = randomUUID();
-    this.upsert(chat, { ...userEntry(id, text, enclosures), ...(setup ? { setup } : {}) });
+    this.upsert(chat, userEntry(id, text, enclosures));
     if (chat.status === 'idle') this.setStatus(chat, 'thinking');
     chat.live.send(text, id, enclosures);
   }
 
-  /** The worktree's setup that ended, off the chat, for your next entry. */
-  private takeSetup(chat: ChatState): HookRun | undefined {
-    const setup = chat.setup;
-    if (!setup || setup.outcome === 'running') return undefined;
-    delete chat.setup;
-    this.emit('agents.worktreeSetup', { chatId: chat.id, run: null });
-    return setup;
-  }
-
-  /** A turn, or the worktree's setup, ended: the next queued message goes. */
+  /** A turn ended: the next queued message goes. */
   private sendQueued(chat: ChatState): void {
-    if (chat.settingUp) return;
     const next = chat.queued.shift();
     if (!next) return;
     this.emitQueued(chat);
@@ -1039,6 +1042,11 @@ export class AgentHub {
           this.emit('agents.approval', { approval });
           this.setStatus(chat, 'waiting');
         }),
+      readOnly: () =>
+        chat.editor
+          ? `${this.editing(chat)}, so this chat may only read, search, answer and plan: it can't edit ` +
+            'files or run commands. Leave the changes to that chat, unless the user makes this the editing chat.'
+          : undefined,
       context: (context) => {
         if (!current()) return;
         chat.context = context;
@@ -1066,6 +1074,7 @@ export class AgentHub {
         if (!current() || title === chat.title) return;
         chat.title = title;
         this.emit('agents.title', { chatId: chat.id, title });
+        this.retitled(chat);
       },
       suggestion: (text) => {
         // Only while you could take it: no turn runs and nothing waits to go.
@@ -1264,7 +1273,7 @@ export class AgentHub {
       copied: [...chat.copied],
       ...(chat.suggestion !== undefined ? { suggestion: chat.suggestion } : {}),
       ...(chat.followUps ? { followUps: structuredClone(chat.followUps) } : {}),
-      ...(chat.setup ? { setup: { ...chat.setup } } : {}),
+      ...(chat.editor ? { readOnly: this.readOnlyOf(chat) } : {}),
     };
   }
 

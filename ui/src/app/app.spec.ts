@@ -977,120 +977,6 @@ describe('App', () => {
     });
   });
 
-  it('begins a chapter in a worktree of its own when asked', async () => {
-    const { bridge, calls, answers } = fakeBridge();
-    answers['agents.start'] = (request: CommandRequest<'agents.start'>): OpenChat => ({
-      id: 'chat-1',
-      agent: request.agent,
-      title: '',
-      settings: { ...request.settings, cwd: 'C:/Users/me/git/grimoire/.claude/worktrees/hello', worktree: true },
-      status: 'thinking',
-      entries: [{ kind: 'user', id: 'u1', text: request.text }],
-      approvals: [],
-      queued: [],
-      plan: [],
-      withdrawn: [],
-      dogEars: [],
-      tags: [],
-      copied: [],
-    });
-    const { fixture, el, texts } = await render(bridge);
-    el.querySelector<HTMLButtonElement>('.meta [data-setting="folder"]')!.click();
-    await fixture.whenStable();
-    pick(el, '~/git/grimoire');
-    await fixture.whenStable();
-    const worktree = () => el.querySelector('gr-settings-card [role="checkbox"]')!;
-    expect(worktree().getAttribute('aria-checked')).toBe('false');
-
-    pick(el, 'In a worktree of its own');
-    await fixture.whenStable();
-    expect(worktree().getAttribute('aria-checked')).toBe('true');
-    expect(texts('.meta [data-setting="folder"]')).toEqual(['~/git/grimoire, own worktree']);
-    expect(texts('gr-chapter-opening .note')[0]).toContain(
-      'works in a worktree of its own, on a branch of its own, made from C:/Users/me/git/grimoire',
-    );
-
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-    await write(fixture, el, 'Hello');
-    expect(calls.find((c) => c.command === 'agents.start')?.request).toMatchObject({
-      settings: { cwd: 'C:/Users/me/git/grimoire', worktree: true },
-    });
-    expect(texts('.meta [data-setting="folder"]')).toEqual(['~/git/grimoire/.claude/worktrees/hello']);
-
-    // Once begun, it stays in its worktree.
-    el.querySelector<HTMLButtonElement>('.meta [data-setting="folder"]')!.click();
-    await fixture.whenStable();
-    expect(worktree().getAttribute('aria-checked')).toBe('true');
-    expect(worktree().getAttribute('aria-disabled')).toBe('true');
-  });
-
-  it("shows your first entry while the worktree's setup runs, folding out to what it prints", async () => {
-    const { bridge, calls, emit, answers } = fakeBridge();
-    let started!: (chat: OpenChat) => void;
-    answers['agents.start'] = () => new Promise<OpenChat>((resolve) => (started = resolve));
-    answers['layout.get'] = () => ({
-      current: null,
-      lastUsed: { agent: 'claude-code', settings: { cwd: 'C:/Users/me/git/grimoire', worktree: true } },
-    });
-    const { fixture, el, texts } = await render(bridge);
-    await write(fixture, el, 'Hello');
-    const { page } = calls.find((c) => c.command === 'agents.start')!.request as CommandRequest<'agents.start'>;
-    expect(page).toEqual(expect.any(String));
-    // Until the setup says it began, the opening page stays.
-    expect(el.querySelector('gr-chapter-opening')).not.toBeNull();
-
-    const running = { id: 's1', name: 'npm ci', event: 'WorktreeSetup', outcome: 'running' as const, at: Date.now() };
-    emit('agents.worktreeSetup', { page: page!, run: running });
-    await fixture.whenStable();
-    expect(el.querySelector('gr-chapter-opening')).toBeNull();
-    expect(texts('.you .text')).toEqual(['Hello']);
-    expect(texts('.hook .note.setup')).toEqual(['Setting up the worktree…0s']);
-    const line = () => el.querySelector<HTMLButtonElement>('.hook .note.setup')!;
-    expect(line().getAttribute('aria-disabled')).toBe('true');
-
-    emit('agents.worktreeSetup', { page: page!, run: { ...running, output: 'added 3 packages' } });
-    await fixture.whenStable();
-    expect(line().getAttribute('aria-expanded')).toBe('false');
-    line().click();
-    await fixture.whenStable();
-    expect(el.querySelector('.hook gr-output')!.getAttribute('aria-label')).toBe('Output of npm ci');
-    expect(texts('.hook gr-output .code')).toEqual(['added 3 packages']);
-    line().click();
-    await fixture.whenStable();
-    expect(el.querySelector('.hook gr-output')).toBeNull();
-
-    // A setup that failed says so, its output out by itself, and the chat goes on.
-    const failed = { ...running, outcome: 'failed' as const, output: 'npm error\nIt exited with code 1', took: 2_400 };
-    emit('agents.worktreeSetup', { page: page!, run: failed });
-    await fixture.whenStable();
-    expect(texts('.hook .note.setup')).toEqual(['Setting up the worktreefailed2s']);
-    expect(el.querySelector('.hook .note.setup .failed')).not.toBeNull();
-    expect(texts('.hook gr-output .code')).toEqual(['npm error', 'It exited with code 1']);
-
-    started({
-      id: 'chat-1',
-      agent: 'claude-code',
-      title: '',
-      settings: { cwd: 'C:/Users/me/git/grimoire/.claude/worktrees/hello', worktree: true },
-      status: 'thinking',
-      entries: [{ kind: 'user', id: 'u1', text: 'Hello', setup: failed }],
-      approvals: [],
-      queued: [],
-      plan: [],
-      withdrawn: [],
-      dogEars: [],
-      tags: [],
-      copied: [],
-    });
-    await new Promise((resolve) => setTimeout(resolve));
-    await fixture.whenStable();
-    expect(texts('.meta [data-setting="folder"]')).toEqual(['~/git/grimoire/.claude/worktrees/hello']);
-    expect(texts('.you .text')).toEqual(['Hello']);
-    expect(texts('.hook .note.setup')).toEqual(['Setting up the worktreefailed2s']);
-    expect(texts('.hook gr-output .code')).toEqual(['npm error', 'It exited with code 1']);
-    expect(texts('.stop')).toHaveLength(1);
-  });
-
   it("sends what you write while a blank chapter's chat starts to that chat, once it has", async () => {
     const { bridge, calls, answers } = fakeBridge();
     let started!: (chat: OpenChat) => void;
@@ -1110,38 +996,112 @@ describe('App', () => {
     ]);
   });
 
-  it("shows a reopened chapter's setup at the end of its transcript, until your next entry takes it", async () => {
-    const { bridge, emit, answers } = fakeBridge();
-    const running = { id: 's1', name: 'npm ci', event: 'WorktreeSetup', outcome: 'running' as const, at: Date.now() };
-    answers['agents.openChats'] = (): OpenChat[] => [
-      {
-        id: 'c1',
-        agent: 'claude-code',
-        title: 'Context meter',
-        settings: { cwd: 'C:/work/grimoire/.claude/worktrees/meter', worktree: true },
-        status: 'idle',
-        entries: [{ kind: 'user', id: 'u1', text: 'Add a meter' }],
-        approvals: [],
-        queued: [],
-        plan: [],
-        withdrawn: [],
-        dogEars: [],
-        tags: [],
-        copied: [],
-        setup: running,
-      },
-    ];
-    answers['layout.get'] = () => ({ current: 'c1' });
-    const { fixture, texts } = await render(bridge);
-    expect(texts('.hook .note.setup')).toEqual(['Setting up the worktree…0s']);
+  describe('a chapter that only reads, as another edits its project', () => {
+    const opened = (id: string, title: string, more: Partial<OpenChat> = {}): OpenChat => ({
+      id,
+      agent: 'claude-code',
+      title,
+      settings: { cwd: 'C:/work/grimoire', mode: 'accept-edits' },
+      status: 'idle',
+      entries: [{ kind: 'user', id: `${id}-u1`, text: 'Hello' }],
+      approvals: [],
+      queued: [],
+      plan: [],
+      withdrawn: [],
+      dogEars: [],
+      tags: [],
+      copied: [],
+      ...more,
+    });
+    const reading = { readOnly: { chatId: 'c1', title: 'Context meter' } };
 
-    emit('agents.worktreeSetup', { chatId: 'c1', run: { ...running, outcome: 'passed', took: 12_000 } });
-    await fixture.whenStable();
-    expect(texts('.hook .note.setup')).toEqual(['Set up the worktree12s']);
+    it('says so in its running head, and is made the editing chat when you ask', async () => {
+      const { bridge, calls, emit, answers } = fakeBridge();
+      answers['agents.openChats'] = () => [opened('c1', 'Context meter'), opened('c2', 'Explain it', reading)];
+      answers['layout.get'] = () => ({ current: 'c2' });
+      const { fixture, el, texts } = await render(bridge);
+      expect(texts('gr-running-head .read-only p')).toEqual(['Read-only — “Context meter” is editing']);
+      expect(texts('gr-running-head .read-only button')).toEqual(['Make this the editing chapter']);
+      expect(texts('.meta [data-setting="mode"]')).toEqual(['Plan only']);
 
-    emit('agents.worktreeSetup', { chatId: 'c1', run: null });
-    await fixture.whenStable();
-    expect(texts('.hook .note.setup')).toEqual([]);
+      el.querySelector<HTMLButtonElement>('gr-running-head .read-only button')!.click();
+      await fixture.whenStable();
+      expect(calls).toContainEqual({ command: 'agents.takeOver', request: { chatId: 'c2' } });
+      emit('agents.readOnly', { chatId: 'c2', readOnly: null });
+      await fixture.whenStable();
+      expect(el.querySelector('gr-running-head .read-only')).toBeNull();
+      expect(texts('.meta [data-setting="mode"]')).toEqual(['Accept edits']);
+
+      // Another chat took over, one not named yet.
+      emit('agents.readOnly', { chatId: 'c2', readOnly: { chatId: 'c3', title: '' } });
+      await fixture.whenStable();
+      expect(texts('gr-running-head .read-only p')).toEqual(['Read-only — “Untitled chapter” is editing']);
+    });
+
+    it('keeps its permission at Plan only, saying why, while the rest still changes', async () => {
+      const { bridge, calls, answers } = fakeBridge();
+      answers['agents.openChats'] = () => [opened('c1', 'Context meter'), opened('c2', 'Explain it', reading)];
+      answers['layout.get'] = () => ({ current: 'c2' });
+      const { fixture, el, texts } = await render(bridge);
+      el.querySelector<HTMLButtonElement>('.meta [data-setting="mode"]')!.click();
+      await fixture.whenStable();
+      const modes = [...el.querySelectorAll('gr-settings-card [data-setting="mode"] .choice')];
+      expect(modes.map((m) => [m.textContent!.trim().split(/\s+/).slice(0, 2).join(' '), m.getAttribute('aria-checked'), m.getAttribute('aria-disabled')])).toEqual([
+        ['Ask first', 'false', 'true'],
+        ['Accept edits', 'false', 'true'],
+        ['Plan only', 'true', null],
+        ['Full access', 'false', 'true'],
+      ]);
+      expect(texts('gr-settings-card [data-setting="mode"] .none')).toEqual([
+        'Locked while “Context meter” is editing this project',
+      ]);
+
+      pick(el, 'Full access');
+      await fixture.whenStable();
+      expect(calls.some((c) => c.command === 'agents.configure')).toBe(false);
+      pick(el, 'Sonnet 5.5');
+      await fixture.whenStable();
+      expect(calls.filter((c) => c.command === 'agents.configure').map((c) => c.request)).toEqual([
+        { chatId: 'c2', change: { model: 'sonnet' } },
+      ]);
+    });
+
+    it('carries out its plan only once you make it the editing chat, or keeps it read-only', async () => {
+      const { bridge, calls, emit, answers } = fakeBridge();
+      const plan = { id: 'p1', chatId: 'c2', tool: 'ExitPlanMode', input: { plan: 'Add the meter' } };
+      answers['agents.openChats'] = () => [
+        opened('c1', 'Context meter'),
+        opened('c2', 'Explain it', { ...reading, status: 'waiting', approvals: [plan] }),
+      ];
+      answers['layout.get'] = () => ({ current: 'c2' });
+      const { fixture, el, texts } = await render(bridge);
+      expect(texts('gr-approval-slip .meta')).toEqual([
+        'Read-only — “Context meter” is editing. To carry out the plan, make this the editing chapter.',
+      ]);
+      expect(texts('gr-approval-slip .seal-button')).toEqual(['Make this the editing chapter ⏎']);
+      expect(texts('gr-approval-slip .deny')).toEqual(['Keep it read-only Esc']);
+
+      el.querySelector<HTMLButtonElement>('gr-approval-slip .deny')!.click();
+      await fixture.whenStable();
+      expect(calls.filter((c) => c.command === 'agents.decide').map((c) => c.request)).toEqual([
+        { approvalId: 'p1', decision: 'deny' },
+      ]);
+      expect(calls.some((c) => c.command === 'agents.takeOver')).toBe(false);
+
+      el.querySelector<HTMLButtonElement>('gr-approval-slip .seal-button')!.click();
+      await fixture.whenStable();
+      const taken = calls.findIndex((c) => c.command === 'agents.takeOver');
+      expect(calls[taken]?.request).toEqual({ chatId: 'c2' });
+      expect(calls.slice(taken + 1).filter((c) => c.command === 'agents.decide').map((c) => c.request)).toEqual([
+        { approvalId: 'p1', decision: 'allow-once' },
+      ]);
+
+      // Once it edits, its plan is sealed as any approval is.
+      emit('agents.readOnly', { chatId: 'c2', readOnly: null });
+      await fixture.whenStable();
+      expect(texts('gr-approval-slip .seal-button')).toEqual(['Allow once ⏎']);
+      expect(el.querySelector('gr-approval-slip .meta')).toBeNull();
+    });
   });
 
   it('brings back your earlier entries with Up, and sends one with Enter', async () => {
@@ -5905,8 +5865,9 @@ describe('App', () => {
         answers['layout.get'] = () => ({ current: 'c1', focus: true });
         answers['agents.parallel'] = (request: CommandRequest<'agents.parallel'>): OpenChat => ({
           ...chat('c2', 'Context meter (a)'),
-          settings: { cwd: 'C:/work/c1/.claude/worktrees/context-meter-a', model: request.model, worktree: true },
+          settings: { cwd: 'C:/work/c1', model: request.model },
           status: 'thinking',
+          readOnly: { chatId: 'c1', title: 'Context meter' },
         });
         const { fixture, el, texts } = await render(bridge);
         expect(parallel(el)!.getAttribute('aria-pressed')).toBe('false');
@@ -5937,6 +5898,10 @@ describe('App', () => {
         expect(texts('gr-running-head h1')).toEqual(['Context meter']);
         expect(texts('gr-facing-tabs .tabs [aria-pressed="true"]')).toEqual(['Context meter (a)']);
         expect(beside(el)!.querySelector('gr-transcript')).not.toBeNull();
+        // It works in the same folder, so it only reads while the chapter edits.
+        expect(beside(el)!.querySelector('.read-only p')!.textContent!.trim()).toBe(
+          'Read-only — “Context meter” is editing',
+        );
         // Parallel is off again, and not offered on the facing page.
         expect(el.querySelector('gr-composer .parallel')).toBeNull();
         expect(parallel(el)!.getAttribute('aria-pressed')).toBe('false');

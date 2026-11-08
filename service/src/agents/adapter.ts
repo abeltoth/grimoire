@@ -162,6 +162,13 @@ export interface ChatEvents {
   helperState(toolId: string, state: HelperState): void;
   /** Asks for a decision. `signal` aborts when the agent stops waiting for it. */
   approval(request: ApprovalRequest, signal: AbortSignal): Promise<Verdict>;
+  /**
+   * While another chat edits the project, why this one may only read,
+   * search, answer and plan, as the agent is told when it tries more than
+   * that (ADR-011); undefined while it's the chat that edits. Asked at each
+   * tool call, as it changes while the chat runs.
+   */
+  readOnly(): string | undefined;
   /** The agent named or renamed the chat. */
   title(title: string): void;
   /** How much of the context window the chat now fills. */

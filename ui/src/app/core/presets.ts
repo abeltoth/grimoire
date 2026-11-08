@@ -99,7 +99,6 @@ function same(a: NewChatSettings, b: NewChatSettings): boolean {
     !!a.autoModel === !!b.autoModel &&
     a.model === b.model &&
     a.effort === b.effort &&
-    a.mode === b.mode &&
-    !!a.worktree === !!b.worktree
+    a.mode === b.mode
   );
 }

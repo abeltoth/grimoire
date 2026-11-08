@@ -79,8 +79,6 @@ export type Row =
       /** Undo would restore something: this turn or a later one changed files, not yet undone. */
       undoable: boolean;
     }
-  /** The worktree's setup, run before the turn your entry above began. */
-  | { kind: 'setup'; key: string; run: HookRun }
   | { kind: 'thinking'; key: string; text: string }
   | ({ kind: 'reply'; key: string; text: string; byline: boolean; at?: number } & Margin)
   | ({ kind: 'notes'; key: string } & Margin)
@@ -202,7 +200,6 @@ export function toRows(
         withdrawn: withdrawn.has(entry.id),
         undoable: false,
       });
-      if (entry.setup) rows.push({ kind: 'setup', key: `${entry.id}/setup`, run: entry.setup });
       undone = withdrawn.has(entry.id);
       marks = 0;
       bylined = false;

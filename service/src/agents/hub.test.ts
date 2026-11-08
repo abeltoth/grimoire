@@ -1,13 +1,13 @@
 import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
-import type { AgentEntry, AgentSetup, EventName, EventPayload, HookRun } from '@grimoire/contract';
+import type { AgentEntry, AgentSetup, EventName, EventPayload, HookRun, SettingsChange } from '@grimoire/contract';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setActiveProfile } from '../storage/app-state';
 import { openDatabase } from '../storage/database';
 import type { ChatEvents, LiveChat } from './adapter';
 import { FakeAdapter } from './fake-adapter';
-import { AgentHub, type Workplaces, hubStore } from './hub';
+import { AgentHub, hubStore } from './hub';
 
 type Sent = { [K in EventName]: { event: K; payload: EventPayload<K> } }[EventName];
 
@@ -39,12 +39,15 @@ const events = () => sent.map((s) => s.event);
 /** An agent that picks a new chat's ID itself, as Claude Code does on a spare process. */
 class PickingAdapter extends FakeAdapter {
   started?: {
+    settings: typeof settings;
     text: string;
     id: string;
     events: ChatEvents;
-    live: LiveChat & { closed: boolean };
+    live: LiveChat & { closed: boolean; configured: SettingsChange[] };
   };
   disposed = false;
+  /** When set, the agent names the chat once it settles. */
+  gate?: Promise<void>;
 
   async start(
     chatSettings: typeof settings,
@@ -52,15 +55,16 @@ class PickingAdapter extends FakeAdapter {
     id: string,
     bind: (chatId: string) => ChatEvents,
   ) {
-    await Promise.resolve();
+    await (this.gate ?? Promise.resolve());
     const live = {
       closed: false,
+      configured: [] as SettingsChange[],
       send() {},
       interrupt: async () => {},
-      configure: async () => {},
+      configure: async (change: SettingsChange) => void live.configured.push(change),
       close: () => void (live.closed = true),
     };
-    this.started = { text, id, events: bind('picked'), live };
+    this.started = { settings: chatSettings, text, id, events: bind('picked'), live };
     return live;
   }
 
@@ -452,290 +456,219 @@ describe('AgentHub', () => {
     expect(() => hub.answer('q1', [{ chosen: [] }])).toThrow('no longer pending');
   });
 
-  describe('in a worktree of its own', () => {
-    let calls: string[];
-    let made: Set<string>;
-    /** The worktrees whose folders are gone, put back when their chat opens. */
-    let gone: Set<string>;
-    /** The setup the repository has, which the test drives; none when unset. */
-    let setup: { progress: (run: HookRun) => void; end: (run: HookRun) => void } | undefined;
-    let hasSetup: boolean;
-    const workplaces: Workplaces = {
-      inRepository: async (cwd) => {
-        calls.push(`inRepository ${cwd}`);
-        return cwd !== '/plain';
-      },
-      make: async (cwd, name) => {
-        calls.push(`make ${cwd} ${name}`);
-        made.add('/work/.claude/worktrees/hello');
-        return '/work/.claude/worktrees/hello';
-      },
-      restore: async (cwd) => {
-        calls.push(`restore ${cwd}`);
-        if (!made.has(cwd)) return false;
-        return gone.delete(cwd) ? 'put back' : 'there';
-      },
-      setUp: async (cwd, progress) => {
-        if (!hasSetup) return undefined;
-        calls.push(`setUp ${cwd}`);
-        progress(running);
-        return {
-          ended: new Promise<HookRun>((end) => {
-            setup = { progress, end: (run) => (progress(run), end(run)) };
-          }),
-        };
-      },
-      release: async (cwd) => void calls.push(`release ${cwd}`),
-      origin: (cwd) => (cwd.startsWith(tree) ? `/work${cwd.slice(tree.length)}` : undefined),
+  describe('sending one entry to two models', () => {
+    const begun = async (cwd: string) => {
+      fake.transcripts.set('c1', [{ kind: 'user', id: 'u1', text: 'Add a meter' }, reply('r1', 'Added.')]);
+      fake.chats = [{ id: 'c1', agent: 'fake', title: 'Context meter', cwd, updatedAt: 1 }];
+      await hub.open('fake', 'c1', { cwd });
     };
-    const tree = '/work/.claude/worktrees/hello';
-    const running: HookRun = { id: 's1', name: 'npm ci', event: 'WorktreeSetup', outcome: 'running', at: 1 };
-    const passed: HookRun = { ...running, outcome: 'passed', output: 'added 3 packages', took: 12_000 };
-    const failed: HookRun = { ...running, outcome: 'failed', output: 'It exited with code 3', took: 2_000 };
+
+    it('copies a chat onto the second model, in the same folder, where it only reads, and sends the entry to both', async () => {
+      await begun('/work');
+      const copy = await hub.parallel({ chatId: 'c1' }, 'small', 'Colour it');
+      expect(copy).toMatchObject({
+        id: 'fork-2',
+        title: 'Context meter (a)',
+        settings: { cwd: '/work', model: 'small' },
+        status: 'thinking',
+        entries: [{ id: 'u1' }, { id: 'r1' }, { kind: 'user', text: 'Colour it' }],
+        copied: ['u1'],
+        readOnly: { chatId: 'c1', title: 'Context meter' },
+      });
+      expect(fake.runOf('c1')).toMatchObject({ resume: true, sent: ['Colour it'], settings: { cwd: '/work' } });
+      expect(fake.runOf('fork-2')).toMatchObject({
+        resume: true,
+        sent: ['Colour it'],
+        settings: { cwd: '/work', model: 'small', mode: 'plan' },
+      });
+      expect((await hub.openChats()).map((chat) => chat.id)).toEqual(['c1', 'fork-2']);
+    });
+
+    it('waits for the turn to end', async () => {
+      await begun('/work');
+      hub.send('c1', 'Colour it');
+      await expect(hub.parallel({ chatId: 'c1' }, 'small', 'Bigger')).rejects.toThrow('Wait for the turn to end');
+    });
+
+    it('begins the second afresh for a new chapter, its title a variant of the first', async () => {
+      fake.chats = [{ id: 'c1', agent: 'fake', title: 'Login bug', cwd: '/work', updatedAt: 1 }];
+      const second = await hub.parallel(
+        { agent: 'fake', settings: { ...settings, mode: 'plan' }, title: 'Login bug' },
+        'small',
+        'Fix it',
+      );
+      expect(second).toMatchObject({
+        title: 'Login bug (a)',
+        settings: { cwd: '/work', mode: 'plan', model: 'small' },
+        status: 'thinking',
+        entries: [{ kind: 'user', text: 'Fix it' }],
+      });
+      expect(fake.runOf(second.id)).toMatchObject({ resume: false, sent: ['Fix it'] });
+
+      const untitled = await hub.parallel({ agent: 'fake', settings: { cwd: '/plain' } }, 'small', 'Fix it');
+      expect(untitled).toMatchObject({ title: '', settings: { cwd: '/plain', model: 'small' } });
+    });
+  });
+
+  describe('one chat editing each project', () => {
+    /** The git repositories the folders are in, by top folder. */
+    const repositories = ['/work', '/notes'];
+    const repositoryOf = async (cwd: string) =>
+      repositories.find((top) => cwd === top || cwd.startsWith(`${top}/`)) ?? null;
+    const readOnlyEvents = () => sent.flatMap((s) => (s.event === 'agents.readOnly' ? [s.payload] : []));
     /** Lets the hub take in what was just settled. */
     const settle = () => vi.advanceTimersByTimeAsync(0);
+    let store: ReturnType<typeof hubStore>;
 
     beforeEach(() => {
-      calls = [];
-      made = new Set();
-      gone = new Set();
-      setup = undefined;
-      hasSetup = false;
-      hub = new AgentHub(
-        (event, payload) => sent.push({ event, payload } as Sent),
-        50,
-        hubStore(openDatabase(':memory:')),
-        workplaces,
-      );
+      store = hubStore(openDatabase(':memory:'));
+      hub = new AgentHub((event, payload) => sent.push({ event, payload } as Sent), 50, store, repositoryOf);
       hub.addAdapter(fake);
     });
 
-    it('starts the chat in a worktree made from the folder', async () => {
-      const chat = await hub.start('fake', { ...settings, worktree: true }, 'Hello there');
-      expect(calls).toEqual(['make /work Hello there']);
-      expect(chat.settings).toEqual({ cwd: tree, worktree: true });
-      expect(fake.runOf(chat.id)).toMatchObject({ settings: { cwd: tree, worktree: true } });
+    it('makes the first chat open on a project the one that edits it; the others only read, in plan mode', async () => {
+      const first = await hub.start('fake', { ...settings, mode: 'accept-edits' }, 'Add a meter');
+      expect(first.readOnly).toBeUndefined();
+      expect(fake.runOf(first.id).settings).toEqual({ cwd: '/work', mode: 'accept-edits' });
+
+      // A folder inside the repository is on the same project.
+      const second = await hub.start('fake', { cwd: '/work/ui', mode: 'allow-all' }, 'Explain it');
+      expect(second.readOnly).toEqual({ chatId: first.id, title: '' });
+      expect(second.settings).toEqual({ cwd: '/work/ui', mode: 'allow-all' });
+      expect(fake.runOf(second.id).settings).toEqual({ cwd: '/work/ui', mode: 'plan' });
+      expect(readOnlyEvents()).toEqual([{ chatId: second.id, readOnly: { chatId: first.id, title: '' } }]);
+
+      // Another repository, and a folder outside any, are projects of their own.
+      expect((await hub.start('fake', { cwd: '/notes' }, 'Hi')).readOnly).toBeUndefined();
+      expect((await hub.start('fake', { cwd: '/plain' }, 'Hi')).readOnly).toBeUndefined();
     });
 
-    it('names the worktree after the title given', async () => {
-      await hub.start('fake', { ...settings, worktree: true }, 'Hello there', 'Context meter');
-      expect(calls).toEqual(['make /work Context meter']);
-    });
+    it("tells the agent why it may only read, naming the chat that edits, and keeps its permission and undo from changing", async () => {
+      const first = await hub.start('fake', settings, 'Add a meter');
+      const second = await hub.start('fake', settings, 'Explain it');
+      const reader = fake.runOf(second.id);
+      expect(fake.runOf(first.id).events.readOnly()).toBeUndefined();
+      expect(reader.events.readOnly()).toMatch(/^Another chat is editing this project, so this chat may only read/);
 
-    it('releases the worktree when the chapter closes, unless a fork still works there', async () => {
-      const chat = await hub.start('fake', { ...settings, worktree: true }, 'Hello');
-      fake.transcripts.set('fork', []);
-      await hub.open('fake', 'fork', chat.settings);
-      hub.close(chat.id);
-      expect(calls).not.toContain(`release ${tree}`);
-      hub.close('fork');
-      await Promise.resolve();
-      expect(calls).toContain(`release ${tree}`);
-    });
-
-    it('leaves alone the folders of chats without a worktree', async () => {
-      const chat = await hub.start('fake', settings, 'Hello');
-      hub.close(chat.id);
-      await Promise.resolve();
-      expect(calls).toEqual([]);
-    });
-
-    it('opens a separate task offered from a worktree in the folder it was made from, in a worktree of its own', async () => {
-      const chat = await hub.start('fake', { ...settings, worktree: true, model: 'small' }, 'Hello');
-      fake.runOf(chat.id).events.turnEnded();
-      fake.runOf(chat.id).events.followUps([{ title: 'Docs', prompt: 'Write the docs' }]);
-      expect(hub.takeFollowUp(chat.id, 0)).toEqual({
-        agent: 'fake',
-        settings: { cwd: '/work', model: 'small', worktree: true },
-        prompt: 'Write the docs',
+      fake.runOf(first.id).events.title('Context meter');
+      expect(reader.events.readOnly()).toMatch(/^"Context meter" is editing this project/);
+      expect(readOnlyEvents().at(-1)).toEqual({
+        chatId: second.id,
+        readOnly: { chatId: first.id, title: 'Context meter' },
       });
+
+      await expect(hub.configure(second.id, { mode: 'allow-all' })).rejects.toThrow(
+        '"Context meter" is editing this project: make this the editing chat to change its permission',
+      );
+      await hub.configure(second.id, { model: 'small' });
+      expect(reader.configured).toEqual([{ model: 'small' }]);
+      reader.events.turnEnded();
+      await expect(hub.undo(second.id, reader.sentIds[0]!)).rejects.toThrow('make this the editing chat to undo');
     });
 
-    it('puts the worktree back when the chat opens again', async () => {
-      made.add(tree);
+    it('hands over to the chat opened first after it when the chat that edits closes', async () => {
+      const first = await hub.start('fake', settings, 'One');
+      const second = await hub.start('fake', { ...settings, mode: 'accept-edits' }, 'Two');
+      const third = await hub.start('fake', settings, 'Three');
+      sent = [];
+
+      hub.close(first.id);
+      await settle();
+      expect(readOnlyEvents()).toEqual([
+        { chatId: second.id, readOnly: null },
+        { chatId: third.id, readOnly: { chatId: second.id, title: '' } },
+      ]);
+      // Its process goes back to the permission picked for it; the third's stays in plan mode.
+      expect(fake.runOf(second.id).configured).toEqual([{ mode: 'accept-edits' }]);
+      expect(fake.runOf(third.id).configured).toEqual([]);
+      expect(fake.runOf(second.id).events.readOnly()).toBeUndefined();
+
+      // Closing one that only reads changes nothing.
+      sent = [];
+      hub.close(third.id);
+      await settle();
+      expect(readOnlyEvents()).toEqual([]);
+    });
+
+    it('switches both live chats at once when you make another the editing chat', async () => {
+      const first = await hub.start('fake', { ...settings, mode: 'accept-edits' }, 'One');
+      const second = await hub.start('fake', { ...settings, mode: 'allow-all' }, 'Two');
+      sent = [];
+
+      await hub.takeOver(second.id);
+      expect(fake.runOf(second.id).configured).toEqual([{ mode: 'allow-all' }]);
+      expect(fake.runOf(first.id).configured).toEqual([{ mode: 'plan' }]);
+      expect(readOnlyEvents()).toEqual([
+        { chatId: first.id, readOnly: { chatId: second.id, title: '' } },
+        { chatId: second.id, readOnly: null },
+      ]);
+      expect((await hub.open('fake', first.id, settings)).readOnly).toEqual({ chatId: second.id, title: '' });
+      expect((await hub.open('fake', second.id, settings)).readOnly).toBeUndefined();
+
+      // A process started from now on starts as the chat now is.
+      hub.close(first.id);
+      hub.close(second.id);
+      fake.transcripts.set(first.id, []);
+      fake.transcripts.set(second.id, []);
+      await hub.open('fake', second.id, { ...settings, mode: 'allow-all' });
+      await hub.open('fake', first.id, { ...settings, mode: 'accept-edits' });
+      hub.send(first.id, 'Go on');
+      expect(fake.runOf(first.id).settings).toEqual({ cwd: '/work', mode: 'plan' });
+    });
+
+    it('keeps the chat that edits each project across a restart', async () => {
+      for (const id of ['c1', 'c2', 'c3']) fake.transcripts.set(id, []);
+      await hub.open('fake', 'c1', settings);
+      await hub.open('fake', 'c2', settings);
+      await hub.open('fake', 'c3', { cwd: '/notes' });
+      await hub.takeOver('c2');
+      hub.closeAll();
+
+      // The service starts again on the same database; the chapters reopen in any order.
+      sent = [];
+      const again = new AgentHub((event, payload) => sent.push({ event, payload } as Sent), 50, store, repositoryOf);
+      again.addAdapter(fake);
+      const chats = await again.openChats();
+      expect(chats.map((chat) => [chat.id, chat.readOnly?.chatId])).toEqual([
+        ['c1', 'c2'],
+        ['c2', undefined],
+        ['c3', undefined],
+      ]);
+      again.send('c1', 'Go on');
+      expect(fake.runOf('c1').settings.mode).toBe('plan');
+
+      // Once it's closed, the chat opened first edits.
+      again.close('c2');
+      expect((await again.open('fake', 'c1', settings)).readOnly).toBeUndefined();
+    });
+
+    it('starts a chat whose agent picks its ID in plan mode when another edits the project', async () => {
       fake.transcripts.set('c1', []);
-      // Opened from the Index, which knows only the folder.
-      const chat = await hub.open('fake', 'c1', { cwd: tree });
-      expect(calls).toEqual([`restore ${tree}`]);
-      expect(chat.settings).toEqual({ cwd: tree, worktree: true });
+      await hub.open('fake', 'c1', settings);
+      const picking = new PickingAdapter();
+      hub.addAdapter(picking);
+      const chat = await hub.start('fake', { ...settings, mode: 'allow-all' }, 'Explain it');
+      expect(picking.started?.settings).toEqual({ cwd: '/work', mode: 'plan' });
+      expect(chat).toMatchObject({ id: 'picked', readOnly: { chatId: 'c1' }, settings: { mode: 'allow-all' } });
+      expect(picking.started?.events.readOnly()).toMatch(/is editing this project/);
     });
 
-    describe("with the repository's setup", () => {
-      const setups = () => sent.flatMap((s) => (s.event === 'agents.worktreeSetup' ? [s.payload] : []));
-
-      beforeEach(() => {
-        hasSetup = true;
-      });
-
-      it('sends the first entry once the setup ended, telling the page as it runs, and puts it on the entry', async () => {
-        const starting = hub.start('fake', { ...settings, worktree: true }, 'Hello', undefined, [], 'page-1');
-        await settle();
-        expect(calls).toEqual(['make /work Hello', `setUp ${tree}`]);
-        setup!.progress({ ...running, output: 'added' });
-        expect(fake.runs).toEqual([]);
-
-        setup!.end(passed);
-        const chat = await starting;
-        expect(setups()).toEqual([
-          { page: 'page-1', run: running },
-          { page: 'page-1', run: { ...running, output: 'added' } },
-          { page: 'page-1', run: passed },
-        ]);
-        expect(fake.runOf(chat.id).sent).toEqual(['Hello']);
-        expect(chat).toMatchObject({ status: 'thinking', entries: [{ kind: 'user', text: 'Hello', setup: passed }] });
-        expect(chat.setup).toBeUndefined();
-      });
-
-      it('carries on when the setup fails', async () => {
-        const starting = hub.start('fake', { ...settings, worktree: true }, 'Hello');
-        await settle();
-        setup!.end(failed);
-        const chat = await starting;
-        expect(fake.runOf(chat.id).sent).toEqual(['Hello']);
-        expect(chat.entries).toMatchObject([{ text: 'Hello', setup: failed }]);
-        // No page was named, so none is told.
-        expect(setups()).toEqual([]);
-      });
-
-      it('puts it on the first entry of a chat whose agent picks its ID', async () => {
-        const picking = new PickingAdapter();
-        hub.addAdapter(picking);
-        const starting = hub.start('fake', { ...settings, worktree: true }, 'Hello', undefined, [], 'page-1');
-        await settle();
-        expect(picking.started).toBeUndefined();
-        setup!.end(passed);
-        const chat = await starting;
-        expect(picking.started?.text).toBe('Hello');
-        expect(chat.entries).toMatchObject([{ text: 'Hello', setup: passed }]);
-      });
-
-      it('sets up a put-back worktree in the background; what you send meanwhile waits for it, then goes', async () => {
-        made.add(tree);
-        gone.add(tree);
-        fake.transcripts.set('c1', [{ kind: 'user', id: 'u1', text: 'Earlier' }]);
-        const chat = await hub.open('fake', 'c1', { cwd: tree });
-        expect(calls).toEqual([`restore ${tree}`, `setUp ${tree}`]);
-        expect(chat).toMatchObject({ status: 'idle', setup: running });
-
-        hub.send('c1', 'Go on');
-        hub.send('c1', 'And then');
-        expect(fake.runs).toEqual([]);
-        expect((await hub.open('fake', 'c1', { cwd: tree })).queued).toMatchObject([
-          { text: 'Go on' },
-          { text: 'And then' },
-        ]);
-
-        setup!.end(failed);
-        await settle();
-        expect(fake.runOf('c1').sent).toEqual(['Go on']);
-        const reopened = await hub.open('fake', 'c1', { cwd: tree });
-        expect(reopened.entries.at(-1)).toMatchObject({ kind: 'user', text: 'Go on', setup: failed });
-        expect(reopened.setup).toBeUndefined();
-        expect(reopened.queued).toMatchObject([{ text: 'And then' }]);
-        expect(setups()).toEqual([
-          { chatId: 'c1', run: running },
-          { chatId: 'c1', run: failed },
-          { chatId: 'c1', run: null },
-        ]);
-      });
-
-      it('keeps a background setup that ended for your next entry', async () => {
-        made.add(tree);
-        gone.add(tree);
-        fake.transcripts.set('c1', []);
-        await hub.open('fake', 'c1', { cwd: tree });
-        setup!.end(passed);
-        await settle();
-        expect((await hub.open('fake', 'c1', { cwd: tree })).setup).toEqual(passed);
-
-        hub.send('c1', 'Next');
-        expect(fake.runOf('c1').sent).toEqual(['Next']);
-        expect((await hub.open('fake', 'c1', { cwd: tree })).entries).toMatchObject([{ text: 'Next', setup: passed }]);
-      });
-
-      it("reopens the chapters without waiting for a worktree's setup", async () => {
-        const store = hubStore(openDatabase(':memory:'));
-        store.chapters.add({ chatId: 'c1', agent: 'fake', settings: { cwd: tree, worktree: true } });
-        store.chapters.add({ chatId: 'c2', agent: 'fake', settings });
-        hub = new AgentHub((event, payload) => sent.push({ event, payload } as Sent), 50, store, workplaces);
-        hub.addAdapter(fake);
-        made.add(tree);
-        gone.add(tree);
-        fake.transcripts.set('c1', []);
-        fake.transcripts.set('c2', []);
-        // The setup never ends.
-        const chats = await hub.openChats();
-        expect(chats.map((chat) => [chat.id, chat.setup?.outcome])).toEqual([
-          ['c1', 'running'],
-          ['c2', undefined],
-        ]);
-      });
-    });
-
-    describe('sending one entry to two models', () => {
-      const begun = async (cwd: string) => {
-        fake.transcripts.set('c1', [{ kind: 'user', id: 'u1', text: 'Add a meter' }, reply('r1', 'Added.')]);
-        fake.chats = [{ id: 'c1', agent: 'fake', title: 'Context meter', cwd, updatedAt: 1 }];
-        await hub.open('fake', 'c1', { cwd });
-        calls = [];
-      };
-
-      it('copies a chat onto the second model, in a worktree of its own, and sends the entry to both', async () => {
-        await begun('/work');
-        const copy = await hub.parallel({ chatId: 'c1' }, 'small', 'Colour it');
-        expect(calls).toEqual(['inRepository /work', 'make /work Context meter (a)', `restore ${tree}`]);
-        expect(copy).toMatchObject({
-          id: 'fork-2',
-          title: 'Context meter (a)',
-          settings: { cwd: tree, model: 'small', worktree: true },
-          status: 'thinking',
-          entries: [{ id: 'u1' }, { id: 'r1' }, { kind: 'user', text: 'Colour it' }],
-          copied: ['u1'],
-        });
-        expect(fake.runOf('c1')).toMatchObject({ resume: true, sent: ['Colour it'], settings: { cwd: '/work' } });
-        expect(fake.runOf('fork-2')).toMatchObject({
-          resume: true,
-          sent: ['Colour it'],
-          settings: { cwd: tree, model: 'small' },
-        });
-        expect((await hub.openChats()).map((chat) => chat.id)).toEqual(['c1', 'fork-2']);
-      });
-
-      it('shares the folder outside a git repository', async () => {
-        await begun('/plain');
-        const copy = await hub.parallel({ chatId: 'c1' }, 'small', 'Colour it');
-        expect(calls).toEqual(['inRepository /plain', 'restore /plain']);
-        expect(copy.settings).toEqual({ cwd: '/plain', model: 'small' });
-      });
-
-      it('waits for the turn to end', async () => {
-        await begun('/work');
-        hub.send('c1', 'Colour it');
-        await expect(hub.parallel({ chatId: 'c1' }, 'small', 'Bigger')).rejects.toThrow('Wait for the turn to end');
-        expect(calls).toEqual([]);
-      });
-
-      it('begins the second afresh for a new chapter, its title a variant of the first', async () => {
-        fake.chats = [{ id: 'c1', agent: 'fake', title: 'Login bug', cwd: '/work', updatedAt: 1 }];
-        const second = await hub.parallel(
-          { agent: 'fake', settings: { ...settings, mode: 'plan' }, title: 'Login bug' },
-          'small',
-          'Fix it',
-        );
-        expect(calls).toEqual(['inRepository /work', 'make /work Login bug (a)']);
-        expect(second).toMatchObject({
-          title: 'Login bug (a)',
-          settings: { cwd: tree, mode: 'plan', model: 'small', worktree: true },
-          status: 'thinking',
-          entries: [{ kind: 'user', text: 'Fix it' }],
-        });
-        expect(fake.runOf(second.id)).toMatchObject({ resume: false, sent: ['Fix it'] });
-
-        calls = [];
-        const untitled = await hub.parallel({ agent: 'fake', settings: { cwd: '/plain' } }, 'small', 'Fix it');
-        expect(calls).toEqual(['inRepository /plain']);
-        expect(untitled).toMatchObject({ title: '', settings: { cwd: '/plain', model: 'small' } });
-      });
+    it("switches a chat that started as the one that edits, once live, when another took that on as it started", async () => {
+      const picking = new PickingAdapter();
+      let named = () => {};
+      picking.gate = new Promise((resolve) => (named = resolve));
+      hub.addAdapter(picking);
+      const starting = hub.start('fake', settings, 'Explain it');
+      await settle();
+      // Opened while the first starts, before the agent names it: c1 is the first on the project.
+      fake.transcripts.set('c1', []);
+      await hub.open('fake', 'c1', settings);
+      named();
+      const chat = await starting;
+      expect(picking.started?.settings).toEqual({ cwd: '/work' });
+      expect(chat.readOnly).toEqual({ chatId: 'c1', title: '' });
+      await settle();
+      expect(picking.started?.live.configured).toEqual([{ mode: 'plan' }]);
     });
   });
 
@@ -1134,6 +1067,9 @@ describe('AgentHub', () => {
     const variant = await hub.fork('c1', 'u2');
     expect(variant.copied).toEqual(['u1', 'u2']);
     expect((await hub.open('fake', 'c1', settings)).copied).toEqual([]);
+    // The fork works where the chat does: it undoes only once it's the chat that edits.
+    expect(variant.readOnly).toEqual({ chatId: 'c1', title: '' });
+    await hub.takeOver(variant.id);
     await expect(hub.undo(variant.id, 'u1')).rejects.toThrow("can't be undone");
 
     const restarted = new AgentHub(() => {}, 50, store);

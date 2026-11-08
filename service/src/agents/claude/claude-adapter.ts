@@ -3,6 +3,7 @@ import { homedir } from 'node:os';
 import path from 'node:path';
 import type {
   CanUseTool,
+  HookCallbackMatcher,
   ModelInfo,
   Options,
   PermissionMode,
@@ -37,6 +38,7 @@ import { memorySettings, readMemories } from './memories';
 import { MessageQueue } from './message-queue';
 import { toAgentModels } from './models';
 import { ASK_TOOL, alwaysAllowOf, toClaudeAnswers, toQuestions } from './permissions';
+import { PLAN_TOOL, asksWhileReading, readOnlyHooks } from './read-only';
 import { withReferences } from './references';
 import { commandFiles, readSettingsFile, settingsFilesIn, toSetup } from './setup';
 import { type AgentToolInput, type PickerSources, RATER_PROMPT, pickFor, readRating } from './subagents';
@@ -233,9 +235,8 @@ export class ClaudeAdapter implements AgentAdapter {
 
   /**
    * Where to look for a saved chat: its folder, or every folder when it was
-   * saved under another. A chat forked into a worktree is saved under the
-   * folder it was forked from; Claude Code looks there from the worktree's
-   * top, but not from a folder inside it.
+   * saved under another, as a chat begun in a worktree that now works in
+   * its repository's folder is.
    */
   private async savedIn(chatId: ChatId, cwd: string): Promise<{ dir?: string }> {
     const { getSessionInfo } = await sdk();
@@ -385,7 +386,7 @@ export class ClaudeAdapter implements AgentAdapter {
             todos: { chat: todoChat, add: this.addTodo },
           }),
           canUseTool: approvalsTo(async () => events),
-          hooks: subagentHooks(() => picking.promise),
+          hooks: chatHooks(() => picking.promise, async () => events),
         },
       }),
     );
@@ -457,7 +458,7 @@ export class ClaudeAdapter implements AgentAdapter {
               todos: { chat: todoChat, add: this.addTodo },
             }),
             canUseTool: approvalsTo(() => claimedBy.promise),
-            hooks: subagentHooks(() => picking.promise),
+            hooks: chatHooks(() => picking.promise, () => claimedBy.promise),
           },
         }),
       ),
@@ -613,29 +614,33 @@ function timeOf(message: object): number {
 }
 
 /**
- * Has each subagent's model and effort picked for its task, once the chat
- * whose process this is is known, as `sources` says. A pick that fails, or
- * takes too long, leaves the subagent as Claude Code would run it.
+ * A chat's hooks, once the chat whose process this is is known: each
+ * subagent's model and effort picked for its task, as `sources` says, and
+ * no edits or commands while the chat only reads, as `events` say.
  */
-function subagentHooks(sources: () => Promise<PickerSources>): Options['hooks'] {
+function chatHooks(sources: () => Promise<PickerSources>, events: () => Promise<ChatEvents>): Options['hooks'] {
+  return { PreToolUse: [subagentHook(sources), readOnlyHooks(events)] };
+}
+
+/**
+ * Has each subagent's model and effort picked for its task. A pick that
+ * fails, or takes too long, leaves the subagent as Claude Code would run it.
+ */
+function subagentHook(sources: () => Promise<PickerSources>): HookCallbackMatcher {
   return {
-    PreToolUse: [
-      {
-        matcher: 'Agent|Task',
-        timeout: PICK_TIMEOUT_S,
-        hooks: [
-          async (hook, _toolUseId, { signal }) => {
-            if (hook.hook_event_name !== 'PreToolUse') return {};
-            try {
-              const picked = await pickFor(hook.tool_input as AgentToolInput, await sources(), signal);
-              return picked
-                ? { hookSpecificOutput: { hookEventName: 'PreToolUse', updatedInput: { ...picked } } }
-                : {};
-            } catch {
-              return {};
-            }
-          },
-        ],
+    matcher: 'Agent|Task',
+    timeout: PICK_TIMEOUT_S,
+    hooks: [
+      async (hook, _toolUseId, { signal }) => {
+        if (hook.hook_event_name !== 'PreToolUse') return {};
+        try {
+          const picked = await pickFor(hook.tool_input as AgentToolInput, await sources(), signal);
+          return picked
+            ? { hookSpecificOutput: { hookEventName: 'PreToolUse', updatedInput: { ...picked } } }
+            : {};
+        } catch {
+          return {};
+        }
       },
     ],
   };
@@ -859,14 +864,20 @@ function userMessage(
   };
 }
 
-/** Asks the chat's events for each approval, and answers Claude Code the way it expects. */
-function approvalsTo(events: () => Promise<ChatEvents>): CanUseTool {
+/**
+ * Asks the chat's events for each approval, and answers Claude Code the way
+ * it expects. A chat that only reads asks for nothing that changes things,
+ * and doesn't carry out its plan, approved or not, until it's made the
+ * editing chat (ADR-011).
+ */
+export function approvalsTo(events: () => Promise<ChatEvents>): CanUseTool {
   return async (tool, toolInput, { signal, suggestions, title, toolUseID }) => {
+    const chat = await events();
+    const reading = chat.readOnly();
+    if (reading && !asksWhileReading(tool)) return { behavior: 'deny', message: reading };
     const asks = tool === ASK_TOOL;
     const alwaysAllow = asks ? undefined : alwaysAllowOf(suggestions);
-    const verdict = await (
-      await events()
-    ).approval(
+    const verdict = await chat.approval(
       {
         id: toolUseID ?? randomUUID(),
         tool,
@@ -877,7 +888,9 @@ function approvalsTo(events: () => Promise<ChatEvents>): CanUseTool {
       },
       signal,
     );
-    if (verdict === 'deny') return { behavior: 'deny', message: 'The user declined this.' };
+    const stillReading = tool === PLAN_TOOL ? chat.readOnly() : undefined;
+    if (verdict === 'deny' || stillReading)
+      return { behavior: 'deny', message: stillReading ?? 'The user declined this.' };
     if (typeof verdict === 'object')
       return {
         behavior: 'allow',
