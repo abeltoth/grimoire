@@ -105,6 +105,7 @@ Responsiveness with many chats, safety and resilience are secondary.
 | Credentials | Each agent | Never reads or stores them |
 | Git state, PRs, CI | git and GitHub | Reads them live and doesn't store them |
 | Layout, presets, pins and stars, tags, kanban, schedules, theme, Grimoire settings | Grimoire | Stores them in SQLite and refers to chats by session ID |
+| Profiles, and the one in use | Grimoire | Stores them in SQLite. Each profile has its own Claude folder (Personal keeps Claude Code's usual `~/.claude`), layout, presets, schedules, open chapters, theme, Grimoire settings and search index; pins and stars, tags, undone entries, worktrees and usage stats are shared by every profile |
 | Search index, usage stats | Grimoire (derived) | Treats them as a cache that can be deleted and rebuilt |
 | Running chats, pending approvals | Grimoire (in memory) | Doesn't persist them |
 
