@@ -64,16 +64,17 @@ export function managedSettingsPath(platform: NodeJS.Platform): string {
 }
 
 /**
- * The settings files Claude Code reads in a folder, yours first. In your
- * home folder the project's settings file is your own, so it's listed once.
+ * The settings files Claude Code reads in a folder, yours first, from your
+ * Claude folder. In your home folder the project's settings file is your
+ * own, so it's listed once.
  */
 export function settingsFilesIn(
   cwd: string,
-  home: string,
+  claudeFolder: string,
   platform: NodeJS.Platform,
 ): { source: SetupSource; path: string }[] {
   const files: { source: SetupSource; path: string }[] = [
-    { source: 'user', path: path.join(home, '.claude', 'settings.json') },
+    { source: 'user', path: path.join(claudeFolder, 'settings.json') },
     { source: 'project', path: path.join(cwd, '.claude', 'settings.json') },
     { source: 'local', path: path.join(cwd, '.claude', 'settings.local.json') },
     { source: 'managed', path: managedSettingsPath(platform) },

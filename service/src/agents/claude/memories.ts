@@ -252,11 +252,12 @@ function readMemoryCount(folder: string): number {
 /** Everything about the memories Claude Code keeps for a folder. */
 export function readMemories(input: {
   cwd: string;
-  home: string;
+  /** Where Claude Code keeps your chats and their memories: ~/.claude, or the profile's folder. */
+  claudeFolder: string;
   settings: MemorySettings;
   at: number;
 }): AgentMemories {
-  const projects = path.join(input.home, '.claude', 'projects');
+  const projects = path.join(input.claudeFolder, 'projects');
   let known: string[] = [];
   try {
     known = readdirSync(projects);

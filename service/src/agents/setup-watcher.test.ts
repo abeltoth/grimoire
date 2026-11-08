@@ -51,7 +51,7 @@ afterEach(() => {
 
 describe('watchTargets', () => {
   it('watches the folders the files are in for those files, and where new pieces appear', () => {
-    const targets = watchTargets(setupIn(cwd), home);
+    const targets = watchTargets(setupIn(cwd), path.join(home, '.claude'));
     const named = Object.fromEntries(
       targets.map(({ folder, names }) => [
         path.relative(dir, folder).replaceAll('\\', '/'),
@@ -70,7 +70,7 @@ describe('watchTargets', () => {
 describe('SetupWatcher', () => {
   it('tells once the files settle when one of them changes, but not for others beside them', async () => {
     const changed = vi.fn();
-    watcher = new SetupWatcher(changed, home);
+    watcher = new SetupWatcher(changed, () => path.join(home, '.claude'));
     watcher.watch('claude-code', setupIn(cwd));
 
     writeFileSync(path.join(home, '.claude', 'history.jsonl'), 'noise');
@@ -88,15 +88,30 @@ describe('SetupWatcher', () => {
 
   it('tells when a new skill appears', async () => {
     const changed = vi.fn();
-    watcher = new SetupWatcher(changed, home);
+    watcher = new SetupWatcher(changed, () => path.join(home, '.claude'));
     watcher.watch('claude-code', setupIn(cwd));
     mkdirSync(path.join(home, '.claude', 'skills', 'deploy'));
     await vi.waitFor(() => expect(changed).toHaveBeenCalled(), { timeout: 3000 });
   });
 
+  it('watches the Claude folder in use at each read', async () => {
+    const changed = vi.fn();
+    const other = path.join(dir, 'work-claude');
+    mkdirSync(path.join(other, 'skills'), { recursive: true });
+    let claudeFolder = path.join(home, '.claude');
+    watcher = new SetupWatcher(changed, () => claudeFolder);
+    claudeFolder = other;
+    watcher.watch('claude-code', setupIn(cwd));
+    mkdirSync(path.join(home, '.claude', 'skills', 'deploy'));
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    expect(changed).not.toHaveBeenCalled();
+    mkdirSync(path.join(other, 'skills', 'deploy'));
+    await vi.waitFor(() => expect(changed).toHaveBeenCalled(), { timeout: 3000 });
+  });
+
   it('stops watching what it no longer reads', async () => {
     const changed = vi.fn();
-    watcher = new SetupWatcher(changed, home);
+    watcher = new SetupWatcher(changed, () => path.join(home, '.claude'));
     watcher.watch('claude-code', setupIn(cwd));
     watcher.dispose();
     writeFileSync(path.join(cwd, 'CLAUDE.md'), '# Changed');

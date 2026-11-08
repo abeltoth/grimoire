@@ -315,7 +315,7 @@ describe('hooksOf and permissionsOf', () => {
 
 describe('settingsFilesIn', () => {
   it('lists your settings, the project’s, your own for the project, then the managed ones', () => {
-    expect(settingsFilesIn(cwd, home, 'linux')).toEqual([
+    expect(settingsFilesIn(cwd, mine('.claude'), 'linux')).toEqual([
       { source: 'user', path: mine('.claude', 'settings.json') },
       { source: 'project', path: at('.claude', 'settings.json') },
       { source: 'local', path: at('.claude', 'settings.local.json') },
@@ -324,10 +324,20 @@ describe('settingsFilesIn', () => {
   });
 
   it('lists your settings once in your home folder', () => {
-    expect(settingsFilesIn(home, home, 'darwin').map((file) => file.source)).toEqual([
+    expect(settingsFilesIn(home, mine('.claude'), 'darwin').map((file) => file.source)).toEqual([
       'user',
       'local',
       'managed',
+    ]);
+  });
+
+  it('reads your settings from the Claude folder in use', () => {
+    const work = path.join(path.sep, 'profiles', 'work', 'claude');
+    expect(settingsFilesIn(home, work, 'linux')).toEqual([
+      { source: 'user', path: path.join(work, 'settings.json') },
+      { source: 'project', path: mine('.claude', 'settings.json') },
+      { source: 'local', path: mine('.claude', 'settings.local.json') },
+      { source: 'managed', path: '/etc/claude-code/managed-settings.json' },
     ]);
   });
 

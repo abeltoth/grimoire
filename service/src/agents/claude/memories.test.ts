@@ -210,7 +210,12 @@ describe('readMemories', () => {
       `{"type":"user","cwd":"C:\\\\elsewhere","message":{}}\n`,
     );
 
-    const read = readMemories({ cwd, home, settings: { enabled: true }, at: 7 });
+    const read = readMemories({
+      cwd,
+      claudeFolder: path.join(home, '.claude'),
+      settings: { enabled: true },
+      at: 7,
+    });
     expect(read).toMatchObject({
       cwd,
       folder: own,
@@ -230,7 +235,7 @@ describe('readMemories', () => {
     writeFileSync(path.join(moved, 'x.md'), memory('x', 'user', ''));
     const read = readMemories({
       cwd: dir,
-      home: dir,
+      claudeFolder: dir,
       settings: { enabled: true, directory: moved },
       at: 1,
     });

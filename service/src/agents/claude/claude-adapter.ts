@@ -28,6 +28,7 @@ import type {
 } from '@grimoire/contract';
 import type { AgentAdapter, ChatEvents, ChatHistory, LiveChat, SavedChat, SignInRun } from '../adapter';
 import { CacheTracker, type ReplyUsage } from './cache';
+import { claudeHome } from './config-dir';
 import { readUserSettings } from './effort';
 import { mcpOff, mcpSettings } from './mcp';
 import { memorySettings, readMemories } from './memories';
@@ -55,7 +56,8 @@ import { toPlanUsage, toUsageBreakdown } from './usage';
 const sdk = () => import('@anthropic-ai/claude-agent-sdk');
 
 // Claude Code keeps its plan with its task tools only when asked to; the Outline shows it.
-const ENV = { ...process.env, CLAUDE_CODE_ENABLE_TODO_TOOLS: '1' };
+// Read at each start, as switching profiles changes which Claude folder it uses.
+const env = () => ({ ...process.env, CLAUDE_CODE_ENABLE_TODO_TOOLS: '1' });
 
 // Claude Code leaves the thinking out unless asked for its summary, which the page shows.
 const CLI_ARGS = { 'thinking-display': 'summarized' };
@@ -288,10 +290,13 @@ export class ClaudeAdapter implements AgentAdapter {
   /** The memories Claude Code keeps on its own for a folder, where its settings say. */
   async memories(cwd: string): Promise<AgentMemories> {
     const home = homedir();
-    const settings = settingsFilesIn(cwd, home, process.platform).map((file) => readSettingsFile(file));
+    const claudeFolder = claudeHome();
+    const settings = settingsFilesIn(cwd, claudeFolder, process.platform).map((file) =>
+      readSettingsFile(file),
+    );
     return readMemories({
       cwd,
-      home,
+      claudeFolder,
       settings: memorySettings(
         settings.map(({ source, settings: own }) => ({
           source: source as 'user' | 'project' | 'local' | 'managed',
@@ -334,7 +339,7 @@ export class ClaudeAdapter implements AgentAdapter {
           includeHookEvents: true,
           // Undo restores files from these checkpoints.
           enableFileCheckpointing: true,
-          env: ENV,
+          env: env(),
           extraArgs: CLI_ARGS,
           ...(resume ? { resume: chatId } : { sessionId: chatId, ...(title ? { title } : {}) }),
           canUseTool: approvalsTo(async () => events),
@@ -395,7 +400,7 @@ export class ClaudeAdapter implements AgentAdapter {
             ...(off.length ? { settings: mcpSettings(off) } : {}),
             allowDangerouslySkipPermissions: true,
             enableFileCheckpointing: true,
-            env: ENV,
+            env: env(),
             extraArgs: CLI_ARGS,
             canUseTool: approvalsTo(() => claimedBy.promise),
             hooks: subagentHooks(() => picking.promise),
@@ -666,7 +671,7 @@ const MCP_SETTLE_MS = 5_000;
 async function readSetup(cwd: string): Promise<AgentSetup> {
   const { query } = await sdk();
   const input = new MessageQueue<SDKUserMessage>();
-  const probe = query({ prompt: input, options: { cwd, permissionMode: MODES.ask, env: ENV } });
+  const probe = query({ prompt: input, options: { cwd, permissionMode: MODES.ask, env: env() } });
   try {
     const since = Date.now();
     let mcpServers = await probe.mcpServerStatus();
@@ -680,7 +685,10 @@ async function readSetup(cwd: string): Promise<AgentSetup> {
     const { skills } = await probe.reloadSkills();
     const { plugins } = await probe.reloadPlugins();
     const home = homedir();
-    const settings = settingsFilesIn(cwd, home, process.platform).map((file) => readSettingsFile(file));
+    const claudeFolder = claudeHome();
+    const settings = settingsFilesIn(cwd, claudeFolder, process.platform).map((file) =>
+      readSettingsFile(file),
+    );
     const pluginHooks = plugins
       .filter((plugin) => plugin.path !== 'builtin')
       .map((plugin) =>
@@ -698,7 +706,7 @@ async function readSetup(cwd: string): Promise<AgentSetup> {
       pluginHooks,
       commandFiles: commandFiles([
         path.join(cwd, '.claude', 'commands'),
-        path.join(home, '.claude', 'commands'),
+        path.join(claudeFolder, 'commands'),
       ]),
       at: Date.now(),
     });
@@ -712,7 +720,7 @@ async function readSetup(cwd: string): Promise<AgentSetup> {
 async function listCommands(cwd: string): Promise<AgentCommand[]> {
   const { query } = await sdk();
   const input = new MessageQueue<SDKUserMessage>();
-  const probe = query({ prompt: input, options: { cwd, permissionMode: MODES.ask, env: ENV } });
+  const probe = query({ prompt: input, options: { cwd, permissionMode: MODES.ask, env: env() } });
   try {
     const all = await probe.supportedCommands();
     const skills = new Set((await probe.reloadSkills()).skills.map((skill) => skill.name));
