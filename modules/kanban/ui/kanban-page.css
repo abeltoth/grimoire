@@ -1,0 +1,273 @@
+:host {
+  display: block;
+}
+
+.error {
+  margin: 0 0 var(--gr-space-4);
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-rubric);
+}
+
+.none {
+  margin: 0;
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+/* The folders to show the cards of, the picked one underlined in rubric. */
+.folders {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--gr-kanban-word-gap);
+  margin: 0 0 var(--gr-kanban-section-gap);
+  font-size: var(--gr-size-aside);
+}
+
+.label,
+h3 {
+  font-family: var(--gr-font-sc);
+  font-weight: 400;
+  font-size: var(--gr-size-label);
+  letter-spacing: var(--gr-tracking-label);
+  color: var(--gr-ink-soft);
+}
+
+.word {
+  padding: var(--gr-schedule-word-pad);
+  border-bottom: var(--gr-schedule-word-rule-off);
+  color: var(--gr-ink-soft);
+}
+
+.word:hover {
+  color: var(--gr-ink);
+}
+
+.word[aria-checked='true'] {
+  color: var(--gr-ink);
+  border-bottom: var(--gr-schedule-word-rule);
+}
+
+code {
+  font-family: var(--gr-font-mono);
+  font-style: normal;
+  font-size: var(--gr-size-kanban-code);
+}
+
+/* Three columns side by side, each its cards in order. */
+.board {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: var(--gr-kanban-column-gap);
+  align-items: start;
+}
+
+.column {
+  min-width: 0;
+  min-height: 100%;
+  padding: var(--gr-kanban-column-pad);
+  border-radius: var(--gr-kanban-card-radius);
+}
+
+/* Where a dragged card would go. */
+.column.over {
+  background: var(--gr-kanban-column-over);
+}
+
+h3 {
+  margin: 0 0 var(--gr-kanban-card-line-gap);
+}
+
+.count {
+  font-family: var(--gr-font-text);
+  font-variant-numeric: tabular-nums;
+  color: var(--gr-ink-faint);
+}
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-kanban-card-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Each task an index card on the page. */
+.card {
+  padding: var(--gr-kanban-card-pad);
+  border: var(--gr-kanban-card-rule);
+  border-radius: var(--gr-kanban-card-radius);
+  background: var(--gr-kanban-card-paper);
+  font-size: var(--gr-size-aside);
+  line-height: var(--gr-kanban-card-leading);
+  color: var(--gr-ink);
+}
+
+.card[draggable='true'] {
+  cursor: grab;
+}
+
+.card.dragged {
+  opacity: var(--gr-kanban-dragged);
+}
+
+.name,
+.notes,
+.where {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.name {
+  font-weight: 500;
+}
+
+.notes {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--gr-kanban-notes-lines);
+  overflow: hidden;
+  margin-top: var(--gr-aside-gap);
+  font-style: italic;
+  color: var(--gr-ink-soft);
+  white-space: pre-line;
+}
+
+.where {
+  margin-top: var(--gr-aside-gap);
+  color: var(--gr-ink-soft);
+}
+
+/* The chats it began, the latest with its live status, as the ribbons show it. */
+.chats {
+  margin: var(--gr-kanban-card-line-gap) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--gr-size-label);
+}
+
+.chats li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--gr-kanban-status-gap);
+}
+
+.chat {
+  min-width: 0;
+  padding: 0;
+  text-align: start;
+  color: var(--gr-link);
+  overflow-wrap: anywhere;
+}
+
+.chat:hover {
+  color: var(--gr-link-hover);
+  text-decoration: underline;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gr-kanban-status-gap);
+  font-style: italic;
+  color: var(--gr-ink-soft);
+}
+
+.status[data-status='waiting'] {
+  color: var(--gr-rubric);
+}
+
+.status[data-status='writing'] gr-icon {
+  color: var(--gr-gilt-ink);
+}
+
+.quill {
+  transform-origin: 20% 90%;
+  animation: gr-bob var(--gr-dur-quill) ease-in-out infinite;
+}
+
+.spin {
+  transform-origin: 50% 50%;
+  animation: gr-spin var(--gr-dur-sigil) linear infinite;
+}
+
+.breathe {
+  animation: gr-breathe var(--gr-dur-breathe) ease-in-out infinite;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--gr-kanban-actions-gap);
+  margin-top: var(--gr-kanban-card-line-gap);
+  font-size: var(--gr-size-label);
+}
+
+.moves {
+  display: contents;
+}
+
+.ask {
+  font-style: italic;
+  color: var(--gr-ink-soft);
+}
+
+.begin {
+  color: var(--gr-lapis);
+}
+
+/* The empty card at the foot of To do, that writes a new one. */
+.card.new {
+  border: var(--gr-kanban-new-rule);
+  background: transparent;
+}
+
+.add {
+  width: 100%;
+  padding: 0;
+  text-align: start;
+  font-style: italic;
+  color: var(--gr-ink-soft);
+}
+
+.add:hover {
+  color: var(--gr-ink);
+}
+
+/* The closed cards, kept under the board to open again. */
+.closed {
+  margin-top: var(--gr-kanban-section-gap);
+  padding-bottom: var(--gr-kanban-section-gap);
+  font-size: var(--gr-size-aside);
+}
+
+.closed ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-aside-gap);
+  margin: var(--gr-kanban-card-line-gap) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.closed li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--gr-kanban-actions-gap);
+}
+
+.closed-title {
+  color: var(--gr-ink-soft);
+}
+
+.closed-where {
+  font-style: italic;
+  font-size: var(--gr-size-label);
+  color: var(--gr-ink-faint);
+}

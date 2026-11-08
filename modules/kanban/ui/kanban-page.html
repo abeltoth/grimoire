@@ -1,0 +1,133 @@
+@if (board.failed(); as error) {
+  <p class="error" role="alert">{{ error }}</p>
+}
+
+@if (board.all()) {
+  @if (folders().length > 1) {
+    <p class="folders" role="radiogroup" aria-label="Folder">
+      <span class="label" aria-hidden="true">Folder</span>
+      <button type="button" class="word" role="radio" [attr.aria-checked]="!folder()" (click)="pick(null)">
+        All
+      </button>
+      @for (f of folders(); track f) {
+        <button type="button" class="word" role="radio" [attr.aria-checked]="folder() === f" (click)="pick(f)">
+          <code>{{ chats.folderName(f) }}</code>
+        </button>
+      }
+    </p>
+  }
+
+  <div class="board">
+    @for (c of columns; track c.column) {
+      <section
+        class="column"
+        [class.over]="over() === c.column"
+        [attr.aria-labelledby]="'gr-kanban-' + c.column"
+        (dragover)="dragOver($event, c.column)"
+        (dragleave)="dragLeave($event, c.column)"
+        (drop)="drop($event, c.column)"
+      >
+        <h3 [id]="'gr-kanban-' + c.column">
+          {{ c.label }} <span class="count">{{ byColumn()[c.column].length }}</span>
+        </h3>
+        <ol class="cards">
+          @for (card of byColumn()[c.column]; track card.id) {
+            <li
+              class="card"
+              [attr.data-card]="card.id"
+              [class.dragged]="dragging() === card.id"
+              [attr.draggable]="editing() !== card.id"
+              (dragstart)="dragStart($event, card)"
+              (dragend)="dragEnd()"
+            >
+              @if (editing() === card.id) {
+                <gr-card-form [card]="card" (done)="editing.set(null)" />
+              } @else {
+                <p class="name">{{ card.title }}</p>
+                @if (card.notes) {
+                  <p class="notes" [attr.title]="card.notes">{{ card.notes }}</p>
+                }
+                <p class="where"><code>{{ chats.folderName(card.cwd) }}</code></p>
+
+                @if (card.chats.length) {
+                  <ul class="chats" [attr.aria-label]="wording.say('Its chapters', 'Its chats')">
+                    @for (listed of chatsOf(card); track listed.chat.chatId) {
+                      <li>
+                        <button type="button" class="chat" (click)="board.openChat(listed.chat)">
+                          {{ listed.title }}
+                        </button>
+                        @if (listed.status; as status) {
+                          <span class="status" [attr.data-status]="status.tone">
+                            @if (status.icon) {
+                              <gr-icon [name]="status.icon" [class]="status.motion ?? ''" />
+                            }
+                            {{ status.text }}
+                          </span>
+                        }
+                      </li>
+                    }
+                  </ul>
+                }
+
+                <div class="actions">
+                  @if (moving() === card.id) {
+                    <span class="moves" role="group" aria-label="Move to" (keydown.escape)="$event.preventDefault(); closeMoves(card)">
+                      <span class="ask">Move to</span>
+                      @for (to of movesOf(card); track to.label) {
+                        <button type="button" class="gr-link" (click)="move(card, to)">{{ to.label }}</button>
+                      }
+                      <button type="button" class="gr-link" (click)="closeMoves(card)">Cancel</button>
+                    </span>
+                  } @else {
+                    <button type="button" class="gr-link begin" (click)="board.newChat(card)">
+                      {{ wording.say('New chapter', 'New chat') }}
+                    </button>
+                    <button type="button" class="gr-link move" (click)="openMoves(card)">Move to…</button>
+                    <button type="button" class="gr-link" (click)="editing.set(card.id)">Change</button>
+                    <button type="button" class="gr-link" (click)="board.close(card.id, true)">Close</button>
+                  }
+                </div>
+              }
+            </li>
+          }
+          @if (c.column === 'todo') {
+            <li class="card new">
+              @if (editing() === 'new') {
+                <gr-card-form (done)="editing.set(null)" />
+              } @else {
+                <button type="button" class="add" (click)="editing.set('new')">A new task…</button>
+              }
+            </li>
+          }
+        </ol>
+      </section>
+    }
+  </div>
+
+  @if (closed().length) {
+    <section class="closed" aria-labelledby="gr-kanban-closed">
+      <button
+        type="button"
+        class="gr-link"
+        id="gr-kanban-closed"
+        [attr.aria-expanded]="showClosed()"
+        (click)="showClosed.set(!showClosed())"
+      >
+        {{ showClosed() ? 'Hide the closed cards' : closed().length === 1 ? 'Show the closed card' : 'Show the ' + closed().length + ' closed cards' }}
+      </button>
+      @if (showClosed()) {
+        <ul>
+          @for (card of closed(); track card.id) {
+            <li>
+              <span class="closed-title">{{ card.title }}</span>&ngsp;
+              <span class="closed-where">{{ closedLine(card) }}</span>&ngsp;
+              <button type="button" class="gr-link" (click)="board.close(card.id, false)">Reopen</button>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  }
+} @else {
+  <p class="none">Asking the service…</p>
+}

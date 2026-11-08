@@ -490,6 +490,28 @@
   --gr-schedule-word-rule-off: 1.5px solid transparent;
   --gr-schedule-time-width: 140px;
 
+  /* Kanban: your tasks as index cards in three columns */
+  --gr-kanban-section-gap: 18px;
+  --gr-kanban-column-gap: 18px;
+  --gr-kanban-column-pad: 6px;
+  --gr-kanban-column-over: var(--gr-slip-well);
+  --gr-kanban-card-gap: 10px;
+  --gr-kanban-card-pad: 9px 11px 8px;
+  --gr-kanban-card-rule: 1px solid var(--gr-hairline);
+  --gr-kanban-card-radius: var(--gr-radius-control);
+  --gr-kanban-card-paper: var(--gr-page-next);
+  --gr-kanban-card-leading: 1.35;
+  --gr-kanban-card-line-gap: 5px;
+  --gr-kanban-notes-lines: 3;
+  --gr-kanban-new-rule: 1.5px dashed var(--gr-hairline);
+  /* How faint a card is while it's dragged */
+  --gr-kanban-dragged: 0.4;
+  --gr-size-kanban-code: 12px;
+  --gr-kanban-status-gap: 4px;
+  --gr-kanban-word-gap: 10px;
+  --gr-kanban-actions-gap: 10px;
+  --gr-kanban-form-gap: 8px;
+
   /* The Colophon: Grimoire's settings, written out as words to pick */
   --gr-colophon-width: 640px;
   --gr-colophon-lead-gap: 20px;

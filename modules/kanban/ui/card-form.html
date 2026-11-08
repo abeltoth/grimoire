@@ -1,0 +1,40 @@
+<form class="form" (submit)="$event.preventDefault(); save()" (keydown.escape)="$event.preventDefault(); done.emit()">
+  <input
+    class="line name"
+    autocomplete="off"
+    aria-label="Title"
+    placeholder="A new task"
+    [value]="title()"
+    (input)="title.set($any($event.target).value)"
+  />
+  <textarea
+    class="line notes"
+    rows="2"
+    aria-label="Notes"
+    placeholder="Notes, if any"
+    [value]="notes()"
+    (input)="notes.set($any($event.target).value)"
+  ></textarea>
+
+  <span class="words" role="radiogroup" aria-label="Folder">
+    @for (folder of folders(); track folder) {
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="folder === cwd()"
+        (click)="cwd.set(folder)"
+      >
+        <code>{{ chats.folderName(folder) }}</code>
+      </button>
+    }
+    <button type="button" class="gr-link" (click)="chooseFolder()">Another…</button>
+  </span>
+
+  <div class="actions">
+    <button type="submit" class="send" [attr.aria-disabled]="!complete() || saving() || null">
+      {{ card() ? 'Save' : 'Add the card' }}
+    </button>
+    <button type="button" class="gr-link" (click)="done.emit()">Cancel</button>
+  </div>
+</form>

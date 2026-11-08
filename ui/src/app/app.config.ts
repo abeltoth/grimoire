@@ -5,11 +5,11 @@ import { provideFiles } from '../../../modules/files/ui/files.providers';
 import { provideFrontMatter } from '../../../modules/front-matter/ui/front-matter.providers';
 import { provideGit } from '../../../modules/git/ui/git.providers';
 import { provideTableOfContents } from '../../../modules/history/ui/history.providers';
+import { provideKanban } from '../../../modules/kanban/ui/kanban.providers';
 import { provideLedger } from '../../../modules/ledger/ui/ledger.providers';
 import { provideMemoryMap } from '../../../modules/memory-map/ui/memory-map.providers';
 import { provideScheduledChats } from '../../../modules/schedules/ui/schedules.providers';
 import { provideScriptorium } from '../../../modules/terminal/ui/terminal.providers';
-import { providePlaceholders } from './placeholders/placeholders';
 import { provideShell } from './shell/shell-registry';
 
 // Zoneless change detection is Angular's default.
@@ -22,11 +22,11 @@ export const appConfig: ApplicationConfig = {
     provideGit(),
     provideTableOfContents(),
     provideFrontMatter(),
+    provideKanban(),
     provideMemoryMap(),
     provideLedger(),
     provideScheduledChats(),
     provideScriptorium(),
     provideColophon(),
-    providePlaceholders(),
   ],
 };

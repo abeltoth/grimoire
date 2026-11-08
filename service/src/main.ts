@@ -34,6 +34,8 @@ import { Git } from './git/git';
 import { registerFiles } from './files/commands';
 import { Files } from './files/files';
 import { Worktrees } from './git/worktrees';
+import { registerKanban } from './kanban/commands';
+import { CardStore } from './kanban/store';
 import { CommandRegistry } from './registry';
 import { AlreadyRunningError, startServer, type ServiceServer } from './server';
 import { registerSchedules } from './schedules/commands';
@@ -155,6 +157,9 @@ const scheduler = new Scheduler(
 );
 registerSchedules(registry, scheduler);
 
+const cards = new CardStore(db);
+registerKanban(registry, cards, broadcast);
+
 registerProfiles(
   registry,
   profiles,
@@ -172,6 +177,7 @@ registerProfiles(
     announce: () => {
       broadcast('settings.changed', { settings: settingsStore.get() });
       broadcast('schedules.changed', { schedules: scheduler.list() });
+      broadcast('kanban.changed', { cards: cards.list() });
       void hub.announceAccounts();
     },
   },

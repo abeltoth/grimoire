@@ -1,0 +1,87 @@
+/* A card written out on the card itself: each field on a dotted line, in pen. */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-kanban-form-gap);
+}
+
+.line {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-bottom: var(--gr-rename-rule);
+  background: transparent;
+  font: inherit;
+  font-size: var(--gr-size-aside);
+  line-height: var(--gr-kanban-card-leading);
+  color: var(--gr-pen);
+  caret-color: var(--gr-pen);
+  outline: none;
+  resize: vertical;
+}
+
+.line.name {
+  font-weight: 500;
+}
+
+.line::placeholder {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--gr-ink-placeholder);
+}
+
+.line:focus-visible {
+  border-bottom-color: var(--gr-pen);
+}
+
+/* The folders to pick from, the picked one underlined in rubric. */
+.words {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--gr-kanban-word-gap);
+  font-size: var(--gr-size-label);
+}
+
+.word {
+  padding: var(--gr-schedule-word-pad);
+  border-bottom: var(--gr-schedule-word-rule-off);
+  color: var(--gr-ink-soft);
+}
+
+.word:hover {
+  color: var(--gr-ink);
+}
+
+.word[aria-checked='true'] {
+  color: var(--gr-ink);
+  border-bottom: var(--gr-schedule-word-rule);
+}
+
+.word code {
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-kanban-code);
+}
+
+.actions {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-kanban-actions-gap);
+  font-size: var(--gr-size-label);
+}
+
+.send {
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-control);
+  font-weight: 500;
+  letter-spacing: var(--gr-tracking-label);
+  color: var(--gr-rubric);
+}
+
+.send:hover:not([aria-disabled]) {
+  color: var(--gr-ink);
+}
+
+.send[aria-disabled] {
+  color: var(--gr-ink-faint);
+}

@@ -128,6 +128,27 @@ const MIGRATIONS = [
    ALTER TABLE profile_presets RENAME TO presets;
    ALTER TABLE chapters ADD COLUMN profile TEXT NOT NULL DEFAULT 'personal';
    ALTER TABLE schedules ADD COLUMN profile TEXT NOT NULL DEFAULT 'personal';`,
+  // The Kanban board: each profile's cards, and the chats each began.
+  `CREATE TABLE cards (
+     id TEXT PRIMARY KEY,
+     profile TEXT NOT NULL,
+     kind TEXT NOT NULL,
+     title TEXT NOT NULL,
+     notes TEXT NOT NULL,
+     cwd TEXT NOT NULL,
+     column_id TEXT NOT NULL,
+     position INTEGER NOT NULL,
+     created_at INTEGER NOT NULL,
+     closed_at INTEGER
+   );
+   CREATE TABLE card_chats (
+     card_id TEXT NOT NULL,
+     chat_id TEXT NOT NULL,
+     agent TEXT NOT NULL,
+     cwd TEXT NOT NULL,
+     at INTEGER NOT NULL,
+     PRIMARY KEY (card_id, chat_id)
+   );`,
 ];
 
 /**

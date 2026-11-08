@@ -112,6 +112,10 @@ export class ProfileStore {
         )
         .run(id);
       this.db.prepare('DELETE FROM schedules WHERE profile = ?').run(id);
+      this.db
+        .prepare('DELETE FROM card_chats WHERE card_id IN (SELECT id FROM cards WHERE profile = ?)')
+        .run(id);
+      this.db.prepare('DELETE FROM cards WHERE profile = ?').run(id);
       this.db.prepare('DELETE FROM profiles WHERE id = ?').run(id);
       this.db.exec('COMMIT');
     } catch (error) {
@@ -182,7 +186,7 @@ export interface Switching {
   useClaudeFolder(folder: string | null): void;
   /** Starts again what runs in the background, now in the new profile: the search and the spare. */
   restart(): void;
-  /** Tells every window what the new profile has: its settings, schedules and sign-in. */
+  /** Tells every window what the new profile has: its settings, schedules, Kanban board and sign-in. */
   announce(): void;
 }
 

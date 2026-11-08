@@ -119,6 +119,8 @@ export class Chats {
   /** The chapter whose settings card is open, and the setting it opened on. */
   readonly settingsCard = signal<{ id: string; on: Setting } | null>(null);
   private lastUsed: LastUsed | null = null;
+  /** Told when a blank chapter's first message starts its chat. */
+  private readonly begun = new Set<(blankId: string, chat: OpenChat) => void>();
   readonly all = signal<readonly Chapter[]>([]);
   readonly currentId = signal<string | undefined>(undefined);
   readonly current = computed(() => this.all().find((chapter) => chapter.id === this.currentId()));
@@ -329,9 +331,22 @@ export class Chats {
   /**
    * Opens a blank chapter, with the settings given or what new chapters
    * begin with, and a preset's first entry written in, and turns to it.
+   * Gives the blank chapter's local ID.
    */
-  newChapter(from?: { agent: AgentId; settings: NewChatSettings; prompt?: string }): void {
-    this.turnTo(this.blank(from).id);
+  newChapter(from?: { agent: AgentId; settings: NewChatSettings; prompt?: string }): string {
+    const { id } = this.blank(from);
+    this.turnTo(id);
+    return id;
+  }
+
+  /**
+   * Tells `handle` each time a blank chapter's first message starts its
+   * chat: the chapter's local ID, and the chat it is now. Returns a
+   * function that stops telling it.
+   */
+  onBegun(handle: (blankId: string, chat: OpenChat) => void): () => void {
+    this.begun.add(handle);
+    return () => this.begun.delete(handle);
   }
 
   /**
@@ -478,6 +493,7 @@ export class Chats {
       if (this.currentId() === id) this.turnTo(chat.id);
       if (this.besideId() === id) this.setBeside(chat.id);
       this.remember({ agent: chapter.agent, settings: chapter.settings });
+      for (const handle of this.begun) handle(id, chat);
       if (tags.length) await this.tag(chat.id, tags);
       return chat.id;
     } catch (error) {
