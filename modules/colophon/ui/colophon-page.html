@@ -124,6 +124,38 @@
       </p>
     }
 
+    <span class="label" id="gr-colophon-suggestions">{{
+      wording.say('Suggest the next entry', 'Suggest the next message')
+    }}</span>
+    <span class="words" role="radiogroup" aria-labelledby="gr-colophon-suggestions">
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="all.suggestions"
+        (click)="set({ suggestions: true })"
+      >
+        On
+      </button>
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="!all.suggestions"
+        (click)="set({ suggestions: false })"
+      >
+        Off
+      </button>
+    </span>
+    <p class="note">
+      {{
+        wording.say(
+          'After a reply, what you might write next shows in grey on the empty page; Tab writes it in.',
+          'After a reply, what you might send next shows in grey in the empty message box; Tab uses it.'
+        )
+      }}
+    </p>
+
     <span class="label" id="gr-colophon-mcp">{{
       wording.say('MCP servers in every chapter', 'MCP servers in every chat')
     }}</span>

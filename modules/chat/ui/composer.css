@@ -116,7 +116,8 @@
   color: var(--gr-pen);
 }
 
-.slash-hint {
+.slash-hint,
+.suggestion-hint {
   position: absolute;
   top: 0;
   right: 0;
@@ -130,6 +131,12 @@
 .entry::placeholder {
   color: var(--gr-ink-placeholder);
   font-style: italic;
+}
+
+/* Kept low, clear of the suggestion's first line. */
+.suggestion-hint {
+  top: auto;
+  bottom: 0;
 }
 
 .enclosed {

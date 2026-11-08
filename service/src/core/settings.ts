@@ -54,6 +54,7 @@ const VALID: { [K in keyof GrimoireSettings]: (value: unknown) => boolean } = {
     value.every((email) => typeof email === 'string' && email.length <= 320 && EMAIL.test(email)) &&
     new Set(value.map((email: string) => email.toLowerCase())).size === value.length,
   mcpOff: (value) => mcpNames(value),
+  suggestions: (value) => typeof value === 'boolean',
 };
 
 /** The most MCP servers kept off: more than anyone has. */

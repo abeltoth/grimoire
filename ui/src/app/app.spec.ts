@@ -2115,6 +2115,91 @@ describe('App', () => {
     expect(calls.filter((c) => c.command === 'agents.commands')).toHaveLength(3);
   });
 
+  it('shows what the agent suggests next on the empty page, and only Tab writes it in', async () => {
+    const { bridge, calls, answers, emit } = fakeBridge();
+    let kept: GrimoireSettings = { ...DEFAULT_SETTINGS };
+    answers['settings.get'] = () => kept;
+    answers['settings.set'] = (change: Partial<GrimoireSettings>) => (kept = { ...kept, ...change });
+    answers['agents.commands'] = () => [
+      { name: 'compact', description: 'Free up context', kind: 'command' },
+    ];
+    const { fixture, el, texts } = await render(bridge);
+    await write(fixture, el, 'First');
+    const entry = el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!;
+    const type = async (text: string) => {
+      entry.value = text;
+      entry.dispatchEvent(new Event('input'));
+      await fixture.whenStable();
+    };
+    const press = async (key: string) => {
+      entry.dispatchEvent(new KeyboardEvent('keydown', { key, cancelable: true }));
+      await fixture.whenStable();
+    };
+    const suggest = async (suggestion: string | null) => {
+      emit('agents.suggestion', { chatId: 'chat-1', suggestion });
+      await fixture.whenStable();
+    };
+    const sends = () => calls.filter((c) => c.command === 'agents.send');
+
+    // Only once the turn has ended.
+    await suggest('Run the tests');
+    expect(entry.placeholder).toBe('Write the next entry…');
+    emit('agents.status', { chatId: 'chat-1', status: 'idle' });
+    await fixture.whenStable();
+    expect(entry.placeholder).toBe('Run the tests');
+    expect(texts('gr-composer .suggestion-hint')).toEqual(['Tab to write it in']);
+
+    await press('Enter');
+    expect(sends()).toEqual([]);
+    await press('Tab');
+    expect(entry.value).toBe('Run the tests');
+    expect(entry.placeholder).toBe('Write the next entry…');
+    expect(texts('gr-composer .suggestion-hint')).toEqual([]);
+    await press('Enter');
+    expect(sends().map((c) => c.request)).toEqual([{ chatId: 'chat-1', text: 'Run the tests' }]);
+
+    // Writing anything puts it away, even once the page is empty again.
+    await suggest('Commit it');
+    expect(entry.placeholder).toBe('Commit it');
+    await type('N');
+    expect(entry.placeholder).toBe('Write the next entry…');
+    await type('');
+    expect(entry.placeholder).toBe('Write the next entry…');
+    await press('Tab');
+    expect(entry.value).toBe('');
+
+    // While the commands are listed, Tab completes the one picked.
+    await suggest('Push it');
+    await type('/');
+    await press('Tab');
+    expect(entry.value).toBe('/compact ');
+    await type('');
+
+    // Gone once the service says so, as when a turn begins.
+    await suggest(null);
+    expect(entry.placeholder).toBe('Write the next entry…');
+
+    // Turned off on the Colophon, it shows no more.
+    await suggest('Push it');
+    expect(entry.placeholder).toBe('Push it');
+    [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
+      .find((tab) => tab.textContent!.trim() === 'Colophon')!
+      .click();
+    await fixture.whenStable();
+    [...el.querySelectorAll<HTMLButtonElement>('#gr-colophon-settings ~ .form .word')]
+      .find((button) => button.textContent!.trim() === 'Off')!
+      .click();
+    await fixture.whenStable();
+    expect(calls.filter((c) => c.command === 'settings.set').map((c) => c.request)).toEqual([
+      { suggestions: false },
+    ]);
+    el.querySelector<HTMLButtonElement>('gr-thumb-page .row .gr-link')!.click();
+    await fixture.whenStable();
+    const back = el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!;
+    expect(back.placeholder).toBe('Write the next entry…');
+    expect(texts('gr-composer .suggestion-hint')).toEqual([]);
+  });
+
   it('uses a command clicked on the facing page', async () => {
     const { bridge, calls, answers } = fakeBridge();
     answers['agents.commands'] = () => [
@@ -3304,9 +3389,10 @@ describe('App', () => {
       'Drawings',
       'Default agent for new chapters',
       'New chapters begin with',
+      'Suggest the next entry',
       'MCP servers in every chapter',
     ]);
-    expect(checked()).toEqual(['The book’s', 'Drawn', 'The one used last', 'Your last settings']);
+    expect(checked()).toEqual(['The book’s', 'Drawn', 'The one used last', 'Your last settings', 'On']);
     expect(texts('gr-colophon-page [aria-labelledby="gr-colophon-mcp"] .none')).toEqual(['None']);
 
     word('Plain').click();
@@ -3420,7 +3506,7 @@ describe('App', () => {
       .click();
     await fixture.whenStable();
     expect(
-      texts('#gr-colophon-settings ~ .form .word[aria-checked="true"]').slice(2),
+      texts('#gr-colophon-settings ~ .form .word[aria-checked="true"]').slice(2, 4),
     ).toEqual(['The one used last', 'Bug fix']);
     const word = (text: string) =>
       [...el.querySelectorAll<HTMLButtonElement>('#gr-colophon-settings ~ .form .word')].find(

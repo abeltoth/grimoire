@@ -49,9 +49,10 @@
     rows="2"
     [class.slash]="lookingUp()"
     [placeholder]="
-      first()
+      suggested() ??
+      (first()
         ? wording.say('Write the first entry…', 'Write the first message…')
-        : wording.say('Write the next entry…', 'Write the next message…')
+        : wording.say('Write the next entry…', 'Write the next message…'))
     "
     [value]="draft()"
     [attr.aria-controls]="lookingUp() ? 'gr-command-entries' : null"
@@ -72,6 +73,10 @@
         on the {{ wording.say('facing page', 'right') }} →
       }
     </span>
+  } @else if (suggested()) {
+    <span class="suggestion-hint"
+      ><span class="gr-kbd">Tab</span> {{ wording.say('to write it in', 'to use') }}</span
+    >
   }
 </div>
 

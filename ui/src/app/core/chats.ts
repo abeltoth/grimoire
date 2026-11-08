@@ -58,6 +58,8 @@ export interface Chapter {
   tags: readonly string[];
   /** Your entries copied from the chat this one was forked from; they can't be undone. */
   copied: readonly string[];
+  /** What the agent suggests you send next, while it's idle with nothing queued. */
+  suggestion?: string;
   /** Why the last turn failed, until the next message. */
   error?: string;
   /** When a blank chapter was opened, in ms since the epoch. */
@@ -167,6 +169,12 @@ export class Chats {
     this.listen('agents.tags', ({ chatId, tags }) => this.update(chatId, (c) => ({ ...c, tags })));
     this.listen('agents.withdrawn', ({ chatId, withdrawn }) =>
       this.update(chatId, (c) => ({ ...c, withdrawn })),
+    );
+    this.listen('agents.suggestion', ({ chatId, suggestion }) =>
+      this.update(chatId, ({ suggestion: _, ...c }) => ({
+        ...c,
+        ...(suggestion !== null ? { suggestion } : {}),
+      })),
     );
     this.bridge.invoke('agents.list', {}).then(
       (agents) => {
@@ -735,6 +743,7 @@ function fromOpenChat(chat: OpenChat): Chapter {
     copied: chat.copied ?? [],
     ...(chat.context ? { context: chat.context } : {}),
     ...(chat.cache ? { cache: chat.cache } : {}),
+    ...(chat.suggestion ? { suggestion: chat.suggestion } : {}),
   };
 }
 

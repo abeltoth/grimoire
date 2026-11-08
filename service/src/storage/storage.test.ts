@@ -139,6 +139,7 @@ describe('storage', () => {
       theme: {},
       accounts: [],
       mcpOff: [],
+      suggestions: true,
     });
     settings.set({ wording: 'plain', newChapter: { from: 'preset', preset: 'Bug fix' } });
     settings.set({ themeName: 'night', theme: { '--gr-page': '#fffaf0', '--gr-size-text': '18px' } });
@@ -146,6 +147,8 @@ describe('storage', () => {
     expect(() => settings.set({ themeName: 'neon' } as never)).toThrow('"themeName"');
     settings.set({ accounts: ['me@example.com', 'mum@example.com'] });
     settings.set({ mcpOff: ['github', 'claude.ai Gmail'] });
+    settings.set({ suggestions: false });
+    expect(() => settings.set({ suggestions: 'no' } as never)).toThrow('"suggestions"');
     expect(() => settings.set({ wording: 'fancy' } as never)).toThrow(`"wording" can't be "fancy"`);
     expect(() => settings.set({ newChapter: { from: 'preset', preset: '' } })).toThrow('"newChapter"');
     expect(() => settings.set({ shelf: 'x' } as never)).toThrow(`There's no setting "shelf"`);
@@ -173,6 +176,7 @@ describe('storage', () => {
       theme: { '--gr-page': '#fffaf0', '--gr-size-text': '18px' },
       accounts: ['me@example.com', 'mum@example.com'],
       mcpOff: ['github', 'claude.ai Gmail'],
+      suggestions: false,
     });
     again.close();
   });

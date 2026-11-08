@@ -429,6 +429,8 @@ export interface OpenChat {
    * keeps no file checkpoints for them, so they can't be undone.
    */
   copied: string[];
+  /** What the agent suggests you send next, while the chat is idle with nothing queued. */
+  suggestion?: string;
 }
 
 declare module './commands' {
@@ -574,5 +576,7 @@ declare module './events' {
     'agents.tags': { chatId: ChatId; tags: string[] };
     /** Edits were undone: your entries whose file changes are now withdrawn. */
     'agents.withdrawn': { chatId: ChatId; withdrawn: string[] };
+    /** The agent suggested what you might send next; null once it no longer stands. */
+    'agents.suggestion': { chatId: ChatId; suggestion: string | null };
   }
 }

@@ -172,6 +172,8 @@ export interface ChatEvents {
   /** The hooks that ran on the running turn so far, and any begun before it that still run. */
   hooks(runs: HookRun[]): void;
   turnEnded(error?: string): void;
+  /** After a turn ended, what the agent suggests you send next. */
+  suggestion(text: string): void;
   /** The agent process ended, on close() or by itself. */
   closed(error?: string): void;
 }

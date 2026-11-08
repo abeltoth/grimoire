@@ -24,6 +24,7 @@ import { Icon } from '@ui/design-system/icon';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { Chats } from '@ui/app/core/chats';
 import { LEAF } from '@ui/app/core/leaf';
+import { Settings } from '@ui/app/core/settings';
 import { Wording } from '@ui/app/core/wording';
 import { AgentCommands } from '@ui/app/shell/agent-commands';
 import { Focus } from '@ui/app/shell/focus';
@@ -37,7 +38,8 @@ import { readPicture } from './pictures';
  * while a turn runs waits above it until the turn ends. A "/" at the start
  * turns the facing page to the agent's commands, which the entry's keys
  * move through and use. Files and pictures come in through Attach, or by
- * dropping or pasting them, and go with the entry.
+ * dropping or pasting them, and go with the entry. What the agent suggests
+ * you write next shows in grey on the empty page, and Tab writes it in.
  */
 @Component({
   selector: 'gr-composer',
@@ -54,6 +56,7 @@ export class Composer {
   private readonly pending = inject(PendingTasks);
   private readonly drafts = inject(Drafts);
   private readonly focus = inject(Focus);
+  private readonly settings = inject(Settings);
   /** In a loose leaf's window: no facing page, so its commands are listed above it. */
   protected readonly leaf = !!inject(LEAF);
 
@@ -76,6 +79,8 @@ export class Composer {
   readonly entryId = input('gr-next-entry');
   /** On the facing page, so its commands are looked up on the left page. */
   readonly beside = input(false);
+  /** What the agent suggests you write next, while the chapter is idle with nothing queued. */
+  readonly suggestion = input<string>();
 
   /** The model the entry goes to as well, in parallel; none until Parallel is pressed. */
   protected readonly parallel = linkedSignal<string, string | null>({
@@ -152,6 +157,22 @@ export class Composer {
     computation: (id) => this.drafts.of(id).enclosures,
   });
 
+  /** Whether you wrote since the agent made its suggestion: it's gone until the next. */
+  private readonly dismissed = linkedSignal({
+    source: () => ({ id: this.chapterId(), suggestion: this.suggestion() }),
+    computation: () => false,
+  });
+  /**
+   * The suggestion, while the page is empty and Tab would take it: suggestions
+   * are on, nothing waits to go, and no commands are listed.
+   */
+  protected readonly suggested = computed(() => {
+    const suggestion = this.suggestion();
+    if (!suggestion || this.dismissed() || !this.settings.all().suggestions) return undefined;
+    if (this.draft() || this.queued().length || this.lookingUp()) return undefined;
+    return suggestion;
+  });
+
   /** Whether the facing page lists the agent's commands for this entry. */
   protected readonly lookingUp = computed(
     () => this.commands.lookUp()?.chapterId === this.chapterId(),
@@ -198,6 +219,7 @@ export class Composer {
   /** Keeps what you write, and looks up the agent's commands while it's a "/" and a name. */
   protected write(text: string): void {
     this.draft.set(text);
+    if (text) this.dismissed.set(true);
     const slash = /^\/(\S*)$/.exec(text);
     if (slash) {
       const cwd = this.cwd();
@@ -229,6 +251,18 @@ export class Composer {
     } else if (chosen && event.key === 'Tab' && !event.shiftKey) {
       event.preventDefault();
       this.complete(chosen, entry);
+    } else if (
+      event.key === 'Tab' &&
+      !event.shiftKey &&
+      !event.altKey &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !entry.value &&
+      this.suggested()
+    ) {
+      // Written in, to change or send; Enter on the empty page still sends nothing.
+      event.preventDefault();
+      this.fill(entry, this.suggested()!);
     } else if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       if (chosen) this.use(chosen);
@@ -300,6 +334,7 @@ export class Composer {
     // Cleared on the element too: Enter can come before the last keystroke is rendered.
     entry.value = '';
     this.draft.set('');
+    this.dismissed.set(true);
     this.enclosures.set([]);
     const second = this.second();
     if (!second) {

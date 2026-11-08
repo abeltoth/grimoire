@@ -24,6 +24,11 @@ export interface GrimoireSettings {
   accounts: readonly string[];
   /** The MCP servers turned off in every chat, by name; open chats change from their next turn. */
   mcpOff: readonly string[];
+  /**
+   * Whether the agent suggests your next message after a reply, which Tab
+   * takes; open chats stop when their process next starts again.
+   */
+  suggestions: boolean;
 }
 
 export const DEFAULT_SETTINGS: GrimoireSettings = {
@@ -35,6 +40,7 @@ export const DEFAULT_SETTINGS: GrimoireSettings = {
   theme: {},
   accounts: [],
   mcpOff: [],
+  suggestions: true,
 };
 
 declare module './commands' {

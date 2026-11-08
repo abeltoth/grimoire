@@ -1105,6 +1105,39 @@ describe('AgentHub', () => {
     });
   });
 
+  it('keeps what the agent suggests you send next, until you send', async () => {
+    const { id } = await hub.start('fake', settings, 'Hello');
+    const run = fake.runOf(id);
+    run.events.turnEnded();
+    run.events.suggestion('Run the tests');
+    expect(sent.at(-1)).toEqual({ event: 'agents.suggestion', payload: { chatId: id, suggestion: 'Run the tests' } });
+    expect((await hub.open('fake', id, settings)).suggestion).toBe('Run the tests');
+    expect((await hub.openChats()).map((chat) => chat.suggestion)).toEqual(['Run the tests']);
+
+    hub.send(id, 'Something else');
+    expect(sent.filter((s) => s.event === 'agents.suggestion').at(-1)!.payload).toEqual({
+      chatId: id,
+      suggestion: null,
+    });
+    expect((await hub.open('fake', id, settings)).suggestion).toBeUndefined();
+  });
+
+  it('drops a suggestion that comes while a turn runs or something is queued', async () => {
+    const { id } = await hub.start('fake', settings, 'Hello');
+    const run = fake.runOf(id);
+    run.events.suggestion('Too soon');
+    hub.send(id, 'Also this');
+    // The queued entry begins the next turn before the suggestion comes.
+    run.events.turnEnded();
+    run.events.suggestion('Run the tests');
+    expect(events()).not.toContain('agents.suggestion');
+    expect((await hub.open('fake', id, settings)).suggestion).toBeUndefined();
+
+    run.events.turnEnded();
+    run.events.suggestion('Commit it');
+    expect((await hub.open('fake', id, settings)).suggestion).toBe('Commit it');
+  });
+
   it('passes on how full the context window is', async () => {
     const { id } = await hub.start('fake', settings, 'Hello');
     fake.runOf(id).events.context({ used: 62_000, limit: 100_000 });

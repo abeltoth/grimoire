@@ -86,12 +86,19 @@ const settingsStore = new SettingsStore(db);
 const broadcast: Parameters<typeof registerSettings>[2] = (event, payload) =>
   server?.broadcast(event, payload);
 registerPresets(registry, new PresetStore(db), settingsStore, broadcast);
-let mcpOff = settingsStore.get().mcpOff;
+let { mcpOff, suggestions } = settingsStore.get();
 registerSettings(registry, settingsStore, (event, payload) => {
   broadcast(event, payload);
   if (event !== 'settings.changed') return;
+  const settings = (payload as EventPayload<'settings.changed'>).settings;
+  // Suggestions turned on or off: the spare starts again with them; open chats, when theirs next does.
+  if (settings.suggestions !== suggestions) {
+    suggestions = settings.suggestions;
+    claude.dispose();
+    claude.warm();
+  }
   // Other MCP servers off in every chat: the open chats, and the spare, start again with them.
-  const now = (payload as EventPayload<'settings.changed'>).settings.mcpOff;
+  const now = settings.mcpOff;
   if (now.length === mcpOff.length && now.every((name) => mcpOff.includes(name))) return;
   mcpOff = now;
   hub.mcpChanged();
@@ -127,7 +134,10 @@ const hub = new AgentHub(
   new Worktrees(new WorktreeRecords(db), log),
   log,
 );
-const claude = new ClaudeAdapter(() => settingsStore.get().mcpOff);
+const claude = new ClaudeAdapter(
+  () => settingsStore.get().mcpOff,
+  () => settingsStore.get().suggestions,
+);
 hub.addAdapter(claude);
 claude.warm();
 registerAgentCommands(registry, hub);
@@ -153,8 +163,8 @@ registerProfiles(
     reset: () => claude.reset(),
     useClaudeFolder,
     restart: () => {
-      // The spare starts with the new profile's MCP servers off; its settings don't restart it.
-      mcpOff = settingsStore.get().mcpOff;
+      // The spare starts with the new profile's MCP servers off and suggestions; its settings don't restart it.
+      ({ mcpOff, suggestions } = settingsStore.get());
       search.restart();
       claude.warm();
     },

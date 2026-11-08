@@ -97,8 +97,15 @@ export class ClaudeAdapter implements AgentAdapter {
   private modelList: Promise<ModelInfo[]> | undefined;
   private readonly commandLists = new Map<string, { at: number; list: Promise<AgentCommand[]> }>();
 
-  /** `mcpOffEverywhere` names the MCP servers turned off in every chat, as they are when a process starts. */
-  constructor(private readonly mcpOffEverywhere: () => readonly string[] = () => []) {}
+  /**
+   * `mcpOffEverywhere` names the MCP servers turned off in every chat, and
+   * `suggestions` says whether Claude Code suggests your next message, as
+   * they are when a process starts.
+   */
+  constructor(
+    private readonly mcpOffEverywhere: () => readonly string[] = () => [],
+    private readonly suggestions: () => boolean = () => true,
+  ) {}
 
   readonly info: AgentInfo = {
     id: 'claude-code',
@@ -348,6 +355,7 @@ export class ClaudeAdapter implements AgentAdapter {
           includeHookEvents: true,
           // Undo restores files from these checkpoints.
           enableFileCheckpointing: true,
+          promptSuggestions: this.suggestions(),
           env: env(),
           extraArgs: CLI_ARGS,
           ...(resume ? { resume: chatId } : { sessionId: chatId, ...(title ? { title } : {}) }),
@@ -409,6 +417,8 @@ export class ClaudeAdapter implements AgentAdapter {
             ...(off.length ? { settings: mcpSettings(off) } : {}),
             allowDangerouslySkipPermissions: true,
             enableFileCheckpointing: true,
+            // Sent as the process starts, so a claim can't change it.
+            promptSuggestions: this.suggestions(),
             env: env(),
             extraArgs: CLI_ARGS,
             canUseTool: approvalsTo(() => claimedBy.promise),
@@ -502,6 +512,8 @@ export class ClaudeAdapter implements AgentAdapter {
         const live = await started;
         for await (const message of live) {
           transcript.apply(message);
+          // At most one a turn, after its result.
+          if (message.type === 'prompt_suggestion') events.suggestion(message.suggestion);
           if (message.type === 'assistant' && message.parent_tool_use_id === null)
             cache.reply(message.message.usage as ReplyUsage, Date.now());
           if (message.type !== 'result') continue;

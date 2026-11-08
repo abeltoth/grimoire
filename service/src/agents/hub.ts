@@ -77,6 +77,8 @@ interface ChatState {
   tags: string[];
   /** Your entries copied from the chat this one was forked from. */
   copied: string[];
+  /** What the agent suggests you send next, until a turn begins or something is queued. */
+  suggestion?: string;
   /** While the agent process runs. */
   live?: LiveChat;
   /** How many processes the chat has had; what an earlier one still reports is dropped. */
@@ -541,6 +543,7 @@ export class AgentHub {
     if (!text.trim() && !enclosures.length) throw new Error('Write something, or attach something, to send');
     if (chat.status === 'idle') return this.sendTo(chat, text, true, enclosures);
     chat.queued.push({ id: randomUUID(), text, ...(enclosures.length ? { enclosures } : {}) });
+    this.dropSuggestion(chat);
     this.emitQueued(chat);
   }
 
@@ -946,6 +949,12 @@ export class AgentHub {
         chat.title = title;
         this.emit('agents.title', { chatId: chat.id, title });
       },
+      suggestion: (text) => {
+        // Only while you could take it: no turn runs and nothing waits to go.
+        if (!current() || chat.status !== 'idle' || chat.queued.length || !text.trim()) return;
+        chat.suggestion = text;
+        this.emit('agents.suggestion', { chatId: chat.id, suggestion: text });
+      },
       turnEnded: (error) => {
         if (!current()) return;
         this.settleAll(chat);
@@ -1064,6 +1073,14 @@ export class AgentHub {
     this.flush(chat);
     chat.status = status;
     this.emit('agents.status', { chatId: chat.id, status });
+    // A turn began: what was suggested before it no longer stands.
+    if (status !== 'idle') this.dropSuggestion(chat);
+  }
+
+  private dropSuggestion(chat: ChatState): void {
+    if (chat.suggestion === undefined) return;
+    chat.suggestion = undefined;
+    this.emit('agents.suggestion', { chatId: chat.id, suggestion: null });
   }
 
   private pending(approvalId: string): PendingApproval {
@@ -1112,6 +1129,7 @@ export class AgentHub {
       dogEars: [...chat.dogEars],
       tags: [...chat.tags],
       copied: [...chat.copied],
+      ...(chat.suggestion !== undefined ? { suggestion: chat.suggestion } : {}),
     };
   }
 

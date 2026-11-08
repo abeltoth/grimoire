@@ -129,6 +129,7 @@
     [sent]="sent()"
     [entryId]="beside() ? 'gr-next-entry-beside' : 'gr-next-entry'"
     [beside]="beside()"
+    [suggestion]="c.status === 'idle' ? c.suggestion : undefined"
   />
 
   <gr-running-foot>
