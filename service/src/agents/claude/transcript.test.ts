@@ -7,6 +7,7 @@ import {
   helperCallIn,
   runBeganWith,
   savedHelperState,
+  wholeRun,
   turnEnd,
 } from './transcript';
 
@@ -414,6 +415,55 @@ describe('ClaudeTranscript', () => {
       ).toBe(true);
       expect(runBeganWith(run({ role: 'user', content: 'Find the clock.' }), 'Find the meter.')).toBe(false);
       expect(runBeganWith([], 'Find the meter.')).toBe(false);
+    });
+
+    it('is named by a message that resumed it, as its result or its recipient', () => {
+      const messages = [
+        assistant('msg_s', {
+          type: 'tool_use',
+          id: 'toolu_s',
+          name: 'SendMessage',
+          input: { to: 'a8192414e515c7a00', message: 'More, please.' },
+        }),
+        result(
+          'toolu_s',
+          '{"success":true,"message":"Resuming agent a819241","resumedAgentId":"a8192414e515c7a00"}',
+        ),
+      ];
+      const found = helperCallIn(messages, 'toolu_s');
+      expect(found?.sentTo).toBe('a8192414e515c7a00');
+      expect(found?.prompt).toBeUndefined();
+      expect(helperAgentId(found!.result!.text)).toBe('a8192414e515c7a00');
+      expect(helperCallIn([call('toolu_1', 'Look.')], 'toolu_1')?.sentTo).toBeUndefined();
+    });
+
+    it('reads a resumed run whole: its task, what it did, and what it was sent, but not Claude Code’s notes', () => {
+      const entries = wholeRun([
+        { type: 'user', uuid: 'u1', parent_tool_use_id: null, message: { role: 'user', content: 'Plan it.' } },
+        {
+          type: 'user',
+          uuid: 'u2',
+          parent_tool_use_id: null,
+          is_meta: true,
+          message: { role: 'user', content: '<system-reminder>Hand back.</system-reminder>' },
+        },
+        assistant('msg_1', { type: 'text', text: 'Here is a plan.' }),
+        {
+          type: 'user',
+          uuid: 'u3',
+          parent_tool_use_id: null,
+          is_meta: true,
+          origin: { kind: 'coordinator' },
+          message: { role: 'user', content: 'The coordinator sent a message while you were working:\nMore detail.' },
+        },
+        assistant('msg_2', { type: 'text', text: 'Here is more.' }),
+      ]);
+      expect(entries.map((entry) => (entry.kind === 'user' ? entry.text : entry.id))).toEqual([
+        'Plan it.',
+        'msg_1',
+        'More detail.',
+        'msg_2',
+      ]);
     });
 
     it('is done once it handed its report back, else as its tool call’s result says', () => {

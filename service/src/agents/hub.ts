@@ -575,13 +575,18 @@ export class AgentHub {
 
   /**
    * What the helper the chat's tool call `toolId` started did: as it went,
-   * while the chat was live, or else as the agent saved it.
+   * while the chat was live, or else as the agent saved it. A helper whose
+   * work didn't come live, such as one a message resumed, reads as saved,
+   * where it is with its task as it came live.
    */
   async helper(chatId: ChatId, toolId: string): Promise<HelperRun> {
     const chat = this.chat(chatId);
     const live = chat.helpers.get(toolId);
-    if (live) return structuredClone(live);
-    return chat.agent.helper ? chat.agent.helper(chat.id, chat.settings.cwd, toolId) : { entries: [] };
+    if (live?.entries.length) return structuredClone(live);
+    const saved = chat.agent.helper
+      ? await chat.agent.helper(chat.id, chat.settings.cwd, toolId)
+      : { entries: [] };
+    return live?.state ? { ...saved, state: live.state } : saved;
   }
 
   /**

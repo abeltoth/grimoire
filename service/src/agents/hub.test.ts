@@ -378,6 +378,14 @@ describe('AgentHub', () => {
     await expect(hub.helper('closed', 'toolu_9')).rejects.toThrow('This chat is not open');
   });
 
+  it("reads a helper whose work didn't come live as saved, where it is as it came live", async () => {
+    const { id } = await hub.start('fake', settings, 'Hello');
+    fake.helpers.set('toolu_s', { entries: [reply('h1', 'Resumed')], state: 'done' });
+    fake.runOf(id).events.helperState('toolu_s', 'working');
+
+    expect(await hub.helper(id, 'toolu_s')).toMatchObject({ entries: [{ id: 'h1' }], state: 'working' });
+  });
+
   it('waits for your decision on an approval', async () => {
     const { id } = await hub.start('fake', settings, 'Make a file');
     const { events: agent } = fake.runOf(id);

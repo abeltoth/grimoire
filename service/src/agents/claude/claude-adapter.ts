@@ -47,6 +47,7 @@ import {
   runBeganWith,
   savedHelperState,
   turnEnd,
+  wholeRun,
 } from './transcript';
 import { toPlanUsage, toUsageBreakdown } from './usage';
 
@@ -157,6 +158,8 @@ export class ClaudeAdapter implements AgentAdapter {
     }
     // Its result names the run; a result that doesn't, the run that began with its task.
     let agentId = call?.result && helperAgentId(call.result.text);
+    // A message sent to a helper names it as its recipient.
+    if (!agentId && call?.sentTo && ids.includes(call.sentTo)) agentId = call.sentTo;
     if (!agentId && call?.prompt) {
       for (const id of ids) {
         if (runBeganWith(await runOf(id), call.prompt)) {
@@ -166,6 +169,12 @@ export class ClaudeAdapter implements AgentAdapter {
       }
     }
     if (!agentId) return { entries: [], ...(call ? { state: savedHelperState([], call.result) } : {}) };
+    // A message resumed the helper's run: all of it shows, where it is with what it was sent last.
+    if (call?.sentTo) {
+      const entries = wholeRun(await runOf(agentId));
+      const since = entries.findLastIndex((entry) => entry.kind === 'user') + 1;
+      return { entries, state: savedHelperState(entries.slice(since), call.result) };
+    }
     const run = new ClaudeTranscript(false);
     for (const message of await runOf(agentId)) run.applyRun(message);
     // Its task is the tool call's input; what it was sent later isn't yours.

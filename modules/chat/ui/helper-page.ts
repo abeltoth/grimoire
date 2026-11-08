@@ -34,8 +34,8 @@ export class HelperPage {
     const input = (this.helpers.block()?.input ?? {}) as Record<string, unknown>;
     const text = (key: string) => (typeof input[key] === 'string' ? (input[key] as string) : '');
     return {
-      description: text('description'),
-      prompt: text('prompt'),
+      description: text('description') || text('summary'),
+      prompt: text('prompt') || text('message'),
       kind: text('subagent_type'),
       model: text('model'),
     };
@@ -70,18 +70,20 @@ export class HelperPage {
 
   /**
    * The helper's run as a chapter that only reads: its task first, then what
-   * it did; its tool call's result alone when there's no record of that.
+   * it did; its tool call's result alone when there's no record of that. A
+   * run a message resumed holds its own task and the messages it was sent.
    */
   protected readonly run = computed<Chapter | undefined>(() => {
     const chapter = this.helpers.chapter();
     const block = this.helpers.block();
     if (!chapter || !block) return undefined;
     let entries: readonly Entry[] = this.helpers.entries();
-    if (this.unrecorded() && block.result?.text && !this.helpers.running())
+    // A message's result only says it was sent.
+    if (this.unrecorded() && block.result?.text && !this.helpers.running() && block.tool !== 'SendMessage')
       entries = [
         { kind: 'agent', id: `${block.id}/result`, blocks: [{ kind: 'text', text: block.result.text }] },
       ];
-    const prompt = this.task().prompt;
+    const prompt = entries.some((entry) => entry.kind === 'user') ? '' : this.task().prompt;
     return {
       id: chapter.id,
       agent: chapter.agent,

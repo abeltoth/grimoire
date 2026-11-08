@@ -25,6 +25,10 @@ export interface ClaudeMessage {
   parent_tool_use_id?: string | null;
   message?: unknown;
   event?: unknown;
+  /** A note Claude Code added to a run, rather than what someone wrote. */
+  is_meta?: boolean;
+  /** Who sent a message into a run: the agent that asked a helper is its "coordinator". */
+  origin?: { kind?: string };
 }
 
 /**
@@ -96,32 +100,50 @@ export interface TranscriptListener {
 /** The tool a helper ends its run with, its report to the agent that asked in its input's `message`. */
 export const HANDBACK_TOOL = 'SubagentHandback';
 
+/** The tool an agent sends a helper another message with, which resumes its run. */
+export const SEND_TOOL = 'SendMessage';
+
 /**
  * The ID Claude Code keeps a helper's saved run by, from the result of the
  * tool call that started it; undefined when it names none. Older results
  * end on "agentId: …"; newer ones say the run's report comes "as a message
- * from" it.
+ * from" it; a message sent to a helper resumes it, and its result names it
+ * as "resumedAgentId".
  */
 export function helperAgentId(result: string): string | undefined {
-  return (/^agentId: ([\w-]+)/m.exec(result) ?? /message from "([\w-]+)"/.exec(result))?.[1];
+  return (
+    /^agentId: ([\w-]+)/m.exec(result) ??
+    /message from "([\w-]+)"/.exec(result) ??
+    /"resumedAgentId":\s*"([\w-]+)"/.exec(result)
+  )?.[1];
+}
+
+/** A tool call that handed a helper a task, or sent one a message: what it gave, and its result. */
+export interface HelperCall {
+  prompt?: string;
+  /** Whom a message was sent to, when the call sent one. */
+  sentTo?: string;
+  result?: ToolResult;
 }
 
 /**
  * The tool call `toolId` among the messages: the task it handed a helper,
- * and its result once it has one. Undefined when it isn't among them.
+ * or whom it sent a message, and its result once it has one. Undefined when
+ * it isn't among them.
  */
-export function helperCallIn(
-  messages: readonly ClaudeMessage[],
-  toolId: string,
-): { prompt?: string; result?: ToolResult } | undefined {
-  let call: { prompt?: string; result?: ToolResult } | undefined;
+export function helperCallIn(messages: readonly ClaudeMessage[], toolId: string): HelperCall | undefined {
+  let call: HelperCall | undefined;
   for (const message of messages) {
     const content = (message.message as ApiMessage | undefined)?.content;
     if (!Array.isArray(content)) continue;
     for (const block of content) {
       if (message.type === 'assistant' && block.type === 'tool_use' && block.id === toolId) {
-        const prompt = (block.input as { prompt?: unknown } | undefined)?.prompt;
-        call = { ...call, ...(typeof prompt === 'string' ? { prompt } : {}) };
+        const { prompt, to } = (block.input ?? {}) as { prompt?: unknown; to?: unknown };
+        call = {
+          ...call,
+          ...(typeof prompt === 'string' ? { prompt } : {}),
+          ...(block.name === SEND_TOOL && typeof to === 'string' ? { sentTo: to } : {}),
+        };
       } else if (message.type === 'user' && block.type === 'tool_result' && block.tool_use_id === toolId) {
         call = { ...call, result: toolResult(block) };
       }
@@ -155,6 +177,28 @@ export function savedHelperState(entries: readonly Entry[], result: ToolResult |
   if (handedBack) return 'done';
   if (!result) return 'stopped';
   return result.isError ? 'failed' : 'done';
+}
+
+/** How Claude Code opens a message the agent that asked sent a helper while it ran. */
+const SENT_WHILE_WORKING = /^The coordinator sent a message[^\n]*:\n/;
+
+/**
+ * A helper's whole saved run: its task, what it did, and the messages the
+ * agent that asked sent it later, which resumed it. Claude Code's own notes
+ * to it are left out.
+ */
+export function wholeRun(messages: readonly ClaudeMessage[]): Entry[] {
+  const run = new ClaudeTranscript(false);
+  const sent = new Set<string>();
+  for (const message of messages) {
+    const fromAsker = message.origin?.kind === 'coordinator';
+    if (message.type === 'user' && message.is_meta && !fromAsker) continue;
+    if (fromAsker && message.uuid) sent.add(message.uuid);
+    run.applyRun(message);
+  }
+  for (const entry of run.entries)
+    if (entry.kind === 'user' && sent.has(entry.id)) entry.text = entry.text.replace(SENT_WHILE_WORKING, '');
+  return run.entries;
 }
 
 /** How a task Claude Code ran ended, as a helper's state. */

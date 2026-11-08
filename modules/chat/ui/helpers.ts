@@ -41,6 +41,8 @@ export class Helpers {
   private readonly said = signal<HelperState | undefined>(undefined);
   /** Whether the agent said where it is while what it did was read, which is newer than what was read. */
   private saidEarly = false;
+  /** Whether any of what it did came as it went; a helper a message resumed may not pass it on. */
+  private cameLive = false;
 
   /** Whether there's a facing page to show a helper on. */
   readonly canShow = computed(() => !this.leaf && !this.focus.on());
@@ -100,6 +102,7 @@ export class Helpers {
     this.bridge.on('agents.helperEntry', ({ chatId, toolId, entry }) => {
       const shown = this.shown();
       if (shown?.chapterId !== chatId || shown.toolId !== toolId) return;
+      this.cameLive = true;
       if (this.loading()) this.early.push(entry);
       else this.entries.update((entries) => upsert(entries, entry));
     });
@@ -108,6 +111,11 @@ export class Helpers {
       if (shown?.chapterId !== chatId || shown.toolId !== toolId) return;
       this.saidEarly = this.loading();
       this.said.set(state);
+      // Done with none of its work come as it went: what it did is read as saved.
+      if (state !== 'working' && !this.cameLive && !this.loading()) {
+        this.saidEarly = true;
+        this.read(chatId, toolId);
+      }
     });
   }
 
@@ -123,10 +131,16 @@ export class Helpers {
     this.early = [];
     this.said.set(undefined);
     this.saidEarly = false;
+    this.cameLive = false;
+    this.read(chapterId, block.id);
+  }
+
+  /** Reads what the helper the tool call `toolId` started did. */
+  private read(chapterId: string, toolId: string): void {
     this.loading.set(true);
-    this.bridge.invoke('agents.helper', { chatId: chapterId, toolId: block.id }).then(
-      (run) => this.loaded(block.id, run ?? { entries: [] }),
-      () => this.loaded(block.id, { entries: [] }),
+    this.bridge.invoke('agents.helper', { chatId: chapterId, toolId }).then(
+      (run) => this.loaded(toolId, run ?? { entries: [] }),
+      () => this.loaded(toolId, { entries: [] }),
     );
   }
 

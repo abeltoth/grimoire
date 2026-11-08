@@ -309,7 +309,7 @@ function toNote(key: string, block: ToolBlock, mark: string, cwd?: string): Note
   const input = (block.input ?? {}) as Record<string, unknown>;
   const text = (name: string) => (typeof input[name] === 'string' ? (input[name] as string) : '');
   const file = (name: string) => relativeTo(cwd, text(name));
-  const [verb, target, did] = describe(block.tool, text, file);
+  const [verb, target, did] = describe(block.tool, text, file, resumes(block));
   return {
     key,
     mark,
@@ -353,10 +353,19 @@ function detailsOf(
   return block.result?.text ? { fold: { kind: 'output', title, text: block.result.text } } : {};
 }
 
+/**
+ * Whether a SendMessage call resumed a helper, as its result says; until it
+ * has one, it's taken to. A message to another of your sessions resumes none.
+ */
+function resumes(block: ToolBlock): boolean {
+  return !block.result || /"resumedAgentId"/.test(block.result.text);
+}
+
 function describe(
   tool: string,
   text: (name: string) => string,
   file: (name: string) => string,
+  resumed: boolean,
 ): [string, string, Deed] {
   switch (tool) {
     case 'Read':
@@ -382,6 +391,8 @@ function describe(
     case 'Task':
     case 'Agent':
       return ['Asked a helper', text('description'), 'helped'];
+    case 'SendMessage':
+      return resumed ? ['Messaged a helper', text('summary') || text('to'), 'helped'] : [tool, '', 'other'];
     case 'AskUserQuestion':
       return ['Asked you', '', 'asked'];
     default:

@@ -136,6 +136,23 @@ describe('toRows', () => {
     ]);
   });
 
+  it('links a message that resumed a helper to its run, but not one sent elsewhere', () => {
+    const resumed = { text: '{"success":true,"resumedAgentId":"a819"}', isError: false };
+    const sent = { text: '{"success":true,"message":"Sent"}', isError: false };
+    const rows = toRows([
+      agent(
+        'a1',
+        tool('SendMessage', { to: 'a819', summary: 'Ask for more', message: 'More, please.' }, resumed),
+        { ...tool('SendMessage', { to: 'other', message: 'Hi' }, sent), id: 'other-id' },
+      ),
+    ]);
+    const notes = rows[0]!.kind === 'notes' ? rows[0]!.notes : [];
+    expect(notes.map(({ verb, target, did, helper }) => ({ verb, target, did, helper: helper?.id }))).toEqual([
+      { verb: 'Messaged a helper', target: 'Ask for more', did: 'helped', helper: 'SendMessage-id' },
+      { verb: 'SendMessage', target: '', did: 'other', helper: undefined },
+    ]);
+  });
+
   it('sums up a run of notes, but not a note on its own', () => {
     const done = { text: 'ok', isError: false };
     const rows = toRows(
