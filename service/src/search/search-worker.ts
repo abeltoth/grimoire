@@ -47,6 +47,12 @@ export class SearchWorker {
     this.worker?.send({ kind: 'stale' });
   }
 
+  /** Starts the worker again, as on another index; searches under way are turned away. */
+  restart(): void {
+    this.close();
+    this.warm();
+  }
+
   close(): void {
     const worker = this.worker;
     this.worker = undefined;

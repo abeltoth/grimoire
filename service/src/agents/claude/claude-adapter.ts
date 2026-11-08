@@ -274,12 +274,21 @@ export class ClaudeAdapter implements AgentAdapter {
     return {
       ...run,
       done: run.done.then(() => {
-        this.modelList = undefined;
-        this.commandLists.clear();
-        this.dispose();
+        this.reset();
         this.warm();
       }),
     };
+  }
+
+  /**
+   * Forgets what Claude Code said, its models and commands, and stops the
+   * spare: for when it's signed in to another account, or uses another
+   * Claude folder.
+   */
+  reset(): void {
+    this.modelList = undefined;
+    this.commandLists.clear();
+    this.dispose();
   }
 
   /** What Claude Code's own scan of its transcripts says took the plan's usage, as /usage shows it. */

@@ -728,10 +728,52 @@ export class AgentHub {
   /** Stops every chat and spare process, for when the service stops; chats reopen when it starts again. */
   closeAll(): void {
     for (const signingIn of this.signIns.values()) signingIn.run.cancel();
-    for (const id of [...this.chats.keys()]) this.release(id);
+    this.putAway();
     for (const adapter of this.adapters.values()) adapter.dispose?.();
+  }
+
+  /**
+   * Why the open chats can't be put away now, naming those that are busy:
+   * a turn runs or an approval waits in them, or a sign-in is under way.
+   * Undefined when they can.
+   */
+  busy(): string | undefined {
+    if (this.signIns.size) return 'A sign-in is under way: finish or cancel it first';
+    const busy = [...this.chats.values()].filter(
+      (chat) => chat.status !== 'idle' || this.hasApprovals(chat),
+    );
+    if (!busy.length) return undefined;
+    const names = busy
+      .map((chat) => (chat.title ? `"${chat.title}"` : 'an untitled chat'))
+      .join(', ');
+    return `Wait for ${names} to finish, or stop ${busy.length === 1 ? 'it' : 'them'}, first`;
+  }
+
+  /**
+   * Stops every open chat's process and forgets the chats, but keeps their
+   * chapters, as when another profile is put in use: they reopen when it's
+   * back. Who the agents were signed in as, and the setups and memories
+   * watched, are forgotten too.
+   */
+  putAway(): void {
+    for (const id of [...this.chats.keys()]) this.release(id);
+    this.accounts.clear();
     this.setupWatcher.dispose();
     this.memoryWatcher.dispose();
+  }
+
+  /**
+   * Every window hears who each agent is signed in as now, read again, and
+   * the plan's limits are read for that account, as after a profile switch.
+   */
+  async announceAccounts(): Promise<void> {
+    await Promise.all(
+      [...this.adapters.values()].map(async (adapter) => {
+        if (!adapter.account) return;
+        await this.announceSignIn(adapter.info.id, true);
+        if (adapter.usage) this.usage(adapter.info.id).catch(() => {});
+      }),
+    );
   }
 
   private release(chatId: ChatId): void {

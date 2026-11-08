@@ -1,7 +1,16 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import type { DatabaseSync } from 'node:sqlite';
-import { PERSONAL_PROFILE, type Profile, type Profiles } from '@grimoire/contract';
+import {
+  type EventName,
+  type EventPayload,
+  PERSONAL_PROFILE,
+  type Profile,
+  type Profiles,
+} from '@grimoire/contract';
+import type { CommandRegistry } from '../registry';
 import { activeProfile, setActiveProfile } from '../storage/app-state';
+
+type Emit = <K extends EventName>(event: K, payload: EventPayload<K>) => void;
 
 /** The longest name a profile may have: room for it in the title strip. */
 const MAX_NAME = 40;
@@ -159,4 +168,65 @@ export class ProfileStore {
       if (!this.get(id) && !existsSync(this.folderOf(id))) return id;
     }
   }
+}
+
+/** What a switch does beyond the profiles themselves, each step in the order it's taken. */
+export interface Switching {
+  /** Why the open chats can't be put away now, naming them; undefined when they can. */
+  busy(): string | undefined;
+  /** Stops the open chats' processes and forgets them; their chapters stay with their profile. */
+  putAway(): void;
+  /** Has the agents forget what they said, and stop their spare processes. */
+  reset(): void;
+  /** Points Claude Code at a Claude folder; null for its usual place. */
+  useClaudeFolder(folder: string | null): void;
+  /** Starts again what runs in the background, now in the new profile: the search and the spare. */
+  restart(): void;
+  /** Tells every window what the new profile has: its settings, schedules and sign-in. */
+  announce(): void;
+}
+
+/**
+ * Puts the open chapters away and makes the profile the one in use, with
+ * Claude Code in its Claude folder. Refused, saying why, while a chat is
+ * busy; switching to the profile in use does nothing.
+ */
+export function switchProfile(
+  id: string,
+  profiles: ProfileStore,
+  steps: Switching,
+  emit: Emit,
+): Profiles {
+  const profile = profiles.get(id);
+  if (!profile) throw new Error(`There's no profile "${id}"`);
+  if (id === profiles.active().id) return profiles.list();
+  const busy = steps.busy();
+  if (busy) throw new Error(`Can't switch to "${profile.name}" yet. ${busy}`);
+  steps.putAway();
+  steps.reset();
+  steps.useClaudeFolder(profile.claudeFolder);
+  profiles.setActive(id);
+  steps.restart();
+  const all = profiles.list();
+  emit('profiles.changed', { profiles: all });
+  steps.announce();
+  return all;
+}
+
+/** Every window hears of a profile made, renamed, deleted or put in use. */
+export function registerProfiles(
+  registry: CommandRegistry,
+  profiles: ProfileStore,
+  steps: Switching,
+  emit: Emit,
+): void {
+  const changed = (all: Profiles) => {
+    emit('profiles.changed', { profiles: all });
+    return all;
+  };
+  registry.register('profiles.list', () => profiles.list());
+  registry.register('profiles.create', ({ name }) => changed(profiles.create(name)));
+  registry.register('profiles.rename', ({ id, name }) => changed(profiles.rename(id, name)));
+  registry.register('profiles.remove', ({ id }) => changed(profiles.remove(id)));
+  registry.register('profiles.switch', ({ id }) => switchProfile(id, profiles, steps, emit));
 }

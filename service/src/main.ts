@@ -14,15 +14,18 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import {
   type EventPayload,
+  PERSONAL_PROFILE,
   PROTOCOL_VERSION,
   SERVICE_INFO_FILE,
   type ServiceInfo,
 } from '@grimoire/contract';
 import { ClaudeAdapter } from './agents/claude/claude-adapter';
+import { useClaudeFolder } from './agents/claude/config-dir';
 import { registerAgentCommands } from './agents/commands';
 import { AgentHub, hubStore } from './agents/hub';
 import { LayoutStore, registerLayout } from './core/layout';
 import { PresetStore, registerPresets } from './core/presets';
+import { ProfileStore, registerProfiles } from './core/profiles';
 import { SettingsStore, registerSettings } from './core/settings';
 import { registerPing } from './core/ping';
 import { endpointFor } from './endpoint';
@@ -74,6 +77,10 @@ registerPing(registry, { buildId, startedAt: Date.now() });
 let server: ServiceServer | undefined;
 
 const db = openDatabase(values.ephemeral ? ':memory:' : path.join(dataDir, 'grimoire.db'));
+// Each profile but Personal has a Claude folder of its own beside Grimoire's data.
+const profiles = new ProfileStore(db, (id) => path.join(dataDir, 'profiles', id, 'claude'));
+// Claude Code uses the profile's folder from the start, before anything reads it or starts it.
+useClaudeFolder(profiles.active().claudeFolder);
 registerLayout(registry, new LayoutStore(db));
 const settingsStore = new SettingsStore(db);
 const broadcast: Parameters<typeof registerSettings>[2] = (event, payload) =>
@@ -96,12 +103,14 @@ registerGit(registry, git);
 const files = new Files(git, (event, payload) => server?.broadcast(event, payload));
 registerFiles(registry, files);
 
-// The search worker, bundled beside the service, keeps its index beside Grimoire's data.
+// The search worker, bundled beside the service, keeps an index per profile beside Grimoire's data.
+const searchIndex = (profile: string) =>
+  path.join(dataDir, profile === PERSONAL_PROFILE ? 'search.db' : `search-${profile}.db`);
 const search = new SearchWorker(
   () =>
     forkWorker(
       fileURLToPath(new URL('./search-worker.mjs', import.meta.url)),
-      values.ephemeral ? ':memory:' : path.join(dataDir, 'search.db'),
+      values.ephemeral ? ':memory:' : searchIndex(profiles.active().id),
     ),
   log,
 );
@@ -134,6 +143,29 @@ const scheduler = new Scheduler(
   (event, payload) => server?.broadcast(event, payload),
 );
 registerSchedules(registry, scheduler);
+
+registerProfiles(
+  registry,
+  profiles,
+  {
+    busy: () => hub.busy(),
+    putAway: () => hub.putAway(),
+    reset: () => claude.reset(),
+    useClaudeFolder,
+    restart: () => {
+      // The spare starts with the new profile's MCP servers off; its settings don't restart it.
+      mcpOff = settingsStore.get().mcpOff;
+      search.restart();
+      claude.warm();
+    },
+    announce: () => {
+      broadcast('settings.changed', { settings: settingsStore.get() });
+      broadcast('schedules.changed', { schedules: scheduler.list() });
+      void hub.announceAccounts();
+    },
+  },
+  broadcast,
+);
 
 const token = randomBytes(32).toString('hex');
 const endpoint = endpointFor(dataDir);

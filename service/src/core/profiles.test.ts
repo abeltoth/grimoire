@@ -1,13 +1,17 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ClaudeAdapter } from '../agents/claude/claude-adapter';
+import { useClaudeFolder } from '../agents/claude/config-dir';
+import { CommandRegistry } from '../registry';
 import { ScheduleStore } from '../schedules/store';
 import { Chapters } from '../storage/chapters';
 import { openDatabase } from '../storage/database';
 import { LayoutStore } from './layout';
 import { PresetStore } from './presets';
-import { ProfileStore } from './profiles';
+import { ProfileStore, type Switching, registerProfiles, switchProfile } from './profiles';
 import { SettingsStore } from './settings';
 
 let dir: string;
@@ -105,6 +109,102 @@ describe('ProfileStore', () => {
     expect(existsSync(folderOf('work'))).toBe(true);
     for (const table of ['settings', 'presets', 'schedules', 'schedule_runs']) {
       expect(db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get()).toEqual({ n: 0 });
+    }
+  });
+});
+
+describe('switchProfile', () => {
+  function switching(busy?: string) {
+    const steps: string[] = [];
+    const emit = vi.fn((event: string) => void steps.push(`emit ${event}`));
+    const switches: Switching = {
+      busy: () => busy,
+      putAway: () => void steps.push('putAway'),
+      reset: () => void steps.push('reset'),
+      useClaudeFolder: (folder) => void steps.push(`useClaudeFolder ${folder}`),
+      restart: () => void steps.push('restart'),
+      announce: () => void steps.push('announce'),
+    };
+    return { steps, emit, switches };
+  }
+
+  it('puts the chats away, moves Claude Code to the profile’s folder, then starts again and tells', () => {
+    const { profiles } = setUp();
+    profiles.create('Work');
+    const { steps, emit, switches } = switching();
+
+    const all = switchProfile('work', profiles, switches, emit);
+    expect(all.active).toBe('work');
+    expect(profiles.active().id).toBe('work');
+    expect(steps).toEqual([
+      'putAway',
+      'reset',
+      `useClaudeFolder ${folderOf('work')}`,
+      'restart',
+      'emit profiles.changed',
+      'announce',
+    ]);
+    expect(emit).toHaveBeenCalledWith('profiles.changed', { profiles: all });
+
+    steps.length = 0;
+    switchProfile('personal', profiles, switches, emit);
+    expect(steps[2]).toBe('useClaudeFolder null');
+  });
+
+  it('is refused while the chats are busy, and does nothing for the profile in use', () => {
+    const { profiles } = setUp();
+    profiles.create('Work');
+    const busy = switching('Wait for "Fix the ribbon" to finish, or stop it, first');
+    expect(() => switchProfile('work', profiles, busy.switches, busy.emit)).toThrow(
+      'Can\'t switch to "Work" yet. Wait for "Fix the ribbon" to finish, or stop it, first',
+    );
+    expect(() => switchProfile('gone', profiles, busy.switches, busy.emit)).toThrow(
+      'There\'s no profile "gone"',
+    );
+    const same = switching();
+    expect(switchProfile('personal', profiles, same.switches, same.emit).active).toBe('personal');
+    expect([...busy.steps, ...same.steps]).toEqual([]);
+    expect(profiles.active().id).toBe('personal');
+  });
+
+  it('tells every window of a profile made, renamed or deleted', async () => {
+    const { profiles } = setUp();
+    const { emit, switches } = switching();
+    const registry = new CommandRegistry();
+    registerProfiles(registry, profiles, switches, emit);
+    await registry.dispatch('profiles.create', { name: 'Work' });
+    await registry.dispatch('profiles.rename', { id: 'work', name: 'Office' });
+    expect(await registry.dispatch('profiles.list', {})).toEqual(profiles.list());
+    await registry.dispatch('profiles.remove', { id: 'work' });
+    expect(emit.mock.calls.map(([event]) => event)).toEqual([
+      'profiles.changed',
+      'profiles.changed',
+      'profiles.changed',
+    ]);
+    expect(emit).toHaveBeenLastCalledWith('profiles.changed', { profiles: profiles.list() });
+  });
+
+  it('has Claude Code read the saved chats in the new profile’s folder', async () => {
+    const { profiles } = setUp();
+    profiles.create('Work');
+    const cwd = path.join(dir, 'project');
+    mkdirSync(cwd);
+    const saved = path.join(folderOf('work'), 'projects', cwd.replace(/[^a-zA-Z0-9]/g, '-'));
+    mkdirSync(saved, { recursive: true });
+    const id = randomUUID();
+    const message = { role: 'user', content: 'Plan the release' };
+    const line = { type: 'user', message, uuid: randomUUID(), sessionId: id, cwd };
+    writeFileSync(path.join(saved, `${id}.jsonl`), `${JSON.stringify(line)}\n`);
+    const claude = new ClaudeAdapter();
+    const { emit, switches } = switching();
+
+    try {
+      switchProfile('work', profiles, { ...switches, useClaudeFolder }, emit);
+      expect(await claude.listChats(cwd)).toMatchObject([{ id, title: 'Plan the release', cwd }]);
+      switchProfile('personal', profiles, { ...switches, useClaudeFolder }, emit);
+      expect(await claude.listChats(cwd)).toEqual([]);
+    } finally {
+      useClaudeFolder(null);
     }
   });
 });
