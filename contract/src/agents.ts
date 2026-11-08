@@ -216,12 +216,21 @@ export interface UserEntry {
   tokens?: TurnTokens;
   /** The hooks that ran on the turn it began, in the order they began, while the chat is live. */
   hooks?: HookRun[];
+  /**
+   * The worktree's setup, run before the turn it began, while the chat is
+   * live: on a new chat's first entry, or on the first sent after the
+   * setup that ran as the chat reopened.
+   */
+  setup?: HookRun;
 }
 
-/** A hook the agent ran, such as your command after each edit, and how it went. */
+/**
+ * A hook the agent ran, such as your command after each edit, and how it
+ * went. A worktree's setup is told the same way, its event "WorktreeSetup".
+ */
 export interface HookRun {
   id: string;
-  /** As the agent names it, such as "PostToolUse:Edit". */
+  /** As the agent names it, such as "PostToolUse:Edit"; a worktree's setup, by its command. */
   name: string;
   /** What it ran on, such as "PostToolUse". */
   event: string;
@@ -233,6 +242,8 @@ export interface HookRun {
   output?: string;
   /** How long it took, in ms, once it ended and when known. */
   took?: number;
+  /** When it began, in ms since the epoch, when known. */
+  at?: number;
 }
 
 /** Something sent with an entry: a picture, shown as a plate, or a file, as a reference. */
@@ -444,6 +455,12 @@ export interface OpenChat {
   suggestion?: string;
   /** The separate tasks the agent offered after its last reply, until a turn begins. */
   followUps?: FollowUp[];
+  /**
+   * The worktree's setup, run in the background as the chat reopened in a
+   * worktree that had to be put back: until it ends, messages wait for it.
+   * Your next entry takes it.
+   */
+  setup?: HookRun;
 }
 
 declare module './commands' {
@@ -479,7 +496,10 @@ declare module './commands' {
       request: { agent: AgentId; chatId: ChatId; settings: ChatSettings };
       response: OpenChat;
     };
-    /** Starts a new chat with a first message. */
+    /**
+     * Starts a new chat with a first message. In a worktree of its own, the
+     * repository's setup runs first; the agent's turn starts once it ended.
+     */
     'agents.start': {
       request: {
         agent: AgentId;
@@ -487,6 +507,11 @@ declare module './commands' {
         text: string;
         enclosures?: Enclosure[];
         title?: string;
+        /**
+         * The window's own name for the page the chat starts on, which the
+         * worktree's setup reports to: the chat has no ID until it begins.
+         */
+        page?: string;
       };
       response: OpenChat;
     };
@@ -604,5 +629,11 @@ declare module './events' {
     'agents.suggestion': { chatId: ChatId; suggestion: string | null };
     /** The agent offered separate tasks after its reply; null once none stands. */
     'agents.followUps': { chatId: ChatId; followUps: FollowUp[] | null };
+    /**
+     * A worktree's setup began, printed something, or ended: a new chat's,
+     * on the page its agents.start named; a reopened chat's, by its ID, and
+     * null once your next entry took it.
+     */
+    'agents.worktreeSetup': { page: string; run: HookRun } | { chatId: ChatId; run: HookRun | null };
   }
 }

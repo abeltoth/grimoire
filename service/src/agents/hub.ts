@@ -82,6 +82,10 @@ interface ChatState {
   suggestion?: string;
   /** The separate tasks the agent offered after its last reply, until a turn begins or you take each. */
   followUps?: FollowUp[];
+  /** The worktree's setup, as it runs in the background or once it ended, until your next entry takes it. */
+  setup?: HookRun;
+  /** While the worktree's setup runs in the background: messages wait for it. */
+  settingUp: boolean;
   /** While the agent process runs. */
   live?: LiveChat;
   /** How many processes the chat has had; what an earlier one still reports is dropped. */
@@ -116,8 +120,17 @@ export interface Workplaces {
   inRepository(cwd: string): Promise<boolean>;
   /** Makes a new chat's worktree from the folder; gives the folder the chat works in. */
   make(cwd: string, name: string): Promise<string>;
-  /** Whether the chat's folder is a worktree made for it; puts it back first if it's gone. */
-  restore(cwd: string): Promise<boolean>;
+  /**
+   * Whether the chat's folder is a worktree made for it: false when it
+   * isn't, else whether it was there or had to be put back, as it is first.
+   */
+  restore(cwd: string): Promise<false | 'there' | 'put back'>;
+  /**
+   * Starts the repository's setup in the chat's worktree; nothing when it
+   * has none. `progress` hears the run as it begins, prints and ends;
+   * `ended` gives how it went, and never rejects.
+   */
+  setUp(cwd: string, progress: (run: HookRun) => void): Promise<{ ended: Promise<HookRun> } | undefined>;
   /** Clears its worktree away when its chapter closes, if nothing would be lost. */
   release(cwd: string): Promise<unknown>;
   /** The folder a chat's worktree was made from; undefined when the folder isn't one made for a chat. */
@@ -406,7 +419,7 @@ export class AgentHub {
       // A chat in a worktree of its own gets it back if its chapter's closing removed it.
       const restored = await this.workplaces?.restore(settings.cwd).catch((error: unknown) => {
         this.log(`Couldn't put back the worktree ${settings.cwd}: ${error instanceof Error ? error.message : String(error)}`);
-        return true;
+        return 'there' as const;
       });
       if (restored) settings = { ...settings, worktree: true };
       const [history, title] = await Promise.all([
@@ -423,26 +436,35 @@ export class AgentHub {
       chat.copied = this.store.copied.list(chatId);
       // What the last turn offered stands, unless the chat went on meanwhile.
       if (history.followUps?.length && chat.status === 'idle' && !chat.followUps) chat.followUps = history.followUps;
+      if (restored === 'put back') await this.setUpAgain(chat);
     }
     this.store.chapters.add({ chatId, agent, settings: chat.settings });
     return this.snapshot(chat);
   }
 
+  /**
+   * Starts a new chat with its first entry. In a worktree of its own, the
+   * repository's setup runs first, the page that started it hearing how it
+   * goes, and goes on the entry; the agent's turn starts once it ended.
+   */
   async start(
     agent: AgentId,
     settings: NewChatSettings,
     text: string,
     title?: string,
     enclosures: Enclosure[] = [],
+    page?: string,
   ): Promise<OpenChat> {
     let resolved: ChatSettings = { ...settings, cwd: settings.cwd ?? homedir() };
     if (resolved.autoModel) resolved = await this.autoPicked(agent, resolved, text);
     const named = title?.trim() || undefined;
+    let setup: HookRun | undefined;
     if (resolved.worktree) {
       if (!this.workplaces) throw new Error('Chats can’t have worktrees of their own here');
       resolved = { ...resolved, cwd: await this.workplaces.make(resolved.cwd, named ?? text) };
+      setup = await this.setUpNew(resolved.cwd, page);
     }
-    return this.begin(agent, resolved, text, named, enclosures);
+    return this.begin(agent, resolved, text, named, enclosures, setup);
   }
 
   /**
@@ -473,7 +495,7 @@ export class AgentHub {
       const own = await this.ownPlace(cwd, title ?? text);
       // The second model is the one asked for, not Auto's.
       const { autoModel: _, ...settings } = from.settings;
-      return this.begin(from.agent, { ...settings, cwd, model, ...own }, text, title, enclosures);
+      return this.begin(from.agent, { ...settings, cwd, model, ...own.place }, text, title, enclosures, own.setup);
     }
     const chat = this.chat(from.chatId);
     if (!chat.agent.fork) throw new Error(`${chat.agent.info.name} can't copy a chat to another model`);
@@ -486,7 +508,7 @@ export class AgentHub {
     this.send(chat.id, text, enclosures);
     const own = await this.ownPlace(chat.settings.cwd, title);
     const { autoModel: _, ...settings } = chat.settings;
-    const variant = await this.open(chat.agent.info.id, forkId, { ...settings, model, ...own });
+    const variant = await this.open(chat.agent.info.id, forkId, { ...settings, model, ...own.place });
     // The copy's entries are copies, without the original's file checkpoints.
     this.store.copied.add(
       forkId,
@@ -494,30 +516,74 @@ export class AgentHub {
     );
     const copy = this.chat(forkId);
     copy.copied = this.store.copied.list(forkId);
+    // The entry it's sent takes its worktree's setup.
+    if (own.setup) copy.setup = own.setup;
     this.send(forkId, text, enclosures);
     return this.snapshot(copy);
   }
 
-  /** A worktree of its own for a chat in the folder, when it's in a git repository; else nothing changes. */
-  private async ownPlace(cwd: string, name: string): Promise<Partial<ChatSettings>> {
-    if (!this.workplaces || !(await this.workplaces.inRepository(cwd))) return {};
-    return { cwd: await this.workplaces.make(cwd, name), worktree: true };
+  /**
+   * A worktree of its own for a chat in the folder, when it's in a git
+   * repository, after the repository's setup; else nothing changes.
+   */
+  private async ownPlace(cwd: string, name: string): Promise<{ place: Partial<ChatSettings>; setup?: HookRun }> {
+    if (!this.workplaces || !(await this.workplaces.inRepository(cwd))) return { place: {} };
+    const tree = await this.workplaces.make(cwd, name);
+    const setup = await this.setUpNew(tree);
+    return { place: { cwd: tree, worktree: true }, ...(setup ? { setup } : {}) };
   }
 
-  /** Begins a chat with its first entry, where its settings say. */
+  /**
+   * Runs the repository's setup in a new chat's worktree, telling the page
+   * that started the chat how it goes; nothing when it has none.
+   */
+  private async setUpNew(cwd: string, page?: string): Promise<HookRun | undefined> {
+    const settingUp = await this.workplaces
+      ?.setUp(cwd, (run) => {
+        if (page) this.emit('agents.worktreeSetup', { page, run });
+      })
+      .catch(() => undefined);
+    return settingUp?.ended;
+  }
+
+  /**
+   * Runs the setup again for a reopened chat whose worktree was put back,
+   * in the background: what you send meanwhile waits for it, then goes.
+   * It shows on the chat until your next entry takes it.
+   */
+  private async setUpAgain(chat: ChatState): Promise<void> {
+    if (!this.workplaces || chat.settingUp || chat.setup) return;
+    chat.settingUp = true;
+    const current = () => this.chats.get(chat.id) === chat;
+    const show = (run: HookRun) => {
+      if (!current()) return;
+      chat.setup = run;
+      this.emit('agents.worktreeSetup', { chatId: chat.id, run });
+    };
+    const settled = () => {
+      chat.settingUp = false;
+      if (current() && chat.status === 'idle') this.sendQueued(chat);
+    };
+    const settingUp = await this.workplaces.setUp(chat.settings.cwd, show).catch(() => undefined);
+    if (!settingUp) return settled();
+    void settingUp.ended.then(settled);
+  }
+
+  /** Begins a chat with its first entry, where its settings say, after any setup its worktree had. */
   private async begin(
     agent: AgentId,
     resolved: ChatSettings,
     text: string,
     named: string | undefined,
     enclosures: Enclosure[],
+    setup?: HookRun,
   ): Promise<OpenChat> {
     const adapter = this.adapter(agent);
     if (!adapter.start) {
       const chat = this.track(randomUUID(), adapter, resolved, [], named ?? '');
       this.store.chapters.add({ chatId: chat.id, agent, settings: resolved });
       chat.live = adapter.run(chat.id, resolved, false, this.eventsFor(chat), named);
-      this.sendTo(chat, text, false, enclosures);
+      this.sendTo(chat, text, false, enclosures, setup);
       return this.snapshot(chat);
     }
     // The agent picks the chat's ID, on a spare process when it has one.
@@ -530,7 +596,7 @@ export class AgentHub {
       (chatId) => {
         chat = this.track(chatId, adapter, resolved, [], named ?? '');
         this.store.chapters.add({ chatId, agent, settings: resolved });
-        this.upsert(chat, userEntry(id, text, enclosures));
+        this.upsert(chat, { ...userEntry(id, text, enclosures), ...(setup ? { setup } : {}) });
         this.setStatus(chat, 'thinking');
         return this.eventsFor(chat);
       },
@@ -544,11 +610,11 @@ export class AgentHub {
     return this.snapshot(chat);
   }
 
-  /** Sends a message, or queues it while a turn runs. */
+  /** Sends a message, or queues it while a turn, or the worktree's setup, runs. */
   send(chatId: ChatId, text: string, enclosures: Enclosure[] = []): void {
     const chat = this.chat(chatId);
     if (!text.trim() && !enclosures.length) throw new Error('Write something, or attach something, to send');
-    if (chat.status === 'idle') return this.sendTo(chat, text, true, enclosures);
+    if (chat.status === 'idle' && !chat.settingUp) return this.sendTo(chat, text, true, enclosures);
     chat.queued.push({ id: randomUUID(), text, ...(enclosures.length ? { enclosures } : {}) });
     this.dropSuggestion(chat);
     this.emitQueued(chat);
@@ -842,6 +908,7 @@ export class AgentHub {
       dogEars: [],
       tags: [],
       copied: [],
+      settingUp: false,
       processes: 0,
       restart: false,
       helpers: new Map(),
@@ -897,16 +964,33 @@ export class AgentHub {
     live?.close();
   }
 
-  private sendTo(chat: ChatState, text: string, resume: boolean, enclosures: Enclosure[] = []): void {
+  /** Sends your entry; it takes the worktree's setup that ended before it, if one did. */
+  private sendTo(
+    chat: ChatState,
+    text: string,
+    resume: boolean,
+    enclosures: Enclosure[] = [],
+    setup = this.takeSetup(chat),
+  ): void {
     chat.live ??= chat.agent.run(chat.id, chat.settings, resume, this.eventsFor(chat));
     const id = randomUUID();
-    this.upsert(chat, userEntry(id, text, enclosures));
+    this.upsert(chat, { ...userEntry(id, text, enclosures), ...(setup ? { setup } : {}) });
     if (chat.status === 'idle') this.setStatus(chat, 'thinking');
     chat.live.send(text, id, enclosures);
   }
 
-  /** A turn ended: the next queued message goes. */
+  /** The worktree's setup that ended, off the chat, for your next entry. */
+  private takeSetup(chat: ChatState): HookRun | undefined {
+    const setup = chat.setup;
+    if (!setup || setup.outcome === 'running') return undefined;
+    delete chat.setup;
+    this.emit('agents.worktreeSetup', { chatId: chat.id, run: null });
+    return setup;
+  }
+
+  /** A turn, or the worktree's setup, ended: the next queued message goes. */
   private sendQueued(chat: ChatState): void {
+    if (chat.settingUp) return;
     const next = chat.queued.shift();
     if (!next) return;
     this.emitQueued(chat);
@@ -1180,6 +1264,7 @@ export class AgentHub {
       copied: [...chat.copied],
       ...(chat.suggestion !== undefined ? { suggestion: chat.suggestion } : {}),
       ...(chat.followUps ? { followUps: structuredClone(chat.followUps) } : {}),
+      ...(chat.setup ? { setup: { ...chat.setup } } : {}),
     };
   }
 

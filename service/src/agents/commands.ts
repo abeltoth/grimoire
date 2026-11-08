@@ -38,8 +38,8 @@ export function registerAgentCommands(registry: CommandRegistry, hub: AgentHub):
   );
   registry.register('agents.folders', () => hub.folders());
   registry.register('agents.configure', ({ chatId, change }) => hub.configure(chatId, change));
-  registry.register('agents.start', ({ agent, settings, text, title, enclosures }) =>
-    hub.start(agent, settings, text, title, enclosures),
+  registry.register('agents.start', ({ agent, settings, text, title, enclosures, page }) =>
+    hub.start(agent, settings, text, title, enclosures, page),
   );
   registry.register('agents.rename', ({ chatId, title }) => hub.rename(chatId, title));
   registry.register('agents.tag', ({ chatId, tags }) => hub.tag(chatId, tags));

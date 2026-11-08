@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
-import type { AgentEntry, AgentSetup, EventName, EventPayload } from '@grimoire/contract';
+import type { AgentEntry, AgentSetup, EventName, EventPayload, HookRun } from '@grimoire/contract';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setActiveProfile } from '../storage/app-state';
 import { openDatabase } from '../storage/database';
@@ -455,6 +455,11 @@ describe('AgentHub', () => {
   describe('in a worktree of its own', () => {
     let calls: string[];
     let made: Set<string>;
+    /** The worktrees whose folders are gone, put back when their chat opens. */
+    let gone: Set<string>;
+    /** The setup the repository has, which the test drives; none when unset. */
+    let setup: { progress: (run: HookRun) => void; end: (run: HookRun) => void } | undefined;
+    let hasSetup: boolean;
     const workplaces: Workplaces = {
       inRepository: async (cwd) => {
         calls.push(`inRepository ${cwd}`);
@@ -467,16 +472,35 @@ describe('AgentHub', () => {
       },
       restore: async (cwd) => {
         calls.push(`restore ${cwd}`);
-        return made.has(cwd);
+        if (!made.has(cwd)) return false;
+        return gone.delete(cwd) ? 'put back' : 'there';
+      },
+      setUp: async (cwd, progress) => {
+        if (!hasSetup) return undefined;
+        calls.push(`setUp ${cwd}`);
+        progress(running);
+        return {
+          ended: new Promise<HookRun>((end) => {
+            setup = { progress, end: (run) => (progress(run), end(run)) };
+          }),
+        };
       },
       release: async (cwd) => void calls.push(`release ${cwd}`),
       origin: (cwd) => (cwd.startsWith(tree) ? `/work${cwd.slice(tree.length)}` : undefined),
     };
     const tree = '/work/.claude/worktrees/hello';
+    const running: HookRun = { id: 's1', name: 'npm ci', event: 'WorktreeSetup', outcome: 'running', at: 1 };
+    const passed: HookRun = { ...running, outcome: 'passed', output: 'added 3 packages', took: 12_000 };
+    const failed: HookRun = { ...running, outcome: 'failed', output: 'It exited with code 3', took: 2_000 };
+    /** Lets the hub take in what was just settled. */
+    const settle = () => vi.advanceTimersByTimeAsync(0);
 
     beforeEach(() => {
       calls = [];
       made = new Set();
+      gone = new Set();
+      setup = undefined;
+      hasSetup = false;
       hub = new AgentHub(
         (event, payload) => sent.push({ event, payload } as Sent),
         50,
@@ -534,6 +558,118 @@ describe('AgentHub', () => {
       const chat = await hub.open('fake', 'c1', { cwd: tree });
       expect(calls).toEqual([`restore ${tree}`]);
       expect(chat.settings).toEqual({ cwd: tree, worktree: true });
+    });
+
+    describe("with the repository's setup", () => {
+      const setups = () => sent.flatMap((s) => (s.event === 'agents.worktreeSetup' ? [s.payload] : []));
+
+      beforeEach(() => {
+        hasSetup = true;
+      });
+
+      it('sends the first entry once the setup ended, telling the page as it runs, and puts it on the entry', async () => {
+        const starting = hub.start('fake', { ...settings, worktree: true }, 'Hello', undefined, [], 'page-1');
+        await settle();
+        expect(calls).toEqual(['make /work Hello', `setUp ${tree}`]);
+        setup!.progress({ ...running, output: 'added' });
+        expect(fake.runs).toEqual([]);
+
+        setup!.end(passed);
+        const chat = await starting;
+        expect(setups()).toEqual([
+          { page: 'page-1', run: running },
+          { page: 'page-1', run: { ...running, output: 'added' } },
+          { page: 'page-1', run: passed },
+        ]);
+        expect(fake.runOf(chat.id).sent).toEqual(['Hello']);
+        expect(chat).toMatchObject({ status: 'thinking', entries: [{ kind: 'user', text: 'Hello', setup: passed }] });
+        expect(chat.setup).toBeUndefined();
+      });
+
+      it('carries on when the setup fails', async () => {
+        const starting = hub.start('fake', { ...settings, worktree: true }, 'Hello');
+        await settle();
+        setup!.end(failed);
+        const chat = await starting;
+        expect(fake.runOf(chat.id).sent).toEqual(['Hello']);
+        expect(chat.entries).toMatchObject([{ text: 'Hello', setup: failed }]);
+        // No page was named, so none is told.
+        expect(setups()).toEqual([]);
+      });
+
+      it('puts it on the first entry of a chat whose agent picks its ID', async () => {
+        const picking = new PickingAdapter();
+        hub.addAdapter(picking);
+        const starting = hub.start('fake', { ...settings, worktree: true }, 'Hello', undefined, [], 'page-1');
+        await settle();
+        expect(picking.started).toBeUndefined();
+        setup!.end(passed);
+        const chat = await starting;
+        expect(picking.started?.text).toBe('Hello');
+        expect(chat.entries).toMatchObject([{ text: 'Hello', setup: passed }]);
+      });
+
+      it('sets up a put-back worktree in the background; what you send meanwhile waits for it, then goes', async () => {
+        made.add(tree);
+        gone.add(tree);
+        fake.transcripts.set('c1', [{ kind: 'user', id: 'u1', text: 'Earlier' }]);
+        const chat = await hub.open('fake', 'c1', { cwd: tree });
+        expect(calls).toEqual([`restore ${tree}`, `setUp ${tree}`]);
+        expect(chat).toMatchObject({ status: 'idle', setup: running });
+
+        hub.send('c1', 'Go on');
+        hub.send('c1', 'And then');
+        expect(fake.runs).toEqual([]);
+        expect((await hub.open('fake', 'c1', { cwd: tree })).queued).toMatchObject([
+          { text: 'Go on' },
+          { text: 'And then' },
+        ]);
+
+        setup!.end(failed);
+        await settle();
+        expect(fake.runOf('c1').sent).toEqual(['Go on']);
+        const reopened = await hub.open('fake', 'c1', { cwd: tree });
+        expect(reopened.entries.at(-1)).toMatchObject({ kind: 'user', text: 'Go on', setup: failed });
+        expect(reopened.setup).toBeUndefined();
+        expect(reopened.queued).toMatchObject([{ text: 'And then' }]);
+        expect(setups()).toEqual([
+          { chatId: 'c1', run: running },
+          { chatId: 'c1', run: failed },
+          { chatId: 'c1', run: null },
+        ]);
+      });
+
+      it('keeps a background setup that ended for your next entry', async () => {
+        made.add(tree);
+        gone.add(tree);
+        fake.transcripts.set('c1', []);
+        await hub.open('fake', 'c1', { cwd: tree });
+        setup!.end(passed);
+        await settle();
+        expect((await hub.open('fake', 'c1', { cwd: tree })).setup).toEqual(passed);
+
+        hub.send('c1', 'Next');
+        expect(fake.runOf('c1').sent).toEqual(['Next']);
+        expect((await hub.open('fake', 'c1', { cwd: tree })).entries).toMatchObject([{ text: 'Next', setup: passed }]);
+      });
+
+      it("reopens the chapters without waiting for a worktree's setup", async () => {
+        const store = hubStore(openDatabase(':memory:'));
+        store.chapters.add({ chatId: 'c1', agent: 'fake', settings: { cwd: tree, worktree: true } });
+        store.chapters.add({ chatId: 'c2', agent: 'fake', settings });
+        hub = new AgentHub((event, payload) => sent.push({ event, payload } as Sent), 50, store, workplaces);
+        hub.addAdapter(fake);
+        made.add(tree);
+        gone.add(tree);
+        fake.transcripts.set('c1', []);
+        fake.transcripts.set('c2', []);
+        // The setup never ends.
+        const chats = await hub.openChats();
+        expect(chats.map((chat) => [chat.id, chat.setup?.outcome])).toEqual([
+          ['c1', 'running'],
+          ['c2', undefined],
+        ]);
+      });
     });
 
     describe('sending one entry to two models', () => {

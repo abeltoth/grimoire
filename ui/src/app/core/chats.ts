@@ -18,6 +18,7 @@ import type {
   EventName,
   EventPayload,
   FollowUp,
+  HookRun,
   NewChatSettings,
   OpenChat,
   ParallelFrom,
@@ -25,6 +26,7 @@ import type {
   PromptCache,
   QueuedEntry,
   RecentFolders,
+  UserEntry,
 } from '@grimoire/contract';
 import { fitEffort } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from './bridge';
@@ -63,6 +65,8 @@ export interface Chapter {
   suggestion?: string;
   /** The separate tasks the agent offered after its last reply, until a turn begins. */
   followUps?: readonly FollowUp[];
+  /** The worktree's setup, run as the chat reopened, until your next entry takes it. */
+  setup?: HookRun;
   /** Why the last turn failed, until the next message. */
   error?: string;
   /** When a blank chapter was opened, in ms since the epoch. */
@@ -121,6 +125,10 @@ export class Chats {
   private lastUsed: LastUsed | null = null;
   /** Told when a blank chapter's first message starts its chat. */
   private readonly begun = new Set<(blankId: string, chat: OpenChat) => void>();
+  /** The blank chapters whose chats are starting, by local ID: each gives the chat's ID, unless it couldn't start. */
+  private readonly starting = new Map<string, Promise<string | undefined>>();
+  /** The first entries of chats starting in worktrees of their own, shown on their blank chapters while the setup runs, by page. */
+  private readonly pages = new Map<string, { id: string; entry: UserEntry }>();
   readonly all = signal<readonly Chapter[]>([]);
   readonly currentId = signal<string | undefined>(undefined);
   readonly current = computed(() => this.all().find((chapter) => chapter.id === this.currentId()));
@@ -187,6 +195,19 @@ export class Chats {
         ...(followUps !== null ? { followUps } : {}),
       })),
     );
+    this.listen('agents.worktreeSetup', (setup) => {
+      if ('chatId' in setup)
+        return this.update(setup.chatId, ({ setup: _, ...c }) => ({
+          ...c,
+          ...(setup.run ? { setup: setup.run } : {}),
+        }));
+      // A chat starting from a blank chapter: your entry shows, with its setup.
+      const page = this.pages.get(setup.page);
+      if (page)
+        this.update(page.id, (c) =>
+          c.status === 'blank' ? { ...c, entries: [{ ...page.entry, setup: setup.run }] } : c,
+        );
+    });
     this.bridge.invoke('agents.list', {}).then(
       (agents) => {
         this.agents.set(agents ?? []);
@@ -471,21 +492,54 @@ export class Chats {
    * one starts the chat. Gives the chat's ID, unless it couldn't be sent.
    */
   async send(id: string, text: string, enclosures: readonly Enclosure[] = []): Promise<string | undefined> {
-    const enclosed = enclosures.length ? { enclosures: [...enclosures] } : {};
+    // What you send while a blank chapter's chat starts goes to the chat once it has.
+    const starting = this.starting.get(id);
+    if (starting) {
+      const chatId = await starting;
+      return chatId === undefined ? undefined : this.send(chatId, text, enclosures);
+    }
     const chapter = this.find(id);
     if (!chapter) return undefined;
     this.update(id, ({ error: _, ...c }) => c);
+    if (chapter.status === 'blank') {
+      const started = this.start(chapter, text, enclosures);
+      this.starting.set(id, started);
+      return started.finally(() => this.starting.delete(id));
+    }
     try {
-      if (chapter.status !== 'blank') {
-        await this.bridge.invoke('agents.send', { chatId: id, text, ...enclosed });
-        return id;
-      }
+      await this.bridge.invoke('agents.send', {
+        chatId: id,
+        text,
+        ...(enclosures.length ? { enclosures: [...enclosures] } : {}),
+      });
+      return id;
+    } catch (error) {
+      this.fail(id, error);
+      return undefined;
+    }
+  }
+
+  /**
+   * Starts a blank chapter's chat with its first message. In a worktree of
+   * its own, your entry shows on the page as the worktree's setup runs.
+   */
+  private async start(
+    chapter: Chapter,
+    text: string,
+    enclosures: readonly Enclosure[],
+  ): Promise<string | undefined> {
+    const { id } = chapter;
+    const enclosed = enclosures.length ? { enclosures: [...enclosures] } : {};
+    const page = chapter.settings.worktree ? crypto.randomUUID() : undefined;
+    if (page) this.pages.set(page, { id, entry: { kind: 'user', id: `page-${page}`, text, ...enclosed, at: Date.now() } });
+    try {
       const chat = await this.bridge.invoke('agents.start', {
         agent: chapter.agent,
         settings: chapter.settings,
         text,
         ...enclosed,
         ...(chapter.title ? { title: chapter.title } : {}),
+        ...(page ? { page } : {}),
       });
       // Tags given to the blank page go to its chat.
       const tags = this.find(id)?.tags ?? [];
@@ -497,8 +551,12 @@ export class Chats {
       if (tags.length) await this.tag(chat.id, tags);
       return chat.id;
     } catch (error) {
+      // The chapter is blank again, saying why.
+      if (page) this.update(id, (c) => (c.status === 'blank' ? { ...c, entries: [] } : c));
       this.fail(id, error);
       return undefined;
+    } finally {
+      if (page) this.pages.delete(page);
     }
   }
 
@@ -784,6 +842,7 @@ function fromOpenChat(chat: OpenChat): Chapter {
     ...(chat.cache ? { cache: chat.cache } : {}),
     ...(chat.suggestion ? { suggestion: chat.suggestion } : {}),
     ...(chat.followUps?.length ? { followUps: chat.followUps } : {}),
+    ...(chat.setup ? { setup: chat.setup } : {}),
   };
 }
 

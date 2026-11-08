@@ -28,7 +28,7 @@ import { SealStub } from './seal-stub';
 import { duration } from './duration';
 import { Helpers } from './helpers';
 import { type Note, type TurnSpent, toRows } from './rows';
-import { hookOutcome, hookTook, hookWhen, hooksRan } from './hook-log';
+import { hookOutcome, hookTook, hookWhen, hooksRan, setupSays } from './hook-log';
 import { tokenCount, usesInWords } from '@ui/app/core/tokens';
 import { Wording } from '@ui/app/core/wording';
 
@@ -122,7 +122,15 @@ export class Transcript {
     return began?.kind === 'user' && began.at !== undefined ? { key: began.id, at: began.at } : undefined;
   });
   private readonly turnKey = computed(() => this.turn()?.key);
-  /** The clock the running turn is timed by, ticking each second while it runs. */
+  /** Whether a worktree's setup runs: on the chapter as it reopened, or before its first turn. */
+  private readonly settingUp = computed(
+    () =>
+      this.chapter().setup?.outcome === 'running' ||
+      this.chapter().entries.some((entry) => entry.kind === 'user' && entry.setup?.outcome === 'running'),
+  );
+  /** What the clock ticks for: the running turn, or else a setup that runs. */
+  private readonly timed = computed(() => this.turnKey() ?? (this.settingUp() ? 'setup' : undefined));
+  /** The clock the running turn and setup are timed by, ticking each second while one runs. */
   private readonly now = signal(Date.now());
   /** How long the running turn has taken so far. */
   protected readonly elapsed = computed(() => {
@@ -135,6 +143,22 @@ export class Transcript {
   protected readonly hookTook = hookTook;
   protected readonly hookWhen = (run: HookRun) => hookWhen(run, this.wording.say);
   protected readonly hookOutcome = (run: HookRun) => hookOutcome(run, this.wording.say);
+  protected readonly setupSays = setupSays;
+
+  /** How long a worktree's setup took, or while it runs, has taken so far. */
+  protected setupTook(run: HookRun): string {
+    if (run.outcome === 'running') return run.at !== undefined ? duration(this.now() - run.at) : '';
+    return run.took !== undefined ? hookTook(run.took) : '';
+  }
+
+  protected setupKey(run: HookRun): string {
+    return `setup/${run.id}`;
+  }
+
+  /** Whether a setup's output is folded out: one that failed shows it until you fold it away. */
+  protected setupOpen(run: HookRun): boolean {
+    return this.isOpen(this.setupKey(run)) !== (run.outcome === 'failed');
+  }
 
   /** What a turn spent, in words, for its title. */
   protected spentTitle(tokens: TurnSpent): string {
@@ -152,7 +176,7 @@ export class Transcript {
 
   constructor() {
     effect((onCleanup) => {
-      if (!this.turnKey()) return;
+      if (!this.timed()) return;
       this.now.set(Date.now());
       const tick = setInterval(() => this.now.set(Date.now()), 1000);
       onCleanup(() => clearInterval(tick));
@@ -162,6 +186,7 @@ export class Transcript {
       this.chapter().error;
       this.chapter().approvals;
       this.chapter().followUps;
+      this.chapter().setup;
       this.open();
       if (this.following) this.element.scrollTop = this.element.scrollHeight;
     });

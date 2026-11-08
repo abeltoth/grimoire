@@ -59,6 +59,9 @@
         </article>
       </div>
     }
+    @case ('setup') {
+      <ng-container *ngTemplateOutlet="setupTemplate; context: { $implicit: row.run }" />
+    }
     @case ('thinking') {
       <div class="row tight">
         <div class="think">
@@ -147,6 +150,10 @@
       </div>
     }
   }
+}
+
+@if (chapter().setup; as run) {
+  <ng-container *ngTemplateOutlet="setupTemplate; context: { $implicit: run }" />
 }
 
 @if (stoppable() && !endsInReply()) {
@@ -292,6 +299,35 @@
       }
     </div>
   }
+</ng-template>
+
+<!--
+  The worktree's setup, a line as a hook's is: while it runs, how long it
+  has so far. What it printed folds out of it, across the text and the
+  margin, and is out already when it failed.
+-->
+<ng-template #setupTemplate let-run>
+  <div class="row hook">
+    <button
+      type="button"
+      class="note setup"
+      [attr.title]="run.name"
+      [attr.aria-disabled]="run.output ? null : true"
+      [attr.aria-expanded]="run.output ? setupOpen(run) : null"
+      (click)="run.output && toggle(setupKey(run))"
+    >
+      <span class="note-head">{{ setupSays(run) }}</span>
+      @if (run.outcome === 'failed') {
+        <span class="detail failed">failed</span>
+      }
+      @if (setupTook(run); as took) {
+        <span class="detail">{{ took }}</span>
+      }
+    </button>
+    @if (run.output && setupOpen(run)) {
+      <gr-output class="wide" [title]="run.name" [text]="run.output" />
+    }
+  </div>
 </ng-template>
 
 <!-- The details of the notes you folded out, across the text and the margin. -->

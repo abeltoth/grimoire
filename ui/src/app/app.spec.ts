@@ -1024,6 +1024,126 @@ describe('App', () => {
     expect(worktree().getAttribute('aria-disabled')).toBe('true');
   });
 
+  it("shows your first entry while the worktree's setup runs, folding out to what it prints", async () => {
+    const { bridge, calls, emit, answers } = fakeBridge();
+    let started!: (chat: OpenChat) => void;
+    answers['agents.start'] = () => new Promise<OpenChat>((resolve) => (started = resolve));
+    answers['layout.get'] = () => ({
+      current: null,
+      lastUsed: { agent: 'claude-code', settings: { cwd: 'C:/Users/me/git/grimoire', worktree: true } },
+    });
+    const { fixture, el, texts } = await render(bridge);
+    await write(fixture, el, 'Hello');
+    const { page } = calls.find((c) => c.command === 'agents.start')!.request as CommandRequest<'agents.start'>;
+    expect(page).toEqual(expect.any(String));
+    // Until the setup says it began, the opening page stays.
+    expect(el.querySelector('gr-chapter-opening')).not.toBeNull();
+
+    const running = { id: 's1', name: 'npm ci', event: 'WorktreeSetup', outcome: 'running' as const, at: Date.now() };
+    emit('agents.worktreeSetup', { page: page!, run: running });
+    await fixture.whenStable();
+    expect(el.querySelector('gr-chapter-opening')).toBeNull();
+    expect(texts('.you .text')).toEqual(['Hello']);
+    expect(texts('.hook .note.setup')).toEqual(['Setting up the worktree…0s']);
+    const line = () => el.querySelector<HTMLButtonElement>('.hook .note.setup')!;
+    expect(line().getAttribute('aria-disabled')).toBe('true');
+
+    emit('agents.worktreeSetup', { page: page!, run: { ...running, output: 'added 3 packages' } });
+    await fixture.whenStable();
+    expect(line().getAttribute('aria-expanded')).toBe('false');
+    line().click();
+    await fixture.whenStable();
+    expect(el.querySelector('.hook gr-output')!.getAttribute('aria-label')).toBe('Output of npm ci');
+    expect(texts('.hook gr-output .code')).toEqual(['added 3 packages']);
+    line().click();
+    await fixture.whenStable();
+    expect(el.querySelector('.hook gr-output')).toBeNull();
+
+    // A setup that failed says so, its output out by itself, and the chat goes on.
+    const failed = { ...running, outcome: 'failed' as const, output: 'npm error\nIt exited with code 1', took: 2_400 };
+    emit('agents.worktreeSetup', { page: page!, run: failed });
+    await fixture.whenStable();
+    expect(texts('.hook .note.setup')).toEqual(['Setting up the worktreefailed2s']);
+    expect(el.querySelector('.hook .note.setup .failed')).not.toBeNull();
+    expect(texts('.hook gr-output .code')).toEqual(['npm error', 'It exited with code 1']);
+
+    started({
+      id: 'chat-1',
+      agent: 'claude-code',
+      title: '',
+      settings: { cwd: 'C:/Users/me/git/grimoire/.claude/worktrees/hello', worktree: true },
+      status: 'thinking',
+      entries: [{ kind: 'user', id: 'u1', text: 'Hello', setup: failed }],
+      approvals: [],
+      queued: [],
+      plan: [],
+      withdrawn: [],
+      dogEars: [],
+      tags: [],
+      copied: [],
+    });
+    await new Promise((resolve) => setTimeout(resolve));
+    await fixture.whenStable();
+    expect(texts('.meta [data-setting="folder"]')).toEqual(['~/git/grimoire/.claude/worktrees/hello']);
+    expect(texts('.you .text')).toEqual(['Hello']);
+    expect(texts('.hook .note.setup')).toEqual(['Setting up the worktreefailed2s']);
+    expect(texts('.hook gr-output .code')).toEqual(['npm error', 'It exited with code 1']);
+    expect(texts('.stop')).toHaveLength(1);
+  });
+
+  it("sends what you write while a blank chapter's chat starts to that chat, once it has", async () => {
+    const { bridge, calls, answers } = fakeBridge();
+    let started!: (chat: OpenChat) => void;
+    const start = answers['agents.start']!;
+    answers['agents.start'] = (request: never) => new Promise<OpenChat>((resolve) => (started = () => resolve(start(request) as OpenChat)));
+    const { fixture, el } = await render(bridge);
+    await write(fixture, el, 'Hello');
+    await write(fixture, el, 'And the docs');
+    expect(calls.filter((c) => c.command === 'agents.start')).toHaveLength(1);
+    expect(calls.filter((c) => c.command === 'agents.send')).toEqual([]);
+
+    started(undefined as never);
+    await new Promise((resolve) => setTimeout(resolve));
+    await fixture.whenStable();
+    expect(calls.filter((c) => c.command === 'agents.send').map((c) => c.request)).toEqual([
+      { chatId: 'chat-1', text: 'And the docs' },
+    ]);
+  });
+
+  it("shows a reopened chapter's setup at the end of its transcript, until your next entry takes it", async () => {
+    const { bridge, emit, answers } = fakeBridge();
+    const running = { id: 's1', name: 'npm ci', event: 'WorktreeSetup', outcome: 'running' as const, at: Date.now() };
+    answers['agents.openChats'] = (): OpenChat[] => [
+      {
+        id: 'c1',
+        agent: 'claude-code',
+        title: 'Context meter',
+        settings: { cwd: 'C:/work/grimoire/.claude/worktrees/meter', worktree: true },
+        status: 'idle',
+        entries: [{ kind: 'user', id: 'u1', text: 'Add a meter' }],
+        approvals: [],
+        queued: [],
+        plan: [],
+        withdrawn: [],
+        dogEars: [],
+        tags: [],
+        copied: [],
+        setup: running,
+      },
+    ];
+    answers['layout.get'] = () => ({ current: 'c1' });
+    const { fixture, texts } = await render(bridge);
+    expect(texts('.hook .note.setup')).toEqual(['Setting up the worktree…0s']);
+
+    emit('agents.worktreeSetup', { chatId: 'c1', run: { ...running, outcome: 'passed', took: 12_000 } });
+    await fixture.whenStable();
+    expect(texts('.hook .note.setup')).toEqual(['Set up the worktree12s']);
+
+    emit('agents.worktreeSetup', { chatId: 'c1', run: null });
+    await fixture.whenStable();
+    expect(texts('.hook .note.setup')).toEqual([]);
+  });
+
   it('brings back your earlier entries with Up, and sends one with Enter', async () => {
     const { bridge, calls, emit } = fakeBridge();
     const { fixture, el } = await render(bridge);

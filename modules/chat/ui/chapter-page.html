@@ -104,7 +104,7 @@
       <gr-settings-card [chapter]="c" [on]="open.on" [anchor]="anchorFor(open.on)" />
     }
 
-    @if (c.status === 'blank') {
+    @if (c.status === 'blank' && !c.entries.length) {
       <gr-chapter-opening
         [agentName]="chats.agentName(c.agent)"
         [cwd]="c.settings.cwd"
