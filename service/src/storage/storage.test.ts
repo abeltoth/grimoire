@@ -4,7 +4,9 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { LayoutStore } from '../core/layout';
 import { PresetStore } from '../core/presets';
+import { ProfileStore } from '../core/profiles';
 import { SettingsStore } from '../core/settings';
+import { ScheduleStore } from '../schedules/store';
 import { Chapters } from './chapters';
 import { openDatabase } from './database';
 import { DogEars } from './dog-ears';
@@ -16,6 +18,42 @@ afterEach(() => {
 });
 
 describe('storage', () => {
+  it('makes what a database from before profiles kept Personal’s', () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'grimoire-db-'));
+    dirs.push(dir);
+    const file = path.join(dir, 'grimoire.db');
+
+    const old = openDatabase(file, 12);
+    old.exec(`INSERT INTO settings (key, value) VALUES ('wording', '"plain"')`);
+    old.exec(`INSERT INTO layout (key, value) VALUES ('current', '"a"')`);
+    old.exec(
+      `INSERT INTO presets (name, agent, settings, position, prompt)
+       VALUES ('Bug fix', 'claude-code', '{}', 0, 'Fix it')`,
+    );
+    old.exec(
+      `INSERT INTO chapters (chat_id, agent, settings, position) VALUES ('a', 'claude-code', '{}', 1)`,
+    );
+    old.exec(
+      `INSERT INTO schedules (id, name, agent, settings, prompt, days, time, enabled, handled_until, position)
+       VALUES ('s', 'Morning', 'claude-code', '{}', 'Hi', '[1]', '08:00', 1, 0, 0)`,
+    );
+    old.close();
+
+    const db = openDatabase(file);
+    expect(new ProfileStore(db, () => dir).list()).toEqual({
+      active: 'personal',
+      profiles: [{ id: 'personal', name: 'Personal', claudeFolder: null }],
+    });
+    expect(new SettingsStore(db).get().wording).toBe('plain');
+    expect(new LayoutStore(db).get().current).toBe('a');
+    expect(new PresetStore(db).list()).toEqual([
+      { name: 'Bug fix', agent: 'claude-code', settings: {}, prompt: 'Fix it' },
+    ]);
+    expect(new Chapters(db).list()).toEqual([{ chatId: 'a', agent: 'claude-code', settings: {} }]);
+    expect(new ScheduleStore(db).list().map((schedule) => schedule.name)).toEqual(['Morning']);
+    db.close();
+  });
+
   it('keeps open chapters in order across restarts', () => {
     const dir = mkdtempSync(path.join(tmpdir(), 'grimoire-db-'));
     dirs.push(dir);

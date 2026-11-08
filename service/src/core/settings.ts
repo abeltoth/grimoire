@@ -7,6 +7,7 @@ import {
   THEME_NAMES,
 } from '@grimoire/contract';
 import type { CommandRegistry } from '../registry';
+import { activeProfile } from '../storage/app-state';
 
 type Emit = <K extends EventName>(event: K, payload: EventPayload<K>) => void;
 
@@ -70,12 +71,20 @@ export function mcpNames(value: unknown): value is string[] {
 
 const known = (key: string): key is keyof GrimoireSettings => key in VALID;
 
-/** Grimoire's settings (ADR-009), kept in SQLite; a setting never set has its default. */
+/**
+ * Grimoire's settings (ADR-009) in the profile in use, as `profile` says,
+ * kept in SQLite; a setting never set has its default.
+ */
 export class SettingsStore {
-  constructor(private readonly db: DatabaseSync) {}
+  constructor(
+    private readonly db: DatabaseSync,
+    private readonly profile: () => string = () => activeProfile(db),
+  ) {}
 
   get(): GrimoireSettings {
-    const rows = this.db.prepare('SELECT key, value FROM settings').all() as {
+    const rows = this.db
+      .prepare('SELECT key, value FROM settings WHERE profile = ?')
+      .all(this.profile()) as {
       key: string;
       value: string;
     }[];
@@ -94,10 +103,13 @@ export class SettingsStore {
       if (!VALID[key](value)) throw new Error(`"${key}" can't be ${JSON.stringify(value)}`);
     }
     const upsert = this.db.prepare(
-      `INSERT INTO settings (key, value) VALUES (?, ?)
-       ON CONFLICT (key) DO UPDATE SET value = excluded.value`,
+      `INSERT INTO settings (profile, key, value) VALUES (?, ?, ?)
+       ON CONFLICT (profile, key) DO UPDATE SET value = excluded.value`,
     );
-    for (const [key, value] of Object.entries(change)) upsert.run(key, JSON.stringify(value));
+    const profile = this.profile();
+    for (const [key, value] of Object.entries(change)) {
+      upsert.run(profile, key, JSON.stringify(value));
+    }
     return this.get();
   }
 }

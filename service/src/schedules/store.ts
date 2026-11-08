@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import type { Schedule, ScheduleDraft, ScheduleRun } from '@grimoire/contract';
+import { activeProfile } from '../storage/app-state';
 import { isTime } from './times';
 
 interface ScheduleRow {
@@ -39,13 +40,19 @@ const fromRow = (row: ScheduleRow): Schedule => ({
 /**
  * The schedules and the record of their runs, kept in SQLite. Each keeps
  * the last time it was due that has been seen to, so a time is run or
- * counted as missed only once.
+ * counted as missed only once. Each belongs to the profile it was made
+ * in; the list is the profile in use's, as `profile` says.
  */
 export class ScheduleStore {
-  constructor(private readonly db: DatabaseSync) {}
+  constructor(
+    private readonly db: DatabaseSync,
+    private readonly profile: () => string = () => activeProfile(db),
+  ) {}
 
   list(): Schedule[] {
-    const rows = this.db.prepare('SELECT * FROM schedules ORDER BY position').all() as unknown as ScheduleRow[];
+    const rows = this.db
+      .prepare('SELECT * FROM schedules WHERE profile = ? ORDER BY position')
+      .all(this.profile()) as unknown as ScheduleRow[];
     return rows.map(fromRow);
   }
 
@@ -69,8 +76,8 @@ export class ScheduleStore {
     const schedule: Schedule = { ...draft, id: draft.id ?? randomUUID(), name, prompt, days };
     this.db
       .prepare(
-        `INSERT INTO schedules (id, name, agent, settings, prompt, days, time, enabled, handled_until, position)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(position), -1) + 1 FROM schedules))
+        `INSERT INTO schedules (id, name, agent, settings, prompt, days, time, enabled, handled_until, profile, position)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(position), -1) + 1 FROM schedules))
          ON CONFLICT (id) DO UPDATE SET
            name = excluded.name, agent = excluded.agent, settings = excluded.settings,
            prompt = excluded.prompt, days = excluded.days, time = excluded.time,
@@ -86,6 +93,7 @@ export class ScheduleStore {
         schedule.time,
         schedule.enabled ? 1 : 0,
         now,
+        this.profile(),
       );
     return schedule;
   }

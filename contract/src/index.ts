@@ -8,6 +8,7 @@ export * from './terminal';
 export * from './layout';
 export * from './memories';
 export * from './presets';
+export * from './profiles';
 export * from './schedules';
 export * from './search';
 export * from './settings';

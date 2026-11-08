@@ -1,15 +1,21 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { Layout } from '@grimoire/contract';
 import type { CommandRegistry } from '../registry';
+import { activeProfile } from '../storage/app-state';
 
 const DEFAULTS: Layout = { current: null, beside: null, lastUsed: null, focus: false, loose: [] };
 
-/** How you left the book, kept in SQLite. */
+/** How you left the book in the profile in use, as `profile` says, kept in SQLite. */
 export class LayoutStore {
-  constructor(private readonly db: DatabaseSync) {}
+  constructor(
+    private readonly db: DatabaseSync,
+    private readonly profile: () => string = () => activeProfile(db),
+  ) {}
 
   get(): Layout {
-    const rows = this.db.prepare('SELECT key, value FROM layout').all() as {
+    const rows = this.db
+      .prepare('SELECT key, value FROM layout WHERE profile = ?')
+      .all(this.profile()) as {
       key: string;
       value: string;
     }[];
@@ -23,11 +29,12 @@ export class LayoutStore {
   /** Remembers the parts that changed; unknown keys are ignored. */
   set(change: Partial<Layout>): void {
     const upsert = this.db.prepare(
-      `INSERT INTO layout (key, value) VALUES (?, ?)
-       ON CONFLICT (key) DO UPDATE SET value = excluded.value`,
+      `INSERT INTO layout (profile, key, value) VALUES (?, ?, ?)
+       ON CONFLICT (profile, key) DO UPDATE SET value = excluded.value`,
     );
+    const profile = this.profile();
     for (const [key, value] of Object.entries(change)) {
-      if (key in DEFAULTS) upsert.run(key, JSON.stringify(value ?? null));
+      if (key in DEFAULTS) upsert.run(profile, key, JSON.stringify(value ?? null));
     }
   }
 }

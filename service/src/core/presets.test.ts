@@ -57,6 +57,22 @@ describe('presets', () => {
     expect(() => presets.rename('FIX A BUG', ' ')).toThrow('A preset needs a name');
   });
 
+  it('keeps each profile’s presets apart, names and all', () => {
+    const db = openDatabase(':memory:');
+    const personal = new PresetStore(db, () => 'personal');
+    const work = new PresetStore(db, () => 'work');
+    personal.save({ name: 'Bug fix', agent: 'codex', settings: {} });
+    personal.save({ name: 'Review', agent: 'codex', settings: {} });
+    work.save({ name: 'bug fix', agent: 'claude-code', settings: { mode: 'plan' } });
+    expect(work.list()).toEqual([
+      { name: 'bug fix', agent: 'claude-code', settings: { mode: 'plan' } },
+    ]);
+    work.rename('bug fix', 'Review');
+    work.remove('Review');
+    expect(work.list()).toEqual([]);
+    expect(personal.list().map((preset) => preset.name)).toEqual(['Bug fix', 'Review']);
+  });
+
   it('keeps new chapters beginning with a preset as it’s renamed, and with your last settings once it’s gone', async () => {
     const { registry, settings, emit } = setUp();
     await registry.dispatch('presets.save', { name: 'Bug fix', agent: 'codex', settings: {} });

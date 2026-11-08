@@ -7,18 +7,29 @@ import type {
   Preset,
 } from '@grimoire/contract';
 import type { CommandRegistry } from '../registry';
+import { activeProfile } from '../storage/app-state';
 import type { SettingsStore } from './settings';
 
 type Emit = <K extends EventName>(event: K, payload: EventPayload<K>) => void;
 
-/** The presets, kept in SQLite. */
+/** The presets of the profile in use, as `profile` says, kept in SQLite. */
 export class PresetStore {
-  constructor(private readonly db: DatabaseSync) {}
+  constructor(
+    private readonly db: DatabaseSync,
+    private readonly profile: () => string = () => activeProfile(db),
+  ) {}
 
   list(): Preset[] {
     const rows = this.db
-      .prepare('SELECT name, agent, settings, prompt FROM presets ORDER BY position')
-      .all() as { name: string; agent: AgentId; settings: string; prompt: string | null }[];
+      .prepare(
+        'SELECT name, agent, settings, prompt FROM presets WHERE profile = ? ORDER BY position',
+      )
+      .all(this.profile()) as {
+      name: string;
+      agent: AgentId;
+      settings: string;
+      prompt: string | null;
+    }[];
     return rows.map(({ name, agent, settings, prompt }) => ({
       name,
       agent,
@@ -35,13 +46,20 @@ export class PresetStore {
     const named = this.named(name);
     this.db
       .prepare(
-        `INSERT INTO presets (name, agent, settings, prompt, position)
-         VALUES (?, ?, ?, ?, (SELECT COALESCE(MAX(position), -1) + 1 FROM presets))
-         ON CONFLICT (name) DO UPDATE SET
+        `INSERT INTO presets (profile, name, agent, settings, prompt, position)
+         VALUES (?1, ?2, ?3, ?4, ?5,
+           (SELECT COALESCE(MAX(position), -1) + 1 FROM presets WHERE profile = ?1))
+         ON CONFLICT (profile, name) DO UPDATE SET
            name = excluded.name, agent = excluded.agent, settings = excluded.settings,
            prompt = COALESCE(excluded.prompt, presets.prompt)`,
       )
-      .run(named, agent, JSON.stringify(settings), prompt === undefined ? null : prompt.trim());
+      .run(
+        this.profile(),
+        named,
+        agent,
+        JSON.stringify(settings),
+        prompt === undefined ? null : prompt.trim(),
+      );
     return this.list();
   }
 
@@ -52,17 +70,21 @@ export class PresetStore {
     if (named.toLowerCase() !== from.toLowerCase() && this.has(named)) {
       throw new Error(`There's a preset called "${named}" already`);
     }
-    this.db.prepare('UPDATE presets SET name = ? WHERE name = ?').run(named, from);
+    this.db
+      .prepare('UPDATE presets SET name = ? WHERE profile = ? AND name = ?')
+      .run(named, this.profile(), from);
     return this.list();
   }
 
   remove(name: string): Preset[] {
-    this.db.prepare('DELETE FROM presets WHERE name = ?').run(name);
+    this.db.prepare('DELETE FROM presets WHERE profile = ? AND name = ?').run(this.profile(), name);
     return this.list();
   }
 
   private has(name: string): boolean {
-    return !!this.db.prepare('SELECT 1 FROM presets WHERE name = ?').get(name);
+    return !!this.db
+      .prepare('SELECT 1 FROM presets WHERE profile = ? AND name = ?')
+      .get(this.profile(), name);
   }
 
   private named(name: string): string {

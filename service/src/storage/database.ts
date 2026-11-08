@@ -82,19 +82,66 @@ const MIGRATIONS = [
    );`,
   `ALTER TABLE presets ADD COLUMN prompt TEXT;`,
   `ALTER TABLE usage_readings ADD COLUMN account TEXT NOT NULL DEFAULT '';`,
+  // Profiles: what was kept before them becomes Personal's.
+  `CREATE TABLE profiles (
+     id TEXT PRIMARY KEY,
+     name TEXT NOT NULL COLLATE NOCASE,
+     claude_folder TEXT,
+     position INTEGER NOT NULL
+   );
+   INSERT INTO profiles (id, name, claude_folder, position) VALUES ('personal', 'Personal', NULL, 1);
+   CREATE TABLE app_state (
+     key TEXT PRIMARY KEY,
+     value TEXT NOT NULL
+   );
+   INSERT INTO app_state (key, value) VALUES ('activeProfile', 'personal');
+   CREATE TABLE profile_settings (
+     profile TEXT NOT NULL,
+     key TEXT NOT NULL,
+     value TEXT NOT NULL,
+     PRIMARY KEY (profile, key)
+   );
+   INSERT INTO profile_settings (profile, key, value) SELECT 'personal', key, value FROM settings;
+   DROP TABLE settings;
+   ALTER TABLE profile_settings RENAME TO settings;
+   CREATE TABLE profile_layout (
+     profile TEXT NOT NULL,
+     key TEXT NOT NULL,
+     value TEXT NOT NULL,
+     PRIMARY KEY (profile, key)
+   );
+   INSERT INTO profile_layout (profile, key, value) SELECT 'personal', key, value FROM layout;
+   DROP TABLE layout;
+   ALTER TABLE profile_layout RENAME TO layout;
+   CREATE TABLE profile_presets (
+     profile TEXT NOT NULL,
+     name TEXT NOT NULL COLLATE NOCASE,
+     agent TEXT NOT NULL,
+     settings TEXT NOT NULL,
+     position INTEGER NOT NULL,
+     prompt TEXT,
+     PRIMARY KEY (profile, name)
+   );
+   INSERT INTO profile_presets (profile, name, agent, settings, position, prompt)
+     SELECT 'personal', name, agent, settings, position, prompt FROM presets;
+   DROP TABLE presets;
+   ALTER TABLE profile_presets RENAME TO presets;
+   ALTER TABLE chapters ADD COLUMN profile TEXT NOT NULL DEFAULT 'personal';
+   ALTER TABLE schedules ADD COLUMN profile TEXT NOT NULL DEFAULT 'personal';`,
 ];
 
 /**
  * Grimoire's own data (ADR-009) in one SQLite file, migrated to the latest
- * version. ':memory:' keeps it for this run only.
+ * version, or to `latest` for a test of what an older one becomes.
+ * ':memory:' keeps it for this run only.
  */
-export function openDatabase(file: string): DatabaseSync {
+export function openDatabase(file: string, latest = MIGRATIONS.length): DatabaseSync {
   const db = new DatabaseSync(file);
   db.exec('PRAGMA journal_mode = WAL');
   const { user_version: version } = db.prepare('PRAGMA user_version').get() as {
     user_version: number;
   };
-  MIGRATIONS.slice(version).forEach((sql, i) => {
+  MIGRATIONS.slice(version, latest).forEach((sql, i) => {
     db.exec('BEGIN');
     try {
       db.exec(sql);
