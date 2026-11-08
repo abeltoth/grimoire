@@ -30,6 +30,7 @@ import type {
   UsageSpan,
 } from '@grimoire/contract';
 import { DEFAULT_SETTINGS } from '@grimoire/contract';
+import { Diagrams } from '../../../modules/chat/ui/markdown/diagrams';
 import { DENSITIES, TEXT_FONTS } from '../../../modules/colophon/ui/theme';
 import { MONACO, type MonacoApi } from '../../../modules/files/ui/monaco';
 import { clock, dateline, upcoming, when } from '../../../modules/schedules/ui/wording';
@@ -537,6 +538,34 @@ describe('App', () => {
     const listings = el.querySelectorAll('gr-listing .code');
     expect([...listings].map((l) => l.classList.contains('open'))).toEqual([false, true]);
     expect(el.querySelector('gr-listing:last-of-type .line .quill')).not.toBeNull();
+  });
+
+  it('draws a Mermaid listing as its diagram once it is written out', async () => {
+    const { bridge, emit } = fakeBridge();
+    // Mermaid can't lay out in jsdom: a fake draws every diagram the same.
+    const diagrams = {
+      draw: async () => ({ svg: '<svg class="drawn"></svg>', id: 'gr-diagram-1' }),
+    };
+    const { fixture, el, texts } = await render(bridge, [
+      { provide: Diagrams, useValue: diagrams },
+    ]);
+    await write(fixture, el, 'Draw the flow');
+    const reply = (text: string) =>
+      emit('agents.entry', {
+        chatId: 'chat-1',
+        entry: { kind: 'agent', id: 'a1', blocks: [{ kind: 'text', text }] },
+      });
+    emit('agents.status', { chatId: 'chat-1', status: 'writing' });
+    reply('```mermaid\ngraph TD\n  A -->');
+    await fixture.whenStable();
+    expect(texts('gr-listing figcaption')).toEqual(['Listing 1 · mermaid']);
+    expect(el.querySelector('gr-diagram')).toBeNull();
+
+    reply('```mermaid\ngraph TD\n  A --> B\n```');
+    await fixture.whenStable();
+    expect(texts('gr-diagram figcaption')).toEqual(['Listing 1 · mermaid Source']);
+    expect(el.querySelector('gr-diagram .diagram svg.drawn')).not.toBeNull();
+    expect(el.querySelector('gr-listing')).toBeNull();
   });
 
   it('sums up a run of margin notes, and folds them out to the corrections or the output', async () => {

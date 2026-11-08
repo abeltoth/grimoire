@@ -759,6 +759,18 @@
   --gr-listing-number-pad: 12px;
   --gr-size-listing-number: 11.5px;
 
+  /* Chat: Mermaid diagrams, drawn in the page's paper and inks */
+  --gr-diagram-ink: var(--gr-ink);
+  --gr-diagram-page: var(--gr-page);
+  --gr-diagram-node: var(--gr-slip);
+  --gr-diagram-line: var(--gr-ink-soft);
+  --gr-diagram-accent: var(--gr-rubric);
+  --gr-diagram-font: var(--gr-font-text);
+  --gr-diagram-size: 14px;
+  --gr-diagram-pad: 8px 0;
+  --gr-diagram-toggle-gap: 8px;
+  --gr-diagram-problem-gap: 4px;
+
   /* Chat: the separate tasks offered after a reply, as cards under it */
   --gr-follow-ups-margin: 18px;
   --gr-follow-ups-gap: 10px;

@@ -1,17 +1,19 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, type TemplateRef, computed, input } from '@angular/core';
+import { Diagram } from './diagram';
 import { Listing } from './listing';
 import { parseMarkdown } from './markdown';
 
 /**
  * A reply's markdown, set as the page's text: paragraphs, lists, quotes,
- * tables and numbered code listings. Rendered from tokens through
- * templates, never as HTML. `tail` (the quill and Stop) follows the last
+ * tables and numbered code listings, Mermaid ones drawn as diagrams.
+ * Rendered from tokens through templates, never as HTML; a diagram is
+ * the SVG Mermaid draws. `tail` (the quill and Stop) follows the last
  * words while the agent writes.
  */
 @Component({
   selector: 'gr-markdown',
-  imports: [Listing, NgTemplateOutlet],
+  imports: [Diagram, Listing, NgTemplateOutlet],
   templateUrl: './markdown-view.html',
   styleUrl: './markdown-view.css',
 })

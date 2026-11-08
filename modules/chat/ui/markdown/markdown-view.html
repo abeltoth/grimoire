@@ -38,13 +38,19 @@
         }
       }
       @case ('code') {
-        <gr-listing
-          [code]="block.code"
-          [lang]="block.lang"
-          [number]="firstListing() + block.listing"
-          [open]="writing() && block.open"
-          [tail]="block.end ? tail() : null"
-        />
+        <!-- A diagram is drawn once its listing is written out. -->
+        @if (block.lang === 'mermaid' && !(writing() && block.open)) {
+          <gr-diagram [code]="block.code" [number]="firstListing() + block.listing" />
+          <ng-container *ngTemplateOutlet="end; context: { $implicit: block }" />
+        } @else {
+          <gr-listing
+            [code]="block.code"
+            [lang]="block.lang"
+            [number]="firstListing() + block.listing"
+            [open]="writing() && block.open"
+            [tail]="block.end ? tail() : null"
+          />
+        }
       }
       @case ('quote') {
         <blockquote>

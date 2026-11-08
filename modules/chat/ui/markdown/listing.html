@@ -4,6 +4,7 @@
     @if (lang()) {
       · {{ lang() }}
     }
+    <ng-content />
   </figcaption>
   <div class="code" [class.open]="open()">
     @for (line of lines(); track $index; let i = $index, last = $last) {

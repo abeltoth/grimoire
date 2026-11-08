@@ -1,0 +1,57 @@
+/*
+ * The diagram's look, from the theme. diagrams.ts reads these and hands
+ * them to Mermaid, which draws with colours, not CSS.
+ */
+:host {
+  --ink: var(--gr-diagram-ink);
+  --page: var(--gr-diagram-page);
+  --node: var(--gr-diagram-node);
+  --line: var(--gr-diagram-line);
+  --accent: var(--gr-diagram-accent);
+  --font: var(--gr-diagram-font);
+  --size: var(--gr-diagram-size);
+
+  display: block;
+}
+
+/* Captioned like a listing. */
+figure {
+  margin: 0;
+}
+
+figcaption {
+  font-family: var(--gr-font-text);
+  font-style: italic;
+  font-size: var(--gr-size-listing-caption);
+  color: var(--gr-ink-soft);
+  margin-bottom: var(--gr-listing-caption-gap);
+}
+
+figcaption b {
+  font-family: var(--gr-font-sc);
+  font-style: normal;
+  font-weight: 500;
+  letter-spacing: var(--gr-tracking-listing);
+  color: var(--gr-ink);
+}
+
+.gr-link {
+  margin-left: var(--gr-diagram-toggle-gap);
+  font-style: normal;
+}
+
+/* Between rules, as a listing is. */
+.diagram {
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid var(--gr-ink-faint);
+  border-bottom: 1px solid var(--gr-ink-faint);
+  padding: var(--gr-diagram-pad);
+}
+
+.problem {
+  margin: var(--gr-diagram-problem-gap) 0 0;
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}

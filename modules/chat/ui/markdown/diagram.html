@@ -1,0 +1,20 @@
+@if (svg(); as svg) {
+  @if (source()) {
+    <gr-listing [code]="code()" lang="mermaid" [number]="number()">
+      <button type="button" class="gr-link" (click)="source.set(false)">Diagram</button>
+    </gr-listing>
+  } @else {
+    <figure>
+      <figcaption>
+        <b>Listing {{ number() }}</b> · mermaid
+        <button type="button" class="gr-link" (click)="source.set(true)">Source</button>
+      </figcaption>
+      <div class="diagram" [innerHTML]="svg"></div>
+    </figure>
+  }
+} @else {
+  <gr-listing [code]="code()" lang="mermaid" [number]="number()" />
+  @if (problem(); as problem) {
+    <p class="problem">The diagram couldn’t be drawn: {{ problem }}.</p>
+  }
+}

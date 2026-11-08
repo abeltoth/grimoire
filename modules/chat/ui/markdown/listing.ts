@@ -5,7 +5,8 @@ import { type CodeToken, Highlighter } from './highlighter';
 /**
  * A code listing, numbered like a figure: its lines numbered, coloured
  * once Shiki has the language. While it's still being written, its foot
- * stays open and `tail` (the quill) follows the last line.
+ * stays open and `tail` (the quill) follows the last line. What's put
+ * inside it goes at the end of its caption.
  */
 @Component({
   selector: 'gr-listing',

@@ -20,8 +20,8 @@ blockquote > * + * {
   margin-top: var(--gr-list-gap);
 }
 
-:host > * + gr-listing,
-:host > gr-listing + * {
+:host > * + :is(gr-listing, gr-diagram),
+:host > :is(gr-listing, gr-diagram) + * {
   margin-top: var(--gr-listing-margin);
 }
 
