@@ -126,7 +126,8 @@ h2 {
 
 /* The presets, below the settings: each a short entry, ruled off from the next. */
 .presets,
-.theme {
+.theme,
+.profiles {
   margin-top: var(--gr-colophon-section-gap);
 }
 
@@ -137,7 +138,8 @@ h2 {
   color: var(--gr-ink-soft);
 }
 
-.preset {
+.preset,
+.profile {
   display: grid;
   grid-template-columns: var(--gr-colophon-label-col) minmax(0, 1fr);
   align-items: baseline;
@@ -151,8 +153,33 @@ h2 {
 .preset > h3,
 .preset > .name-field,
 .preset > .sub,
-.preset > .actions {
+.preset > .actions,
+.profile > * {
   grid-column: 1 / -1;
+}
+
+/* The profile in use, said beside its name. */
+.in-use {
+  margin-left: var(--gr-colophon-word-gap);
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-label);
+  letter-spacing: var(--gr-tracking-label);
+  color: var(--gr-rubric);
+}
+
+.copy {
+  margin-left: var(--gr-colophon-word-gap);
+  font-style: normal;
+}
+
+.profile-field {
+  width: var(--gr-colophon-profile-field-width);
+  font-size: var(--gr-size-colophon-word);
+}
+
+.actions .gr-link:disabled {
+  color: var(--gr-ink-faint);
+  cursor: default;
 }
 
 h3 {

@@ -1,14 +1,47 @@
 <!-- On a Mac the system's window buttons sit in this corner. -->
 <div class="side"></div>
 
-<button
-  type="button"
-  class="book-title"
-  [attr.aria-label]="'Profile: ' + profile() + '. Switch profile'"
-  aria-disabled="true"
->
-  {{ profile() }}<gr-icon name="chevron-down" />
-</button>
+<div class="title">
+  <button
+    type="button"
+    class="book-title"
+    aria-haspopup="menu"
+    [attr.aria-expanded]="open()"
+    [attr.aria-label]="label()"
+    (click)="toggle()"
+  >
+    {{ name() }}<gr-icon name="chevron-down" />
+  </button>
+
+  @if (open() || profiles.refused()) {
+    <div class="slip">
+      @if (profiles.refused(); as reason) {
+        <p class="refused" role="alert">
+          {{ reason }}
+          <button type="button" class="gr-link" (click)="profiles.refused.set(null)">Dismiss</button>
+        </p>
+      }
+      @if (open()) {
+        <div role="menu" [attr.aria-label]="wording.say('Volumes', 'Profiles')">
+          @for (profile of profiles.list().profiles; track profile.id) {
+            <button
+              type="button"
+              class="item"
+              role="menuitemradio"
+              [attr.aria-checked]="profile.id === profiles.list().active"
+              (click)="pick(profile.id)"
+            >
+              {{ profile.name }}
+            </button>
+          }
+          <button type="button" class="item manage" role="menuitem" (click)="manage()">
+            Manage…
+          </button>
+        </div>
+      }
+    </div>
+  }
+</div>
 
 <div class="side end">
   <gr-window-controls />

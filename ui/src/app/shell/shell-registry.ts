@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import type { IconName } from '../../design-system/icon';
 import { Chats } from '../core/chats';
+import { Profiles } from '../core/profiles';
 import { Wording } from '../core/wording';
 import { Facing } from './facing';
 import { Focus } from './focus';
@@ -184,6 +185,20 @@ export function provideShell(): EnvironmentProviders {
               run: () => focus.enter(),
             }),
       );
+    });
+    // Each other profile in the Index, to switch to.
+    const profiles = inject(Profiles);
+    effect((onCleanup) => {
+      for (const profile of profiles.others()) {
+        onCleanup(
+          shell.commands.add({
+            id: `profiles.switch.${profile.id}`,
+            label: `Open the ${profile.name} volume`,
+            plainLabel: `Switch to ${profile.name}`,
+            run: () => void profiles.switch(profile.id),
+          }),
+        );
+      }
     });
     shell.commands.add({
       id: 'chapters.close',

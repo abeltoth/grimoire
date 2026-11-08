@@ -81,9 +81,6 @@ export class App {
   });
   private readonly platform = inject(GRIMOIRE_BRIDGE).platform;
 
-  // Mock until profiles exist.
-  protected readonly profile = 'Work';
-
   constructor() {
     this.service.check();
 

@@ -34,3 +34,57 @@ button {
   color: var(--gr-gilt);
   padding: var(--gr-book-title-pad);
 }
+
+/* The profiles, on a slip hanging from the title. */
+.title {
+  position: relative;
+  -webkit-app-region: no-drag;
+}
+
+.slip {
+  position: absolute;
+  top: calc(100% + var(--gr-title-menu-offset));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--gr-z-title-menu);
+  width: var(--gr-title-menu-width);
+  padding: var(--gr-title-menu-pad);
+  background: var(--gr-slip);
+  border-radius: var(--gr-radius-slip);
+  box-shadow: var(--gr-shadow-slip);
+  user-select: text;
+}
+
+.item {
+  display: block;
+  width: 100%;
+  padding: var(--gr-title-menu-item-pad);
+  text-align: left;
+  font-family: var(--gr-font-display);
+  font-size: var(--gr-size-title-menu);
+  color: var(--gr-ink-soft);
+}
+
+.item:hover,
+.item:focus-visible {
+  color: var(--gr-ink);
+  background: var(--gr-ix-selected);
+}
+
+.item[aria-checked='true'] {
+  color: var(--gr-ink);
+  text-decoration: underline var(--gr-rubric);
+}
+
+.manage {
+  border-top: 1px solid var(--gr-hairline);
+  font-style: italic;
+}
+
+.refused {
+  margin: 0;
+  padding: var(--gr-title-menu-note-pad);
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-rubric);
+}

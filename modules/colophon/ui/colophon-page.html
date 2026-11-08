@@ -326,3 +326,136 @@
   <h2 id="gr-colophon-theme">{{ wording.say('The theme', 'Theme') }}</h2>
   <gr-theme-editor />
 </section>
+
+<section class="profiles" aria-labelledby="gr-colophon-profiles">
+  <h2 id="gr-colophon-profiles">{{ wording.say('Volumes', 'Profiles') }}</h2>
+  <p class="lead">
+    {{
+      wording.say(
+        'Each volume keeps its own chapters, settings, presets and scheduled chats, and Claude Code keeps its own sign-in, memory and chats in the volume’s Claude folder. Opening another puts this one’s chapters away until you’re back.',
+        'Each profile keeps its own chats, settings, presets and scheduled chats, and Claude Code keeps its own sign-in, memory and chat history in the profile’s Claude folder. Switching puts this one’s chats away until you’re back.'
+      )
+    }}
+  </p>
+
+  @if (profiles.failed(); as error) {
+    <p class="error" role="alert">{{ error }}</p>
+  }
+  @if (profiles.refused(); as reason) {
+    <p class="error" role="alert">{{ reason }}</p>
+  }
+  @if (deleted(); as gone) {
+    <p class="none" role="status">
+      “{{ gone.name }}” is deleted. Its Claude folder stays at <code>{{ gone.folder }}</code>.
+    </p>
+  }
+
+  @for (profile of profiles.list().profiles; track profile.id) {
+    @let inUse = profile.id === profiles.list().active;
+    <article class="profile">
+      @if (renamingProfile() === profile.id) {
+        <input
+          #profileField
+          class="line name-field"
+          autocomplete="off"
+          [attr.aria-label]="'New name for ' + profile.name"
+          [value]="profile.name"
+          (keydown.enter)="renameProfile(profile, profileField.value)"
+          (keydown.escape)="$event.preventDefault(); renamingProfile.set(null)"
+          (blur)="renameProfile(profile, profileField.value)"
+        />
+      } @else {
+        <h3>
+          {{ profile.name }}
+          @if (inUse) {
+            <span class="in-use">{{ wording.say('open now', 'in use') }}</span>
+          }
+        </h3>
+      }
+      <p class="sub">
+        @if (!profile.claudeFolder) {
+          Claude Code’s usual place:
+        }
+        <code>{{ chats.folderName(folderOf(profile)) }}</code>
+        <button
+          type="button"
+          class="gr-link copy"
+          [attr.aria-label]="'Copy the path of ' + profile.name + '’s Claude folder'"
+          (click)="copyFolder(profile)"
+        >
+          {{ copiedFolder() === profile.id ? 'Copied' : 'Copy the path' }}
+        </button>
+      </p>
+      @if (made() === profile.id && !inUse) {
+        <p class="sub" role="status">
+          Not signed in yet: Claude Code signs in afresh in its Claude folder.
+          <button type="button" class="gr-link" (click)="profiles.switchToSignIn(profile.id)">
+            {{ wording.say('Open it and sign in', 'Switch to it and sign in') }}
+          </button>
+        </p>
+      }
+
+      <div class="actions">
+        @if (deleting() === profile.id) {
+          <span class="ask"
+            >Delete “{{ profile.name }}”?
+            {{
+              wording.say(
+                'Its settings, presets and scheduled chats go. Its Claude folder, with its chapters, stays at',
+                'Its settings, presets and scheduled chats go. Its Claude folder, with its chats, stays at'
+              )
+            }}
+            <code>{{ folderOf(profile) }}</code
+            >.</span
+          >
+          <button type="button" class="gr-link danger" (click)="deleteProfile(profile)">
+            Delete
+          </button>
+          <button type="button" class="gr-link" (click)="deleting.set(null)">Keep it</button>
+        } @else {
+          @if (!inUse) {
+            <button
+              type="button"
+              class="gr-link"
+              [disabled]="!!profiles.switching()"
+              (click)="profiles.switch(profile.id)"
+            >
+              {{ wording.say('Open this volume', 'Switch to it') }}
+            </button>
+          }
+          <button type="button" class="gr-link" (click)="startRenamingProfile(profile.id)">
+            Rename
+          </button>
+          <button
+            type="button"
+            class="gr-link"
+            [disabled]="!deletable(profile)"
+            [attr.title]="whyKept(profile)"
+            (click)="deleted.set(null); deleting.set(profile.id)"
+          >
+            Delete
+          </button>
+        }
+      </div>
+    </article>
+  }
+
+  <div class="actions">
+    @if (creating()) {
+      <input
+        #newProfileField
+        class="line profile-field"
+        autocomplete="off"
+        [attr.aria-label]="wording.say('Name of the new volume', 'Name of the new profile')"
+        placeholder="Its name, such as Work"
+        (keydown.enter)="create(newProfileField.value)"
+        (keydown.escape)="$event.preventDefault(); creating.set(false)"
+        (blur)="create(newProfileField.value)"
+      />
+    } @else {
+      <button type="button" class="gr-link" (click)="startCreating()">
+        {{ wording.say('New volume', 'New profile') }}
+      </button>
+    }
+  </div>
+</section>

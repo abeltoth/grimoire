@@ -132,6 +132,14 @@
   /* Shell: title strip and book */
   --gr-tracking-book-title: 0.32em;
   --gr-book-title-pad: 4px 12px;
+  /* The profiles' menu, a slip hanging from the book's title */
+  --gr-z-title-menu: 20;
+  --gr-title-menu-width: 260px;
+  --gr-title-menu-offset: 2px;
+  --gr-title-menu-pad: 6px 0;
+  --gr-title-menu-item-pad: 6px 18px;
+  --gr-title-menu-note-pad: 8px 18px;
+  --gr-size-title-menu: 16px;
   --gr-stage-pad-x: 24px;
   --gr-stage-pad-bottom: 6px;
   --gr-gilt-line-inset: 3px;
@@ -502,6 +510,7 @@
   --gr-leading-colophon-preset-name: 1.2;
   --gr-colophon-actions-gap: 14px;
   --gr-colophon-account-field-width: 240px;
+  --gr-colophon-profile-field-width: 240px;
   --gr-theme-row-gap: 10px;
   --gr-theme-control-gap: 12px;
   --gr-theme-group-gap: 12px;
