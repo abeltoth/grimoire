@@ -5,7 +5,7 @@ import { CommandRegistry } from '../registry';
 import { setActiveProfile } from '../storage/app-state';
 import { openDatabase } from '../storage/database';
 import { registerJira } from './commands';
-import { JIRA_READ_ONLY, columnOf, fetchJira, plainText, readSearch, readSite } from './jira';
+import { JIRA_READ_ONLY, JIRA_TOOLS, atlassianIn, columnOf, fetchJira, plainText, readSearch, readSite } from './jira';
 import { JiraSyncer } from './jira-sync';
 import { CardStore } from './store';
 
@@ -197,6 +197,23 @@ describe('reading the Atlassian connector’s answers', () => {
     );
     expect(plainText('  As markdown  ')).toBe('As markdown');
     expect(plainText(null)).toBe('');
+  });
+});
+
+describe('finding the Atlassian connector', () => {
+  it('takes the one with the tools the sync calls, among several named Atlassian', () => {
+    const connector = (name: string, status: Connector['status'], tools: string[] = []): Connector => ({
+      name,
+      status,
+      tools,
+    });
+    const rovo = connector('claude.ai Atlassian Rovo', 'needs-auth');
+    const atlassian = connector('claude.ai Atlassian', 'connected', Object.values(JIRA_TOOLS));
+    expect(atlassianIn([connector('claude.ai Slack', 'connected'), rovo, atlassian])).toBe(atlassian);
+    const other = connector('claude.ai Atlassian (2)', 'connected');
+    expect(atlassianIn([rovo, other])).toBe(other);
+    expect(atlassianIn([rovo])).toBe(rovo);
+    expect(atlassianIn([connector('claude.ai Slack', 'connected')])).toBeUndefined();
   });
 });
 

@@ -54,9 +54,20 @@ export type JiraFetch =
   | { outcome: 'failed'; error: string }
   | { outcome: 'synced'; issues: FetchedIssue[] };
 
-/** The Atlassian connector among yours, if you have one. */
+/**
+ * The Atlassian connector among yours, if you have one. You may have
+ * several, such as "claude.ai Atlassian" and "claude.ai Atlassian Rovo":
+ * the one with the tools the sync calls comes first, then one connected.
+ */
 export function atlassianIn(connectors: readonly Connector[]): Connector | undefined {
-  return connectors.find((connector) => ATLASSIAN.test(connector.name));
+  const atlassian = connectors.filter((connector) => ATLASSIAN.test(connector.name));
+  const syncs = (connector: Connector) =>
+    Object.values(JIRA_TOOLS).every((tool) => connector.tools.includes(tool));
+  return (
+    atlassian.find(syncs) ??
+    atlassian.find((connector) => connector.status === 'connected') ??
+    atlassian[0]
+  );
 }
 
 /**
