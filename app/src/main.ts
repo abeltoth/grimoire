@@ -6,7 +6,8 @@ import { app, BrowserWindow, dialog, ipcMain, net, protocol, screen, type WebFra
 import { existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import type { Layout, LooseLeaf } from '@grimoire/contract';
+import type { EventPayload, Layout, LooseLeaf, Profiles } from '@grimoire/contract';
+import { ActiveProfile } from './active-profile';
 import type { ServiceClient } from './service-client';
 import { ensureService } from './service-launcher';
 import { runCapture, runSmokeTest } from './smoke';
@@ -39,6 +40,8 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 let service: Promise<ServiceClient> | undefined;
+/** The profile in use: when another is put in use, the windows open on its chapters. */
+const activeProfile = new ActiveProfile();
 
 function getService(): Promise<ServiceClient> {
   service ??= ensureService({
@@ -52,7 +55,16 @@ function getService(): Promise<ServiceClient> {
       client.on('close', () => (service = undefined));
       client.on('event', (name, payload) => {
         for (const win of BrowserWindow.getAllWindows()) win.webContents.send('grimoire:event', name, payload);
+        if (name !== 'profiles.changed') return;
+        const { profiles } = payload as EventPayload<'profiles.changed'>;
+        if (activeProfile.changedTo(profiles.active)) openProfile();
       });
+      client
+        .request('profiles.list', {})
+        .then((profiles) => {
+          if (activeProfile.changedTo((profiles as Profiles).active)) openProfile();
+        })
+        .catch((error: unknown) => console.error(error));
       return client;
     },
     (error: unknown) => {
@@ -152,6 +164,21 @@ function reopenLeaves(): void {
       for (const leaf of saved) openLeaf(leaf);
     })
     .catch((error: unknown) => console.error(error));
+}
+
+/**
+ * Another profile is in use: the last one's leaves close, kept in its
+ * layout as they were, and the book opens again on the new one's
+ * chapters, with the leaves it had popped out.
+ */
+function openProfile(): void {
+  // Destroyed, not closed: a leaf closing would put its chapter back, in the new profile's layout.
+  for (const leaf of leaves.values()) leaf.destroy();
+  leaves.clear();
+  loose = [];
+  if (!book) return;
+  book.webContents.reload();
+  if (!headless) reopenLeaves();
 }
 
 /** A popped-out chapter's window; one per chapter. */
