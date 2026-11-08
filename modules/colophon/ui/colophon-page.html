@@ -156,6 +156,38 @@
       }}
     </p>
 
+    <span class="label" id="gr-colophon-follow-ups">{{
+      wording.say('Suggest separate chapters', 'Suggest separate tasks')
+    }}</span>
+    <span class="words" role="radiogroup" aria-labelledby="gr-colophon-follow-ups">
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="all.followUps"
+        (click)="set({ followUps: true })"
+      >
+        On
+      </button>
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="!all.followUps"
+        (click)="set({ followUps: false })"
+      >
+        Off
+      </button>
+    </span>
+    <p class="note">
+      {{
+        wording.say(
+          'Now and then, when a reply turns up separate work, it is offered as a card under it; opening one begins a new chapter with it written in.',
+          'Now and then, when a reply turns up separate work, it shows as a card under it; clicking one opens a new chat with it written in.'
+        )
+      }}
+    </p>
+
     <span class="label" id="gr-colophon-mcp">{{
       wording.say('MCP servers in every chapter', 'MCP servers in every chat')
     }}</span>

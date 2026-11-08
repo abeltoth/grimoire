@@ -759,6 +759,13 @@
   --gr-listing-number-pad: 12px;
   --gr-size-listing-number: 11.5px;
 
+  /* Chat: the separate tasks offered after a reply, as cards under it */
+  --gr-follow-ups-margin: 18px;
+  --gr-follow-ups-gap: 10px;
+  --gr-follow-up-width: 200px;
+  --gr-follow-up-pad: 9px 14px 10px;
+  --gr-follow-up-line-gap: 2px;
+
   /* Chat: approval slip, tucked into the page */
   --gr-slip-margin: 16px 4px 4px 0;
   --gr-slip-pad: 15px 22px 14px 24px;

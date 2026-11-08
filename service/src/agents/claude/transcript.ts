@@ -43,7 +43,7 @@ export function turnEnd(messages: readonly ClaudeMessage[], entryId: string): st
 }
 
 /** Whether a message is one you wrote, rather than a tool's result. */
-function isYourEntry(message: ClaudeMessage): boolean {
+export function isYourEntry(message: ClaudeMessage): boolean {
   if (message.type !== 'user' || message.parent_tool_use_id) return false;
   const content = (message.message as ApiMessage | undefined)?.content;
   if (typeof content === 'string') return true;
@@ -102,6 +102,12 @@ export const HANDBACK_TOOL = 'SubagentHandback';
 
 /** The tool an agent sends a helper another message with, which resumes its run. */
 export const SEND_TOOL = 'SendMessage';
+
+/**
+ * The tool Grimoire gives the agent to offer separate tasks with
+ * (follow-ups.ts): they show as cards under the reply, so its call has no row.
+ */
+export const FOLLOW_UPS_TOOL = 'mcp__grimoire__suggest_follow_ups';
 
 /**
  * The ID Claude Code keeps a helper's saved run by, from the result of the
@@ -639,6 +645,7 @@ function toBlock(block: ApiBlock): Block | undefined {
     case 'thinking':
       return { kind: 'thinking', text: block.thinking ?? '' };
     case 'tool_use': {
+      if (block.name === FOLLOW_UPS_TOOL) return undefined;
       const input = block.input ?? {};
       const skill = block.name === SKILL_TOOL ? (input as { skill?: unknown }).skill : undefined;
       return {

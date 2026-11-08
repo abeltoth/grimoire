@@ -140,6 +140,7 @@ describe('storage', () => {
       accounts: [],
       mcpOff: [],
       suggestions: true,
+      followUps: true,
     });
     settings.set({ wording: 'plain', newChapter: { from: 'preset', preset: 'Bug fix' } });
     settings.set({ themeName: 'night', theme: { '--gr-page': '#fffaf0', '--gr-size-text': '18px' } });
@@ -149,6 +150,8 @@ describe('storage', () => {
     settings.set({ mcpOff: ['github', 'claude.ai Gmail'] });
     settings.set({ suggestions: false });
     expect(() => settings.set({ suggestions: 'no' } as never)).toThrow('"suggestions"');
+    settings.set({ followUps: false });
+    expect(() => settings.set({ followUps: 'rarely' } as never)).toThrow('"followUps"');
     expect(() => settings.set({ wording: 'fancy' } as never)).toThrow(`"wording" can't be "fancy"`);
     expect(() => settings.set({ newChapter: { from: 'preset', preset: '' } })).toThrow('"newChapter"');
     expect(() => settings.set({ shelf: 'x' } as never)).toThrow(`There's no setting "shelf"`);
@@ -177,6 +180,7 @@ describe('storage', () => {
       accounts: ['me@example.com', 'mum@example.com'],
       mcpOff: ['github', 'claude.ai Gmail'],
       suggestions: false,
+      followUps: false,
     });
     again.close();
   });

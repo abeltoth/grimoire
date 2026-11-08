@@ -55,6 +55,7 @@ export function registerAgentCommands(registry: CommandRegistry, hub: AgentHub):
   registry.register('agents.dogEar', ({ chatId, dogEar, folded }) =>
     hub.dogEar(chatId, dogEar, folded),
   );
+  registry.register('agents.takeFollowUp', ({ chatId, index }) => hub.takeFollowUp(chatId, index));
   registry.register('agents.unqueue', ({ chatId, id }) => hub.unqueue(chatId, id));
   registry.register('agents.interrupt', ({ chatId }) => hub.interrupt(chatId));
   registry.register('agents.decide', ({ approvalId, decision }) =>

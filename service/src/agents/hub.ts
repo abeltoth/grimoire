@@ -26,6 +26,7 @@ import type {
   Entry,
   EventName,
   EventPayload,
+  FollowUp,
   HelperRun,
   HelperState,
   HookRun,
@@ -79,6 +80,8 @@ interface ChatState {
   copied: string[];
   /** What the agent suggests you send next, until a turn begins or something is queued. */
   suggestion?: string;
+  /** The separate tasks the agent offered after its last reply, until a turn begins or you take each. */
+  followUps?: FollowUp[];
   /** While the agent process runs. */
   live?: LiveChat;
   /** How many processes the chat has had; what an earlier one still reports is dropped. */
@@ -117,6 +120,8 @@ export interface Workplaces {
   restore(cwd: string): Promise<boolean>;
   /** Clears its worktree away when its chapter closes, if nothing would be lost. */
   release(cwd: string): Promise<unknown>;
+  /** The folder a chat's worktree was made from; undefined when the folder isn't one made for a chat. */
+  origin(cwd: string): string | undefined;
 }
 
 /** What the hub keeps across restarts, in Grimoire's database (ADR-009). */
@@ -416,6 +421,8 @@ export class AgentHub {
       chat.dogEars = this.store.dogEars.of(chatId);
       chat.tags = this.store.tags.of(chatId);
       chat.copied = this.store.copied.list(chatId);
+      // What the last turn offered stands, unless the chat went on meanwhile.
+      if (history.followUps?.length && chat.status === 'idle' && !chat.followUps) chat.followUps = history.followUps;
     }
     this.store.chapters.add({ chatId, agent, settings: chat.settings });
     return this.snapshot(chat);
@@ -678,6 +685,33 @@ export class AgentHub {
     const chat = this.chats.get(chatId);
     if (chat) chat.tags = kept;
     this.emit('agents.tags', { chatId, tags: kept });
+  }
+
+  /**
+   * Takes one of the separate tasks the chat offered, by its place among
+   * them: it goes from the chat, and what a new chapter for it begins with
+   * comes back. It works where the chat does, at its model, effort,
+   * permission and MCP servers; from a worktree of its own, in the folder
+   * that was made from, with a worktree of its own too.
+   */
+  takeFollowUp(chatId: ChatId, index: number): { agent: AgentId; settings: NewChatSettings; prompt: string } {
+    const chat = this.chat(chatId);
+    const taken = chat.followUps?.[index];
+    if (!taken) throw new Error('This task is no longer offered');
+    const rest = chat.followUps!.filter((_, i) => i !== index);
+    chat.followUps = rest.length ? rest : undefined;
+    this.emit('agents.followUps', { chatId, followUps: rest.length ? [...rest] : null });
+    const { cwd, model, effort, mode, mcpOff, worktree } = chat.settings;
+    const origin = worktree ? this.workplaces?.origin(cwd) : undefined;
+    const settings: NewChatSettings = {
+      cwd: origin ?? cwd,
+      ...(model ? { model } : {}),
+      ...(effort ? { effort } : {}),
+      ...(mode ? { mode } : {}),
+      ...(mcpOff?.length ? { mcpOff: [...mcpOff] } : {}),
+      ...(origin ? { worktree: true } : {}),
+    };
+    return { agent: chat.agent.info.id, settings, prompt: taken.prompt };
   }
 
   /** Takes a message out of the queue; false when it had already gone. */
@@ -955,6 +989,12 @@ export class AgentHub {
         chat.suggestion = text;
         this.emit('agents.suggestion', { chatId: chat.id, suggestion: text });
       },
+      followUps: (followUps) => {
+        // Only while no turn runs: the next one, begun at once with what was queued, has gone past them.
+        if (!current() || chat.status !== 'idle' || chat.queued.length || !followUps.length) return;
+        chat.followUps = structuredClone(followUps);
+        this.emit('agents.followUps', { chatId: chat.id, followUps: structuredClone(followUps) });
+      },
       turnEnded: (error) => {
         if (!current()) return;
         this.settleAll(chat);
@@ -1073,8 +1113,17 @@ export class AgentHub {
     this.flush(chat);
     chat.status = status;
     this.emit('agents.status', { chatId: chat.id, status });
-    // A turn began: what was suggested before it no longer stands.
-    if (status !== 'idle') this.dropSuggestion(chat);
+    // A turn began: what was suggested and offered before it no longer stands.
+    if (status !== 'idle') {
+      this.dropSuggestion(chat);
+      this.dropFollowUps(chat);
+    }
+  }
+
+  private dropFollowUps(chat: ChatState): void {
+    if (chat.followUps === undefined) return;
+    chat.followUps = undefined;
+    this.emit('agents.followUps', { chatId: chat.id, followUps: null });
   }
 
   private dropSuggestion(chat: ChatState): void {
@@ -1130,6 +1179,7 @@ export class AgentHub {
       tags: [...chat.tags],
       copied: [...chat.copied],
       ...(chat.suggestion !== undefined ? { suggestion: chat.suggestion } : {}),
+      ...(chat.followUps ? { followUps: structuredClone(chat.followUps) } : {}),
     };
   }
 

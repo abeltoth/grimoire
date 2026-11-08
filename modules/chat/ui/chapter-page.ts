@@ -33,6 +33,7 @@ import { ChapterOpening } from './chapter-opening';
 import { ChapterTags } from './chapter-tags';
 import { Composer } from './composer';
 import { DogEars } from './dog-ears';
+import { FollowUps } from './follow-ups';
 import { SettingsCard } from './settings-card';
 import { Transcript } from './transcript';
 
@@ -41,8 +42,9 @@ export const SECOND_CHAPTER = 'second-chapter';
 
 /**
  * The open chapter on the left page: its running head with the chat's
- * settings, the transcript (or a blank chapter's opening page), the next
- * page to write on, and the running foot. The settings in the running head
+ * settings, the transcript (or a blank chapter's opening page) with any
+ * separate tasks the agent offered under its last reply, the next page to
+ * write on, and the running foot. The settings in the running head
  * open the chapter's settings card. Esc closes the card, or else denies the
  * approval awaiting your seal, or else stops the running turn and puts the
  * queued messages back on the next page. While the facing page shows the
@@ -66,6 +68,7 @@ export const SECOND_CHAPTER = 'second-chapter';
     Composer,
     DogEars,
     FacingTabs,
+    FollowUps,
     Icon,
     ReviewStamps,
     RunningFoot,

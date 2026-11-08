@@ -17,6 +17,7 @@ import type {
   Entry,
   EventName,
   EventPayload,
+  FollowUp,
   NewChatSettings,
   OpenChat,
   ParallelFrom,
@@ -60,6 +61,8 @@ export interface Chapter {
   copied: readonly string[];
   /** What the agent suggests you send next, while it's idle with nothing queued. */
   suggestion?: string;
+  /** The separate tasks the agent offered after its last reply, until a turn begins. */
+  followUps?: readonly FollowUp[];
   /** Why the last turn failed, until the next message. */
   error?: string;
   /** When a blank chapter was opened, in ms since the epoch. */
@@ -174,6 +177,12 @@ export class Chats {
       this.update(chatId, ({ suggestion: _, ...c }) => ({
         ...c,
         ...(suggestion !== null ? { suggestion } : {}),
+      })),
+    );
+    this.listen('agents.followUps', ({ chatId, followUps }) =>
+      this.update(chatId, ({ followUps: _, ...c }) => ({
+        ...c,
+        ...(followUps !== null ? { followUps } : {}),
       })),
     );
     this.bridge.invoke('agents.list', {}).then(
@@ -323,6 +332,20 @@ export class Chats {
    */
   newChapter(from?: { agent: AgentId; settings: NewChatSettings; prompt?: string }): void {
     this.turnTo(this.blank(from).id);
+  }
+
+  /**
+   * Takes one of the separate tasks a chapter's agent offered: it goes from
+   * the chapter, and a blank chapter opens with it written in, not sent,
+   * where the chapter works and with its settings.
+   */
+  async takeFollowUp(id: string, index: number): Promise<void> {
+    try {
+      const start = await this.bridge.invoke('agents.takeFollowUp', { chatId: id, index });
+      this.newChapter(start);
+    } catch (error) {
+      this.fail(id, error);
+    }
   }
 
   /** Opens a blank chapter on the facing page, beside the one you're on. */
@@ -744,6 +767,7 @@ function fromOpenChat(chat: OpenChat): Chapter {
     ...(chat.context ? { context: chat.context } : {}),
     ...(chat.cache ? { cache: chat.cache } : {}),
     ...(chat.suggestion ? { suggestion: chat.suggestion } : {}),
+    ...(chat.followUps?.length ? { followUps: chat.followUps } : {}),
   };
 }
 

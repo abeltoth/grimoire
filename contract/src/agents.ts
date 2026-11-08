@@ -397,6 +397,17 @@ export interface AgentCommand {
   kind: 'command' | 'skill';
 }
 
+/**
+ * A separate task the agent offers after a reply, as a card: clicking it
+ * opens a new chat with its prompt written in, not sent.
+ */
+export interface FollowUp {
+  /** A few words naming the task. */
+  title: string;
+  /** The new chat's first entry, written in for you to send. */
+  prompt: string;
+}
+
 /** A dog-ear on a chapter's page: the top corner pins it, the bottom one stars it. */
 export type DogEar = 'pin' | 'star';
 
@@ -431,6 +442,8 @@ export interface OpenChat {
   copied: string[];
   /** What the agent suggests you send next, while the chat is idle with nothing queued. */
   suggestion?: string;
+  /** The separate tasks the agent offered after its last reply, until a turn begins. */
+  followUps?: FollowUp[];
 }
 
 declare module './commands' {
@@ -515,6 +528,17 @@ declare module './commands' {
     };
     /** Sets a chat's tags, in the order you added them. */
     'agents.tag': { request: { chatId: ChatId; tags: string[] }; response: void };
+    /**
+     * Takes one of the separate tasks offered, by its place among them: it
+     * goes from the chat, and what a new chapter for it begins with comes
+     * back. The new chat works where this one does, with its model, effort,
+     * permission and MCP servers; a chat in a worktree of its own gives the
+     * folder that worktree was made from, and a worktree of its own too.
+     */
+    'agents.takeFollowUp': {
+      request: { chatId: ChatId; index: number };
+      response: { agent: AgentId; settings: NewChatSettings; prompt: string };
+    };
     /** Takes a message out of the queue; false when it had already gone. */
     'agents.unqueue': { request: { chatId: ChatId; id: string }; response: boolean };
     /**
@@ -578,5 +602,7 @@ declare module './events' {
     'agents.withdrawn': { chatId: ChatId; withdrawn: string[] };
     /** The agent suggested what you might send next; null once it no longer stands. */
     'agents.suggestion': { chatId: ChatId; suggestion: string | null };
+    /** The agent offered separate tasks after its reply; null once none stands. */
+    'agents.followUps': { chatId: ChatId; followUps: FollowUp[] | null };
   }
 }

@@ -16,6 +16,7 @@ import type {
   PromptCache,
   Enclosure,
   Entry,
+  FollowUp,
   HelperRun,
   HelperState,
   HookRun,
@@ -124,6 +125,8 @@ export interface ChatHistory {
   plan: PlanStep[];
   /** What the last reply left in the prompt cache, when the agent records it. */
   cache?: PromptCache;
+  /** The separate tasks the agent offered in the chat's last turn, when it did. */
+  followUps?: FollowUp[];
 }
 
 /** A chat whose agent process is running. */
@@ -174,6 +177,8 @@ export interface ChatEvents {
   turnEnded(error?: string): void;
   /** After a turn ended, what the agent suggests you send next. */
   suggestion(text: string): void;
+  /** After a turn ended, the separate tasks the agent offered in it, each of which a new chat could take on. */
+  followUps(followUps: FollowUp[]): void;
   /** The agent process ended, on close() or by itself. */
   closed(error?: string): void;
 }

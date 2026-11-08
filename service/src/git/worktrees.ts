@@ -130,6 +130,15 @@ export class Worktrees {
     throw failure;
   }
 
+  /**
+   * The folder in its repository a chat's worktree was made from: the same
+   * folder inside it. Undefined when the folder isn't in a worktree Grimoire made.
+   */
+  origin(cwd: string): string | undefined {
+    const record = this.recordFor(cwd);
+    return record && path.join(record.repo, path.relative(record.path, expand(cwd)));
+  }
+
   /** The worktree a chat's folder is in, if Grimoire made it. */
   private recordFor(cwd: string): WorktreeRecord | undefined {
     const folder = path.resolve(expand(cwd)).toLowerCase();

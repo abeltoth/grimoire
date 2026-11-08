@@ -30,6 +30,7 @@ import type { AgentAdapter, ChatEvents, ChatHistory, LiveChat, SavedChat, SignIn
 import { CacheTracker, type ReplyUsage } from './cache';
 import { claudeHome } from './config-dir';
 import { readUserSettings } from './effort';
+import { FOLLOW_UPS_SERVER, FollowUpsKept, followUpOptions, savedFollowUps } from './follow-ups';
 import { mcpOff, mcpSettings } from './mcp';
 import { memorySettings, readMemories } from './memories';
 import { MessageQueue } from './message-queue';
@@ -85,6 +86,8 @@ interface Spare {
   picking: Deferred<PickerSources>;
   /** The MCP servers kept from starting in it, sorted: a chat with others starts on a process of its own. */
   mcpOff: string[];
+  /** Where its tool keeps the separate tasks offered, for the chat that claims it. */
+  followUps: FollowUpsKept;
 }
 
 /**
@@ -98,13 +101,15 @@ export class ClaudeAdapter implements AgentAdapter {
   private readonly commandLists = new Map<string, { at: number; list: Promise<AgentCommand[]> }>();
 
   /**
-   * `mcpOffEverywhere` names the MCP servers turned off in every chat, and
-   * `suggestions` says whether Claude Code suggests your next message, as
-   * they are when a process starts.
+   * `mcpOffEverywhere` names the MCP servers turned off in every chat,
+   * `suggestions` says whether Claude Code suggests your next message, and
+   * `followUps` whether the agent may offer separate tasks, as they are
+   * when a process starts.
    */
   constructor(
     private readonly mcpOffEverywhere: () => readonly string[] = () => [],
     private readonly suggestions: () => boolean = () => true,
+    private readonly followUps: () => boolean = () => true,
   ) {}
 
   readonly info: AgentInfo = {
@@ -132,7 +137,8 @@ export class ClaudeAdapter implements AgentAdapter {
     const transcript = new ClaudeTranscript(false);
     const cache = new CacheTracker();
     const saved = await this.savedIn(chatId, cwd);
-    for (const message of await getSessionMessages(chatId, saved)) {
+    const messages = await getSessionMessages(chatId, saved);
+    for (const message of messages) {
       const at = timeOf(message);
       transcript.apply(message, at);
       if (message.type === 'assistant' && message.parent_tool_use_id === null && Number.isFinite(at))
@@ -143,10 +149,13 @@ export class ClaudeAdapter implements AgentAdapter {
       for (const message of await getSubagentMessages(chatId, agentId, saved))
         transcript.applySubagent(message, timeOf(message));
     }
+    // The cards the last turn offered come back from its call of the tool.
+    const followUps = savedFollowUps(messages);
     return {
       entries: transcript.entries,
       plan: transcript.plan,
       ...(cache.cache ? { cache: cache.cache } : {}),
+      ...(followUps ? { followUps } : {}),
     };
   }
 
@@ -338,9 +347,11 @@ export class ClaudeAdapter implements AgentAdapter {
   ): LiveChat {
     const input = new MessageQueue<SDKUserMessage>();
     const picking = new Deferred<PickerSources>();
-    const off = mcpOff(this.mcpOffEverywhere(), settings);
-    const started: Promise<Query> = sdk().then(({ query }) =>
-      query({
+    const followUps = new FollowUpsKept();
+    const off = this.mcpOff(settings);
+    const offered = this.followUps();
+    const started: Promise<Query> = sdk().then((made) =>
+      made.query({
         prompt: input,
         options: {
           cwd: settings.cwd,
@@ -359,12 +370,13 @@ export class ClaudeAdapter implements AgentAdapter {
           env: env(),
           extraArgs: CLI_ARGS,
           ...(resume ? { resume: chatId } : { sessionId: chatId, ...(title ? { title } : {}) }),
+          ...(offered ? followUpOptions(made, followUps) : {}),
           canUseTool: approvalsTo(async () => events),
           hooks: subagentHooks(() => picking.promise),
         },
       }),
     );
-    return this.drive(chatId, settings, started, input, events, picking);
+    return this.drive(chatId, settings, started, input, events, picking, followUps);
   }
 
   /**
@@ -382,7 +394,7 @@ export class ClaudeAdapter implements AgentAdapter {
     enclosures: Enclosure[] = [],
   ): Promise<LiveChat> {
     let spare = this.takeSpare();
-    if (spare && !sameNames(spare.mcpOff, mcpOff(this.mcpOffEverywhere(), settings))) {
+    if (spare && !sameNames(spare.mcpOff, this.mcpOff(settings))) {
       void spare.process.then((process) => process.close(), () => {});
       spare = undefined;
     }
@@ -403,13 +415,16 @@ export class ClaudeAdapter implements AgentAdapter {
     if (this.spare) return;
     const claimedBy = new Deferred<ChatEvents>();
     const picking = new Deferred<PickerSources>();
-    const off = mcpOff(this.mcpOffEverywhere());
+    const followUps = new FollowUpsKept();
+    const off = this.mcpOff();
+    const offered = this.followUps();
     const spare: Spare = {
       claimedBy,
       picking,
       mcpOff: off,
-      process: sdk().then(({ prewarm }) =>
-        prewarm({
+      followUps,
+      process: sdk().then((made) =>
+        made.prewarm({
           options: {
             includePartialMessages: true,
             includeHookEvents: true,
@@ -421,6 +436,8 @@ export class ClaudeAdapter implements AgentAdapter {
             promptSuggestions: this.suggestions(),
             env: env(),
             extraArgs: CLI_ARGS,
+            // Its tool's calls go to the chat that claims it, once its turn ends.
+            ...(offered ? followUpOptions(made, followUps) : {}),
             canUseTool: approvalsTo(() => claimedBy.promise),
             hooks: subagentHooks(() => picking.promise),
           },
@@ -438,6 +455,14 @@ export class ClaudeAdapter implements AgentAdapter {
   dispose(): void {
     const spare = this.takeSpare();
     void spare?.process.then((process) => process.close(), () => {});
+  }
+
+  /**
+   * The MCP servers off for a chat, or for a spare: Grimoire's own tool
+   * server is never among them, whatever another server of that name.
+   */
+  private mcpOff(settings?: ChatSettings): string[] {
+    return mcpOff(this.mcpOffEverywhere(), settings).filter((name) => name !== FOLLOW_UPS_SERVER);
   }
 
   private takeSpare(): Spare | undefined {
@@ -483,7 +508,7 @@ export class ClaudeAdapter implements AgentAdapter {
     }
     const events = bind(chatId);
     spare.claimedBy.resolve(events);
-    return this.drive(chatId, settings, Promise.resolve(query), input, events, spare.picking);
+    return this.drive(chatId, settings, Promise.resolve(query), input, events, spare.picking, spare.followUps);
   }
 
   /** Follows a live query: its messages become the chat's events. */
@@ -494,6 +519,7 @@ export class ClaudeAdapter implements AgentAdapter {
     input: MessageQueue<SDKUserMessage>,
     events: ChatEvents,
     picking: Deferred<PickerSources>,
+    followUps: FollowUpsKept,
   ): LiveChat {
     // The model and effort the chat runs at now, against which a subagent's is picked.
     const current = { model: settings.model, effort: settings.effort };
@@ -518,6 +544,9 @@ export class ClaudeAdapter implements AgentAdapter {
             cache.reply(message.message.usage as ReplyUsage, Date.now());
           if (message.type !== 'result') continue;
           events.turnEnded(resultError(message));
+          // What the turn offered shows once it ended, unless the next has begun.
+          const offered = followUps.take();
+          if (offered?.length) events.followUps(offered);
           if (cache.cache) events.cache(cache.cache);
           live.getContextUsage({ detail: 'summary' }).then(
             (usage) => events.context({ used: usage.totalTokens, limit: usage.rawMaxTokens }),

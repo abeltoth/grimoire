@@ -151,4 +151,5 @@ subscription                  session files
 ```
 
 - Claude Code itself handles MCP servers, plugins, skills and hooks. Grimoire never talks to them directly.
+- One exception: Grimoire gives Claude Code a small tool server of its own, run in the service's process through the Agent SDK. Its one tool lets the agent offer separate tasks as cards that open new chats. It isn't listed among the MCP servers and can't be turned off with them; the Colophon turns it off.
 - The later release notes scraper will add the web as another external system.

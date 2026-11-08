@@ -1,0 +1,20 @@
+<section class="offer">
+  <h2 class="head">
+    {{ wording.say('Separate chapters you could begin', 'Separate tasks you could start') }}
+  </h2>
+  <ul class="cards">
+    @for (task of followUps(); track $index) {
+      <li>
+        <button
+          type="button"
+          class="card"
+          [attr.title]="task.prompt"
+          (click)="chats.takeFollowUp(chapterId(), $index)"
+        >
+          <span class="title">{{ task.title }}</span>
+          <span class="line">{{ firstLine(task.prompt) }}</span>
+        </button>
+      </li>
+    }
+  </ul>
+</section>

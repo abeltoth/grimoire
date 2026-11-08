@@ -48,7 +48,7 @@ A custom UI for Claude Code, built on the Claude Agent SDK.
 - [x] Animated status per chat: thinking, writing, waiting for you
 - [x] Focus mode that hides everything except the active chat
 - [x] Next-prompt suggestion you accept with Tab
-- [ ] Suggested follow-up tasks as cards that open new chats
+- [x] Suggested follow-up tasks as cards that open new chats
 - [ ] @mention files or drag them into a chat
 - [ ] Mermaid diagrams drawn in the chat
 - [x] File pane to view and edit files, using the VS Code editor

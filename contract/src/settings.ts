@@ -29,6 +29,11 @@ export interface GrimoireSettings {
    * takes; open chats stop when their process next starts again.
    */
   suggestions: boolean;
+  /**
+   * Whether the agent may offer, now and then, a separate task as a card
+   * that opens a new chat; open chats stop when their process next starts again.
+   */
+  followUps: boolean;
 }
 
 export const DEFAULT_SETTINGS: GrimoireSettings = {
@@ -41,6 +46,7 @@ export const DEFAULT_SETTINGS: GrimoireSettings = {
   accounts: [],
   mcpOff: [],
   suggestions: true,
+  followUps: true,
 };
 
 declare module './commands' {

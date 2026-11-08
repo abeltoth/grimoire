@@ -86,14 +86,14 @@ const settingsStore = new SettingsStore(db);
 const broadcast: Parameters<typeof registerSettings>[2] = (event, payload) =>
   server?.broadcast(event, payload);
 registerPresets(registry, new PresetStore(db), settingsStore, broadcast);
-let { mcpOff, suggestions } = settingsStore.get();
+let { mcpOff, suggestions, followUps } = settingsStore.get();
 registerSettings(registry, settingsStore, (event, payload) => {
   broadcast(event, payload);
   if (event !== 'settings.changed') return;
   const settings = (payload as EventPayload<'settings.changed'>).settings;
-  // Suggestions turned on or off: the spare starts again with them; open chats, when theirs next does.
-  if (settings.suggestions !== suggestions) {
-    suggestions = settings.suggestions;
+  // Suggestions, or separate tasks, turned on or off: the spare starts again with them; open chats, when theirs next does.
+  if (settings.suggestions !== suggestions || settings.followUps !== followUps) {
+    ({ suggestions, followUps } = settings);
     claude.dispose();
     claude.warm();
   }
@@ -137,6 +137,7 @@ const hub = new AgentHub(
 const claude = new ClaudeAdapter(
   () => settingsStore.get().mcpOff,
   () => settingsStore.get().suggestions,
+  () => settingsStore.get().followUps,
 );
 hub.addAdapter(claude);
 claude.warm();
@@ -163,8 +164,8 @@ registerProfiles(
     reset: () => claude.reset(),
     useClaudeFolder,
     restart: () => {
-      // The spare starts with the new profile's MCP servers off and suggestions; its settings don't restart it.
-      ({ mcpOff, suggestions } = settingsStore.get());
+      // The spare starts with the new profile's MCP servers off, suggestions and separate tasks; its settings don't restart it.
+      ({ mcpOff, suggestions, followUps } = settingsStore.get());
       search.restart();
       claude.warm();
     },

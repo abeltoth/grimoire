@@ -114,7 +114,11 @@
         [error]="c.error"
       />
     } @else {
-      <gr-transcript [chapter]="c" (stop)="stop()" />
+      <gr-transcript [chapter]="c" (stop)="stop()">
+        @if (c.status === 'idle' && c.followUps?.length) {
+          <gr-follow-ups [chapterId]="c.id" [followUps]="c.followUps!" />
+        }
+      </gr-transcript>
     }
   }
   <gr-composer

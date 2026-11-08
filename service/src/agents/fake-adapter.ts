@@ -6,6 +6,7 @@ import type {
   ChatSettings,
   Enclosure,
   Entry,
+  FollowUp,
   HelperRun,
   PlanStep,
   PromptCache,
@@ -40,6 +41,8 @@ export class FakeAdapter implements AgentAdapter {
   transcripts = new Map<ChatId, Entry[]>();
   plans = new Map<ChatId, PlanStep[]>();
   caches = new Map<ChatId, PromptCache>();
+  /** The separate tasks each saved chat's last turn offered. */
+  followUps = new Map<ChatId, FollowUp[]>();
   /** Saved helpers' runs, by the tool call that started each. */
   helpers = new Map<string, HelperRun>();
   transcriptLoads = 0;
@@ -56,6 +59,7 @@ export class FakeAdapter implements AgentAdapter {
       entries: this.transcripts.get(chatId) ?? [],
       plan: this.plans.get(chatId) ?? [],
       ...(this.caches.has(chatId) ? { cache: this.caches.get(chatId) } : {}),
+      ...(this.followUps.has(chatId) ? { followUps: this.followUps.get(chatId) } : {}),
     });
   }
 

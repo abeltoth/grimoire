@@ -157,6 +157,7 @@ export class Transcript {
       this.rows();
       this.chapter().error;
       this.chapter().approvals;
+      this.chapter().followUps;
       this.open();
       if (this.following) this.element.scrollTop = this.element.scrollHeight;
     });

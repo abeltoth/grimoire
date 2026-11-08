@@ -470,6 +470,7 @@ describe('AgentHub', () => {
         return made.has(cwd);
       },
       release: async (cwd) => void calls.push(`release ${cwd}`),
+      origin: (cwd) => (cwd.startsWith(tree) ? `/work${cwd.slice(tree.length)}` : undefined),
     };
     const tree = '/work/.claude/worktrees/hello';
 
@@ -513,6 +514,17 @@ describe('AgentHub', () => {
       hub.close(chat.id);
       await Promise.resolve();
       expect(calls).toEqual([]);
+    });
+
+    it('opens a separate task offered from a worktree in the folder it was made from, in a worktree of its own', async () => {
+      const chat = await hub.start('fake', { ...settings, worktree: true, model: 'small' }, 'Hello');
+      fake.runOf(chat.id).events.turnEnded();
+      fake.runOf(chat.id).events.followUps([{ title: 'Docs', prompt: 'Write the docs' }]);
+      expect(hub.takeFollowUp(chat.id, 0)).toEqual({
+        agent: 'fake',
+        settings: { cwd: '/work', model: 'small', worktree: true },
+        prompt: 'Write the docs',
+      });
     });
 
     it('puts the worktree back when the chat opens again', async () => {
@@ -1136,6 +1148,69 @@ describe('AgentHub', () => {
     run.events.turnEnded();
     run.events.suggestion('Commit it');
     expect((await hub.open('fake', id, settings)).suggestion).toBe('Commit it');
+  });
+
+  describe('separate tasks the agent offers', () => {
+    const offered = [
+      { title: 'Docs', prompt: 'Write the docs' },
+      { title: 'Release', prompt: 'Cut a release' },
+    ];
+    const lastFollowUps = () => sent.filter((s) => s.event === 'agents.followUps').at(-1)?.payload;
+
+    it('keeps them once the turn ended, until the next begins', async () => {
+      const { id } = await hub.start('fake', settings, 'Hello');
+      const run = fake.runOf(id);
+      run.events.turnEnded();
+      run.events.followUps(offered);
+      expect(lastFollowUps()).toEqual({ chatId: id, followUps: offered });
+      expect((await hub.open('fake', id, settings)).followUps).toEqual(offered);
+      expect((await hub.openChats()).map((chat) => chat.followUps)).toEqual([offered]);
+
+      hub.send(id, 'Something else');
+      expect(lastFollowUps()).toEqual({ chatId: id, followUps: null });
+      expect((await hub.open('fake', id, settings)).followUps).toBeUndefined();
+    });
+
+    it('drops those offered while a turn runs or something is queued', async () => {
+      const { id } = await hub.start('fake', settings, 'Hello');
+      const run = fake.runOf(id);
+      run.events.followUps(offered);
+      hub.send(id, 'Also this');
+      // The queued entry begins the next turn before they come.
+      run.events.turnEnded();
+      run.events.followUps(offered);
+      run.events.turnEnded();
+      run.events.followUps([]);
+      expect(events()).not.toContain('agents.followUps');
+      expect((await hub.open('fake', id, settings)).followUps).toBeUndefined();
+    });
+
+    it('gives what a new chapter for one begins with, and the others stay', async () => {
+      const { id } = await hub.start(
+        'fake',
+        { ...settings, model: 'small', effort: 'high', mode: 'plan', mcpOff: ['github'] },
+        'Hello',
+      );
+      const run = fake.runOf(id);
+      run.events.turnEnded();
+      run.events.followUps(offered);
+      expect(hub.takeFollowUp(id, 1)).toEqual({
+        agent: 'fake',
+        settings: { cwd: '/work', model: 'small', effort: 'high', mode: 'plan', mcpOff: ['github'] },
+        prompt: 'Cut a release',
+      });
+      expect(lastFollowUps()).toEqual({ chatId: id, followUps: [offered[0]] });
+      expect(() => hub.takeFollowUp(id, 1)).toThrow('no longer offered');
+      hub.takeFollowUp(id, 0);
+      expect(lastFollowUps()).toEqual({ chatId: id, followUps: null });
+      expect((await hub.open('fake', id, settings)).followUps).toBeUndefined();
+    });
+
+    it("brings back those the saved chat's last turn offered", async () => {
+      fake.transcripts.set('c1', [{ kind: 'user', id: 'u1', text: 'Earlier' }]);
+      fake.followUps.set('c1', offered);
+      expect((await hub.open('fake', 'c1', settings)).followUps).toEqual(offered);
+    });
   });
 
   it('passes on how full the context window is', async () => {

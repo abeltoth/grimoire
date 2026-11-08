@@ -1,0 +1,73 @@
+/* Under the last reply, in the text column, as the transcript's rows lay out. */
+:host {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--gr-margin-col);
+  column-gap: var(--gr-col-gap);
+  margin-top: var(--gr-follow-ups-margin);
+}
+
+.offer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-follow-ups-gap);
+  min-width: 0;
+}
+
+.head {
+  margin: 0;
+  font-family: var(--gr-font-sc);
+  font-weight: 400;
+  font-size: var(--gr-size-control);
+  letter-spacing: var(--gr-tracking-label);
+  color: var(--gr-ink-soft);
+}
+
+.cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gr-follow-ups-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cards li {
+  flex: 1 1 var(--gr-follow-up-width);
+  min-width: 0;
+}
+
+/* Each task a small card of laid paper, laid on the page. */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-follow-up-line-gap);
+  width: 100%;
+  padding: var(--gr-follow-up-pad);
+  text-align: start;
+  background: var(--gr-card-paper);
+  border-radius: var(--gr-radius-slip);
+  box-shadow: var(--gr-shadow-slip);
+  color: var(--gr-ink);
+}
+
+.card:hover {
+  box-shadow: var(--gr-shadow-slip-tucked);
+}
+
+.title,
+.line {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.title {
+  font-size: var(--gr-size-aside);
+  font-weight: 500;
+}
+
+.line {
+  font-style: italic;
+  font-size: var(--gr-size-label);
+  color: var(--gr-ink-soft);
+}
