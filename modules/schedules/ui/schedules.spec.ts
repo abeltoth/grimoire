@@ -7,7 +7,7 @@ import { clock, dateline, upcoming, when } from './wording';
 import { fakeBridge, render } from '@ui/testing/app-harness';
 
 describe('schedules', () => {
-  it("keeps scheduled chats as journal entries, names the next run, and adds a run's chapter to the book", async () => {
+  it("keeps scheduled chats as journal entries, names the next run, and adds a run's chat to the book", async () => {
     const { bridge, calls, answers, emit } = fakeBridge();
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -45,7 +45,7 @@ describe('schedules', () => {
           queued: [],
           plan: [],
           withdrawn: [],
-          dogEars: [],
+          pins: [],
           tags: [],
           copied: [],
         },
@@ -60,7 +60,7 @@ describe('schedules', () => {
     el.querySelector<HTMLButtonElement>('gr-status-indicators button')!.click();
     await fixture.whenStable();
 
-    expect(texts('gr-thumb-page .title')).toEqual(['Scheduled chats']);
+    expect(texts('gr-tab-page .title')).toEqual(['Scheduled chats']);
     expect(texts('gr-schedules-page .dateline')).toEqual([dateline(nextAt)]);
     expect(texts('gr-schedules-page h2')).toEqual(['Morning repo summary']);
     expect(texts('gr-schedules-page .sub')).toEqual([
@@ -76,11 +76,11 @@ describe('schedules', () => {
     emit('settings.changed', { settings: DEFAULT_SETTINGS });
     await fixture.whenStable();
 
-    // Run now begins its chapter, which joins the book and is turned to.
+    // Run now begins its chat, which joins the book and is turned to.
     [...el.querySelectorAll<HTMLButtonElement>('gr-schedules-page .actions button')].find((b) => b.textContent!.includes('Run now'))!.click();
     await fixture.whenStable();
-    expect(texts('.spine gr-ribbon b')).toContain('Morning repo summary · today');
-    expect(texts('gr-running-head h1')).toEqual(['Morning repo summary · today']);
+    expect(texts('.spine gr-chat-tab b')).toContain('Morning repo summary · today');
+    expect(texts('gr-page-header h1')).toEqual(['Morning repo summary · today']);
     expect(texts('.meta button')).toContain('Full access');
 
     // A new schedule is written out in place.

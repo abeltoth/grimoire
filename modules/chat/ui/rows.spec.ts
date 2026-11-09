@@ -35,7 +35,7 @@ describe('toRows', () => {
     ]);
   });
 
-  it('writes paths in the chapter folder relative to it', () => {
+  it('writes paths in the chat folder relative to it', () => {
     const rows = toRows(
       [
         agent(
@@ -79,7 +79,7 @@ describe('toRows', () => {
     ]);
   });
 
-  it('folds out a change as corrections and anything else as its output', () => {
+  it('expands a change as a diff and anything else as its output', () => {
     const edit = tool(
       'Write',
       { file_path: '/repo/a.ts', content: 'one\ntwo\n' },
@@ -108,7 +108,7 @@ describe('toRows', () => {
       {
         counts: '+2 −0',
         fold: {
-          kind: 'corrections',
+          kind: 'diff',
           file: 'a.ts',
           path: '/repo/a.ts',
           lines: [
@@ -165,7 +165,7 @@ describe('toRows', () => {
     ]);
   });
 
-  it('merges changes in a row to one file, stacking their corrections', () => {
+  it('merges changes in a row to one file, stacking their diffs', () => {
     const done = { text: 'Updated.', isError: false };
     const edit = (id: string, file: string, from: string, to: string, result?: ToolBlock['result']) => ({
       ...tool('Edit', { file_path: file, old_string: from, new_string: to }, result),
@@ -192,7 +192,7 @@ describe('toRows', () => {
       { label: 'b.ts', times: undefined, counts: '+1 −1', running: false, failed: false },
     ]);
     expect(notes[0]!.fold).toEqual({
-      kind: 'corrections',
+      kind: 'diff',
       file: 'a.ts',
       path: '/repo/a.ts',
       lines: [
@@ -207,7 +207,7 @@ describe('toRows', () => {
     expect(rows[0]!.kind === 'notes' && rows[0]!.summary).toMatchObject({ text: 'Changed 2 files', counts: '+5 −4' });
   });
 
-  it('links a message that resumed a helper to its run, but not one sent elsewhere', () => {
+  it('links a message that resumed a subagent to its run, but not one sent elsewhere', () => {
     const resumed = { text: '{"success":true,"resumedAgentId":"a819"}', isError: false };
     const sent = { text: '{"success":true,"message":"Sent"}', isError: false };
     const rows = toRows([
@@ -218,9 +218,9 @@ describe('toRows', () => {
       ),
     ]);
     const notes = rows[0]!.kind === 'notes' ? rows[0]!.notes : [];
-    expect(notes.map(({ verb, target, did, helper }) => ({ verb, target, did, helper: helper?.id }))).toEqual([
-      { verb: 'Messaged a helper', target: 'Ask for more', did: 'helped', helper: 'SendMessage-id' },
-      { verb: 'SendMessage', target: '', did: 'other', helper: undefined },
+    expect(notes.map(({ verb, target, did, subagent }) => ({ verb, target, did, subagent: subagent?.id }))).toEqual([
+      { verb: 'Messaged a helper', target: 'Ask for more', did: 'helped', subagent: 'SendMessage-id' },
+      { verb: 'SendMessage', target: '', did: 'other', subagent: undefined },
     ]);
   });
 

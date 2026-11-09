@@ -1,0 +1,34 @@
+/* What you looked up is written in your entry; the slash commands only show it. */
+.from {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--gr-command-palette-from-gap);
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+  white-space: nowrap;
+}
+
+.slash {
+  font-style: normal;
+  font-size: var(--gr-size-command-palette-look-up);
+  line-height: 1;
+  color: var(--gr-pen);
+}
+
+code.label {
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-command-palette-command);
+}
+
+code.label b {
+  font-weight: 600;
+  color: var(--gr-rubric);
+}
+
+.where code {
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-code);
+  letter-spacing: 0;
+  color: var(--gr-ink);
+}

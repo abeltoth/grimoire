@@ -63,7 +63,7 @@ describe('Scheduler', () => {
     expect(() => save({ time: '8:00' })).toThrow('"8:00" isn\'t a time such as 08:00');
   });
 
-  it('begins a new chapter with Full access when one is due, and only once', async () => {
+  it('begins a new chat with Full access when one is due, and only once', async () => {
     const { id } = save();
     await scheduler.check();
     expect(begun).toEqual([]);

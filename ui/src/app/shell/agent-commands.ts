@@ -1,7 +1,7 @@
 import { Injectable, PendingTasks, computed, inject, linkedSignal, signal } from '@angular/core';
 import type { AgentCommand } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '../core/bridge';
-import { type CommandLookUp, Facing } from './facing';
+import { type CommandLookUp, RightPageState } from './right-page-state';
 
 /** A command as listed: its name as you'd write it, split around what you looked up. */
 export interface ListedCommand extends AgentCommand {
@@ -13,18 +13,18 @@ type Loaded = { commands: AgentCommand[] } | { error: string };
 
 /**
  * An agent's commands and skills, looked up from the start of an entry: the
- * entry asks for them as you write "/", the facing page lists them, and
+ * entry asks for them as you write "/", the right page lists them, and
  * the entry's keys move through them and use one.
  */
 @Injectable({ providedIn: 'root' })
 export class AgentCommands {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
-  private readonly facing = inject(Facing);
+  private readonly rightPage = inject(RightPageState);
   private readonly pending = inject(PendingTasks);
   private readonly loaded = signal<Readonly<Record<string, Loaded>>>({});
 
-  /** What's being looked up; null when the facing page doesn't show it. */
-  readonly lookUp = this.facing.commands.asReadonly();
+  /** What's being looked up; null when the right page doesn't show it. */
+  readonly lookUp = this.rightPage.commands.asReadonly();
 
   /** The commands for the folder looked up from; undefined while they're asked for. */
   readonly all = computed(() => {
@@ -50,15 +50,15 @@ export class AgentCommands {
   });
   readonly chosen = computed(() => this.listed().find((command) => command.name === this.selected()));
 
-  /** Turns the facing page to the commands, asking the agent for them when they're new. */
+  /** Turns the right page to the commands, asking the agent for them when they're new. */
   open(lookUp: CommandLookUp): void {
     const was = this.lookUp();
-    this.facing.openCommands(lookUp);
+    this.rightPage.openCommands(lookUp);
     if (!was || key(was) !== key(lookUp)) this.pending.run(() => this.load(lookUp));
   }
 
   close(): void {
-    this.facing.closeCommands();
+    this.rightPage.closeCommands();
   }
 
   move(step: number): void {

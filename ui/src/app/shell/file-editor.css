@@ -7,7 +7,7 @@
 }
 
 .sub {
-  margin: 0 0 var(--gr-outline-sub-gap);
+  margin: 0 0 var(--gr-plan-sub-gap);
   font-style: italic;
   font-size: var(--gr-size-aside);
   color: var(--gr-ink-soft);

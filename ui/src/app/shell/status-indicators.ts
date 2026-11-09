@@ -2,7 +2,7 @@ import { Component, inject } from '@angular/core';
 import { Icon } from '../../design-system/icon';
 import { ShellRegistry } from './shell-registry';
 
-/** The registered indicators, for a chapter's running foot. */
+/** The registered indicators, for a chat's page footer. */
 @Component({
   selector: 'gr-status-indicators',
   imports: [Icon],

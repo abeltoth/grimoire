@@ -21,15 +21,15 @@ import type {
   ChatSummary,
   ContextUsage,
   PromptCache,
-  Enclosure,
-  DogEar,
+  Attachment,
+  Pin,
   Editor,
   Entry,
   EventName,
   EventPayload,
   FollowUp,
-  HelperRun,
-  HelperState,
+  SubagentRun,
+  SubagentState,
   HookRun,
   NewChatSettings,
   OpenChat,
@@ -44,9 +44,9 @@ import type {
   UserEntry,
 } from '@grimoire/contract';
 import type { DatabaseSync } from 'node:sqlite';
-import { Chapters } from '../storage/chapters';
+import { OpenChats } from '../storage/open-chats';
 import { openDatabase } from '../storage/database';
-import { DogEars } from '../storage/dog-ears';
+import { Pins } from '../storage/pins';
 import { Parallels } from '../storage/parallels';
 import { EntryIds } from '../storage/entry-ids';
 import { Tags } from '../storage/tags';
@@ -76,7 +76,7 @@ interface ChatState {
   plan: PlanStep[];
   /** Your entries whose file changes were undone. */
   withdrawn: string[];
-  dogEars: DogEar[];
+  pins: Pin[];
   tags: string[];
   /** Your entries copied from the chat this one was forked from. */
   copied: string[];
@@ -92,8 +92,8 @@ interface ChatState {
   processes: number;
   /** The agent was signed in to another account during a turn: the process starts again once it ends. */
   restart: boolean;
-  /** What the helpers its tool calls started did while it was live, and where they are, by tool call. */
-  helpers: Map<string, HelperRun>;
+  /** What the subagents its tool calls started did while it was live, and where they are, by tool call. */
+  subagents: Map<string, SubagentRun>;
   /** Streamed text not sent to windows yet, per entry and block. */
   pendingText: Map<string, { entryId: string; block: number; text: string }>;
   flushTimer?: NodeJS.Timeout;
@@ -116,14 +116,14 @@ interface PendingApproval {
 
 /** What the hub keeps across restarts, in Grimoire's database (ADR-009). */
 export interface HubStore {
-  /** The chats open as chapters, so they reopen after a restart. */
-  chapters: Chapters;
+  /** The open chats, so they reopen after a restart. */
+  chats: OpenChats;
   /** Your entries whose edits were undone. */
   withdrawn: EntryIds;
   /** Your entries a fork copied; the agent can't undo them. */
   copied: EntryIds;
   /** Which chats are pinned or starred. */
-  dogEars: DogEars;
+  pins: Pins;
   /** Your tags for chats. */
   tags: Tags;
   /** Each reading of the agents' plan limits. */
@@ -134,10 +134,10 @@ export interface HubStore {
 
 export function hubStore(db: DatabaseSync): HubStore {
   return {
-    chapters: new Chapters(db),
+    chats: new OpenChats(db),
     withdrawn: new EntryIds(db, 'withdrawn'),
     copied: new EntryIds(db, 'copied'),
-    dogEars: new DogEars(db),
+    pins: new Pins(db),
     tags: new Tags(db),
     usage: new UsageReadings(db),
     parallels: new Parallels(db),
@@ -186,11 +186,11 @@ export class AgentHub {
 
   async listChats(agent: AgentId, cwd?: string): Promise<ChatSummary[]> {
     const chats = await this.adapter(agent).listChats(cwd);
-    const dogEars = this.store.dogEars.all();
+    const pins = this.store.pins.all();
     const tags = this.store.tags.all();
     return chats.map((chat) => ({
       ...chat,
-      dogEars: dogEars.get(chat.id) ?? [],
+      pins: pins.get(chat.id) ?? [],
       tags: tags.get(chat.id) ?? [],
     }));
   }
@@ -381,15 +381,15 @@ export class AgentHub {
   }
 
   /**
-   * The chats open as chapters, in ribbon order. Those that no longer open
+   * The open chats, in chat tab order. Those that no longer open
    * are forgotten. Once all are open, the chats sent in parallel edit as
    * they did before.
    */
   async openChats(): Promise<OpenChat[]> {
     const chats = await Promise.all(
-      this.store.chapters.list().map(({ agent, chatId, settings }) =>
+      this.store.chats.list().map(({ agent, chatId, settings }) =>
         this.load(agent, chatId, settings).catch(() => {
-          this.store.chapters.remove(chatId);
+          this.store.chats.remove(chatId);
           return undefined;
         }),
       ),
@@ -398,14 +398,14 @@ export class AgentHub {
     return chats.filter((chat) => chat !== undefined).map((chat) => this.snapshot(chat));
   }
 
-  /** Opens a chat as a chapter; it only reads when another open chat it was sent in parallel with edits. */
+  /** Opens a chat; it only reads when another open chat it was sent in parallel with edits. */
   async open(agent: AgentId, chatId: ChatId, settings: ChatSettings): Promise<OpenChat> {
     const chat = await this.load(agent, chatId, settings);
     this.settleEditors();
     return this.snapshot(chat);
   }
 
-  /** Opens a chat as a chapter, unless it's open already, leaving who edits as it was. */
+  /** Opens a chat, unless it's open already, leaving who edits as it was. */
   private async load(agent: AgentId, chatId: ChatId, settings: ChatSettings): Promise<ChatState> {
     let chat = this.chats.get(chatId);
     if (!chat) {
@@ -419,13 +419,13 @@ export class AgentHub {
       chat.plan = history.plan;
       if (history.cache && !chat.cache) chat.cache = history.cache;
       chat.withdrawn = this.store.withdrawn.list(chatId);
-      chat.dogEars = this.store.dogEars.of(chatId);
+      chat.pins = this.store.pins.of(chatId);
       chat.tags = this.store.tags.of(chatId);
       chat.copied = this.store.copied.list(chatId);
       // What the last turn offered stands, unless the chat went on meanwhile.
       if (history.followUps?.length && chat.status === 'idle' && !chat.followUps) chat.followUps = history.followUps;
     }
-    this.store.chapters.add({ chatId, agent, settings: chat.settings });
+    this.store.chats.add({ chatId, agent, settings: chat.settings });
     return chat;
   }
 
@@ -435,11 +435,11 @@ export class AgentHub {
     settings: NewChatSettings,
     text: string,
     title?: string,
-    enclosures: Enclosure[] = [],
+    attachments: Attachment[] = [],
   ): Promise<OpenChat> {
     let resolved: ChatSettings = { ...settings, cwd: settings.cwd ?? homedir() };
     if (resolved.autoModel) resolved = await this.autoPicked(agent, resolved, text);
-    return this.begin(agent, resolved, text, title?.trim() || undefined, enclosures);
+    return this.begin(agent, resolved, text, title?.trim() || undefined, attachments);
   }
 
   /**
@@ -457,19 +457,19 @@ export class AgentHub {
   /**
    * Sends one entry to a second model too, in a chat of its own: from a
    * chat that has begun, a copy of it, after the entry goes to the chat
-   * itself; from a new chapter's settings, a chat begun afresh. The second
+   * itself; from a new chat's settings, a chat begun afresh. The second
    * works in the same folder, so while the first edits, the second only
    * reads (ADR-011).
    */
-  async parallel(from: ParallelFrom, model: string, text: string, enclosures: Enclosure[] = []): Promise<OpenChat> {
-    if (!text.trim() && !enclosures.length) throw new Error('Write something, or attach something, to send');
+  async parallel(from: ParallelFrom, model: string, text: string, attachments: Attachment[] = []): Promise<OpenChat> {
+    if (!text.trim() && !attachments.length) throw new Error('Write something, or attach something, to send');
     if (!('chatId' in from)) {
       const cwd = from.settings.cwd ?? homedir();
       const named = from.title?.trim();
       const title = named ? await this.variantTitle(this.adapter(from.agent), named, cwd) : undefined;
       // The second model is the one asked for, not Auto's.
       const { autoModel: _, ...settings } = from.settings;
-      return this.begin(from.agent, { ...settings, cwd, model }, text, title, enclosures, from.alongside);
+      return this.begin(from.agent, { ...settings, cwd, model }, text, title, attachments, from.alongside);
     }
     const chat = this.chat(from.chatId);
     if (!chat.agent.fork) throw new Error(`${chat.agent.info.name} can't copy a chat to another model`);
@@ -479,7 +479,7 @@ export class AgentHub {
     const title = await this.variantTitle(chat.agent, chat.title, chat.settings.cwd);
     const forkId = await chat.agent.fork(chat.id, chat.settings.cwd, last.id, title);
     // The chat goes on at once; its copy follows once it's open.
-    this.send(chat.id, text, enclosures);
+    this.send(chat.id, text, attachments);
     const { autoModel: _, ...settings } = chat.settings;
     this.store.parallels.join(forkId, chat.id);
     const variant = await this.open(chat.agent.info.id, forkId, { ...settings, model });
@@ -490,7 +490,7 @@ export class AgentHub {
     );
     const copy = this.chat(forkId);
     copy.copied = this.store.copied.list(forkId);
-    this.send(forkId, text, enclosures);
+    this.send(forkId, text, attachments);
     return this.snapshot(copy);
   }
 
@@ -500,17 +500,17 @@ export class AgentHub {
     resolved: ChatSettings,
     text: string,
     named: string | undefined,
-    enclosures: Enclosure[],
+    attachments: Attachment[],
     alongside?: ChatId,
   ): Promise<OpenChat> {
     const adapter = this.adapter(agent);
     if (!adapter.start) {
       const chat = this.track(randomUUID(), adapter, resolved, [], named ?? '');
       if (alongside) this.store.parallels.join(chat.id, alongside);
-      this.store.chapters.add({ chatId: chat.id, agent, settings: resolved });
+      this.store.chats.add({ chatId: chat.id, agent, settings: resolved });
       this.settleEditors();
       chat.live = adapter.run(chat.id, chat.settings, false, this.eventsFor(chat), named);
-      this.sendTo(chat, text, false, enclosures);
+      this.sendTo(chat, text, false, attachments);
       return this.snapshot(chat);
     }
     // The agent picks the chat's ID, on a spare process when it has one.
@@ -523,14 +523,14 @@ export class AgentHub {
       (chatId) => {
         chat = this.track(chatId, adapter, resolved, [], named ?? '');
         if (alongside) this.store.parallels.join(chatId, alongside);
-        this.store.chapters.add({ chatId, agent, settings: resolved });
+        this.store.chats.add({ chatId, agent, settings: resolved });
         this.settleEditors();
-        this.upsert(chat, userEntry(id, text, enclosures));
+        this.upsert(chat, userEntry(id, text, attachments));
         this.setStatus(chat, 'thinking');
         return this.eventsFor(chat);
       },
       named,
-      enclosures,
+      attachments,
     );
     if (!chat) throw new Error(`${agent} started a chat without naming it`);
     // Closed while it started.
@@ -540,11 +540,11 @@ export class AgentHub {
   }
 
   /** Sends a message, or queues it while a turn runs. */
-  send(chatId: ChatId, text: string, enclosures: Enclosure[] = []): void {
+  send(chatId: ChatId, text: string, attachments: Attachment[] = []): void {
     const chat = this.chat(chatId);
-    if (!text.trim() && !enclosures.length) throw new Error('Write something, or attach something, to send');
-    if (chat.status === 'idle') return this.sendTo(chat, text, true, enclosures);
-    chat.queued.push({ id: randomUUID(), text, ...(enclosures.length ? { enclosures } : {}) });
+    if (!text.trim() && !attachments.length) throw new Error('Write something, or attach something, to send');
+    if (chat.status === 'idle') return this.sendTo(chat, text, true, attachments);
+    chat.queued.push({ id: randomUUID(), text, ...(attachments.length ? { attachments } : {}) });
     this.dropSuggestion(chat);
     this.emitQueued(chat);
   }
@@ -565,7 +565,7 @@ export class AgentHub {
     const { autoModel, ...kept } = chat.settings;
     chat.settings = { ...kept, ...(autoModel && !change.model ? { autoModel } : {}), ...change };
     if (!chat.settings.mcpOff?.length) delete chat.settings.mcpOff;
-    this.store.chapters.add({ chatId, agent: chat.agent.info.id, settings: chat.settings });
+    this.store.chats.add({ chatId, agent: chat.agent.info.id, settings: chat.settings });
     this.emit('agents.settings', { chatId, settings: chat.settings });
     if (servers) this.restartWhenIdle(chat);
   }
@@ -579,17 +579,17 @@ export class AgentHub {
   }
 
   /**
-   * What the helper the chat's tool call `toolId` started did: as it went,
-   * while the chat was live, or else as the agent saved it. A helper whose
+   * What the subagent the chat's tool call `toolId` started did: as it went,
+   * while the chat was live, or else as the agent saved it. A subagent whose
    * work didn't come live, such as one a message resumed, reads as saved,
    * where it is with its task as it came live.
    */
-  async helper(chatId: ChatId, toolId: string): Promise<HelperRun> {
+  async subagent(chatId: ChatId, toolId: string): Promise<SubagentRun> {
     const chat = this.chat(chatId);
-    const live = chat.helpers.get(toolId);
+    const live = chat.subagents.get(toolId);
     if (live?.entries.length) return structuredClone(live);
-    const saved = chat.agent.helper
-      ? await chat.agent.helper(chat.id, chat.settings.cwd, toolId)
+    const saved = chat.agent.subagent
+      ? await chat.agent.subagent(chat.id, chat.settings.cwd, toolId)
       : { entries: [] };
     return live?.state ? { ...saved, state: live.state } : saved;
   }
@@ -624,7 +624,7 @@ export class AgentHub {
 
   /**
    * Forks a chat after the turn one of your entries began into a variant,
-   * such as "Context meter (a)", and opens it as a chapter.
+   * such as "Context meter (a)", and opens it.
    */
   async fork(chatId: ChatId, entryId: string): Promise<OpenChat> {
     const chat = this.chat(chatId);
@@ -652,7 +652,7 @@ export class AgentHub {
     return `${base} (${letter ?? 'z'})`;
   }
 
-  /** Folds a chat's dog-ear down, or unfolds it. */
+  /** Folds a chat's pin down, or unfolds it. */
   /** Renames a chat with its agent. */
   async rename(chatId: ChatId, title: string): Promise<void> {
     const chat = this.chat(chatId);
@@ -665,12 +665,12 @@ export class AgentHub {
     this.retitled(chat);
   }
 
-  dogEar(chatId: ChatId, dogEar: DogEar, folded: boolean): void {
-    this.store.dogEars.set(chatId, dogEar, folded);
-    const dogEars = this.store.dogEars.of(chatId);
+  pin(chatId: ChatId, pin: Pin, folded: boolean): void {
+    this.store.pins.set(chatId, pin, folded);
+    const pins = this.store.pins.of(chatId);
     const chat = this.chats.get(chatId);
-    if (chat) chat.dogEars = dogEars;
-    this.emit('agents.dogEars', { chatId, dogEars });
+    if (chat) chat.pins = pins;
+    this.emit('agents.pins', { chatId, pins });
   }
 
   /** Sets a chat's tags: trimmed, without blanks, and each once whatever its case. */
@@ -687,7 +687,7 @@ export class AgentHub {
 
   /**
    * Takes one of the separate tasks the chat offered, by its place among
-   * them: it goes from the chat, and what a new chapter for it begins with
+   * them: it goes from the chat, and what a new chat for it begins with
    * comes back. It works where the chat does, at its model, effort,
    * permission and MCP servers.
    */
@@ -752,11 +752,11 @@ export class AgentHub {
   }
 
   /**
-   * Closes a chat's chapter: it's no longer open after a restart. When it
+   * Closes an open chat: it's no longer open after a restart. When it
    * edited, the chat sent in parallel with it opened first after it edits from now on.
    */
   close(chatId: ChatId): void {
-    this.store.chapters.remove(chatId);
+    this.store.chats.remove(chatId);
     this.release(chatId);
     this.settleEditors();
   }
@@ -787,7 +787,7 @@ export class AgentHub {
 
   /**
    * Stops every open chat's process and forgets the chats, but keeps their
-   * chapters, as when another profile is put in use: they reopen when it's
+   * chats, as when another profile is put in use: they reopen when it's
    * back. Who the agents were signed in as, and the setups and memories
    * watched, are forgotten too.
    */
@@ -828,7 +828,7 @@ export class AgentHub {
    * edits. Each chat that changed hears so.
    */
   private settleEditors(): void {
-    const order = this.store.chapters.list().map((chapter) => chapter.chatId);
+    const order = this.store.chats.list().map((chat) => chat.chatId);
     const place = (chat: ChatState) => (order.includes(chat.id) ? order.indexOf(chat.id) : order.length);
     const groups = new Map<string, ChatState[]>();
     for (const chat of this.chats.values()) {
@@ -888,12 +888,12 @@ export class AgentHub {
       queued: [],
       plan: [],
       withdrawn: [],
-      dogEars: [],
+      pins: [],
       tags: [],
       copied: [],
       processes: 0,
       restart: false,
-      helpers: new Map(),
+      subagents: new Map(),
       pendingText: new Map(),
     };
     this.chats.set(id, chat);
@@ -946,12 +946,12 @@ export class AgentHub {
     live?.close();
   }
 
-  private sendTo(chat: ChatState, text: string, resume: boolean, enclosures: Enclosure[] = []): void {
+  private sendTo(chat: ChatState, text: string, resume: boolean, attachments: Attachment[] = []): void {
     chat.live ??= chat.agent.run(chat.id, chat.settings, resume, this.eventsFor(chat));
     const id = randomUUID();
-    this.upsert(chat, userEntry(id, text, enclosures));
+    this.upsert(chat, userEntry(id, text, attachments));
     if (chat.status === 'idle') this.setStatus(chat, 'thinking');
-    chat.live.send(text, id, enclosures);
+    chat.live.send(text, id, attachments);
   }
 
   /** A turn ended: the next queued message goes. */
@@ -959,7 +959,7 @@ export class AgentHub {
     const next = chat.queued.shift();
     if (!next) return;
     this.emitQueued(chat);
-    this.sendTo(chat, next.text, true, next.enclosures);
+    this.sendTo(chat, next.text, true, next.attachments);
   }
 
   private emitQueued(chat: ChatState): void {
@@ -980,18 +980,18 @@ export class AgentHub {
       text: (entryId, block, text) => {
         if (current()) this.appendText(chat, entryId, block, text);
       },
-      helperEntry: (toolId, update) => {
+      subagentEntry: (toolId, update) => {
         if (!current()) return;
         const entry = structuredClone(update);
-        const { entries } = this.helperRun(chat, toolId);
+        const { entries } = this.subagentRun(chat, toolId);
         const index = entries.findIndex((existing) => existing.id === entry.id);
         entry.at ??= entries[index]?.at ?? Date.now();
         if (index === -1) entries.push(entry);
         else entries[index] = entry;
-        this.emit('agents.helperEntry', { chatId: chat.id, toolId, entry });
+        this.emit('agents.subagentEntry', { chatId: chat.id, toolId, entry });
       },
-      helperState: (toolId, state) => {
-        if (current()) this.setHelperState(chat, toolId, state);
+      subagentState: (toolId, state) => {
+        if (current()) this.setSubagentState(chat, toolId, state);
       },
       approval: (request, signal) =>
         new Promise<Verdict>((resolve) => {
@@ -1064,9 +1064,9 @@ export class AgentHub {
         chat.live = undefined;
         chat.restart = false;
         this.settleAll(chat);
-        // Helpers still at work in the background end with the process.
-        for (const [toolId, run] of chat.helpers)
-          if (run.state === 'working') this.setHelperState(chat, toolId, 'stopped');
+        // Subagents still at work in the background end with the process.
+        for (const [toolId, run] of chat.subagents)
+          if (run.state === 'working') this.setSubagentState(chat, toolId, 'stopped');
         this.cancelHooks(chat);
         if (chat.status !== 'idle') {
           this.timeTurn(chat);
@@ -1078,16 +1078,16 @@ export class AgentHub {
     };
   }
 
-  /** The run of the helper the chat's tool call `toolId` started, kept from its first word. */
-  private helperRun(chat: ChatState, toolId: string): HelperRun {
-    let run = chat.helpers.get(toolId);
-    if (!run) chat.helpers.set(toolId, (run = { entries: [] }));
+  /** The run of the subagent the chat's tool call `toolId` started, kept from its first word. */
+  private subagentRun(chat: ChatState, toolId: string): SubagentRun {
+    let run = chat.subagents.get(toolId);
+    if (!run) chat.subagents.set(toolId, (run = { entries: [] }));
     return run;
   }
 
-  private setHelperState(chat: ChatState, toolId: string, state: HelperState): void {
-    this.helperRun(chat, toolId).state = state;
-    this.emit('agents.helperState', { chatId: chat.id, toolId, state });
+  private setSubagentState(chat: ChatState, toolId: string, state: SubagentState): void {
+    this.subagentRun(chat, toolId).state = state;
+    this.emit('agents.subagentState', { chatId: chat.id, toolId, state });
   }
 
   private upsert(chat: ChatState, update: Entry): void {
@@ -1230,7 +1230,7 @@ export class AgentHub {
       ...(chat.cache ? { cache: chat.cache } : {}),
       plan: chat.plan,
       withdrawn: [...chat.withdrawn],
-      dogEars: [...chat.dogEars],
+      pins: [...chat.pins],
       tags: [...chat.tags],
       copied: [...chat.copied],
       ...(chat.suggestion !== undefined ? { suggestion: chat.suggestion } : {}),
@@ -1252,8 +1252,8 @@ export class AgentHub {
   }
 }
 
-function userEntry(id: string, text: string, enclosures: Enclosure[]): Entry {
-  return { kind: 'user', id, text, ...(enclosures.length ? { enclosures } : {}) };
+function userEntry(id: string, text: string, attachments: Attachment[]): Entry {
+  return { kind: 'user', id, text, ...(attachments.length ? { attachments } : {}) };
 }
 
 /** Whether two lists name the same, in any order. */

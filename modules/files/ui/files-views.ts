@@ -14,7 +14,7 @@ export interface FilesNote {
 
 const UNSAVED: FilesNote = { text: 'Save your changes, or discard them, first.', alert: true };
 
-/** A folder's Files page as you left it, kept while the facing page shows another. */
+/** A folder's Files page as you left it, kept while the right page shows another. */
 export class FilesView {
   /** The folder the page shows, once it's read. */
   readonly root = signal<string | null>(null);
@@ -62,7 +62,7 @@ export class FilesViews {
   private readonly chats = inject(Chats);
   private readonly views = new Map<string, FilesView>();
 
-  /** The folder the page shows: the open chapter's; your home folder until you pick another. */
+  /** The folder the page shows: the open chat's; your home folder until you pick another. */
   readonly cwd = computed(() => this.chats.current()?.settings.cwd ?? this.chats.folders().home);
 
   constructor() {

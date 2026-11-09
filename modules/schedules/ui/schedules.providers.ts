@@ -1,20 +1,20 @@
 import { type EnvironmentProviders, effect, inject } from '@angular/core';
-import { Facing } from '@ui/app/shell/facing';
+import { RightPageState } from '@ui/app/shell/right-page-state';
 import { provideShellEntries } from '@ui/app/shell/shell-registry';
 import { ScheduledChats } from './scheduled-chats';
 import { SchedulesPage } from './schedules-page';
 import { upcoming } from './wording';
 
 /**
- * The scheduled chats module (ADR-008): its thumb tab turns the facing
- * page to the schedules, and the running foot names the next run. A run's
- * chapter joins the book as it begins, whichever page is open.
+ * The scheduled chats module (ADR-008): its page tab turns the right
+ * page to the schedules, and the page footer names the next run. A run's
+ * chat joins the book as it begins, whichever page is open.
  */
 export function provideScheduledChats(): EnvironmentProviders {
   return provideShellEntries((shell) => {
     const scheduled = inject(ScheduledChats);
-    const facing = inject(Facing);
-    shell.thumbs.add({ id: 'scheduled-chats', label: 'Scheduled chats', order: 40, component: SchedulesPage });
+    const rightPage = inject(RightPageState);
+    shell.pageTabs.add({ id: 'scheduled-chats', label: 'Scheduled chats', order: 40, component: SchedulesPage });
 
     effect((onCleanup) => {
       const next = scheduled.next();
@@ -31,7 +31,7 @@ export function provideScheduledChats(): EnvironmentProviders {
             hour: 'numeric',
             minute: '2-digit',
           })}`,
-          open: () => facing.openThumb('scheduled-chats'),
+          open: () => rightPage.openPageTab('scheduled-chats'),
         }),
       );
     });

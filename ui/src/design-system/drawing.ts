@@ -1,7 +1,7 @@
 import { Component, booleanAttribute, computed, input } from '@angular/core';
 
 /** The drawings a theme provides, each as a --gr-drawing-<name> token. */
-export type DrawingName = 'empty-page' | 'spine' | 'thought' | 'chapter-opening';
+export type DrawingName = 'empty-page' | 'spine' | 'thought' | 'chat-intro';
 
 /**
  * One of the theme's drawings, painted in the current text colour. The

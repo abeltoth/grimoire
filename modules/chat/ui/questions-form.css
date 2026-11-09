@@ -189,7 +189,7 @@ legend i {
   padding: var(--gr-form-send-pad);
   font-style: normal;
   font-family: var(--gr-font-sc);
-  font-size: var(--gr-size-seal-button);
+  font-size: var(--gr-size-approve-button);
   font-weight: 500;
   letter-spacing: var(--gr-tracking-form-send);
   color: var(--gr-rubric);

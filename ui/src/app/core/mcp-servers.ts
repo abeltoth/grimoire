@@ -10,7 +10,7 @@ const keyOf = (agent: AgentId, cwd: string | undefined) => `${agent}\n${cwd ? fo
 
 /**
  * The MCP servers an agent loads in a folder, as its setup lists them, to
- * turn off for one chapter or for every one. Each folder's is read once
+ * turn off for one chat or for every one. Each folder's is read once
  * it's asked for, and again when its setup changes.
  */
 @Injectable({ providedIn: 'root' })

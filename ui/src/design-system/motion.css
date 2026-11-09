@@ -46,7 +46,7 @@
   }
 }
 
-/* The ribbon that is waiting for you. */
+/* The chat tab that is waiting for you. */
 @keyframes gr-sway {
   0%,
   100% {
@@ -63,7 +63,7 @@
 @keyframes gr-glow {
   0%,
   100% {
-    filter: drop-shadow(var(--gr-shadow-ribbon));
+    filter: drop-shadow(var(--gr-shadow-chat-tab));
   }
   50% {
     filter: drop-shadow(0 0 10px var(--gr-glow));
@@ -84,7 +84,7 @@
   }
 }
 
-/* Sheen on the open chapter's ribbon. */
+/* Sheen on the open chat's chat tab. */
 @keyframes gr-sheen {
   from {
     background-position: 120% 0;
@@ -94,7 +94,7 @@
   }
 }
 
-/* The bell on a ribbon that waits for you. */
+/* The bell on a chat tab that waits for you. */
 @keyframes gr-breathe {
   0%,
   100% {
@@ -105,7 +105,7 @@
   }
 }
 
-/* The seal waiting for you. */
+/* The approval waiting for you. */
 @keyframes gr-await {
   0% {
     opacity: 0.75;
@@ -117,7 +117,7 @@
   }
 }
 
-/* Turning a leaf, e.g. to the index. */
+/* Turning a leaf, e.g. to the command palette. */
 @keyframes gr-leaf {
   0% {
     transform: perspective(2600px) rotateY(0);

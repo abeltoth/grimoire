@@ -330,14 +330,14 @@ describe('AgentHub', () => {
     ]);
   });
 
-  it("keeps what a helper does as it goes, apart from the chat's transcript, and tells every window", async () => {
+  it("keeps what a subagent does as it goes, apart from the chat's transcript, and tells every window", async () => {
     const { id } = await hub.start('fake', settings, 'Hello');
     const run = fake.runOf(id);
-    run.events.helperEntry('toolu_1', reply('h1', 'Looking'));
-    run.events.helperEntry('toolu_1', reply('h1', 'Looking around'));
-    run.events.helperEntry('toolu_1', reply('h2', 'Found it'));
+    run.events.subagentEntry('toolu_1', reply('h1', 'Looking'));
+    run.events.subagentEntry('toolu_1', reply('h1', 'Looking around'));
+    run.events.subagentEntry('toolu_1', reply('h2', 'Found it'));
 
-    expect(await hub.helper(id, 'toolu_1')).toMatchObject({
+    expect(await hub.subagent(id, 'toolu_1')).toMatchObject({
       entries: [
         { id: 'h1', blocks: [{ text: 'Looking around' }] },
         { id: 'h2', blocks: [{ text: 'Found it' }] },
@@ -345,50 +345,50 @@ describe('AgentHub', () => {
     });
     expect((await hub.open('fake', id, settings)).entries.map((entry) => entry.id)).not.toContain('h1');
     expect(sent.at(-1)).toMatchObject({
-      event: 'agents.helperEntry',
+      event: 'agents.subagentEntry',
       payload: { chatId: id, toolId: 'toolu_1', entry: { id: 'h2' } },
     });
   });
 
-  it('keeps where a helper is with its task, tells every window, and stops those at work with the process', async () => {
+  it('keeps where a subagent is with its task, tells every window, and stops those at work with the process', async () => {
     const { id } = await hub.start('fake', settings, 'Hello');
     const run = fake.runOf(id);
-    run.events.helperState('toolu_1', 'working');
+    run.events.subagentState('toolu_1', 'working');
     expect(sent.at(-1)).toEqual({
-      event: 'agents.helperState',
+      event: 'agents.subagentState',
       payload: { chatId: id, toolId: 'toolu_1', state: 'working' },
     });
-    expect(await hub.helper(id, 'toolu_1')).toEqual({ entries: [], state: 'working' });
+    expect(await hub.subagent(id, 'toolu_1')).toEqual({ entries: [], state: 'working' });
 
-    run.events.helperEntry('toolu_1', reply('h1', 'Found it'));
-    run.events.helperState('toolu_2', 'working');
-    run.events.helperState('toolu_2', 'done');
-    expect(await hub.helper(id, 'toolu_1')).toMatchObject({ entries: [{ id: 'h1' }], state: 'working' });
-    expect(await hub.helper(id, 'toolu_2')).toEqual({ entries: [], state: 'done' });
+    run.events.subagentEntry('toolu_1', reply('h1', 'Found it'));
+    run.events.subagentState('toolu_2', 'working');
+    run.events.subagentState('toolu_2', 'done');
+    expect(await hub.subagent(id, 'toolu_1')).toMatchObject({ entries: [{ id: 'h1' }], state: 'working' });
+    expect(await hub.subagent(id, 'toolu_2')).toEqual({ entries: [], state: 'done' });
 
     run.events.closed();
-    expect(sent.filter((s) => s.event === 'agents.helperState').at(-1)).toEqual({
-      event: 'agents.helperState',
+    expect(sent.filter((s) => s.event === 'agents.subagentState').at(-1)).toEqual({
+      event: 'agents.subagentState',
       payload: { chatId: id, toolId: 'toolu_1', state: 'stopped' },
     });
-    expect((await hub.helper(id, 'toolu_2')).state).toBe('done');
+    expect((await hub.subagent(id, 'toolu_2')).state).toBe('done');
   });
 
-  it("reads a saved helper's run from the agent, and has none it kept no record of", async () => {
-    fake.helpers.set('toolu_9', { entries: [reply('h9', 'Done earlier')], state: 'done' });
+  it("reads a saved subagent's run from the agent, and has none it kept no record of", async () => {
+    fake.subagents.set('toolu_9', { entries: [reply('h9', 'Done earlier')], state: 'done' });
     await hub.open('fake', 'c1', settings);
 
-    expect(await hub.helper('c1', 'toolu_9')).toMatchObject({ entries: [{ id: 'h9' }], state: 'done' });
-    expect(await hub.helper('c1', 'toolu_0')).toEqual({ entries: [] });
-    await expect(hub.helper('closed', 'toolu_9')).rejects.toThrow('This chat is not open');
+    expect(await hub.subagent('c1', 'toolu_9')).toMatchObject({ entries: [{ id: 'h9' }], state: 'done' });
+    expect(await hub.subagent('c1', 'toolu_0')).toEqual({ entries: [] });
+    await expect(hub.subagent('closed', 'toolu_9')).rejects.toThrow('This chat is not open');
   });
 
-  it("reads a helper whose work didn't come live as saved, where it is as it came live", async () => {
+  it("reads a subagent whose work didn't come live as saved, where it is as it came live", async () => {
     const { id } = await hub.start('fake', settings, 'Hello');
-    fake.helpers.set('toolu_s', { entries: [reply('h1', 'Resumed')], state: 'done' });
-    fake.runOf(id).events.helperState('toolu_s', 'working');
+    fake.subagents.set('toolu_s', { entries: [reply('h1', 'Resumed')], state: 'done' });
+    fake.runOf(id).events.subagentState('toolu_s', 'working');
 
-    expect(await hub.helper(id, 'toolu_s')).toMatchObject({ entries: [{ id: 'h1' }], state: 'working' });
+    expect(await hub.subagent(id, 'toolu_s')).toMatchObject({ entries: [{ id: 'h1' }], state: 'working' });
   });
 
   it('waits for your decision on an approval', async () => {
@@ -490,7 +490,7 @@ describe('AgentHub', () => {
       await expect(hub.parallel({ chatId: 'c1' }, 'small', 'Bigger')).rejects.toThrow('Wait for the turn to end');
     });
 
-    it('begins the second afresh for a new chapter, its title a variant of the first', async () => {
+    it('begins the second afresh for a new chat, its title a variant of the first', async () => {
       fake.chats = [{ id: 'c1', agent: 'fake', title: 'Login bug', cwd: '/work', updatedAt: 1 }];
       const second = await hub.parallel(
         { agent: 'fake', settings: { ...settings, mode: 'plan' }, title: 'Login bug', alongside: 'c0' },
@@ -615,7 +615,7 @@ describe('AgentHub', () => {
       hub.takeOver(copy.id);
       hub.closeAll();
 
-      // The service starts again on the same database; the chapters reopen in any order.
+      // The service starts again on the same database; the chats reopen in any order.
       sent = [];
       const again = new AgentHub((event, payload) => sent.push({ event, payload } as Sent), 50, store);
       again.addAdapter(fake);
@@ -807,7 +807,7 @@ describe('AgentHub', () => {
 
   it('remembers the open chats, and reopens them after a restart', async () => {
     const store = hubStore(openDatabase(':memory:'));
-    const { chapters } = store;
+    const { chats } = store;
     hub = new AgentHub(() => {}, 50, store);
     hub.addAdapter(fake);
     fake.transcripts.set('saved', [{ kind: 'user', id: 'u1', text: 'Earlier' }]);
@@ -821,13 +821,13 @@ describe('AgentHub', () => {
     const restarted = new AgentHub(() => {}, 50, store);
     restarted.addAdapter(fake);
     fake.transcripts.set(started.id, [{ kind: 'user', id: 'u2', text: 'Hello' }]);
-    chapters.add({ chatId: 'gone', agent: 'unknown-agent', settings });
-    const chats = await restarted.openChats();
-    expect(chats).toMatchObject([
+    chats.add({ chatId: 'gone', agent: 'unknown-agent', settings });
+    const reopened = await restarted.openChats();
+    expect(reopened).toMatchObject([
       { id: started.id, status: 'idle', entries: [{ text: 'Hello' }] },
       { id: 'saved', status: 'idle', entries: [{ text: 'Earlier' }] },
     ]);
-    expect(chapters.list().map((c) => c.chatId)).toEqual([started.id, 'saved']);
+    expect(chats.list().map((c) => c.chatId)).toEqual([started.id, 'saved']);
   });
 
   it('starts a chat under the ID the agent picks, and stops its spare on closeAll', async () => {
@@ -864,7 +864,7 @@ describe('AgentHub', () => {
 
   it('changes a chat\'s model and permission, live and for after a restart', async () => {
     const store = hubStore(openDatabase(':memory:'));
-    const { chapters } = store;
+    const { chats } = store;
     hub = new AgentHub((event, payload) => sent.push({ event, payload } as Sent), 50, store);
     hub.addAdapter(fake);
     const { id } = await hub.start('fake', settings, 'Hello');
@@ -875,7 +875,7 @@ describe('AgentHub', () => {
     expect(sent).toEqual([
       { event: 'agents.settings', payload: { chatId: id, settings: { ...settings, model: 'small', mode: 'plan' } } },
     ]);
-    expect(chapters.list()[0]?.settings).toEqual({ ...settings, model: 'small', mode: 'plan' });
+    expect(chats.list()[0]?.settings).toEqual({ ...settings, model: 'small', mode: 'plan' });
   });
 
   it("turns a chat's MCP servers off from its next turn, starting its process again", async () => {
@@ -893,7 +893,7 @@ describe('AgentHub', () => {
     expect(sent).toEqual([
       { event: 'agents.settings', payload: { chatId: id, settings: { ...settings, mcpOff: ['github'] } } },
     ]);
-    expect(store.chapters.list()[0]?.settings).toEqual({ ...settings, mcpOff: ['github'] });
+    expect(store.chats.list()[0]?.settings).toEqual({ ...settings, mcpOff: ['github'] });
     working.events.turnEnded();
     expect(working.closed).toBe(true);
     hub.send(id, 'Again');
@@ -906,7 +906,7 @@ describe('AgentHub', () => {
     expect(again.closed).toBe(false);
     await hub.configure(id, { mcpOff: [] });
     expect(again.closed).toBe(true);
-    expect(store.chapters.list()[0]?.settings).toEqual(settings);
+    expect(store.chats.list()[0]?.settings).toEqual(settings);
 
     // Those off in every chat changed: every open chat starts again, as soon as no turn runs.
     hub.send(id, 'Once more');
@@ -1089,31 +1089,31 @@ describe('AgentHub', () => {
     expect((await restarted.open('fake', id, settings)).tags).toEqual(['bug']);
   });
 
-  it('pins and stars chats with dog-ears, kept across restarts', async () => {
+  it('pins and stars chats, kept across restarts', async () => {
     const store = hubStore(openDatabase(':memory:'));
     hub = new AgentHub((event, payload) => sent.push({ event, payload } as Sent), 50, store);
     hub.addAdapter(fake);
     const { id } = await hub.start('fake', settings, 'Hello');
     sent = [];
 
-    hub.dogEar(id, 'star', true);
-    hub.dogEar(id, 'pin', true);
-    hub.dogEar(id, 'star', false);
+    hub.pin(id, 'star', true);
+    hub.pin(id, 'pin', true);
+    hub.pin(id, 'star', false);
     expect(sent.map((s) => s.payload)).toEqual([
-      { chatId: id, dogEars: ['star'] },
-      { chatId: id, dogEars: ['pin', 'star'] },
-      { chatId: id, dogEars: ['pin'] },
+      { chatId: id, pins: ['star'] },
+      { chatId: id, pins: ['pin', 'star'] },
+      { chatId: id, pins: ['pin'] },
     ]);
-    expect((await hub.open('fake', id, settings)).dogEars).toEqual(['pin']);
+    expect((await hub.open('fake', id, settings)).pins).toEqual(['pin']);
     fake.chats = [
       { id, agent: 'fake', title: 'Pinned', updatedAt: 0 },
       { id: 'other', agent: 'fake', title: 'Plain', updatedAt: 1 },
     ];
-    expect((await hub.listChats('fake')).map((chat) => chat.dogEars)).toEqual([['pin'], []]);
+    expect((await hub.listChats('fake')).map((chat) => chat.pins)).toEqual([['pin'], []]);
 
     const restarted = new AgentHub(() => {}, 50, store);
     restarted.addAdapter(fake);
-    expect((await restarted.open('fake', id, settings)).dogEars).toEqual(['pin']);
+    expect((await restarted.open('fake', id, settings)).pins).toEqual(['pin']);
   });
 
   it('passes interrupts to the agent', async () => {
@@ -1127,16 +1127,16 @@ describe('AgentHub', () => {
     const file = { kind: 'file', path: '/work/ribbon.ts' } as const;
     const { id, entries } = await hub.start('fake', settings, 'Look', undefined, [picture]);
     const run = fake.runOf(id);
-    expect(entries[0]).toMatchObject({ kind: 'user', text: 'Look', enclosures: [picture] });
-    expect(run.sentEnclosures).toEqual([[picture]]);
+    expect(entries[0]).toMatchObject({ kind: 'user', text: 'Look', attachments: [picture] });
+    expect(run.sentAttachments).toEqual([[picture]]);
 
     hub.send(id, '', [file]);
     expect(sent.filter((s) => s.event === 'agents.queued').at(-1)!.payload).toEqual({
       chatId: id,
-      queued: [{ id: expect.any(String), text: '', enclosures: [file] }],
+      queued: [{ id: expect.any(String), text: '', attachments: [file] }],
     });
     run.events.turnEnded();
-    expect(run.sentEnclosures).toEqual([[picture], [file]]);
+    expect(run.sentAttachments).toEqual([[picture], [file]]);
     expect(() => hub.send(id, '  ')).toThrow('Write something, or attach something, to send');
   });
 
@@ -1233,7 +1233,7 @@ describe('AgentHub', () => {
       expect((await hub.open('fake', id, settings)).followUps).toBeUndefined();
     });
 
-    it('gives what a new chapter for one begins with, and the others stay', async () => {
+    it('gives what a new chat for one begins with, and the others stay', async () => {
       const { id } = await hub.start(
         'fake',
         { ...settings, model: 'small', effort: 'high', mode: 'plan', mcpOff: ['github'] },
@@ -1337,7 +1337,7 @@ describe('putting the chats away for another profile', () => {
     expect(hub.busy()).toBe('A sign-in is under way: finish or cancel it first');
   });
 
-  it('stops the processes, keeps the chapters, and opens the new profile’s', async () => {
+  it('stops the processes, keeps the chats, and opens the new profile’s', async () => {
     const db = openDatabase(':memory:');
     const store = hubStore(db);
     hub = new AgentHub(() => {}, 50, store);

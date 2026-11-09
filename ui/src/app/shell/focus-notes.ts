@@ -1,14 +1,14 @@
 import { computed, effect, inject } from '@angular/core';
-import { type Chapter, Chats } from '../core/chats';
+import { type Chat, Chats } from '../core/chats';
 import { Wording } from '../core/wording';
-import { Facing } from './facing';
+import { RightPageState } from './right-page-state';
 import { Focus } from './focus';
 import type { ShellRegistry } from './shell-registry';
 
 interface Note {
   label: string;
   detail: string;
-  /** The chapter it opens, when it opens one. */
+  /** The chat it opens, when it opens one. */
   opens?: string;
 }
 
@@ -23,34 +23,34 @@ function list(names: readonly string[]): string {
 }
 
 /**
- * In focus mode the ribbons are put away, so the running foot notes the
- * other chapters waiting for you: the slips awaiting your seal, which it
- * turns the facing page to, and the agents' questions, which it opens
- * the asking chapter at. The chapter on the desk shows its own on its page.
+ * In focus mode the chat tabs are put away, so the page footer notes the
+ * other chats waiting for you: the waiting approvals, which it
+ * turns the right page to, and the agents' questions, which it opens
+ * the asking chat at. The chat on the desk shows its own on its page.
  */
-export function noteWaitingChapters(shell: ShellRegistry): void {
+export function noteWaitingChats(shell: ShellRegistry): void {
   const focus = inject(Focus);
   const chats = inject(Chats);
-  const facing = inject(Facing);
+  const rightPage = inject(RightPageState);
   const wording = inject(Wording);
 
   const others = computed(() =>
-    focus.on() ? chats.all().filter((chapter) => chapter.id !== chats.currentId()) : [],
+    focus.on() ? chats.all().filter((chat) => chat.id !== chats.currentId()) : [],
   );
-  const title = (chapter: Chapter) => chapter.title || wording.untitled();
+  const title = (chat: Chat) => chat.title || wording.untitled();
 
-  const seals = computed<Note | null>(
+  const approvals = computed<Note | null>(
     () => {
-      const sealing = others().filter((c) => c.approvals.some((a) => !a.questions));
-      if (!sealing.length) return null;
-      const count = sealing.reduce(
+      const awaitingApproval = others().filter((c) => c.approvals.some((a) => !a.questions));
+      if (!awaitingApproval.length) return null;
+      const count = awaitingApproval.reduce(
         (sum, c) => sum + c.approvals.filter((a) => !a.questions).length,
         0,
       );
-      const approvals = `${count} ${count === 1 ? 'approval' : 'approvals'}`;
+      const counted = `${count} ${count === 1 ? 'approval' : 'approvals'}`;
       return {
-        label: wording.say(`${approvals} awaiting your seal`, `${approvals} waiting`),
-        detail: `From ${list(sealing.map(title))}`,
+        label: wording.say(`${counted} awaiting your seal`, `${counted} waiting`),
+        detail: `From ${list(awaitingApproval.map(title))}`,
       };
     },
     { equal: sameNote },
@@ -77,17 +77,17 @@ export function noteWaitingChapters(shell: ShellRegistry): void {
   );
 
   effect((onCleanup) => {
-    const note = seals();
+    const note = approvals();
     if (!note) return;
     onCleanup(
       shell.indicators.add({
-        id: 'focus.seals',
+        id: 'focus.approvals',
         label: note.label,
-        icon: 'seal',
+        icon: 'approval',
         tone: 'alert',
         order: 0,
         detail: note.detail,
-        open: () => facing.openSeals(),
+        open: () => rightPage.openApprovals(),
       }),
     );
   });

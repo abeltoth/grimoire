@@ -2,11 +2,11 @@ import type {
   AgentEntry,
   Block,
   ChatStatus,
-  Enclosure,
+  Attachment,
   Entry,
-  HelperState,
+  SubagentState,
   HookRun,
-  PictureEnclosure,
+  PictureAttachment,
   PlanStep,
   TokenCounts,
   TokenUse,
@@ -27,7 +27,7 @@ export interface ClaudeMessage {
   event?: unknown;
   /** A note Claude Code added to a run, rather than what someone wrote. */
   is_meta?: boolean;
-  /** Who sent a message into a run: the agent that asked a helper is its "coordinator". */
+  /** Who sent a message into a run: the agent that asked a subagent is its "coordinator". */
   origin?: { kind?: string };
 }
 
@@ -89,18 +89,18 @@ export interface TranscriptListener {
   plan(plan: PlanStep[]): void;
   /** What the running turn has spent so far, by model. */
   tokens?(uses: TokenUse[]): void;
-  /** A new or changed entry in the run of the helper the tool call `toolId` started. */
-  helperEntry?(toolId: string, entry: Entry): void;
-  /** The helper the tool call `toolId` started began, or ended its task. */
-  helperState?(toolId: string, state: HelperState): void;
+  /** A new or changed entry in the run of the subagent the tool call `toolId` started. */
+  subagentEntry?(toolId: string, entry: Entry): void;
+  /** The subagent the tool call `toolId` started began, or ended its task. */
+  subagentState?(toolId: string, state: SubagentState): void;
   /** The hooks that ran on the live turn so far, and any begun before it that still run. */
   hooks?(runs: HookRun[]): void;
 }
 
-/** The tool a helper ends its run with, its report to the agent that asked in its input's `message`. */
+/** The tool a subagent ends its run with, its report to the agent that asked in its input's `message`. */
 export const HANDBACK_TOOL = 'SubagentHandback';
 
-/** The tool an agent sends a helper another message with, which resumes its run. */
+/** The tool an agent sends a subagent another message with, which resumes its run. */
 export const SEND_TOOL = 'SendMessage';
 
 /**
@@ -110,13 +110,13 @@ export const SEND_TOOL = 'SendMessage';
 export const FOLLOW_UPS_TOOL = 'mcp__grimoire__suggest_follow_ups';
 
 /**
- * The ID Claude Code keeps a helper's saved run by, from the result of the
+ * The ID Claude Code keeps a subagent's saved run by, from the result of the
  * tool call that started it; undefined when it names none. Older results
  * end on "agentId: …"; newer ones say the run's report comes "as a message
- * from" it; a message sent to a helper resumes it, and its result names it
+ * from" it; a message sent to a subagent resumes it, and its result names it
  * as "resumedAgentId".
  */
-export function helperAgentId(result: string): string | undefined {
+export function subagentAgentId(result: string): string | undefined {
   return (
     /^agentId: ([\w-]+)/m.exec(result) ??
     /message from "([\w-]+)"/.exec(result) ??
@@ -124,8 +124,8 @@ export function helperAgentId(result: string): string | undefined {
   )?.[1];
 }
 
-/** A tool call that handed a helper a task, or sent one a message: what it gave, and its result. */
-export interface HelperCall {
+/** A tool call that handed a subagent a task, or sent one a message: what it gave, and its result. */
+export interface SubagentCall {
   prompt?: string;
   /** Whom a message was sent to, when the call sent one. */
   sentTo?: string;
@@ -133,12 +133,12 @@ export interface HelperCall {
 }
 
 /**
- * The tool call `toolId` among the messages: the task it handed a helper,
+ * The tool call `toolId` among the messages: the task it handed a subagent,
  * or whom it sent a message, and its result once it has one. Undefined when
  * it isn't among them.
  */
-export function helperCallIn(messages: readonly ClaudeMessage[], toolId: string): HelperCall | undefined {
-  let call: HelperCall | undefined;
+export function subagentCallIn(messages: readonly ClaudeMessage[], toolId: string): SubagentCall | undefined {
+  let call: SubagentCall | undefined;
   for (const message of messages) {
     const content = (message.message as ApiMessage | undefined)?.content;
     if (!Array.isArray(content)) continue;
@@ -158,7 +158,7 @@ export function helperCallIn(messages: readonly ClaudeMessage[], toolId: string)
   return call;
 }
 
-/** Whether a saved helper's run began with the task `prompt`: its first message is the task it was given. */
+/** Whether a saved subagent's run began with the task `prompt`: its first message is the task it was given. */
 export function runBeganWith(messages: readonly ClaudeMessage[], prompt: string): boolean {
   const first = messages.find((message) => message.type === 'user');
   const content = (first?.message as ApiMessage | undefined)?.content;
@@ -173,10 +173,10 @@ export function runBeganWith(messages: readonly ClaudeMessage[], prompt: string)
 }
 
 /**
- * Where a saved helper is with its task: done once it handed its report
+ * Where a saved subagent is with its task: done once it handed its report
  * back, else as the result of the tool call that started it says.
  */
-export function savedHelperState(entries: readonly Entry[], result: ToolResult | undefined): HelperState {
+export function savedSubagentState(entries: readonly Entry[], result: ToolResult | undefined): SubagentState {
   const handedBack = entries.some(
     (entry) => entry.kind === 'agent' && entry.blocks.some((b) => b.kind === 'tool' && b.tool === HANDBACK_TOOL),
   );
@@ -185,11 +185,11 @@ export function savedHelperState(entries: readonly Entry[], result: ToolResult |
   return result.isError ? 'failed' : 'done';
 }
 
-/** How Claude Code opens a message the agent that asked sent a helper while it ran. */
+/** How Claude Code opens a message the agent that asked sent a subagent while it ran. */
 const SENT_WHILE_WORKING = /^The coordinator sent a message[^\n]*:\n/;
 
 /**
- * A helper's whole saved run: its task, what it did, and the messages the
+ * A subagent's whole saved run: its task, what it did, and the messages the
  * agent that asked sent it later, which resumed it. Claude Code's own notes
  * to it are left out.
  */
@@ -207,10 +207,10 @@ export function wholeRun(messages: readonly ClaudeMessage[]): Entry[] {
   return run.entries;
 }
 
-/** How a task Claude Code ran ended, as a helper's state. */
-const TASK_END: Record<string, HelperState> = { completed: 'done', failed: 'failed', stopped: 'stopped' };
+/** How a task Claude Code ran ended, as a subagent's state. */
+const TASK_END: Record<string, SubagentState> = { completed: 'done', failed: 'failed', stopped: 'stopped' };
 
-/** Claude Code's word on a task it runs, such as a helper: that it began, or how it ended. */
+/** Claude Code's word on a task it runs, such as a subagent: that it began, or how it ended. */
 interface TaskMessage {
   subtype?: string;
   tool_use_id?: string;
@@ -280,8 +280,8 @@ export class ClaudeTranscript {
   private spent: Spent = new Map();
   /** The hooks run on the live turn, and those still running from before it, by Claude Code's ID. */
   private readonly hookRuns = new Map<string, HookTimed>();
-  /** The runs of the helpers the chat's tool calls started, by tool call. */
-  private readonly helpers = new Map<string, ClaudeTranscript>();
+  /** The runs of the subagents the chat's tool calls started, by tool call. */
+  private readonly subagents = new Map<string, ClaudeTranscript>();
 
   /**
    * @param live Your own messages aren't echoed back live; the hub adds them as you send.
@@ -306,17 +306,17 @@ export class ClaudeTranscript {
     } else if (message.type === 'assistant')
       this.count(message.message as ApiMessage, !!message.parent_tool_use_id, this.turn);
     else if (message.type === 'result' && this.live) this.endTurn();
-    // Messages inside a subagent's run belong to its tool call's helper, not the chat.
-    if (message.parent_tool_use_id) return this.helperRun(message.parent_tool_use_id).take(message);
+    // Messages inside a subagent's run belong to its tool call's subagent, not the chat.
+    if (message.parent_tool_use_id) return this.subagentRun(message.parent_tool_use_id).take(message);
     this.take(message, at);
   }
 
-  /** A message from a saved helper's run, read on its own: its entries are the run's. */
+  /** A message from a saved subagent's run, read on its own: its entries are the run's. */
   applyRun(message: ClaudeMessage): void {
     this.take(message);
   }
 
-  /** A helper's task began, or ended; a background helper's tool call has its result long before. */
+  /** A subagent's task began, or ended; a background subagent's tool call has its result long before. */
   private applyTask(message: TaskMessage): void {
     const toolId = message.tool_use_id;
     if (!toolId) return;
@@ -326,7 +326,7 @@ export class ClaudeTranscript {
         : message.subtype === 'task_notification'
           ? TASK_END[message.status ?? '']
           : undefined;
-    if (state) this.listener?.helperState?.(toolId, state);
+    if (state) this.listener?.subagentState?.(toolId, state);
   }
 
   /** The live turn ended: the next starts afresh, but for the hooks still running. */
@@ -355,17 +355,17 @@ export class ClaudeTranscript {
     this.listener?.hooks?.([...this.hookRuns.values()].map(({ run }) => ({ ...run })));
   }
 
-  /** The transcript of the helper the tool call `toolId` started, its entries passed on as the helper's. */
-  private helperRun(toolId: string): ClaudeTranscript {
-    let run = this.helpers.get(toolId);
+  /** The transcript of the subagent the tool call `toolId` started, its entries passed on as the subagent's. */
+  private subagentRun(toolId: string): ClaudeTranscript {
+    let run = this.subagents.get(toolId);
     if (!run) {
       run = new ClaudeTranscript(this.live, {
-        entry: (entry) => this.listener?.helperEntry?.(toolId, entry),
+        entry: (entry) => this.listener?.subagentEntry?.(toolId, entry),
         text: () => {},
         status: () => {},
         plan: () => {},
       });
-      this.helpers.set(toolId, run);
+      this.subagents.set(toolId, run);
     }
     return run;
   }
@@ -462,7 +462,7 @@ export class ClaudeTranscript {
     if (!Array.isArray(content)) return;
 
     const texts: string[] = [];
-    const pictures: PictureEnclosure[] = [];
+    const pictures: PictureAttachment[] = [];
     for (const block of content) {
       if (block.type === 'tool_result' && block.tool_use_id)
         this.attachResult(block.tool_use_id, block);
@@ -478,15 +478,15 @@ export class ClaudeTranscript {
   }
 
   /** Your entry; the @-references on its last lines are files you attached. */
-  private addUserText(uuid: string | undefined, message: string, pictures: PictureEnclosure[]): void {
+  private addUserText(uuid: string | undefined, message: string, pictures: PictureAttachment[]): void {
     if (this.live) return;
     const { text, files } = splitReferences(message);
-    const enclosures: Enclosure[] = [...pictures, ...files];
+    const attachments: Attachment[] = [...pictures, ...files];
     this.entries.push({
       kind: 'user',
       id: uuid ?? `user-${this.entries.length}`,
       text,
-      ...(enclosures.length ? { enclosures } : {}),
+      ...(attachments.length ? { attachments } : {}),
     });
   }
 

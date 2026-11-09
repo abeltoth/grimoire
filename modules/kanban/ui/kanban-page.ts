@@ -10,14 +10,14 @@ import {
   untracked,
 } from '@angular/core';
 import type { Card, CardChat, CardColumn, JiraTransition } from '@grimoire/contract';
-import { type Chapter, Chats } from '@ui/app/core/chats';
+import { type Chat, Chats } from '@ui/app/core/chats';
 import { Wording } from '@ui/app/core/wording';
 import { Icon, type IconName } from '@ui/design-system/icon';
 import { Board, COLUMNS } from './board';
 import { CardForm } from './card-form';
 
-/** A chat's live status as a card shows it, with the ribbons' icon and motion; "not open" when it's closed. */
-const STATUS: Record<Chapter['status'], { text: string; icon?: IconName; motion?: string }> = {
+/** A chat's live status as a card shows it, with the chat tabs' icon and motion; "not open" when it's closed. */
+const STATUS: Record<Chat['status'], { text: string; icon?: IconName; motion?: string }> = {
   writing: { text: 'writing', icon: 'quill', motion: 'quill' },
   thinking: { text: 'thinking', icon: 'circle', motion: 'spin' },
   waiting: { text: 'waiting for you', icon: 'bell', motion: 'breathe' },
@@ -133,7 +133,7 @@ export class KanbanPage {
     void this.loadTitles();
     // A chat closed while the board shows keeps the title it had.
     effect(() => {
-      const named = this.chats.all().filter((chapter) => chapter.title && chapter.status !== 'blank');
+      const named = this.chats.all().filter((chat) => chat.title && chat.status !== 'blank');
       if (!named.length) return;
       untracked(() =>
         this.titles.update((titles) => new Map([...titles, ...named.map((c) => [c.id, c.title] as const)])),
@@ -151,8 +151,8 @@ export class KanbanPage {
 
   /** A chat's title: as it's open, or as the agents list it, or as it was while open. */
   protected titleOf(chatId: string): string {
-    const chapter = this.chats.all().find((c) => c.id === chatId);
-    return chapter?.title || this.titles().get(chatId) || this.wording.untitled();
+    const chat = this.chats.all().find((c) => c.id === chatId);
+    return chat?.title || this.titles().get(chatId) || this.wording.untitled();
   }
 
   /** Turns to the chat an agent added the card in, opening it again when it was closed. */
@@ -164,12 +164,12 @@ export class KanbanPage {
   protected chatsOf(card: Card): ListedChat[] {
     const open = this.chats.all();
     return card.chats.map((chat, i) => {
-      const chapter = open.find((c) => c.id === chat.chatId);
+      const live = open.find((c) => c.id === chat.chatId);
       const title = this.titleOf(chat.chatId);
       if (i !== card.chats.length - 1) return { chat, title };
-      const status = chapter ? STATUS[chapter.status] : { text: 'not open' };
-      const text = chapter?.status === 'blank' ? this.wording.say('blank page', 'new chat') : status.text;
-      return { chat, title, status: { ...status, text, tone: chapter?.status ?? 'closed' } };
+      const status = live ? STATUS[live.status] : { text: 'not open' };
+      const text = live?.status === 'blank' ? this.wording.say('blank page', 'new chat') : status.text;
+      return { chat, title, status: { ...status, text, tone: live?.status ?? 'closed' } };
     });
   }
 

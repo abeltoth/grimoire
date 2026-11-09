@@ -15,7 +15,7 @@ import {
 import type { Preset } from '@grimoire/contract';
 import { Icon } from '@ui/design-system/icon';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
-import { type Chapter, Chats, type Setting, type SettingsPick } from '@ui/app/core/chats';
+import { type Chat, Chats, type Setting, type SettingsPick } from '@ui/app/core/chats';
 import { EFFORTS } from '@ui/app/core/efforts';
 import { McpServers } from '@ui/app/core/mcp-servers';
 import { MODES } from '@ui/app/core/modes';
@@ -26,12 +26,12 @@ import { Wording } from '@ui/app/core/wording';
 const RECENT_FOLDERS = 3;
 
 /**
- * One card for all of a chapter's settings, opened from its running head
- * or its ribbon. A blank chapter takes any of them; once the chapter has
+ * One card for all of a chat's settings, opened from its page header
+ * or its chat tab. A blank chat takes any of them; once the chat has
  * begun, its agent and folder stay. Esc or a click elsewhere closes it.
  * Its presets set several at once, and "Save these settings as a preset…"
- * names the chapter's settings in place. Its folder's MCP servers can be
- * turned off for it, those off in every chapter as the Colophon says.
+ * names the chat's settings in place. Its folder's MCP servers can be
+ * turned off for it, those off in every chat as Settings says.
  */
 @Component({
   selector: 'gr-settings-card',
@@ -46,10 +46,10 @@ const RECENT_FOLDERS = 3;
   },
 })
 export class SettingsCard {
-  readonly chapter = input.required<Chapter>();
+  readonly chat = input.required<Chat>();
   /** The setting it opened on. */
   readonly on = input.required<Setting>();
-  /** What the caret points at: the setting in the running head. */
+  /** What the caret points at: the setting in the page header. */
   readonly anchor = input<HTMLElement>();
 
   protected readonly chats = inject(Chats);
@@ -65,39 +65,39 @@ export class SettingsCard {
   protected readonly modes = MODES;
   protected readonly caret = signal(0);
 
-  protected readonly begun = computed(() => this.chapter().status !== 'blank');
-  /** The preset the chapter is on, if any. */
-  protected readonly preset = computed(() => this.presets.of(this.chapter()));
-  /** Whether a preset is being named; never on a chapter you've just opened the card for. */
+  protected readonly begun = computed(() => this.chat().status !== 'blank');
+  /** The preset the chat is on, if any. */
+  protected readonly preset = computed(() => this.presets.of(this.chat()));
+  /** Whether a preset is being named; never on a chat you've just opened the card for. */
   protected readonly naming = linkedSignal({
-    source: () => this.chapter().id,
+    source: () => this.chat().id,
     computation: () => false,
   });
-  protected readonly agentName = computed(() => this.chats.agentName(this.chapter().agent));
-  protected readonly models = computed(() => this.chats.models()[this.chapter().agent]);
+  protected readonly agentName = computed(() => this.chats.agentName(this.chat().agent));
+  protected readonly models = computed(() => this.chats.models()[this.chat().agent]);
   /** On Auto, before the first entry: the model and effort are still to be picked. */
-  protected readonly auto = computed(() => !this.begun() && !!this.chapter().settings.autoModel);
+  protected readonly auto = computed(() => !this.begun() && !!this.chat().settings.autoModel);
   /** On Auto, once begun: the model was picked for the first entry. */
   protected readonly autoPicked = computed(
-    () => this.begun() && !!this.chapter().settings.autoModel,
+    () => this.begun() && !!this.chat().settings.autoModel,
   );
   protected readonly selectedModel = computed(() =>
-    this.auto() ? undefined : (this.chapter().settings.model ?? this.models()?.default),
+    this.auto() ? undefined : (this.chat().settings.model ?? this.models()?.default),
   );
   protected readonly modelName = computed(() =>
     this.auto()
       ? 'Auto'
-      : this.chats.modelName(this.chapter().agent, this.chapter().settings.model),
+      : this.chats.modelName(this.chat().agent, this.chat().settings.model),
   );
-  /** The levels the chapter's model takes, and the one it runs at. */
+  /** The levels the chat's model takes, and the one it runs at. */
   protected readonly effort = computed(() => {
-    const { levels, level } = this.chats.effortOf(this.chapter().agent, this.chapter().settings);
+    const { levels, level } = this.chats.effortOf(this.chat().agent, this.chat().settings);
     return { efforts: EFFORTS.filter((e) => levels.includes(e.level)), level };
   });
   protected readonly folder = computed(
-    () => this.chapter().settings.cwd ?? this.chats.folders().home,
+    () => this.chat().settings.cwd ?? this.chats.folders().home,
   );
-  /** The chapter's folder first, then the others used last. */
+  /** The chat's folder first, then the others used last. */
   protected readonly folders = computed(() => {
     const current = this.folder();
     const others = this.chats.folders().recent.filter((cwd) => cwd !== current);
@@ -106,10 +106,10 @@ export class SettingsCard {
 
   /**
    * The folder's MCP servers, and any turned off that it no longer lists,
-   * each saying whether it's off here or in every chapter; undefined until read.
+   * each saying whether it's off here or in every chat; undefined until read.
    */
   protected readonly servers = computed(() => {
-    const { agent, settings } = this.chapter();
+    const { agent, settings } = this.chat();
     const listed = this.mcp.of(agent, settings.cwd);
     if (!listed) return undefined;
     const everywhere = this.settings.all().mcpOff;
@@ -126,7 +126,7 @@ export class SettingsCard {
   constructor() {
     void this.presets.load();
     effect(() => {
-      const { agent, settings } = this.chapter();
+      const { agent, settings } = this.chat();
       this.mcp.load(agent, settings.cwd);
     });
     afterRenderEffect(() => this.nameField()?.nativeElement.focus());
@@ -150,13 +150,13 @@ export class SettingsCard {
   }
 
   protected pick(pick: SettingsPick): void {
-    void this.chats.configure(this.chapter().id, pick);
+    void this.chats.configure(this.chat().id, pick);
   }
 
-  /** Turns an MCP server off for the chapter, or on again; one off in every chapter stays off. */
+  /** Turns an MCP server off for the chat, or on again; one off in every chat stays off. */
   protected toggleMcp(name: string): void {
     if (this.settings.all().mcpOff.includes(name)) return;
-    const off = this.chapter().settings.mcpOff ?? [];
+    const off = this.chat().settings.mcpOff ?? [];
     this.pick({ mcpOff: off.includes(name) ? off.filter((n) => n !== name) : [...off, name] });
   }
 
@@ -165,13 +165,13 @@ export class SettingsCard {
   }
 
   protected usePreset(preset: Preset): void {
-    if (this.presets.fits(preset, this.chapter())) void this.presets.use(preset, this.chapter());
+    if (this.presets.fits(preset, this.chat())) void this.presets.use(preset, this.chat());
   }
 
   /** Saves the settings under the name written; an empty name saves nothing. */
   protected savePreset(field: HTMLInputElement): void {
     this.naming.set(false);
-    void this.presets.save(this.chapter(), field.value);
+    void this.presets.save(this.chat(), field.value);
     this.focusSave();
   }
 

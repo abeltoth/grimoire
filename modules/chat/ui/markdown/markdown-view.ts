@@ -21,7 +21,7 @@ export class MarkdownView {
   readonly text = input.required<string>();
   /** Still being written: half-finished markdown is closed as it will be. */
   readonly writing = input(false);
-  /** The number of the reply's first listing in the chapter. */
+  /** The number of the reply's first listing in the chat. */
   readonly firstListing = input(1);
   readonly tail = input<TemplateRef<unknown> | null>(null);
 

@@ -24,7 +24,7 @@ const ping: PingResult = {
 /** A bridge to a fake service: answers commands and lets tests send events. */
 export function fakeBridge(overrides: Partial<GrimoireBridge> = {}) {
   const listeners = new Map<string, Set<(payload: unknown) => void>>();
-  const leafListeners = new Set<(chatId: string) => void>();
+  const popoutListeners = new Set<(chatId: string) => void>();
   const calls: { command: string; request: unknown }[] = [];
   const answers: Partial<Record<CommandName, (request: never) => unknown>> = {
     'core.ping': () => ping,
@@ -40,7 +40,7 @@ export function fakeBridge(overrides: Partial<GrimoireBridge> = {}) {
       queued: [],
       plan: [],
       withdrawn: [],
-      dogEars: [],
+      pins: [],
 
       tags: [],
       copied: [],
@@ -84,18 +84,18 @@ export function fakeBridge(overrides: Partial<GrimoireBridge> = {}) {
     chooseFiles: vi.fn(async (): Promise<string[]> => []),
     pathOf: vi.fn(() => ''),
     popOut: vi.fn(),
-    onLeafClosed: vi.fn((listener: (chatId: string) => void) => {
-      leafListeners.add(listener);
-      return () => leafListeners.delete(listener);
+    onPopoutClosed: vi.fn((listener: (chatId: string) => void) => {
+      popoutListeners.add(listener);
+      return () => popoutListeners.delete(listener);
     }),
     openExternal: vi.fn(),
     ...overrides,
   };
   const emit = <K extends EventName>(event: K, payload: EventPayload<K>) =>
     listeners.get(event)?.forEach((listener) => listener(payload));
-  /** A loose leaf's window closed. */
-  const closeLeaf = (chatId: string) => leafListeners.forEach((listener) => listener(chatId));
-  return { bridge, calls, emit, answers, closeLeaf };
+  /** A popout's window closed. */
+  const closePopout = (chatId: string) => popoutListeners.forEach((listener) => listener(chatId));
+  return { bridge, calls, emit, answers, closePopout };
 }
 
 export async function render(bridge: GrimoireBridge, providers: (Provider | EnvironmentProviders)[] = []) {

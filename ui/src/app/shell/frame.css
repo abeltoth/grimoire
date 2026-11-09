@@ -1,0 +1,94 @@
+:host {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  position: relative;
+  z-index: 1;
+  background: var(--gr-cover);
+  border-radius: var(--gr-radius-cover);
+  padding: var(--gr-cover-rim);
+  box-shadow:
+    inset 0 0 0 1px var(--gr-cover-edge),
+    var(--gr-shadow-frame);
+}
+
+/* The gilt line tooled into the cover. */
+:host::before {
+  content: '';
+  position: absolute;
+  inset: var(--gr-gilt-line-inset);
+  border: 1px solid var(--gr-gilt-line);
+  border-radius: var(--gr-radius-gilt-line);
+  pointer-events: none;
+}
+
+.ornament {
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: var(--gr-spine-ornament-w);
+  height: var(--gr-spine-ornament-h);
+  color: var(--gr-gilt);
+  z-index: 2;
+}
+
+/* The page blocks: the leaves' edges at the foot and on both sides. */
+.spread {
+  --leaf: var(--gr-fore-edge-leaf);
+  --two-leaves: calc(var(--gr-fore-edge-leaf) * 2);
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  position: relative;
+  padding: 0 var(--gr-page-block) var(--gr-page-block-foot);
+  background:
+    repeating-linear-gradient(
+        0deg,
+        var(--gr-fore-edge-b) 0 var(--leaf),
+        var(--gr-fore-edge-a) var(--leaf) var(--two-leaves)
+      )
+      left bottom / 100% var(--gr-page-block-foot) no-repeat,
+    repeating-linear-gradient(
+        90deg,
+        var(--gr-fore-edge-a) 0 var(--leaf),
+        var(--gr-fore-edge-b) var(--leaf) var(--two-leaves)
+      )
+      left top / var(--gr-page-block) 100% no-repeat,
+    repeating-linear-gradient(
+        90deg,
+        var(--gr-fore-edge-b) 0 var(--leaf),
+        var(--gr-fore-edge-a) var(--leaf) var(--two-leaves)
+      )
+      right top / var(--gr-page-block) 100% no-repeat;
+}
+
+/* Where the pages meet at the spine. */
+.spread::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: var(--gr-spine-line);
+}
+
+/* Out of the cover: the leaves lie on the desk, their page blocks still at the edges. */
+:host(.bare) {
+  padding: 0;
+  background: none;
+  box-shadow: none;
+}
+
+:host(.bare)::before {
+  content: none;
+}
+
+:host(.bare) .spread {
+  box-shadow: var(--gr-shadow-focus-leaf);
+}
+
+:host(.single) .spread::after {
+  content: none;
+}

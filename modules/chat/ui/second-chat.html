@@ -1,0 +1,37 @@
+@if (chats.beside(); as chat) {
+  <gr-chat-page [chatId]="chat.id" beside />
+} @else {
+  <gr-page-header>
+    <div class="row">
+      <gr-right-page-tabs [current]="page" />
+    </div>
+  </gr-page-header>
+  <div class="body">
+    <p class="ask">
+      {{
+        wording.say(
+          'Which chapter goes on this page, beside the one you’re on?',
+          'Which chat goes on this page, beside the one you’re in?'
+        )
+      }}
+    </p>
+    <ul class="chats">
+      @for (chat of others(); track chat.id) {
+        <li>
+          <button type="button" class="pick" (click)="chats.putBeside(chat.id)">
+            {{ title(chat) }}
+          </button>
+          <span class="meta">{{ meta(chat) }}</span>
+        </li>
+      } @empty {
+        <li class="none">
+          {{ wording.say('No other chapter is open.', 'No other chat is open.') }}
+        </li>
+      }
+    </ul>
+    <button type="button" class="gr-link" (click)="chats.newBeside()">
+      {{ wording.say('A new chapter', 'A new chat') }}
+    </button>
+  </div>
+  <gr-page-footer />
+}

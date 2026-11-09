@@ -18,7 +18,7 @@ import { CodeEditor } from './code-editor';
 import { FilesViews } from './files-views';
 
 /**
- * The Files page: the open chapter's folder, what's changed in it since
+ * The Files page: the open chat's folder, what's changed in it since
  * the last commit first, and its files as a tree, or found by name. A file
  * opens in the VS Code editor to read and change, its changes since the
  * last commit beside it if you like.
@@ -37,7 +37,7 @@ export class FilesPage {
   protected readonly wording = inject(Wording);
   protected readonly saveKey: Shortcut = 'Mod+S';
 
-  /** The open chapter's folder; your home folder until you pick another. */
+  /** The open chat's folder; your home folder until you pick another. */
   protected readonly cwd = this.views.cwd;
   protected readonly view = computed(() => this.views.of(this.cwd()));
   /** What isn't committed yet, as git tells it; none outside a repository. */

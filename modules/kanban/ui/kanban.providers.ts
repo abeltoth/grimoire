@@ -1,33 +1,33 @@
 import { type EnvironmentProviders, effect, inject } from '@angular/core';
 import { Wording } from '@ui/app/core/wording';
-import { Facing } from '@ui/app/shell/facing';
+import { RightPageState } from '@ui/app/shell/right-page-state';
 import { provideShellEntries } from '@ui/app/shell/shell-registry';
 import { Board, COLUMNS } from './board';
 import { KanbanPage } from './kanban-page';
 
-/** How much of a card's title its stamp shows. */
-const STAMP_LENGTH = 32;
+/** How much of a card's title its badge shows. */
+const BADGE_LENGTH = 32;
 
 /**
- * The Kanban module (ADR-008): its thumb tab turns the facing page to the
- * board, and a chapter begun from a card bears that card's stamp in its
- * running head, which turns there too.
+ * The Kanban module (ADR-008): its page tab turns the right page to the
+ * board, and a chat begun from a card bears that card's badge in its
+ * page header, which turns there too.
  */
 export function provideKanban(): EnvironmentProviders {
   return provideShellEntries((shell) => {
     const board = inject(Board);
-    const facing = inject(Facing);
+    const rightPage = inject(RightPageState);
     const wording = inject(Wording);
-    shell.thumbs.add({ id: 'kanban', label: 'Kanban', order: 20, component: KanbanPage });
+    shell.pageTabs.add({ id: 'kanban', label: 'Kanban', order: 20, component: KanbanPage });
 
     effect((onCleanup) => {
       const card = board.current();
       if (!card) return;
       const label =
-        card.title.length > STAMP_LENGTH ? `${card.title.slice(0, STAMP_LENGTH - 1).trimEnd()}…` : card.title;
+        card.title.length > BADGE_LENGTH ? `${card.title.slice(0, BADGE_LENGTH - 1).trimEnd()}…` : card.title;
       const column = COLUMNS.find((c) => c.column === card.column)!.label;
       onCleanup(
-        shell.stamps.add({
+        shell.badges.add({
           id: 'kanban.card',
           label,
           tone: 'quiet',
@@ -36,7 +36,7 @@ export function provideKanban(): EnvironmentProviders {
             `This chapter’s card on the Kanban board, in ${column}: ${card.title}`,
             `This chat’s card on the Kanban board, in ${column}: ${card.title}`,
           ),
-          open: () => facing.openThumb('kanban'),
+          open: () => rightPage.openPageTab('kanban'),
         }),
       );
     });

@@ -1,4 +1,4 @@
-/** A shell the background service runs, shown as a tab in the Scriptorium. */
+/** A shell the background service runs, shown as a tab in the Terminal. */
 export interface TerminalInfo {
   id: string;
   /** The folder it started in. */

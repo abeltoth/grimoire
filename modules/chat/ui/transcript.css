@@ -5,7 +5,7 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  /* The scrollbar sits in the inner margin, so the text lines up with the running head. */
+  /* The scrollbar sits in the inner margin, so the text lines up with the page header. */
   padding: 0 calc(var(--page-inset-end) - var(--gr-scrollbar-width))
     var(--gr-transcript-pad-bottom) var(--page-inset-start);
   scrollbar-gutter: stable;
@@ -42,7 +42,7 @@
   margin-top: var(--gr-space-3);
 }
 
-/* Spans the text column and the margin, like a slip tucked into the page. */
+/* Spans the text column and the margin, like a card tucked into the page. */
 .wide {
   grid-column: 1 / -1;
 }
@@ -98,7 +98,7 @@
   color: var(--gr-gilt-ink);
 }
 
-/* What the turn spent; one of the chapter's costliest in rubric. */
+/* What the turn spent; one of the chat's costliest in rubric. */
 .spent {
   font-variant-numeric: tabular-nums;
 }
@@ -126,7 +126,7 @@
   font-style: inherit;
 }
 
-/* A hook the turn ran, a line each, folded out beneath its closing line. */
+/* A hook the turn ran, a line each, expanded beneath its closing line. */
 .row.hook {
   margin-top: var(--gr-aside-gap);
 }
@@ -211,7 +211,7 @@ p {
   color: var(--gr-rubric);
 }
 
-/* Margin notes, a line each */
+/* Tool notes, a line each */
 .notes {
   display: flex;
   flex-direction: column;
@@ -263,7 +263,7 @@ p {
   margin-left: var(--gr-control-gap);
 }
 
-/* The notes of a run, folded out beneath it. */
+/* The notes of a run, expanded beneath it. */
 .run {
   display: flex;
   flex-direction: column;

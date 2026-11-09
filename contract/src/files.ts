@@ -10,7 +10,7 @@ export interface FolderEntry {
 
 /** A folder's entries, folders first. */
 export interface FolderList {
-  /** The folder the page shows: the repository's top folder, or the chapter's folder outside one. */
+  /** The folder the page shows: the repository's top folder, or the chat's folder outside one. */
   root: string;
   entries: FolderEntry[];
 }

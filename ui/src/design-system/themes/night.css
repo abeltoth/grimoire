@@ -12,25 +12,25 @@
   --gr-cover-edge: #180908;
   --gr-gilt: #c9a24c;
   --gr-gilt-ink: #d6b05a;
-  --gr-thumb-tab: #3d2e22;
-  --gr-thumb-hover: #524031;
+  --gr-page-tab: #3d2e22;
+  --gr-page-tab-hover: #524031;
 
   /* Paper */
   --gr-page: #1f1a15;
   --gr-page-next: #25201a;
-  --gr-foldout: #272119;
+  --gr-expandable: #272119;
   --gr-fore-edge-a: #2a241c;
   --gr-fore-edge-b: #4a3f30;
   --gr-page-edge: #3a3226;
-  --gr-dogear-flap: #3a3226;
-  --gr-dogear-hint: rgba(232, 215, 185, 0.1);
-  --gr-shadow-dogear: 2px 2px 2px rgba(0, 0, 0, 0.5);
+  --gr-pin-flap: #3a3226;
+  --gr-pin-hint: rgba(232, 215, 185, 0.1);
+  --gr-shadow-pin: 2px 2px 2px rgba(0, 0, 0, 0.5);
   --gr-gutter-shade: rgba(0, 0, 0, 0.35);
   --gr-hairline: rgba(232, 215, 185, 0.14);
   --gr-rule-ruled: rgba(140, 170, 220, 0.12);
-  --gr-slip: #2b251d;
-  --gr-slip-well: rgba(232, 215, 185, 0.06);
-  --gr-slip-laid: rgba(232, 215, 185, 0.035);
+  --gr-surface: #2b251d;
+  --gr-approval-card-well: rgba(232, 215, 185, 0.06);
+  --gr-approval-card-laid: rgba(232, 215, 185, 0.035);
   --gr-plate: #29231b;
   --gr-plate-mark: rgba(232, 215, 185, 0.38);
 
@@ -75,7 +75,7 @@
   --gr-editor-removed-line: rgba(224, 112, 90, 0.1);
 
   /* Controls and slips */
-  --gr-stamp-hover: rgba(143, 176, 230, 0.1);
+  --gr-badge-hover: rgba(143, 176, 230, 0.1);
   --gr-composer-button-hover: rgba(232, 215, 185, 0.08);
   --gr-composer-button-on: rgba(224, 112, 90, 0.14);
   --gr-queued-rule: rgba(232, 215, 185, 0.22);
@@ -87,16 +87,16 @@
   --gr-chart-grid: rgba(232, 215, 185, 0.12);
   --gr-chart-axis: rgba(232, 215, 185, 0.35);
   --gr-chart-tip-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
-  --gr-shadow-slip-corner: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.5));
-  --gr-shadow-slip-corner-far: drop-shadow(-1px -1px 1px rgba(0, 0, 0, 0.45));
-  --gr-seal-button-hover: rgba(224, 112, 90, 0.14);
-  --gr-slip-choice-hover: rgba(232, 215, 185, 0.08);
-  --gr-fold-rule: linear-gradient(rgba(232, 215, 185, 0), rgba(232, 215, 185, 0.2), rgba(232, 215, 185, 0));
+  --gr-shadow-approval-card-corner: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.5));
+  --gr-shadow-approval-card-corner-far: drop-shadow(-1px -1px 1px rgba(0, 0, 0, 0.45));
+  --gr-approve-button-hover: rgba(224, 112, 90, 0.14);
+  --gr-approval-card-choice-hover: rgba(232, 215, 185, 0.08);
+  --gr-expandable-rule: linear-gradient(rgba(232, 215, 185, 0), rgba(232, 215, 185, 0.2), rgba(232, 215, 185, 0));
   --gr-leader: 1.5px dotted rgba(232, 215, 185, 0.38);
 
   /* Shadows */
-  --gr-shadow-slip: 0 1px 0 rgba(0, 0, 0, 0.5), 0 8px 16px -10px rgba(0, 0, 0, 0.7);
-  --gr-shadow-slip-tucked: 0 2px 0 rgba(0, 0, 0, 0.4), 0 16px 26px -14px rgba(0, 0, 0, 0.8);
+  --gr-shadow-surface: 0 1px 0 rgba(0, 0, 0, 0.5), 0 8px 16px -10px rgba(0, 0, 0, 0.7);
+  --gr-shadow-surface-tucked: 0 2px 0 rgba(0, 0, 0, 0.4), 0 16px 26px -14px rgba(0, 0, 0, 0.8);
   --gr-shadow-next: 0 -1px 0 rgba(0, 0, 0, 0.4), 0 -10px 18px -12px rgba(0, 0, 0, 0.6);
   --gr-shadow-card: 0 2px 0 rgba(0, 0, 0, 0.4), 0 24px 44px -16px rgba(0, 0, 0, 0.8);
 }

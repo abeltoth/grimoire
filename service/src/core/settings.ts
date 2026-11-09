@@ -26,8 +26,8 @@ const VALID: { [K in keyof GrimoireSettings]: (value: unknown) => boolean } = {
   wording: (value) => value === 'book' || value === 'plain',
   drawings: (value) => typeof value === 'boolean',
   defaultAgent: (value) => value === null || (typeof value === 'string' && value !== ''),
-  newChapter: (value) => {
-    const start = value as GrimoireSettings['newChapter'] | null;
+  newChat: (value) => {
+    const start = value as GrimoireSettings['newChat'] | null;
     return (
       start?.from === 'last-used' ||
       (start?.from === 'preset' && typeof start.preset === 'string' && start.preset !== '')

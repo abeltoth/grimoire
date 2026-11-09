@@ -8,7 +8,7 @@ export const AUTO_DARK: ThemeName = 'night';
 /**
  * Look-and-feel switches that apply to the whole window: drawings, the
  * ready-made theme, and the tokens of it you changed, set over the
- * theme's own on the root. The app's Settings keep them as the Colophon
+ * theme's own on the root. The app's Settings keep them as Settings
  * sets them.
  */
 @Injectable({ providedIn: 'root' })

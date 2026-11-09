@@ -36,7 +36,7 @@ interface Watched {
 }
 
 /**
- * The Files page's folder: the repository the chapter works in, or its
+ * The Files page's folder: the repository the chat works in, or its
  * folder outside one. Lists it, finds files in it by name, and opens and
  * saves them, telling when one that's open changes on disk.
  */
@@ -131,7 +131,7 @@ export class Files {
     for (const key of [...this.watching.keys()]) this.stop(key);
   }
 
-  /** The folder the page shows: the repository's top folder, or the chapter's folder outside one. */
+  /** The folder the page shows: the repository's top folder, or the chat's folder outside one. */
   private async where(cwd: string): Promise<{ root: string; repo: boolean }> {
     const top = await this.git.root(cwd);
     return top ? { root: top, repo: true } : { root: path.resolve(expand(cwd)), repo: false };

@@ -3,10 +3,10 @@ import type { Entry, HookRun } from '@grimoire/contract';
 import {
   type ClaudeMessage,
   ClaudeTranscript,
-  helperAgentId,
-  helperCallIn,
+  subagentAgentId,
+  subagentCallIn,
   runBeganWith,
-  savedHelperState,
+  savedSubagentState,
   wholeRun,
   turnEnd,
 } from './transcript';
@@ -230,7 +230,7 @@ describe('ClaudeTranscript', () => {
         kind: 'user',
         id: 'u1',
         text: 'Why is this blurry?',
-        enclosures: [
+        attachments: [
           { kind: 'picture', mediaType: 'image/png', data: 'AAAA' },
           { kind: 'file', path: 'src/app/ribbon.ts' },
         ],
@@ -258,14 +258,14 @@ describe('ClaudeTranscript', () => {
     expect(() => turnEnd(messages, 'gone')).toThrow('not in the chat');
   });
 
-  it("passes on what a subagent does inside a tool call as its helper's run, apart from the chat", () => {
+  it("passes on what a subagent does inside a tool call as its subagent's run, apart from the chat", () => {
     const helped: [string, unknown][] = [];
     const transcript = new ClaudeTranscript(true, {
       entry: () => {},
       text: () => {},
       status: () => {},
       plan: () => {},
-      helperEntry: (toolId, entry) => helped.push([toolId, structuredClone(entry)]),
+      subagentEntry: (toolId, entry) => helped.push([toolId, structuredClone(entry)]),
     });
     const inside = (message: ClaudeMessage, toolId = 'toolu_1'): ClaudeMessage => ({
       ...message,
@@ -279,7 +279,7 @@ describe('ClaudeTranscript', () => {
       }),
     );
     transcript.apply(inside(assistant('msg_sub2', { type: 'text', text: 'Done' })));
-    // A helper's helper has a run of its own.
+    // A subagent's subagent has a run of its own.
     transcript.apply(inside(assistant('msg_deep', { type: 'text', text: 'Deeper' }), 'toolu_s2'));
 
     expect(transcript.entries).toEqual([]);
@@ -297,7 +297,7 @@ describe('ClaudeTranscript', () => {
     });
   });
 
-  it('reads a saved helper’s run on its own', () => {
+  it('reads a saved subagent’s run on its own', () => {
     const run = new ClaudeTranscript(false);
     run.applyRun({ ...assistant('msg_sub', { type: 'text', text: 'Done' }), parent_tool_use_id: 'toolu_1' });
     expect(run.entries).toMatchObject([{ kind: 'agent', id: 'msg_sub', blocks: [{ text: 'Done' }] }]);
@@ -316,14 +316,14 @@ describe('ClaudeTranscript', () => {
     expect(transcript.entries[1]).not.toHaveProperty('model');
   });
 
-  it("notes the model of a helper's replies as it works", () => {
+  it("notes the model of a subagent's replies as it works", () => {
     const helped: Entry[] = [];
     const transcript = new ClaudeTranscript(true, {
       entry: () => {},
       text: () => {},
       status: () => {},
       plan: () => {},
-      helperEntry: (_toolId, entry) => helped.push(structuredClone(entry)),
+      subagentEntry: (_toolId, entry) => helped.push(structuredClone(entry)),
     });
     transcript.apply({
       type: 'assistant',
@@ -333,18 +333,18 @@ describe('ClaudeTranscript', () => {
     expect(helped.at(-1)).toMatchObject({ id: 'msg_sub', model: 'claude-haiku-4-5' });
   });
 
-  it("follows a helper's task from when it begins until Claude Code says how it ended", () => {
+  it("follows a subagent's task from when it begins until Claude Code says how it ended", () => {
     const states: [string, string][] = [];
     const transcript = new ClaudeTranscript(true, {
       entry: () => {},
       text: () => {},
       status: () => {},
       plan: () => {},
-      helperState: (toolId, state) => states.push([toolId, state]),
+      subagentState: (toolId, state) => states.push([toolId, state]),
     });
     const system = (fields: object): ClaudeMessage => ({ type: 'system', ...fields });
     transcript.apply(system({ subtype: 'task_started', task_id: 'a1', tool_use_id: 'toolu_1', description: 'Look' }));
-    // A background helper's tool call has its result at once; it's still at work.
+    // A background subagent's tool call has its result at once; it's still at work.
     transcript.apply({
       type: 'user',
       parent_tool_use_id: null,
@@ -368,7 +368,7 @@ describe('ClaudeTranscript', () => {
     expect(transcript.entries).toEqual([]);
   });
 
-  describe('a saved helper', () => {
+  describe('a saved subagent', () => {
     const result = (toolId: string, text: string, isError = false): ClaudeMessage => ({
       type: 'user',
       parent_tool_use_id: null,
@@ -390,20 +390,20 @@ describe('ClaudeTranscript', () => {
         ),
       ];
       const named = (toolId: string) => {
-        const text = helperCallIn(messages, toolId)?.result?.text;
-        return text === undefined ? undefined : helperAgentId(text);
+        const text = subagentCallIn(messages, toolId)?.result?.text;
+        return text === undefined ? undefined : subagentAgentId(text);
       };
       expect(named('toolu_2')).toBe('ae05a781070d8c49e');
       expect(named('toolu_3')).toBe('a572d1044a9eb0bac');
-      expect(helperCallIn(messages, 'toolu_4')).toBeUndefined();
-      expect(helperAgentId('No helper here')).toBeUndefined();
+      expect(subagentCallIn(messages, 'toolu_4')).toBeUndefined();
+      expect(subagentAgentId('No helper here')).toBeUndefined();
     });
 
     it('is found by the task it began with when the result names none', () => {
       const messages = [call('toolu_1', 'Find the meter.'), result('toolu_1', 'It is in meter.ts.')];
-      const found = helperCallIn(messages, 'toolu_1');
+      const found = subagentCallIn(messages, 'toolu_1');
       expect(found).toEqual({ prompt: 'Find the meter.', result: { text: 'It is in meter.ts.', isError: false } });
-      expect(helperAgentId(found!.result!.text)).toBeUndefined();
+      expect(subagentAgentId(found!.result!.text)).toBeUndefined();
 
       const run = (first: unknown): ClaudeMessage[] => [
         { type: 'user', parent_tool_use_id: null, message: first },
@@ -430,11 +430,11 @@ describe('ClaudeTranscript', () => {
           '{"success":true,"message":"Resuming agent a819241","resumedAgentId":"a8192414e515c7a00"}',
         ),
       ];
-      const found = helperCallIn(messages, 'toolu_s');
+      const found = subagentCallIn(messages, 'toolu_s');
       expect(found?.sentTo).toBe('a8192414e515c7a00');
       expect(found?.prompt).toBeUndefined();
-      expect(helperAgentId(found!.result!.text)).toBe('a8192414e515c7a00');
-      expect(helperCallIn([call('toolu_1', 'Look.')], 'toolu_1')?.sentTo).toBeUndefined();
+      expect(subagentAgentId(found!.result!.text)).toBe('a8192414e515c7a00');
+      expect(subagentCallIn([call('toolu_1', 'Look.')], 'toolu_1')?.sentTo).toBeUndefined();
     });
 
     it('reads a resumed run whole: its task, what it did, and what it was sent, but not Claude Code’s notes', () => {
@@ -472,10 +472,10 @@ describe('ClaudeTranscript', () => {
         id: 'msg_end',
         blocks: [{ kind: 'tool', id: 'toolu_h', tool: 'SubagentHandback', input: { message: 'Report' } }],
       };
-      expect(savedHelperState([handback], undefined)).toBe('done');
-      expect(savedHelperState([], { text: 'All done.', isError: false })).toBe('done');
-      expect(savedHelperState([], { text: 'It broke.', isError: true })).toBe('failed');
-      expect(savedHelperState([], undefined)).toBe('stopped');
+      expect(savedSubagentState([handback], undefined)).toBe('done');
+      expect(savedSubagentState([], { text: 'All done.', isError: false })).toBe('done');
+      expect(savedSubagentState([], { text: 'It broke.', isError: true })).toBe('failed');
+      expect(savedSubagentState([], undefined)).toBe('stopped');
     });
   });
 
@@ -662,7 +662,7 @@ describe('ClaudeTranscript', () => {
 
     it("hears only Claude Code's word on its hooks: Grimoire's own callback says none", () => {
       const { transcript, reported } = following();
-      // What a turn that asks a helper says, with Grimoire's PreToolUse callback on Agent picking its model.
+      // What a turn that asks a subagent says, with Grimoire's PreToolUse callback on Agent picking its model.
       transcript.apply({ type: 'system', subtype: 'task_started', task_id: 'a1', tool_use_id: 'toolu_1' } as ClaudeMessage);
       transcript.apply({ type: 'system', subtype: 'hook_callback', callback_id: 'c1' } as ClaudeMessage);
       transcript.apply({ type: 'system', subtype: 'init' } as ClaudeMessage);

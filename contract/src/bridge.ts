@@ -21,15 +21,15 @@ export interface GrimoireBridge {
   pathOf(file: File): string;
   readonly window: WindowControls;
   /**
-   * Pops a chapter out of the book into a window of its own, a loose leaf,
+   * Pops a chat out of the book into a window of its own, a popout,
    * or brings its window to the front when it's out already.
    */
   popOut(chatId: ChatId): void;
   /**
-   * Tells the book when a loose leaf's window closes, so its chapter comes
+   * Tells the book when a popout's window closes, so its chat comes
    * back. Returns a function that stops listening.
    */
-  onLeafClosed(listener: (chatId: ChatId) => void): () => void;
+  onPopoutClosed(listener: (chatId: ChatId) => void): () => void;
   /** Opens a web page in the system's browser; only https addresses open. */
   openExternal(url: string): void;
 }

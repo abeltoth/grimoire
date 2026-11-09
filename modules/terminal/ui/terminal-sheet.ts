@@ -73,7 +73,7 @@ function lookOf(element: Element): Look {
 }
 
 /**
- * One shell's leaf in the Scriptorium, drawn with xterm.js. It draws what
+ * One shell's leaf in the Terminal, drawn with xterm.js. It draws what
  * the service kept of the shell's screen, then follows its output. xterm.js
  * is loaded only once a leaf is first shown, so it doesn't slow the start.
  */

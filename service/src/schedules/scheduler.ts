@@ -29,14 +29,14 @@ export type BeginChat = (
   title: string,
 ) => Promise<OpenChat>;
 
-/** A run's chapter title: the schedule's name and the day it was due, "Morning repo summary · 4 Nov". */
+/** A run's chat title: the schedule's name and the day it was due, "Morning repo summary · 4 Nov". */
 export function runTitle(name: string, dueAt: number): string {
   return `${name} · ${new Date(dueAt).toLocaleDateString([], { day: 'numeric', month: 'short' })}`;
 }
 
 /**
  * Runs the schedules while the service runs: each time one is due it
- * begins a new chapter, with Full access, as no one is there to approve
+ * begins a new chat, with Full access, as no one is there to approve
  * what it does. A time that passed while the service wasn't
  * running begins once it's back, unless that is more than CATCH_UP_MS
  * late; then, like any earlier time it was away for, it counts as missed.

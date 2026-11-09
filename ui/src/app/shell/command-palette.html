@@ -1,0 +1,105 @@
+<gr-page-header>
+  <div class="row">
+    <h2 class="title">{{ wording.say('Index', 'Command palette') }}</h2>
+    <span class="hint">
+      <span>{{ wording.say('turned to with', 'opened with') }}</span>
+      @for (cap of commandPaletteCaps(); track $index) {
+        <span class="gr-kbd">{{ cap }}</span>
+      }
+      @if (!focus.on()) {
+        <span>{{ wording.say('or its thumb notch', 'or its tab') }}</span>
+      }
+    </span>
+    <span class="spacer"></span>
+    <button type="button" class="gr-link" (click)="rightPage.closeCommandPalette()">
+      {{ wording.back(backTo()) }} <span class="gr-kbd">Esc</span>
+    </button>
+  </div>
+</gr-page-header>
+
+<div class="command-palette">
+  <div class="look-up">
+    <label for="gr-command-palette-look-up">{{ wording.say('Look up', 'Search') }}</label>
+    <input
+      #field
+      id="gr-command-palette-look-up"
+      type="text"
+      role="combobox"
+      autocomplete="off"
+      spellcheck="false"
+      aria-expanded="true"
+      aria-controls="gr-command-palette-entries"
+      aria-autocomplete="list"
+      [attr.aria-activedescendant]="selected() ? 'gr-command-palette-' + selected() : null"
+      [value]="lookUp()"
+      (input)="lookUp.set(field.value)"
+      (keydown)="key($event)"
+    />
+    <span class="count">{{ count() }}</span>
+  </div>
+
+  <div
+    class="entries"
+    id="gr-command-palette-entries"
+    role="listbox"
+    [attr.aria-label]="entriesLabel()"
+  >
+    @for (section of sections(); track section.title) {
+      <div class="section" role="group" [attr.aria-label]="section.title">
+        <h3>{{ section.title }}</h3>
+        @for (entry of section.entries; track entry.id) {
+          <button
+            type="button"
+            class="entry"
+            role="option"
+            tabindex="-1"
+            [id]="'gr-command-palette-' + entry.id"
+            [attr.aria-selected]="entry.id === selected()"
+            (click)="open(entry)"
+          >
+            <span class="cursor" aria-hidden="true"><gr-icon name="quill" /></span>
+            <span class="label"
+              >{{ entry.parts[0] }}<b>{{ entry.parts[1] }}</b>{{ entry.parts[2] }}</span
+            >
+            @if (entry.hint) {
+              <span class="gloss"
+                >{{ entry.hint }}
+                @if (entry.folder) {
+                  <code>{{ entry.folder }}</code>
+                }
+              </span>
+            }
+            <span class="leader" aria-hidden="true"></span>
+            <span class="where">
+              @if (entry.shortcut) {
+                @for (cap of caps(entry.shortcut); track $index) {
+                  <span class="gr-kbd">{{ cap }}</span>
+                }
+              } @else {
+                {{ entry.where }}
+              }
+            </span>
+          </button>
+        }
+      </div>
+    } @empty {
+      <p class="note">{{ empty() }}</p>
+    }
+  </div>
+
+  <p class="note">
+    {{
+      wording.say(
+        'Every action in Grimoire is listed in this index, with its shortcut. Entries that live on another page say where to find it.',
+        'Every action in Grimoire is listed here, with its shortcut. Those on another page say where to find them.'
+      )
+    }}
+  </p>
+</div>
+
+<gr-page-footer>
+  <span class="spacer"></span>
+  <span class="caps"><span class="gr-kbd">↑</span><span class="gr-kbd">↓</span> move</span>
+  <span class="caps"><span class="gr-kbd">⏎</span> open</span>
+  <span class="caps"><span class="gr-kbd">Esc</span> back</span>
+</gr-page-footer>

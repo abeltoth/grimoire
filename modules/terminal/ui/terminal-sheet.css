@@ -37,7 +37,7 @@ gr-terminal-sheet {
   display: none;
   flex: 1;
   min-height: 0;
-  padding: var(--gr-scriptorium-sheet-pad);
+  padding: var(--gr-terminal-sheet-pad);
   background: var(--gr-terminal-paper);
 }
 

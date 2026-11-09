@@ -1,4 +1,4 @@
-/** One line of a file's corrections. */
+/** One line of a file's diff. */
 export interface DiffLine {
   kind: 'same' | 'removed' | 'inserted';
   text: string;
@@ -66,7 +66,7 @@ declare module './commands' {
     'git.status': { request: { cwd: string }; response: GitStatus | null };
     /** The repository's branches; null when the folder isn't in one. */
     'git.branches': { request: { cwd: string }; response: GitBranches | null };
-    /** A file's uncommitted change, as corrections. The path is from the repository's top folder. */
+    /** A file's uncommitted change, as a diff. The path is from the repository's top folder. */
     'git.diff': { request: { cwd: string; path: string }; response: DiffLine[] };
     /** The pull request for the folder's branch; null when it has none or GitHub can't be asked. */
     'git.pullRequest': { request: { cwd: string }; response: PullRequest | null };

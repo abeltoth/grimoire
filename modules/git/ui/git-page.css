@@ -1,4 +1,4 @@
-/* The page scrolls on its own; the running head and foot stay put. */
+/* The page scrolls on its own; the page header and foot stay put. */
 :host {
   display: block;
   height: 100%;
@@ -92,15 +92,15 @@ ul {
 
 .leader {
   flex: 1;
-  min-width: var(--gr-outline-leader-min);
-  margin: 0 var(--gr-outline-leader-gap);
+  min-width: var(--gr-plan-leader-min);
+  margin: 0 var(--gr-plan-leader-gap);
   border-bottom: var(--gr-leader);
-  transform: translateY(var(--gr-outline-leader-lift));
+  transform: translateY(var(--gr-plan-leader-lift));
 }
 
 .kind {
   font-style: italic;
-  font-size: var(--gr-size-outline-status);
+  font-size: var(--gr-size-plan-status);
   color: var(--gr-ink-soft);
   white-space: nowrap;
 }
@@ -171,7 +171,7 @@ ul {
 
 .here {
   font-style: italic;
-  font-size: var(--gr-size-outline-status);
+  font-size: var(--gr-size-plan-status);
   font-weight: 500;
   color: var(--gr-gilt-ink);
 }
@@ -182,7 +182,7 @@ ul {
 
 .distance {
   font-style: italic;
-  font-size: var(--gr-size-outline-status);
+  font-size: var(--gr-size-plan-status);
   color: var(--gr-ink-soft);
   white-space: nowrap;
 }
@@ -198,7 +198,7 @@ ul {
   overflow-wrap: anywhere;
 }
 
-gr-corrections,
+gr-diff-view,
 li > .none {
   margin-top: var(--gr-git-fold-gap);
 }

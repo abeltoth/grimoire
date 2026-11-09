@@ -13,7 +13,7 @@ import {
   untracked,
 } from '@angular/core';
 import type * as Monaco from 'monaco-editor';
-import { bookLook } from './book-theme';
+import { editorLook } from './editor-theme';
 import { MONACO, type MonacoApi, languageOf } from './monaco';
 
 /** Each file's models are named apart, so one closing can't take another's. */
@@ -96,7 +96,7 @@ export class CodeEditor {
       const monaco = await this.load();
       if (this.destroyed) return;
       this.monaco = monaco;
-      const look = bookLook(this.host);
+      const look = editorLook(this.host);
       monaco.editor.defineTheme('grimoire', look.theme);
       const n = ++opened;
       const uri = (side: string) =>
@@ -119,7 +119,7 @@ export class CodeEditor {
   private mount(changes: boolean): void {
     const monaco = this.monaco!;
     const surface = this.host.querySelector<HTMLElement>('.surface')!;
-    const look = bookLook(this.host);
+    const look = editorLook(this.host);
     const options: Monaco.editor.IStandaloneEditorConstructionOptions = {
       theme: 'grimoire',
       fontFamily: look.fontFamily,

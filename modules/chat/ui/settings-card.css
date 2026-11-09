@@ -1,4 +1,4 @@
-/* One card for all of a chapter's settings, under the running head. */
+/* One card for all of a chat's settings, under the page header. */
 :host {
   position: absolute;
   z-index: var(--gr-z-card);
@@ -19,7 +19,7 @@
   left: calc(var(--caret, var(--gr-card-caret-default)) - var(--gr-card-caret) / 2);
   width: var(--gr-card-caret);
   height: var(--gr-card-caret);
-  background: var(--gr-slip);
+  background: var(--gr-surface);
   transform: rotate(45deg);
   box-shadow: var(--gr-card-caret-shadow);
 }
@@ -144,7 +144,7 @@ h3 i {
   opacity: 1;
 }
 
-/* A setting that stays as the chapter began. */
+/* A setting that stays as the chat began. */
 .choice[aria-disabled] {
   color: var(--gr-ink-faint);
   cursor: default;

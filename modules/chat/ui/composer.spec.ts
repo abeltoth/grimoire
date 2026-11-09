@@ -49,9 +49,9 @@ describe('composer', () => {
     expect(el.querySelector('.note')!.getAttribute('title')).toBe('src/login.spec.ts');
     expect(texts('.note .detail')).toEqual(['running…']);
     expect(el.querySelector('.reply gr-markdown p .quill')).not.toBeNull();
-    expect(texts('gr-running-head h1')).toEqual(['Fix flaky login test']);
+    expect(texts('gr-page-header h1')).toEqual(['Fix flaky login test']);
     // A title too long for its line is cut short; pointing at it shows it all.
-    expect(el.querySelector('gr-running-head h1')!.getAttribute('title')).toBe('Fix flaky login test');
+    expect(el.querySelector('gr-page-header h1')!.getAttribute('title')).toBe('Fix flaky login test');
     expect(texts('[aria-current="page"] b')).toEqual(['Fix flaky login test']);
     expect(texts('[aria-current="page"] i')).toEqual(['Claude Code · writing']);
 
@@ -111,7 +111,7 @@ describe('composer', () => {
     expect(document.activeElement).toBe(entry);
   });
 
-  it('shows how much of the page allowance the chapter uses', async () => {
+  it('shows how much of the page allowance the chat uses', async () => {
     const { bridge, emit } = fakeBridge();
     const { fixture, el, texts } = await render(bridge);
     expect(el.querySelector('.allowance')).toBeNull();
@@ -150,7 +150,7 @@ describe('composer', () => {
     expect(calls.some((c) => c.command === 'agents.start')).toBe(false);
   });
 
-  it('keeps what you wrote on a chapter, unsent, while you turn to another', async () => {
+  it('keeps what you wrote on a chat, unsent, while you turn to another', async () => {
     const { bridge, calls } = fakeBridge({
       chooseFiles: vi.fn(async () => ['C:/work/grimoire/notes.txt']),
     });
@@ -162,19 +162,19 @@ describe('composer', () => {
     el.querySelector<HTMLButtonElement>('[aria-label="Attach files or a screenshot"]')!.click();
     await fixture.whenStable();
 
-    el.querySelector<HTMLButtonElement>('gr-ribbon.new button')!.click();
+    el.querySelector<HTMLButtonElement>('gr-chat-tab.new button')!.click();
     await fixture.whenStable();
     expect(entry().value).toBe('');
-    expect(el.querySelector('gr-composer gr-enclosures')).toBeNull();
+    expect(el.querySelector('gr-composer gr-attachments')).toBeNull();
 
-    [...el.querySelectorAll<HTMLButtonElement>('gr-ribbon.chapter button')][0]!.click();
+    [...el.querySelectorAll<HTMLButtonElement>('gr-chat-tab.chat button')][0]!.click();
     await fixture.whenStable();
     expect(entry().value).toBe('Half a thought');
     expect(texts('gr-composer .ref code')).toEqual(['notes.txt']);
     expect(calls.filter((c) => c.command === 'agents.send')).toEqual([]);
   });
 
-  it("sends what you write while a blank chapter's chat starts to that chat, once it has", async () => {
+  it("sends what you write while a blank chat's chat starts to that chat, once it has", async () => {
     const { bridge, calls, answers } = fakeBridge();
     let started!: (chat: OpenChat) => void;
     const start = answers['agents.start']!;
@@ -259,7 +259,7 @@ describe('composer', () => {
     expect(el.querySelector('gr-composer .cold')).toBeNull();
   });
 
-  it('turns the facing page to the agent\'s commands at a "/" in the entry', async () => {
+  it('turns the right page to the agent\'s commands at a "/" in the entry', async () => {
     const { bridge, calls, answers, emit } = fakeBridge();
     answers['agents.commands'] = () => [
       { name: 'compact', description: 'Free up context', kind: 'command' },
@@ -287,44 +287,44 @@ describe('composer', () => {
     expect(calls.filter((c) => c.command === 'agents.commands').map((c) => c.request)).toEqual([
       { agent: 'claude-code', cwd: 'C:/work/grimoire' },
     ]);
-    expect(texts('gr-command-index h3')).toEqual(['Claude Code’s commands', 'Claude Code’s skills']);
-    expect(texts('gr-command-index .entry .label')).toEqual([
+    expect(texts('gr-slash-commands h3')).toEqual(['Claude Code’s commands', 'Claude Code’s skills']);
+    expect(texts('gr-slash-commands .entry .label')).toEqual([
       '/compact',
       '/init',
       '/review',
       'code-review',
       'simplify',
     ]);
-    expect(texts('gr-command-index .entry .where')).toEqual([
+    expect(texts('gr-slash-commands .entry .where')).toEqual([
       '62% used',
       'C:/work/grimoire',
       'command',
       'skill',
       'skill',
     ]);
-    expect(texts('gr-command-index .count')).toEqual(['Claude Code’s commands and skills · 5 entries']);
+    expect(texts('gr-slash-commands .count')).toEqual(['Claude Code’s commands and skills · 5 entries']);
     expect(texts('gr-composer .slash-hint')).toEqual([
       'Claude Code’s commands and skills are on the facing page →',
     ]);
 
     await type('/re');
-    expect(texts('gr-command-index .entry .label')).toEqual(['/review', 'code-review']);
-    expect(texts('gr-command-index .entry b')).toEqual(['/re', 're']);
+    expect(texts('gr-slash-commands .entry .label')).toEqual(['/review', 'code-review']);
+    expect(texts('gr-slash-commands .entry b')).toEqual(['/re', 're']);
     await press('ArrowDown');
-    expect(texts('gr-command-index .entry[aria-selected="true"] .label')).toEqual(['code-review']);
+    expect(texts('gr-slash-commands .entry[aria-selected="true"] .label')).toEqual(['code-review']);
     expect(entry.getAttribute('aria-activedescendant')).toBe('gr-command-code-review');
     await press('Tab');
     expect(entry.value).toBe('/code-review ');
-    expect(el.querySelector('gr-command-index')).toBeNull();
+    expect(el.querySelector('gr-slash-commands')).toBeNull();
     expect(texts('gr-composer .slash-hint')).toEqual([]);
 
     await type('/zzz');
-    expect(texts('gr-command-index .entries .note')).toEqual([
+    expect(texts('gr-slash-commands .entries .note')).toEqual([
       'Nothing in Claude Code’s commands and skills matches “/zzz”.',
     ]);
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }));
     await fixture.whenStable();
-    expect(el.querySelector('gr-command-index')).toBeNull();
+    expect(el.querySelector('gr-slash-commands')).toBeNull();
     expect(calls.filter((c) => c.command === 'agents.interrupt')).toEqual([]);
 
     await type('/comp');
@@ -333,8 +333,8 @@ describe('composer', () => {
       { chatId: 'chat-1', text: '/compact' },
     ]);
     expect(entry.value).toBe('');
-    expect(el.querySelector('gr-command-index')).toBeNull();
-    // Asked for each time the facing page turns to them; the service keeps them a minute.
+    expect(el.querySelector('gr-slash-commands')).toBeNull();
+    // Asked for each time the right page turns to them; the service keeps them a minute.
     expect(calls.filter((c) => c.command === 'agents.commands')).toHaveLength(3);
   });
 
@@ -402,28 +402,28 @@ describe('composer', () => {
     await suggest(null);
     expect(entry.placeholder).toBe('Write the next entry…');
 
-    // Turned off on the Colophon, it shows no more.
+    // Turned off in Settings, it shows no more.
     await suggest('Push it');
     expect(entry.placeholder).toBe('Push it');
-    [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
+    [...el.querySelectorAll<HTMLButtonElement>('gr-page-tabs .page-tab')]
       .find((tab) => tab.textContent!.trim() === 'Colophon')!
       .click();
     await fixture.whenStable();
-    [...el.querySelectorAll<HTMLButtonElement>('#gr-colophon-settings ~ .form .word')]
+    [...el.querySelectorAll<HTMLButtonElement>('#gr-settings-general ~ .form .word')]
       .find((button) => button.textContent!.trim() === 'Off')!
       .click();
     await fixture.whenStable();
     expect(calls.filter((c) => c.command === 'settings.set').map((c) => c.request)).toEqual([
       { suggestions: false },
     ]);
-    el.querySelector<HTMLButtonElement>('gr-thumb-page .row .gr-link')!.click();
+    el.querySelector<HTMLButtonElement>('gr-tab-page .row .gr-link')!.click();
     await fixture.whenStable();
     const back = el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!;
     expect(back.placeholder).toBe('Write the next entry…');
     expect(texts('gr-composer .suggestion-hint')).toEqual([]);
   });
 
-  it('uses a command clicked on the facing page', async () => {
+  it('uses a command clicked on the right page', async () => {
     const { bridge, calls, answers } = fakeBridge();
     answers['agents.commands'] = () => [
       { name: 'compact', description: 'Free up context', kind: 'command' },
@@ -434,7 +434,7 @@ describe('composer', () => {
     entry.value = '/';
     entry.dispatchEvent(new Event('input'));
     await fixture.whenStable();
-    el.querySelector<HTMLButtonElement>('gr-command-index .entry')!.click();
+    el.querySelector<HTMLButtonElement>('gr-slash-commands .entry')!.click();
     await fixture.whenStable();
     expect(calls.filter((c) => c.command === 'agents.send').map((c) => c.request)).toEqual([
       { chatId: 'chat-1', text: '/compact' },
@@ -452,11 +452,11 @@ describe('composer', () => {
     entry.value = '/';
     entry.dispatchEvent(new Event('input'));
     await fixture.whenStable();
-    // A blank chapter's folder isn't chosen yet: the agent looks in your home folder.
+    // A blank chat's folder isn't chosen yet: the agent looks in your home folder.
     expect(calls.filter((c) => c.command === 'agents.commands').map((c) => c.request)).toEqual([
       { agent: 'claude-code' },
     ]);
-    expect(texts('gr-command-index .entries .note')).toEqual([
+    expect(texts('gr-slash-commands .entries .note')).toEqual([
       'Claude Code’s commands and skills couldn’t be listed: Claude Code is not installed',
     ]);
   });

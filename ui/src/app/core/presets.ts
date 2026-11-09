@@ -1,12 +1,12 @@
 import { Injectable, inject } from '@angular/core';
 import type { AgentId, NewChatSettings, Preset } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from './bridge';
-import { type Chapter, Chats } from './chats';
+import { type Chat, Chats } from './chats';
 import { modeName } from './modes';
 import { PresetList } from './preset-list';
 
 /**
- * Settings saved under a name (ADR-009: Grimoire's own data). A chapter is
+ * Settings saved under a name (ADR-009: Grimoire's own data). A chat is
  * on a preset while its settings are the preset's; change one and it's on
  * none.
  */
@@ -22,46 +22,46 @@ export class Presets {
     return this.list.load();
   }
 
-  /** Saves the chapter's settings under a name, spelled out: its folder, model, effort and permission. */
-  async save(chapter: Chapter, name: string): Promise<void> {
+  /** Saves the chat's settings under a name, spelled out: its folder, model, effort and permission. */
+  async save(chat: Chat, name: string): Promise<void> {
     const named = name.trim();
     if (!named) return;
     const preset: Preset = {
       name: named,
-      agent: chapter.agent,
-      settings: this.spelledOut(chapter.agent, chapter.settings),
+      agent: chat.agent,
+      settings: this.spelledOut(chat.agent, chat.settings),
     };
     try {
       this.all.set(await this.bridge.invoke('presets.save', preset));
     } catch (error) {
-      this.chats.fail(chapter.id, error);
+      this.chats.fail(chat.id, error);
     }
   }
 
-  /** The preset the chapter's settings are, if any. */
-  of(chapter: Chapter): Preset | undefined {
-    const settings = this.spelledOut(chapter.agent, chapter.settings);
+  /** The preset the chat's settings are, if any. */
+  of(chat: Chat): Preset | undefined {
+    const settings = this.spelledOut(chat.agent, chat.settings);
     return this.all().find(
       (preset) =>
-        preset.agent === chapter.agent && same(this.spelledOut(preset.agent, preset.settings), settings),
+        preset.agent === chat.agent && same(this.spelledOut(preset.agent, preset.settings), settings),
     );
   }
 
-  /** Whether a chapter can take the preset: once it has begun, its agent and folder stay. */
-  fits(preset: Preset, chapter: Chapter): boolean {
-    if (chapter.status === 'blank') return true;
+  /** Whether a chat can take the preset: once it has begun, its agent and folder stay. */
+  fits(preset: Preset, chat: Chat): boolean {
+    if (chat.status === 'blank') return true;
     const folder = (settings: NewChatSettings) => settings.cwd ?? this.chats.folders().home;
-    return preset.agent === chapter.agent && folder(preset.settings) === folder(chapter.settings);
+    return preset.agent === chat.agent && folder(preset.settings) === folder(chat.settings);
   }
 
-  /** Gives the chapter the preset's settings. */
-  use(preset: Preset, chapter: Chapter): Promise<void> {
-    if (chapter.status === 'blank') {
-      this.chats.setUp(chapter.id, preset.agent, preset.settings, preset.prompt);
+  /** Gives the chat the preset's settings. */
+  use(preset: Preset, chat: Chat): Promise<void> {
+    if (chat.status === 'blank') {
+      this.chats.setUp(chat.id, preset.agent, preset.settings, preset.prompt);
       return Promise.resolve();
     }
     const { model, effort, mode } = this.spelledOut(preset.agent, preset.settings);
-    return this.chats.configure(chapter.id, {
+    return this.chats.configure(chat.id, {
       ...(model ? { model } : {}),
       ...(effort ? { effort } : {}),
       ...(mode ? { mode } : {}),

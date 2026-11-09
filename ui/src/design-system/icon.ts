@@ -19,7 +19,7 @@ export type IconName =
   | 'attach'
   | 'parallel'
   | 'hourglass'
-  | 'seal'
+  | 'approval'
   | 'tick'
   | 'check'
   | 'ornament';

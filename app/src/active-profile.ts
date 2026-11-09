@@ -1,6 +1,6 @@
 /**
  * Which profile is in use, as the service tells it, so the windows open
- * on another one's chapters only when another one is put in use: not
+ * on another one's chats only when another one is put in use: not
  * when one is made, renamed or deleted.
  */
 export class ActiveProfile {

@@ -19,7 +19,7 @@ const RECENT_FOLDERS = 3;
 
 /**
  * A card written out to save, in its place on the board: its title, its
- * notes, and the folder its chats begin in, the chapter you're on's for a
+ * notes, and the folder its chats begin in, the chat you're on's for a
  * new one.
  */
 @Component({

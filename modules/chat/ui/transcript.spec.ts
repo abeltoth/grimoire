@@ -21,7 +21,7 @@ describe('transcript', () => {
     expect(el.querySelector('.spent-line .took')!.getAttribute('title')).toBe('This turn took 3m 20s');
   });
 
-  it("shows what each turn spent at its end, the chapter's costliest three in rubric", async () => {
+  it("shows what each turn spent at its end, the chat's costliest three in rubric", async () => {
     const { bridge, emit } = fakeBridge();
     const { fixture, el, texts } = await render(bridge);
     await write(fixture, el, 'u1');
@@ -114,7 +114,7 @@ describe('transcript', () => {
     expect(texts('.hook gr-output .code')).toEqual(['No rm -rf here']);
   });
 
-  it('sets replies as markdown and numbers listings through the chapter', async () => {
+  it('sets replies as markdown and numbers listings through the chat', async () => {
     const { bridge, emit } = fakeBridge();
     const { fixture, el, texts } = await render(bridge);
     await write(fixture, el, 'Add the meter');
@@ -184,7 +184,7 @@ describe('transcript', () => {
     expect(el.querySelector('gr-listing')).toBeNull();
   });
 
-  it('sums up a run of margin notes, and folds them out to the corrections or the output', async () => {
+  it('sums up a run of tool notes, and folds them out to the diff or the output', async () => {
     const { bridge, emit } = fakeBridge();
     const { fixture, el, texts } = await render(bridge);
     await write(fixture, el, 'Add the meter');
@@ -226,20 +226,20 @@ describe('transcript', () => {
     await fixture.whenStable();
     expect(run.getAttribute('aria-expanded')).toBe('true');
     expect(texts('.run .note > *')).toEqual(['Edited', 'meter.ts', '+2 −1', 'Tested', 'npm test', 'failed']);
-    expect(el.querySelector('gr-corrections, gr-output')).toBeNull();
+    expect(el.querySelector('gr-diff-view, gr-output')).toBeNull();
 
     const notes = el.querySelectorAll<HTMLButtonElement>('.run .note');
     notes[0]!.click();
     await fixture.whenStable();
     expect(notes[0]!.getAttribute('aria-expanded')).toBe('true');
-    expect(texts('gr-corrections .head b')).toEqual(['src/meter.ts']);
-    expect(texts('gr-corrections .head .detail')[0]).toBe('corrections, as marked by Claude Code');
+    expect(texts('gr-diff-view .head b')).toEqual(['src/meter.ts']);
+    expect(texts('gr-diff-view .head .detail')[0]).toBe('corrections, as marked by Claude Code');
 
     // Opening another note closes the one you had open.
     notes[1]!.click();
     await fixture.whenStable();
     expect(notes[0]!.getAttribute('aria-expanded')).toBe('false');
-    expect(el.querySelector('gr-corrections')).toBeNull();
+    expect(el.querySelector('gr-diff-view')).toBeNull();
     expect(texts('gr-output .head > *')).toEqual(['npm test', 'output']);
     expect(texts('gr-output .line')).toEqual(['12 passed', '1 failed']);
 

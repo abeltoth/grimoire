@@ -321,7 +321,7 @@ describe('files', () => {
       expect(calls).toContainEqual({ command: 'files.close', request: { cwd: 'C:/Users/me', path: 'README.md' } });
     });
 
-    it('keeps the open file and its changes while the facing page shows another', async () => {
+    it('keeps the open file and its changes while the right page shows another', async () => {
       const { bridge } = repository();
       const { fixture, el, button, editor, type } = await openFiles(bridge);
       button('.entry', 'README.md').click();
@@ -367,7 +367,7 @@ describe('files', () => {
     });
 
     describe('Open in Files', () => {
-      const ribbonEdit = {
+      const chatTabEdit = {
         kind: 'tool' as const,
         id: 't1',
         tool: 'Edit',
@@ -378,15 +378,15 @@ describe('files', () => {
         },
         result: { text: 'Updated.', isError: false },
       };
-      /** The book with the VS Code editor faked, and the corrections' link. */
-      async function book(bridge: GrimoireBridge) {
+      /** The app with the VS Code editor faked, and the diff view's link. */
+      async function withEditor(bridge: GrimoireBridge) {
         const monaco = fakeMonaco();
         const rendered = await render(bridge, [{ provide: MONACO, useValue: monaco.load }]);
         const openIn = (where = '') =>
-          [...rendered.el.querySelectorAll<HTMLButtonElement>(`${where} gr-corrections .gr-link`)].find(
+          [...rendered.el.querySelectorAll<HTMLButtonElement>(`${where} gr-diff-view .gr-link`)].find(
             (b) => b.textContent!.trim() === 'Open in Files',
           );
-        const foldOut = async (name: string) => {
+        const expandable = async (name: string) => {
           rendered.el.querySelector<HTMLButtonElement>('.note.summary')?.click();
           await rendered.fixture.whenStable();
           [...rendered.el.querySelectorAll<HTMLButtonElement>('.note')]
@@ -394,16 +394,16 @@ describe('files', () => {
             .click();
           await rendered.fixture.whenStable();
         };
-        return { ...rendered, made: monaco.made, openIn, foldOut };
+        return { ...rendered, made: monaco.made, openIn, expandable };
       }
 
-      it('opens a file the agent edited on its changes, from its corrections', async () => {
+      it('opens a file the agent edited on its changes, from its diff', async () => {
         const { bridge, emit, calls } = repository();
-        const { fixture, el, texts, made, openIn, foldOut } = await book(bridge);
+        const { fixture, el, texts, made, openIn, expandable } = await withEditor(bridge);
         await write(fixture, el, 'Fix the ribbon');
-        emit('agents.entry', { chatId: 'chat-1', entry: { kind: 'agent', id: 'a1', blocks: [ribbonEdit] } });
+        emit('agents.entry', { chatId: 'chat-1', entry: { kind: 'agent', id: 'a1', blocks: [chatTabEdit] } });
         await fixture.whenStable();
-        await foldOut('ribbon.ts');
+        await expandable('ribbon.ts');
 
         openIn()!.click();
         await fixture.whenStable();
@@ -422,7 +422,7 @@ describe('files', () => {
 
       it('opens a change on the Git page in Files', async () => {
         const { bridge, calls } = repository();
-        const { fixture, el, texts, openIn } = await book(bridge);
+        const { fixture, el, texts, openIn } = await withEditor(bridge);
         [...el.querySelectorAll<HTMLButtonElement>('.tabs button')]
           .find((tab) => tab.textContent!.trim() === 'Git')!
           .click();
@@ -441,7 +441,7 @@ describe('files', () => {
 
       it('opens a file outside the folder from an edit only proposed, as it is now', async () => {
         const { bridge, emit } = repository();
-        const { fixture, el, texts, openIn } = await book(bridge);
+        const { fixture, el, texts, openIn } = await withEditor(bridge);
         await write(fixture, el, 'Remember this');
         emit('agents.approval', {
           approval: {
@@ -454,7 +454,7 @@ describe('files', () => {
         });
         await fixture.whenStable();
 
-        openIn('gr-approval-slip')!.click();
+        openIn('gr-approval-card')!.click();
         await fixture.whenStable();
         expect(texts('.tabs [aria-pressed="true"]')).toEqual(['Files']);
         expect(texts('gr-files-page .sub .path')).toEqual(['~/.claude/CLAUDE.md']);
@@ -465,7 +465,7 @@ describe('files', () => {
 
       it('keeps a file with changes not saved open, and asks to save or discard them first', async () => {
         const { bridge, emit, calls } = repository();
-        const { fixture, el, texts, openIn, foldOut } = await book(bridge);
+        const { fixture, el, texts, openIn, expandable } = await withEditor(bridge);
         await write(fixture, el, 'Fix the ribbon');
         [...el.querySelectorAll<HTMLButtonElement>('.tabs button')]
           .find((tab) => tab.textContent!.trim() === 'Files')!
@@ -480,9 +480,9 @@ describe('files', () => {
         editor.dispatchEvent(new Event('input'));
         await fixture.whenStable();
 
-        emit('agents.entry', { chatId: 'chat-1', entry: { kind: 'agent', id: 'a1', blocks: [ribbonEdit] } });
+        emit('agents.entry', { chatId: 'chat-1', entry: { kind: 'agent', id: 'a1', blocks: [chatTabEdit] } });
         await fixture.whenStable();
-        await foldOut('ribbon.ts');
+        await expandable('ribbon.ts');
         openIn()!.click();
         await fixture.whenStable();
         expect(texts('gr-files-page .sub .path')).toEqual(['README.md']);
@@ -490,20 +490,20 @@ describe('files', () => {
         expect(calls.filter((c) => c.command === 'files.open')).toHaveLength(1);
       });
 
-      it('leaves Open in Files out in focus mode, where there is no facing page', async () => {
+      it('leaves Open in Files out in focus mode, where there is no right page', async () => {
         const { bridge, emit } = repository();
-        const { fixture, el, openIn, foldOut } = await book(bridge);
+        const { fixture, el, openIn, expandable } = await withEditor(bridge);
         await write(fixture, el, 'Fix the ribbon');
-        emit('agents.entry', { chatId: 'chat-1', entry: { kind: 'agent', id: 'a1', blocks: [ribbonEdit] } });
+        emit('agents.entry', { chatId: 'chat-1', entry: { kind: 'agent', id: 'a1', blocks: [chatTabEdit] } });
         await fixture.whenStable();
-        await foldOut('ribbon.ts');
+        await expandable('ribbon.ts');
         expect(openIn()).toBeDefined();
 
-        [...el.querySelectorAll<HTMLButtonElement>('gr-facing-page .gr-link')]
+        [...el.querySelectorAll<HTMLButtonElement>('gr-right-page .gr-link')]
           .find((link) => link.textContent!.includes('Single page'))!
           .click();
         await fixture.whenStable();
-        expect(el.querySelector('gr-corrections')).not.toBeNull();
+        expect(el.querySelector('gr-diff-view')).not.toBeNull();
         expect(openIn()).toBeUndefined();
       });
     });

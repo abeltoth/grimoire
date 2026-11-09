@@ -1,6 +1,6 @@
 import type { ApprovalMode } from '@grimoire/contract';
 
-/** The permission modes, as the settings card, the running head and presets name them. */
+/** The permission modes, as the settings card, the page header and presets name them. */
 export const MODES: readonly { mode: ApprovalMode; label: string; detail: string }[] = [
   { mode: 'ask', label: 'Ask first', detail: 'Asks before edits and commands' },
   { mode: 'accept-edits', label: 'Accept edits', detail: 'Edits files, asks before commands' },

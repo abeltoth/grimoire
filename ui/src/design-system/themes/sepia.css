@@ -11,13 +11,13 @@
   /* Paper */
   --gr-page: #e8d7b0;
   --gr-page-next: #f0e2c2;
-  --gr-foldout: #dfcba0;
+  --gr-expandable: #dfcba0;
   --gr-fore-edge-a: #dccaa0;
   --gr-fore-edge-b: #bba67b;
   --gr-page-edge: #c9b58a;
-  --gr-dogear-flap: #c9b58a;
+  --gr-pin-flap: #c9b58a;
   --gr-hairline: rgba(74, 48, 22, 0.2);
-  --gr-slip: #f1e4c4;
+  --gr-surface: #f1e4c4;
   --gr-plate: #e1cfa5;
 
   /* Ink and stamps */
@@ -29,5 +29,5 @@
   --gr-verdigris: #275a47;
 
   /* Ribbons */
-  --gr-ribbon-slip: #efe0bd;
+  --gr-chat-tab-label: #efe0bd;
 }

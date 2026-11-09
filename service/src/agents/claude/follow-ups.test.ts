@@ -114,7 +114,7 @@ describe('savedFollowUps', () => {
     ]);
   });
 
-  it('has none once you wrote again, nor from a helper or an empty call', () => {
+  it('has none once you wrote again, nor from a subagent or an empty call', () => {
     expect(savedFollowUps([yours('Hi'), call('t1', [docs]), result('t1'), yours('More')])).toBeUndefined();
     expect(savedFollowUps([yours('Hi'), call('t1', [docs], 'agent-1')])).toBeUndefined();
     expect(savedFollowUps([yours('Hi'), call('t1', [docs]), call('t2', [])])).toBeUndefined();

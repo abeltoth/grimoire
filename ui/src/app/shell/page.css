@@ -11,13 +11,13 @@
     var(--gr-page);
 }
 
-:host(.facing) {
+:host(.right-page) {
   --page-inset-start: var(--gr-page-margin-inner);
-  --page-inset-end: var(--gr-facing-margin-outer);
+  --page-inset-end: var(--gr-right-page-margin-outer);
   overflow: hidden;
   background:
     linear-gradient(to right, var(--gr-gutter-shade), transparent var(--gr-gutter-shade-w)),
-    var(--gr-page-facing);
+    var(--gr-page-right);
 }
 
 :host(.alone) {

@@ -3,14 +3,14 @@ import type { AgentId, ChatId, NewChatSettings, OpenChat } from './agents';
 /**
  * A chat Grimoire begins by itself, on the days and at the time set, such
  * as a morning summary of a repository's changes (ADR-009: Grimoire's own
- * data). Each run begins a new chapter, with Full access: no one is
+ * data). Each run begins a new chat, with Full access: no one is
  * there to approve.
  */
 export interface Schedule {
   id: string;
   name: string;
   agent: AgentId;
-  /** The chapter's settings, but for its permission: always Full access. */
+  /** The chat's settings, but for its permission: always Full access. */
   settings: Omit<NewChatSettings, 'mode'>;
   /** The first entry each run writes. */
   prompt: string;
@@ -31,14 +31,14 @@ export interface ScheduleRun {
   /** When it was due, in ms since the epoch; when you asked, for a run you began yourself. */
   dueAt: number;
   /**
-   * Began a chapter; missed, because the service wasn't running then and
+   * Began a chat; missed, because the service wasn't running then and
    * is back too late to catch up; skipped, because the schedule's profile
    * wasn't the one in use; or failed to begin.
    */
   outcome: 'began' | 'missed' | 'skipped' | 'failed';
   /** When it began, when it did. */
   ranAt?: number;
-  /** The chapter it began, and the folder that chat runs in. */
+  /** The chat it began, and the folder that chat runs in. */
   chatId?: ChatId;
   cwd?: string;
   /** Why it failed. */
@@ -61,7 +61,7 @@ declare module './commands' {
     'schedules.save': { request: ScheduleDraft; response: ScheduleInfo[] };
     /** Removes a schedule and the record of its runs. Returns the rest. */
     'schedules.remove': { request: { id: string }; response: ScheduleInfo[] };
-    /** Runs a schedule now, whatever its days: it begins its chapter as a scheduled run would. */
+    /** Runs a schedule now, whatever its days: it begins its chat as a scheduled run would. */
     'schedules.run': { request: { id: string }; response: ScheduleRun };
   }
 }
@@ -70,7 +70,7 @@ declare module './events' {
   interface EventMap {
     /** The schedules, after one was saved, removed or ran. */
     'schedules.changed': { schedules: ScheduleInfo[] };
-    /** A run began a chapter, which windows add to the book. */
+    /** A run began a chat, which windows add to the book. */
     'schedules.began': { run: ScheduleRun; chat: OpenChat };
   }
 }

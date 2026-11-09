@@ -1,0 +1,32 @@
+@for (tab of registry.pageTabs.all(); track tab.id) {
+  <button
+    type="button"
+    class="page-tab"
+    [attr.title]="wording.label(tab)"
+    [attr.aria-current]="rightPage.pageTab() === tab.id ? 'page' : null"
+    (click)="rightPage.pageTab() === tab.id ? rightPage.closePageTab() : rightPage.openPageTab(tab.id)"
+  >
+    <span>{{ wording.label(tab) }}</span>
+  </button>
+}
+
+@let shortcut = index()?.shortcut;
+<button
+  type="button"
+  class="page-tab command-palette"
+  [attr.aria-label]="
+    wording.say('Index, the command palette', 'Command palette') +
+    (shortcut ? '. ' + (shortcut | shortcut: 'spoken') : '')
+  "
+  [attr.aria-current]="rightPage.commandPalette() !== null ? 'page' : null"
+  (click)="index()?.run?.()"
+>
+  <span>
+    {{ wording.say('Index', 'Commands') }}
+    @if (shortcut) {
+      <span class="gr-kbd" [class.words]="platform !== 'mac'">{{
+        shortcut | shortcut: 'keys'
+      }}</span>
+    }
+  </span>
+</button>

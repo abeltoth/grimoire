@@ -3,7 +3,7 @@ import { Settings } from './settings';
 
 /**
  * How Grimoire says things: in the book's own words, such as Colophon,
- * chapter and seal, or plainly: Settings, chat, approve. The Colophon
+ * chapter and seal, or plainly: Settings, chat, approve. Settings
  * switches between them.
  */
 @Injectable({ providedIn: 'root' })
@@ -19,9 +19,9 @@ export class Wording {
   readonly label = (entry: { label: string; plainLabel?: string }): string =>
     this.plain() && entry.plainLabel ? entry.plainLabel : entry.label;
 
-  /** What a chapter is called until it has a title. */
+  /** What a chat is called until it has a title. */
   readonly untitled = computed(() => this.say('Untitled chapter', 'Untitled chat'));
 
-  /** The link that turns back to a page: "Back to the Outline", or plainly "Back to Plan". */
+  /** The link that turns back to a page: "Back to the Plan", or plainly "Back to Plan". */
   readonly back = (to: string): string => this.say(`Back to the ${to}`, `Back to ${to}`);
 }

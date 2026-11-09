@@ -1,0 +1,33 @@
+:host {
+  display: contents;
+}
+
+/* The corners of the page the chat is on. */
+.dog {
+  position: absolute;
+  left: 0;
+  z-index: 3;
+  width: var(--gr-pin-size);
+  height: var(--gr-pin-size);
+}
+
+.pin {
+  top: 0;
+  background: linear-gradient(135deg, var(--gr-pin-hint) 0 50%, transparent 50%);
+}
+
+.star {
+  bottom: 0;
+  background: linear-gradient(45deg, var(--gr-pin-hint) 0 50%, transparent 50%);
+}
+
+/* Folded down: the cover shows through the corner, the flap lies on the page. */
+.pin.folded {
+  background: linear-gradient(135deg, var(--gr-cover) 0 50%, var(--gr-pin-flap) 50% 100%);
+  filter: drop-shadow(var(--gr-shadow-pin));
+}
+
+.star.folded {
+  background: linear-gradient(45deg, var(--gr-cover) 0 50%, var(--gr-pin-flap) 50% 100%);
+  filter: drop-shadow(var(--gr-shadow-pin));
+}

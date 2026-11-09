@@ -4,10 +4,10 @@ import type {
   AgentModels,
   ChatId,
   ChatSettings,
-  Enclosure,
+  Attachment,
   Entry,
   FollowUp,
-  HelperRun,
+  SubagentRun,
   PlanStep,
   PromptCache,
   SettingsChange,
@@ -26,7 +26,7 @@ export interface FakeRun {
   /** The entry IDs of the messages sent, in the same order. */
   sentIds: string[];
   /** The pictures and files sent with each message, in the same order. */
-  sentEnclosures: Enclosure[][];
+  sentAttachments: Attachment[][];
   undone: string[];
   interrupts: number;
   configured: SettingsChange[];
@@ -43,8 +43,8 @@ export class FakeAdapter implements AgentAdapter {
   caches = new Map<ChatId, PromptCache>();
   /** The separate tasks each saved chat's last turn offered. */
   followUps = new Map<ChatId, FollowUp[]>();
-  /** Saved helpers' runs, by the tool call that started each. */
-  helpers = new Map<string, HelperRun>();
+  /** Saved subagents' runs, by the tool call that started each. */
+  subagents = new Map<string, SubagentRun>();
   transcriptLoads = 0;
   /** When set, undo fails with this. */
   undoError?: string;
@@ -63,8 +63,8 @@ export class FakeAdapter implements AgentAdapter {
     });
   }
 
-  async helper(_chatId: ChatId, _cwd: string, toolId: string): Promise<HelperRun> {
-    return structuredClone(this.helpers.get(toolId) ?? { entries: [] });
+  async subagent(_chatId: ChatId, _cwd: string, toolId: string): Promise<SubagentRun> {
+    return structuredClone(this.subagents.get(toolId) ?? { entries: [] });
   }
 
   /** Copies the chat up to and with your entry, as the new chat `fork-n`. */
@@ -132,7 +132,7 @@ export class FakeAdapter implements AgentAdapter {
       events,
       sent: [],
       sentIds: [],
-      sentEnclosures: [],
+      sentAttachments: [],
       undone: [],
       interrupts: 0,
       configured: [],
@@ -140,10 +140,10 @@ export class FakeAdapter implements AgentAdapter {
     };
     this.runs.push(run);
     return {
-      send: (text, id, enclosures = []) => {
+      send: (text, id, attachments = []) => {
         run.sent.push(text);
         run.sentIds.push(id);
-        run.sentEnclosures.push(enclosures);
+        run.sentAttachments.push(attachments);
       },
       interrupt: async () => void run.interrupts++,
       configure: async (change) => void run.configured.push(change),

@@ -5,7 +5,7 @@ import { Chats } from '@ui/app/core/chats';
 
 /**
  * The schedules, as the window sees them: a mirror of the service's,
- * kept current by its events. A run's chapter joins the book as it begins.
+ * kept current by its events. A run's chat joins the book as it begins.
  */
 @Injectable({ providedIn: 'root' })
 export class ScheduledChats {
@@ -49,7 +49,7 @@ export class ScheduledChats {
     return this.change(() => this.bridge.invoke('schedules.remove', { id }));
   }
 
-  /** Runs a schedule now, and turns to the chapter it began. */
+  /** Runs a schedule now, and turns to the chat it began. */
   async run(id: string): Promise<ScheduleRun | undefined> {
     this.failed.set(null);
     try {
@@ -63,7 +63,7 @@ export class ScheduledChats {
     }
   }
 
-  /** Turns to a run's chapter, opening it again when it was closed. */
+  /** Turns to a run's chat, opening it again when it was closed. */
   async openRun(schedule: ScheduleInfo, run: ScheduleRun): Promise<void> {
     if (!run.chatId) return;
     if (this.chats.has(run.chatId)) return this.chats.open(run.chatId);
@@ -73,7 +73,7 @@ export class ScheduledChats {
       title: '',
       ...(run.cwd ? { cwd: run.cwd } : {}),
       updatedAt: run.ranAt ?? run.dueAt,
-      dogEars: [],
+      pins: [],
       tags: [],
     });
   }

@@ -2,11 +2,11 @@ import { DestroyRef, Injectable, PendingTasks, computed, effect, inject, signal,
 import type { GitStatus, PullRequest } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { Chats } from '@ui/app/core/chats';
-import type { Stamp } from '@ui/app/shell/shell-registry';
+import type { Badge } from '@ui/app/shell/shell-registry';
 
 /**
- * The open chapter's repository, read live from the background service
- * (ADR-009): again when you open another chapter, when a turn ends, and
+ * The open chat's repository, read live from the background service
+ * (ADR-009): again when you open another chat, when a turn ends, and
  * when you come back to the window.
  */
 @Injectable({ providedIn: 'root' })
@@ -15,7 +15,7 @@ export class GitState {
   private readonly chats = inject(Chats);
   private readonly pending = inject(PendingTasks);
 
-  /** The open chapter's folder; your home folder until you pick another. */
+  /** The open chat's folder; your home folder until you pick another. */
   readonly cwd = computed(() => this.chats.current()?.settings.cwd ?? (this.chats.folders().home || undefined));
   /** Null outside a repository; undefined until it's first read. */
   readonly status = signal<GitStatus | null | undefined>(undefined);
@@ -60,7 +60,7 @@ export class GitState {
   }
 }
 
-/** What the running foot says about the repository on hover. */
+/** What the page footer says about the repository on hover. */
 export function statusDetail(status: GitStatus): string {
   const parts: string[] = [];
   const changes = status.changes.length;
@@ -78,14 +78,14 @@ export function upstreamDistance({ name, ahead, behind }: NonNullable<GitStatus[
   return `${ahead ? `${ahead} ahead, ` : ''}${behind} behind ${name}`;
 }
 
-/** The branch as the running foot names it. */
+/** The branch as the page footer names it. */
 export function branchLabel(status: GitStatus): string {
   if (status.branch) return status.branch;
   return status.head ? `detached at ${status.head}` : 'no commits yet';
 }
 
-/** The pull request's stamps: its review, and its checks once they've run or are running. */
-export function stampsOf(pr: PullRequest): Omit<Stamp, 'order' | 'open'>[] {
+/** The pull request's badges: its review, and its checks once they've run or are running. */
+export function badgesOf(pr: PullRequest): Omit<Badge, 'order' | 'open'>[] {
   const review =
     pr.state === 'merged'
       ? 'merged'
@@ -98,7 +98,7 @@ export function stampsOf(pr: PullRequest): Omit<Stamp, 'order' | 'open'>[] {
             : pr.review === 'changes-requested'
               ? 'changes requested'
               : 'in review';
-  const stamps: ReturnType<typeof stampsOf> = [
+  const badges: ReturnType<typeof badgesOf> = [
     {
       id: 'git.pullRequest',
       label: `PR #${pr.number}: ${review}`,
@@ -123,12 +123,12 @@ export function stampsOf(pr: PullRequest): Omit<Stamp, 'order' | 'open'>[] {
       failed && `${failed} failed`,
       pending && `${pending} running`,
     ].filter(Boolean);
-    stamps.push({
+    badges.push({
       id: 'git.checks',
       label,
       tone: failed ? 'alert' : 'quiet',
       detail: counts.join(', '),
     });
   }
-  return stamps;
+  return badges;
 }

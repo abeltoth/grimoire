@@ -1,0 +1,84 @@
+<div class="half left-half">
+  @for (chat of left(); track chat.id) {
+    <gr-chat-tab
+      class="chat"
+      side="left"
+      [beside]="chat.id === chats.besideId()"
+      [tone]="tone(chat)"
+      [heading]="title(chat)"
+      [meta]="meta(chat)"
+      (picked)="chats.open(chat.id)"
+      (dismissed)="chats.close(chat.id)"
+      (settings)="chats.openSettings(chat.id, 'agent')"
+    >
+      <gr-icon [name]="icon(chat)" [class]="motion(chat)" />
+    </gr-chat-tab>
+  }
+</div>
+
+<div class="spine">
+  @if (current(); as chat) {
+    <gr-chat-tab
+      class="chat"
+      side="left"
+      current
+      [tone]="tone(chat)"
+      [heading]="title(chat)"
+      [meta]="meta(chat)"
+      (picked)="chats.open(chat.id)"
+      (dismissed)="chats.close(chat.id)"
+      (settings)="chats.openSettings(chat.id, 'agent')"
+    >
+      <gr-icon [name]="icon(chat)" [class]="motion(chat)" />
+    </gr-chat-tab>
+  }
+</div>
+
+<div class="half right-half">
+  @for (chat of right(); track chat.id) {
+    <!-- Nearest the spine lies on top, as on the left. -->
+    <gr-chat-tab
+      class="chat"
+      side="right"
+      [style.--stack]="right().length - $index"
+      [beside]="chat.id === chats.besideId()"
+      [tone]="tone(chat)"
+      [heading]="title(chat)"
+      [meta]="meta(chat)"
+      (picked)="chats.open(chat.id)"
+      (dismissed)="chats.close(chat.id)"
+      (settings)="chats.openSettings(chat.id, 'agent')"
+    >
+      <gr-icon [name]="icon(chat)" [class]="motion(chat)" />
+    </gr-chat-tab>
+  }
+
+  @if (approvals()) {
+    <gr-chat-tab
+      class="approvals"
+      side="right"
+      tone="approval"
+      [heading]="wording.say('Awaiting your seal', 'Waiting for approval')"
+      [meta]="approvalMeta()"
+      [label]="approvalLabel()"
+      [approval]="approvals()"
+      [expanded]="rightPage.approvals()"
+      (picked)="rightPage.approvals() ? rightPage.closeApprovals() : rightPage.openApprovals()"
+    />
+  }
+
+  @let shortcut = newChat()?.shortcut;
+  <gr-chat-tab
+    class="new"
+    side="right"
+    tone="new"
+    [heading]="newChatLabel()"
+    [meta]="
+      (chats.startOf().preset ?? 'Last settings') +
+      (shortcut ? ' · ' + (shortcut | shortcut) : '')
+    "
+    (picked)="chats.newChat()"
+  >
+    <gr-icon name="plus" />
+  </gr-chat-tab>
+</div>

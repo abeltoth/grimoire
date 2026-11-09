@@ -1,11 +1,11 @@
 import type { AgentId, NewChatSettings } from './agents';
 
-/** A chapter's settings saved under a name, to begin chapters with (ADR-009: Grimoire's own data). */
+/** A chat's settings saved under a name, to begin chats with (ADR-009: Grimoire's own data). */
 export interface Preset {
   name: string;
   agent: AgentId;
   settings: NewChatSettings;
-  /** The first entry a chapter begun with it has written in, ready to send or change. */
+  /** The first entry a chat begun with it has written in, ready to send or change. */
   prompt?: string;
 }
 

@@ -12,7 +12,7 @@ import {
 import type { SetupFile } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { Chats } from '@ui/app/core/chats';
-import { Facing } from './facing';
+import { RightPageState } from './right-page-state';
 import { type Shortcut, ShortcutPipe, matchesShortcut } from './shortcut';
 
 const SAVE: Shortcut = 'Mod+S';
@@ -24,9 +24,9 @@ export interface EditorNote {
 }
 
 /**
- * A file opened on a thumb tab's page, to read or change in place as
+ * A file opened on a page tab's page, to read or change in place as
  * written and save with Save or Ctrl+S. While it holds changes, neither
- * Esc nor the facing page turns away from it until they're saved or
+ * Esc nor the right page turns away from it until they're saved or
  * discarded. What's put inside shows above the text; what's marked
  * `actions`, beside Save.
  */
@@ -67,8 +67,8 @@ export class FileEditor {
   protected readonly note = signal<EditorNote | null>(null);
 
   constructor() {
-    // Changes can't be left behind unsaved by turning the facing page away.
-    const unguard = inject(Facing).guardLeaving(() => this.mayLeave());
+    // Changes can't be left behind unsaved by turning the right page away.
+    const unguard = inject(RightPageState).guardLeaving(() => this.mayLeave());
     inject(DestroyRef).onDestroy(unguard);
   }
 

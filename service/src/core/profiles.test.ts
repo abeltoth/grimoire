@@ -8,7 +8,7 @@ import { useClaudeFolder } from '../agents/claude/config-dir';
 import { CardStore } from '../kanban/store';
 import { CommandRegistry } from '../registry';
 import { ScheduleStore } from '../schedules/store';
-import { Chapters } from '../storage/chapters';
+import { OpenChats } from '../storage/open-chats';
 import { openDatabase } from '../storage/database';
 import { LayoutStore } from './layout';
 import { PresetStore } from './presets';
@@ -70,10 +70,10 @@ describe('ProfileStore', () => {
     const { db, profiles } = setUp();
     const settings = new SettingsStore(db);
     const layout = new LayoutStore(db);
-    const chapters = new Chapters(db);
+    const chats = new OpenChats(db);
     settings.set({ wording: 'plain' });
     layout.set({ current: 'a' });
-    chapters.add({ chatId: 'a', agent: 'claude-code', settings: { cwd: '/one' } });
+    chats.add({ chatId: 'a', agent: 'claude-code', settings: { cwd: '/one' } });
     profiles.create('Work');
 
     profiles.setActive('work');
@@ -81,14 +81,14 @@ describe('ProfileStore', () => {
     expect(profiles.active().name).toBe('Work');
     expect(settings.get().wording).toBe('book');
     expect(layout.get().current).toBeNull();
-    expect(chapters.list()).toEqual([]);
+    expect(chats.list()).toEqual([]);
     settings.set({ accounts: ['me@work.com'] });
-    chapters.add({ chatId: 'b', agent: 'claude-code', settings: { cwd: '/two' } });
+    chats.add({ chatId: 'b', agent: 'claude-code', settings: { cwd: '/two' } });
 
     profiles.setActive('personal');
     expect(settings.get()).toMatchObject({ wording: 'plain', accounts: [] });
     expect(layout.get().current).toBe('a');
-    expect(chapters.list().map((chapter) => chapter.chatId)).toEqual(['a']);
+    expect(chats.list().map((chat) => chat.chatId)).toEqual(['a']);
     expect(() => profiles.setActive('gone')).toThrow('There\'s no profile "gone"');
   });
 

@@ -1,0 +1,62 @@
+:host {
+  display: contents;
+}
+
+.row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-head-row-gap);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--gr-font-display);
+  font-weight: 400;
+  font-size: var(--gr-size-right-page-tab);
+  line-height: var(--gr-leading-right-page-tab);
+  box-shadow: inset 0 calc(var(--gr-underline-active) * -1) 0 var(--gr-rubric);
+}
+
+.hint {
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.approvals {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  z-index: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-approvals-gap);
+  padding: var(--gr-approvals-pad-top) var(--page-inset-end) var(--gr-approvals-pad-bottom)
+    calc(var(--page-inset-start) + var(--gr-approvals-inset));
+}
+
+gr-approval-card {
+  margin: 0;
+}
+
+/* Every other approval card leans the other way, as if tucked in by hand. */
+gr-approval-card:nth-of-type(even) {
+  transform: rotate(var(--gr-approvals-tilt-alt));
+}
+
+.note {
+  margin: 0;
+  max-width: var(--gr-approvals-note-width);
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+gr-page-footer {
+  gap: var(--gr-approvals-foot-gap);
+}

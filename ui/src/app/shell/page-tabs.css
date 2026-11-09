@@ -1,0 +1,94 @@
+/* The tabs are notches cut into the right-hand page block. */
+:host {
+  position: absolute;
+  right: 0;
+  top: var(--gr-page-tabs-top);
+  bottom: var(--gr-page-tabs-bottom);
+  width: var(--gr-notch-w);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--gr-page-tabs-gap) * var(--page-tabs-space, 1));
+  z-index: 3;
+}
+
+/* Drawn closer and smaller when the book is short; cut off only when it's shorter still. */
+.page-tab {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  padding: calc(var(--gr-page-tab-pad-y) * var(--page-tabs-space, 1)) 0
+    calc(var(--gr-page-tab-pad-y) * var(--page-tabs-space, 1)) var(--gr-page-tab-pad-spine);
+  background: var(--gr-page-tab);
+  color: var(--gr-page-tab-ink);
+  border-radius: var(--gr-radius-notch);
+  box-shadow:
+    var(--gr-shadow-notch),
+    -1px 0 0 var(--gr-page-edge);
+}
+
+.page-tab:hover {
+  background: var(--gr-page-tab-hover);
+}
+
+/* Open: the right page is turned to the tab's page. */
+.page-tab[aria-current='page'] {
+  margin-left: var(--gr-page-tab-open-shift);
+  background: var(--gr-page-tab-hover);
+  box-shadow:
+    var(--gr-shadow-page-tab-open),
+    -1px 0 0 var(--gr-page-edge);
+}
+
+.page-tab span {
+  writing-mode: vertical-rl;
+  font-family: var(--gr-font-sc);
+  font-size: calc(var(--gr-size-label) * var(--page-tabs-type, 1));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: var(--gr-tracking-label);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* The command palette tab is never cut off. */
+.command-palette {
+  flex-shrink: 0;
+  margin-top: auto;
+  background: var(--gr-command-palette-tab);
+  color: var(--gr-command-palette-tab-ink);
+}
+
+.command-palette:hover {
+  background: var(--gr-gilt);
+}
+
+/* Open: the right page is turned to the command palette. */
+.command-palette[aria-current='page'] {
+  margin-left: var(--gr-page-tab-open-shift);
+  background: var(--gr-command-palette-tab-open);
+  box-shadow:
+    var(--gr-shadow-page-tab-open),
+    -1px 0 0 var(--gr-page-edge),
+    0 0 0 var(--gr-underline-active) var(--gr-gilt-line);
+}
+
+.command-palette > span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gr-command-palette-tab-gap);
+}
+
+/* ⌘K stands upright, one symbol under the other. */
+.command-palette .gr-kbd {
+  text-orientation: upright;
+  letter-spacing: var(--gr-page-tab-key-tracking-symbols);
+  padding: var(--gr-page-tab-key-pad);
+}
+
+/* "Ctrl K" runs along the tab like the label. */
+.command-palette .gr-kbd.words {
+  text-orientation: mixed;
+  letter-spacing: var(--gr-page-tab-key-tracking-words);
+}

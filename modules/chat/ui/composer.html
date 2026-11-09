@@ -3,8 +3,8 @@
     <span class="queued-label"><gr-icon name="hourglass" />Queued</span>
     <p class="queued-text">
       {{ waiting.text }}
-      @if (waiting.enclosures?.length) {
-        <i>+ {{ waiting.enclosures!.length }} attached</i>
+      @if (waiting.attachments?.length) {
+        <i>+ {{ waiting.attachments!.length }} attached</i>
       }
     </p>
     <span class="queued-when">sends when this turn ends</span>
@@ -65,7 +65,7 @@
   @if (lookingUp()) {
     <span class="slash-hint"
       >{{ chats.agentName(agent()) }}’s commands and skills are
-      @if (leaf) {
+      @if (popout) {
         listed above ↑
       } @else if (beside()) {
         on the {{ wording.say('facing page', 'left') }} ←
@@ -80,10 +80,10 @@
   }
 </div>
 
-@if (enclosures().length) {
-  <gr-enclosures
+@if (attachments().length) {
+  <gr-attachments
     class="enclosed"
-    [enclosures]="enclosures()"
+    [attachments]="attachments()"
     [cwd]="cwd()"
     removable
     (removed)="unenclose($event)"

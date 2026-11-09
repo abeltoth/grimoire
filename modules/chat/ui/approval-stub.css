@@ -1,0 +1,55 @@
+:host {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-stub-gap);
+  margin: var(--gr-stub-margin);
+  padding: var(--gr-stub-pad);
+  background: var(--gr-card-paper);
+  box-shadow: var(--gr-shadow-surface-tucked);
+  transform: rotate(var(--gr-stub-tilt));
+  font-size: var(--gr-size-stub);
+  color: var(--gr-ink-soft);
+}
+
+/* The page's corner holding the stub in place. */
+.corner {
+  position: absolute;
+  top: var(--gr-approval-card-corner-offset);
+  left: var(--gr-approval-card-corner-offset);
+  width: var(--gr-approval-card-corner);
+  height: var(--gr-approval-card-corner);
+  background: var(--gr-page);
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+  filter: var(--gr-shadow-approval-card-corner);
+}
+
+b {
+  font-family: var(--gr-font-sc);
+  font-weight: 500;
+  letter-spacing: var(--gr-tracking-stub-head);
+  font-size: var(--gr-size-stub-head);
+  color: var(--gr-rubric);
+  white-space: nowrap;
+}
+
+code {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-stub-code);
+  color: var(--gr-ink);
+}
+
+button {
+  margin-left: auto;
+  font-style: italic;
+  white-space: nowrap;
+  color: var(--gr-ink-soft);
+}
+
+button:hover {
+  color: var(--gr-ink);
+}

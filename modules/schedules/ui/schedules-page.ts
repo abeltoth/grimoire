@@ -26,7 +26,7 @@ export class SchedulesPage {
   protected readonly editing = signal<string | null>(null);
   /** The schedule asked about before it's removed. */
   protected readonly removing = signal<string | null>(null);
-  /** The schedule running now, until its chapter has begun. */
+  /** The schedule running now, until its chat has begun. */
   protected readonly running = signal<string | null>(null);
 
   protected readonly cadence = cadence;

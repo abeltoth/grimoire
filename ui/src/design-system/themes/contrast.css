@@ -9,25 +9,25 @@
   --gr-cover: #1a0a08;
   --gr-cover-edge: #000000;
   --gr-gilt-ink: #5c4000;
-  --gr-thumb-tab: #1c1c1c;
-  --gr-thumb-hover: #3d3d3d;
+  --gr-page-tab: #1c1c1c;
+  --gr-page-tab-hover: #3d3d3d;
 
   /* Paper */
   --gr-page: #ffffff;
   --gr-page-next: #ffffff;
-  --gr-foldout: #f2f2f2;
+  --gr-expandable: #f2f2f2;
   --gr-fore-edge-a: #e6e6e6;
   --gr-fore-edge-b: #8c8c8c;
   --gr-page-edge: #6b6b6b;
-  --gr-dogear-flap: #cfcfcf;
-  --gr-dogear-hint: rgba(0, 0, 0, 0.2);
-  --gr-shadow-dogear: 2px 2px 2px rgba(0, 0, 0, 0.5);
+  --gr-pin-flap: #cfcfcf;
+  --gr-pin-hint: rgba(0, 0, 0, 0.2);
+  --gr-shadow-pin: 2px 2px 2px rgba(0, 0, 0, 0.5);
   --gr-gutter-shade: rgba(0, 0, 0, 0.2);
   --gr-hairline: rgba(0, 0, 0, 0.55);
   --gr-rule-ruled: rgba(11, 42, 102, 0.3);
-  --gr-slip: #ffffff;
-  --gr-slip-well: rgba(0, 0, 0, 0.08);
-  --gr-slip-laid: rgba(0, 0, 0, 0.05);
+  --gr-surface: #ffffff;
+  --gr-approval-card-well: rgba(0, 0, 0, 0.08);
+  --gr-approval-card-laid: rgba(0, 0, 0, 0.05);
   --gr-plate: #f2f2f2;
   --gr-plate-mark: rgba(0, 0, 0, 0.6);
 
@@ -73,15 +73,15 @@
   --gr-editor-removed-line: rgba(138, 18, 0, 0.12);
 
   /* Controls and slips */
-  --gr-stamp-hover: rgba(11, 42, 102, 0.12);
+  --gr-badge-hover: rgba(11, 42, 102, 0.12);
   --gr-composer-button-hover: rgba(0, 0, 0, 0.12);
   --gr-composer-button-on: rgba(138, 18, 0, 0.16);
   --gr-queued-rule: rgba(0, 0, 0, 0.5);
   --gr-allowance-ticks: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.6) 0 1px, transparent 1px 4px);
   --gr-chart-grid: rgba(0, 0, 0, 0.25);
   --gr-chart-axis: rgba(0, 0, 0, 0.7);
-  --gr-seal-button-hover: rgba(138, 18, 0, 0.14);
-  --gr-slip-choice-hover: rgba(0, 0, 0, 0.12);
-  --gr-fold-rule: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0));
+  --gr-approve-button-hover: rgba(138, 18, 0, 0.14);
+  --gr-approval-card-choice-hover: rgba(0, 0, 0, 0.12);
+  --gr-expandable-rule: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0));
   --gr-leader: 1.5px dotted rgba(0, 0, 0, 0.7);
 }

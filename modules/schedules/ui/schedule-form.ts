@@ -12,7 +12,7 @@ const WEEKDAYS = [1, 2, 3, 4, 5];
 
 /**
  * A schedule written out to save: its name, the entry each run begins
- * with, its days and time, and the chapter's folder, model and effort.
+ * with, its days and time, and the chat's folder, model and effort.
  * Its permission is always Full access, so it says so instead of asking.
  */
 @Component({
@@ -32,7 +32,7 @@ export class ScheduleForm {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
   protected readonly week = WEEK;
 
-  // Written out from the schedule changed; a new one from the chapter you're on.
+  // Written out from the schedule changed; a new one from the chat you're on.
   protected readonly name = linkedSignal(() => this.schedule()?.name ?? '');
   protected readonly prompt = linkedSignal(() => this.schedule()?.prompt ?? '');
   protected readonly days = linkedSignal<ReadonlySet<number>>(() => new Set(this.schedule()?.days ?? WEEKDAYS));

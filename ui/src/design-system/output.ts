@@ -3,11 +3,11 @@ import { Component, computed, input } from '@angular/core';
 /** Terminal colour and cursor codes, which a page can't show. */
 const ESCAPES = /\x1b\[[0-9;?]*[ -/]*[@-~]/g;
 
-/** A fold-out with what a tool printed, such as a command's output. */
+/** An expandable with what a tool printed, such as a command's output. */
 @Component({
   selector: 'gr-output',
   templateUrl: './output.html',
-  styleUrl: './fold-out.css',
+  styleUrl: './expandable.css',
   host: { role: 'region', '[attr.aria-label]': "'Output of ' + title()" },
 })
 export class Output {

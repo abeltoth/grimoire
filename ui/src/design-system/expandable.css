@@ -1,0 +1,130 @@
+/* An expandable: a leaf that folds out of the page. */
+:host {
+  display: block;
+  position: relative;
+  margin-top: var(--gr-expandable-margin-top);
+  background: var(--gr-expandable);
+  border-radius: var(--gr-radius-surface);
+  box-shadow: var(--gr-shadow-surface);
+}
+
+/* Where the page's margin column begins. */
+:host::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: var(--gr-expandable-mark-col);
+  width: 1px;
+  background: var(--gr-expandable-rule);
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-expandable-head-gap);
+  padding: var(--gr-expandable-head-pad);
+  font-size: var(--gr-size-fold-head);
+  border-bottom: 1px solid var(--gr-hairline);
+}
+
+.head b {
+  font-family: var(--gr-font-mono);
+  font-weight: 500;
+  font-size: var(--gr-size-fold-file);
+  overflow-wrap: anywhere;
+}
+
+.detail {
+  font-style: italic;
+  color: var(--gr-ink-soft);
+  white-space: nowrap;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.body {
+  max-height: var(--gr-expandable-body-max);
+  overflow: auto;
+  padding: var(--gr-expandable-body-pad);
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-code);
+  line-height: var(--gr-leading-code);
+  outline: none;
+}
+
+.line {
+  display: grid;
+  grid-template-columns: var(--gr-expandable-line-number) minmax(0, 1fr) var(--gr-expandable-mark-col);
+  white-space: pre;
+}
+
+.number {
+  text-align: center;
+}
+
+/* The command, set above its output in a well of its own, tall enough to read it by. */
+.command {
+  max-height: var(--gr-expandable-command-max);
+  overflow: auto;
+  padding: var(--gr-expandable-body-pad);
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-code);
+  line-height: var(--gr-leading-code);
+  border-bottom: 1px solid var(--gr-hairline);
+  outline: none;
+}
+
+/* Where another stacked edit begins. */
+.line.break {
+  margin-top: var(--gr-expandable-break-gap);
+  padding-top: var(--gr-expandable-break-gap);
+  border-top: 1px dashed var(--gr-hairline);
+}
+
+/* Long lines wrap: what changes stays in view. */
+.code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* A blank line keeps its height. */
+.code:empty::before {
+  content: ' ';
+}
+
+.mark {
+  font-family: var(--gr-font-text);
+  font-style: italic;
+  font-size: var(--gr-size-fold-mark);
+  color: var(--gr-rubric);
+  padding-left: var(--gr-expandable-mark-pad);
+  white-space: nowrap;
+}
+
+.removed .code {
+  color: var(--gr-ink-soft);
+  text-decoration: line-through;
+  text-decoration-color: var(--gr-rubric);
+  text-decoration-thickness: var(--gr-strike);
+}
+
+.inserted .number {
+  color: var(--gr-rubric);
+  font-family: var(--gr-font-text);
+  font-size: var(--gr-size-caret);
+  line-height: 1;
+}
+
+.foot {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-expandable-foot-gap);
+  padding: var(--gr-expandable-foot-pad);
+  border-top: 1px solid var(--gr-hairline);
+  font-size: var(--gr-size-fold-mark);
+  font-style: italic;
+  color: var(--gr-ink-soft);
+}

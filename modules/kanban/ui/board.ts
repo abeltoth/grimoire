@@ -30,7 +30,7 @@ export function promptOf(card: Pick<Card, 'title' | 'notes' | 'jira'>): string {
 /**
  * The Kanban board, as the window sees it: a mirror of the service's
  * cards, kept current by its events. A card's new chat opens as a blank
- * chapter with the task written in; once its first message is sent, the
+ * chat with the task written in; once its first message is sent, the
  * chat is noted on the card, and a task still to do is in progress. Your
  * Jira issues are cards too, synced from Jira when you ask, and moved in
  * Jira: a card moved shows where it's going at once, and goes back if
@@ -40,7 +40,7 @@ export function promptOf(card: Pick<Card, 'title' | 'notes' | 'jira'>): string {
 export class Board {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
   private readonly chats = inject(Chats);
-  /** The blank chapters opened from cards and not begun yet, each with its card's ID. */
+  /** The blank chats opened from cards and not begun yet, each with its card's ID. */
   private readonly opening = new Map<string, string>();
 
   /** Every card as the service listed it last. */
@@ -82,7 +82,7 @@ export class Board {
   readonly jira = signal<JiraSync | undefined>(undefined);
   /** The cards on the board, not closed. */
   readonly open = computed(() => (this.all() ?? []).filter((card) => card.closedAt === undefined));
-  /** The card on the board the chapter you're on began from, if any. */
+  /** The card on the board the chat you're on began from, if any. */
   readonly current = computed(() => {
     const id = this.chats.currentId();
     return id ? this.open().find((card) => card.chats.some((chat) => chat.chatId === id)) : undefined;
@@ -196,26 +196,26 @@ export class Board {
   }
 
   /**
-   * Opens a new chapter in the card's folder with its title and notes
-   * written in, not sent, and with what new chapters begin with otherwise.
-   * A Jira card has no folder: its chapter begins in `folder`, the one the
-   * board shows, or where new chapters do. One opened from the card before
+   * Opens a new chat in the card's folder with its title and notes
+   * written in, not sent, and with what new chats begin with otherwise.
+   * A Jira card has no folder: its chat begins in `folder`, the one the
+   * board shows, or where new chats do. One opened from the card before
    * and still blank is turned to instead.
    */
   newChat(card: Card, folder?: string): void {
-    for (const [chapter, id] of this.opening) {
+    for (const [chat, id] of this.opening) {
       if (id !== card.id) continue;
-      if (this.chats.has(chapter)) return this.chats.open(chapter);
-      this.opening.delete(chapter);
+      if (this.chats.has(chat)) return this.chats.open(chat);
+      this.opening.delete(chat);
     }
     const { agent, settings } = this.chats.startOf();
     const cwd = card.cwd || folder || settings.cwd;
-    const chapter = this.chats.newChapter({
+    const chat = this.chats.newChat({
       agent,
       settings: { ...settings, ...(cwd ? { cwd } : {}) },
       prompt: promptOf(card),
     });
-    this.opening.set(chapter, card.id);
+    this.opening.set(chat, card.id);
   }
 
   /** Turns to one of a card's chats, opening it again when it was closed. */
@@ -227,7 +227,7 @@ export class Board {
       title: '',
       cwd: chat.cwd,
       updatedAt: chat.at,
-      dogEars: [],
+      pins: [],
       tags: [],
     });
   }

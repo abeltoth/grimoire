@@ -20,9 +20,9 @@ if (!pkg) throw new Error('monaco-editor isn’t installed; run npm install');
 // The editor's version, and this copy's own, for when what's written beside it changes.
 const version = `${JSON.parse(readFileSync(pkg, 'utf8')).version}+1`;
 const target = path.join(ui, 'vendor', 'vs');
-const stamp = path.join(target, '.version');
+const badge = path.join(target, '.version');
 
-if (!existsSync(stamp) || readFileSync(stamp, 'utf8') !== version) {
+if (!existsSync(badge) || readFileSync(badge, 'utf8') !== version) {
   rmSync(target, { recursive: true, force: true });
   cpSync(path.join(path.dirname(pkg), 'min', 'vs'), target, { recursive: true });
   const assets = readdirSync(path.join(target, 'assets'));
@@ -39,6 +39,6 @@ if (!existsSync(stamp) || readFileSync(stamp, 'utf8') !== version) {
   const font = /font-family:codicon;[^}]*?url\(data:font\/ttf;base64,([A-Za-z0-9+/=]+)\)/.exec(css);
   if (!font) throw new Error('The editor’s icon font wasn’t found in its styles');
   writeFileSync(path.join(target, 'codicon.ttf'), Buffer.from(font[1], 'base64'));
-  writeFileSync(stamp, version);
+  writeFileSync(badge, version);
   console.log(`Copied the VS Code editor ${version} to ui/vendor/vs`);
 }

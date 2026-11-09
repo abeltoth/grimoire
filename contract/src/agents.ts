@@ -67,7 +67,7 @@ export type NewChatSettings = Omit<ChatSettings, 'cwd'> & { cwd?: string };
 
 /**
  * What a second model's chat comes from: a chat that has begun, or a new
- * chapter's settings, with the chat the chapter just began, which edits
+ * chat's settings, with the chat it just began, which edits
  * while the second only reads.
  */
 export type ParallelFrom =
@@ -189,8 +189,8 @@ export interface ChatSummary {
   cwd?: string;
   /** ms since the epoch. */
   updatedAt: number;
-  /** Which of its dog-ears are folded. */
-  dogEars: DogEar[];
+  /** Which of its pins are folded. */
+  pins: Pin[];
   /** Your tags for it, in the order you added them. */
   tags: string[];
 }
@@ -206,7 +206,7 @@ export interface UserEntry {
   id: string;
   text: string;
   /** Pictures and files sent with it. */
-  enclosures?: Enclosure[];
+  attachments?: Attachment[];
   /** When it was written, in ms since the epoch, when known. */
   at?: number;
   /** How long the turn it began took, in ms, once that turn has ended and when known. */
@@ -237,9 +237,9 @@ export interface HookRun {
 }
 
 /** Something sent with an entry: a picture, shown as a plate, or a file, as a reference. */
-export type Enclosure = PictureEnclosure | FileEnclosure;
+export type Attachment = PictureAttachment | FileAttachment;
 
-export interface PictureEnclosure {
+export interface PictureAttachment {
   kind: 'picture';
   /** Such as "image/png". */
   mediaType: string;
@@ -250,7 +250,7 @@ export interface PictureEnclosure {
 }
 
 /** A file the agent reads with the entry. */
-export interface FileEnclosure {
+export interface FileAttachment {
   kind: 'file';
   /** Absolute, or relative to the chat's folder. */
   path: string;
@@ -363,15 +363,15 @@ export interface PromptCache {
   until: number;
 }
 
-/** Where a helper is with its task: still at it, done, failed, or stopped before it was done. */
-export type HelperState = 'working' | 'done' | 'failed' | 'stopped';
+/** Where a subagent is with its task: still at it, done, failed, or stopped before it was done. */
+export type SubagentState = 'working' | 'done' | 'failed' | 'stopped';
 
-/** What a helper did, and where it is with its task. */
-export interface HelperRun {
+/** What a subagent did, and where it is with its task. */
+export interface SubagentRun {
   /** Its replies and tools; its task, the tool call's input, left out. */
   entries: Entry[];
   /** Missing while the agent hasn't said. */
-  state?: HelperState;
+  state?: SubagentState;
 }
 
 /** One step of the agent's plan for the chat, which it keeps up to date as it works. */
@@ -386,7 +386,7 @@ export interface PlanStep {
 export interface QueuedEntry {
   id: string;
   text: string;
-  enclosures?: Enclosure[];
+  attachments?: Attachment[];
 }
 
 /** One of an agent's commands or skills, used by writing "/name" at the start of an entry. */
@@ -409,8 +409,8 @@ export interface FollowUp {
   prompt: string;
 }
 
-/** A dog-ear on a chapter's page: the top corner pins it, the bottom one stars it. */
-export type DogEar = 'pin' | 'star';
+/** A pin on a chat's page: the top corner pins it, the bottom one stars it. */
+export type Pin = 'pin' | 'star';
 
 /**
  * The chat that edits while another open chat sent the same entry in
@@ -444,8 +444,8 @@ export interface OpenChat {
   plan: PlanStep[];
   /** Your entries whose file changes were undone; their edits show as withdrawn. */
   withdrawn: string[];
-  /** The dog-ears folded down on the chapter. */
-  dogEars: DogEar[];
+  /** The pins folded down on the chat. */
+  pins: Pin[];
   /** Your tags for it, in the order you added them. */
   tags: string[];
   /**
@@ -487,7 +487,7 @@ declare module './commands' {
     'agents.folders': { request: Record<string, never>; response: RecentFolders };
     /** The agent's chats, most recent first, optionally only those in one folder. */
     'agents.chats': { request: { agent: AgentId; cwd?: string }; response: ChatSummary[] };
-    /** The chats open as chapters, in ribbon order, remembered across restarts. */
+    /** The open chats, in chat tab order, remembered across restarts. */
     'agents.openChats': { request: Record<string, never>; response: OpenChat[] };
     /** Opens a chat: loads its transcript, and later messages continue it. */
     'agents.open': {
@@ -503,7 +503,7 @@ declare module './commands' {
         agent: AgentId;
         settings: NewChatSettings;
         text: string;
-        enclosures?: Enclosure[];
+        attachments?: Attachment[];
         title?: string;
       };
       response: OpenChat;
@@ -512,7 +512,7 @@ declare module './commands' {
     'agents.rename': { request: { chatId: ChatId; title: string }; response: void };
     /** Sends a message; while a turn runs, it's queued and goes when the turn ends. */
     'agents.send': {
-      request: { chatId: ChatId; text: string; enclosures?: Enclosure[] };
+      request: { chatId: ChatId; text: string; attachments?: Attachment[] };
       response: void;
     };
     /** Changes a chat's model or permission; a running chat takes it from its next request. */
@@ -526,30 +526,30 @@ declare module './commands' {
     /**
      * Copies a chat, up to the end of the turn one of your entries began,
      * into a new chat: a variant, such as "Context meter (a)". It opens as a
-     * chapter, and the original stays as it was.
+     * chat, and the original stays as it was.
      */
     'agents.fork': { request: { chatId: ChatId; entryId: string }; response: OpenChat };
     /**
      * Sends one entry to a second model too, in a chat of its own, in the
      * same folder: while the first edits the project, the second only reads.
      * From a chat that has begun, the second is a copy of it, and the entry
-     * goes to both. From a new chapter's settings, the second starts afresh;
+     * goes to both. From a new chat's settings, the second starts afresh;
      * start the first with agents.start, before this.
      */
     'agents.parallel': {
-      request: { from: ParallelFrom; model: string; text: string; enclosures?: Enclosure[] };
+      request: { from: ParallelFrom; model: string; text: string; attachments?: Attachment[] };
       response: OpenChat;
     };
-    /** Folds a chat's dog-ear down, or unfolds it: pins or stars the chat, or takes that back. */
-    'agents.dogEar': {
-      request: { chatId: ChatId; dogEar: DogEar; folded: boolean };
+    /** Folds a chat's pin down, or unfolds it: pins or stars the chat, or takes that back. */
+    'agents.pin': {
+      request: { chatId: ChatId; pin: Pin; folded: boolean };
       response: void;
     };
     /** Sets a chat's tags, in the order you added them. */
     'agents.tag': { request: { chatId: ChatId; tags: string[] }; response: void };
     /**
      * Takes one of the separate tasks offered, by its place among them: it
-     * goes from the chat, and what a new chapter for it begins with comes
+     * goes from the chat, and what a new chat for it begins with comes
      * back. The new chat works where this one does, with its model, effort,
      * permission and MCP servers.
      */
@@ -571,19 +571,19 @@ declare module './commands' {
     /** Answers an approval's questions, one answer per question, in order. */
     'agents.answer': { request: { approvalId: string; answers: Answer[] }; response: void };
     /**
-     * What a helper did: a subagent the agent handed a task to with one of
+     * What a subagent did: a subagent the agent handed a task to with one of
      * its tool calls, working in a transcript of its own. Its task is the
      * tool call's input, and its last reply the call's result. No entries
      * when the agent keeps no record of it. The chat must be open.
      */
-    'agents.helper': { request: { chatId: ChatId; toolId: string }; response: HelperRun };
+    'agents.subagent': { request: { chatId: ChatId; toolId: string }; response: SubagentRun };
     /**
      * Makes the chat the one that edits its project: the chat that edited it
      * only reads from now on.
      */
     'agents.takeOver': { request: { chatId: ChatId }; response: void };
     /**
-     * Closes a chat's chapter and stops its agent process. The chat itself
+     * Closes an open chat and stops its agent process. The chat itself
      * stays with the agent. When it edited its project, the chat on it
      * opened first after it edits from now on.
      */
@@ -598,10 +598,10 @@ declare module './events' {
     'agents.account': AgentSignIn;
     /** A new or changed entry, complete. */
     'agents.entry': { chatId: ChatId; entry: Entry };
-    /** A new or changed entry in the run of a helper the chat's tool call `toolId` started, complete. */
-    'agents.helperEntry': { chatId: ChatId; toolId: string; entry: Entry };
-    /** A helper the chat's tool call `toolId` started began, or ended its task. */
-    'agents.helperState': { chatId: ChatId; toolId: string; state: HelperState };
+    /** A new or changed entry in the run of a subagent the chat's tool call `toolId` started, complete. */
+    'agents.subagentEntry': { chatId: ChatId; toolId: string; entry: Entry };
+    /** A subagent the chat's tool call `toolId` started began, or ended its task. */
+    'agents.subagentState': { chatId: ChatId; toolId: string; state: SubagentState };
     /** Text streamed into a block of an entry since the last event, batched. */
     'agents.text': { chatId: ChatId; entryId: string; block: number; text: string };
     'agents.approval': { approval: Approval };
@@ -619,8 +619,8 @@ declare module './events' {
     'agents.settings': { chatId: ChatId; settings: ChatSettings };
     /** The agent changed its plan. */
     'agents.plan': { chatId: ChatId; plan: PlanStep[] };
-    /** A chat's dog-ears changed: the ones now folded down. */
-    'agents.dogEars': { chatId: ChatId; dogEars: DogEar[] };
+    /** A chat's pins changed: the ones now folded down. */
+    'agents.pins': { chatId: ChatId; pins: Pin[] };
     'agents.tags': { chatId: ChatId; tags: string[] };
     /** Edits were undone: your entries whose file changes are now withdrawn. */
     'agents.withdrawn': { chatId: ChatId; withdrawn: string[] };

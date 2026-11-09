@@ -15,31 +15,31 @@
   --gr-gilt-ink: #7c5a1b;
   --gr-gilt-line: rgba(184, 145, 63, 0.42);
   --gr-chrome: #e6d9bd;
-  --gr-thumb-tab: #2f241c;
-  --gr-thumb-ink: #efe3c9;
-  --gr-thumb-hover: #4a3a2d;
-  --gr-thumb-index: #b8913f;
-  --gr-thumb-index-ink: #24190f;
-  --gr-thumb-index-open: #d3aa54;
+  --gr-page-tab: #2f241c;
+  --gr-page-tab-ink: #efe3c9;
+  --gr-page-tab-hover: #4a3a2d;
+  --gr-command-palette-tab: #b8913f;
+  --gr-command-palette-tab-ink: #24190f;
+  --gr-command-palette-tab-open: #d3aa54;
 
   /* Paper */
   --gr-page: #f3ebd9;
-  --gr-page-facing: var(--gr-page);
+  --gr-page-right: var(--gr-page);
   --gr-page-next: #f9f4e8;
-  --gr-foldout: #ebe1ca;
+  --gr-expandable: #ebe1ca;
   --gr-fore-edge-a: #e7ddc8;
   --gr-fore-edge-b: #c7b89b;
   --gr-page-edge: #d6c8ac;
-  --gr-dogear-flap: #d5c5a5;
-  --gr-dogear-hint: rgba(74, 48, 22, 0.12);
-  --gr-dogear-size: 30px;
-  --gr-shadow-dogear: 2px 2px 2px rgba(60, 35, 10, 0.3);
+  --gr-pin-flap: #d5c5a5;
+  --gr-pin-hint: rgba(74, 48, 22, 0.12);
+  --gr-pin-size: 30px;
+  --gr-shadow-pin: 2px 2px 2px rgba(60, 35, 10, 0.3);
   --gr-gutter-shade: rgba(74, 48, 22, 0.17);
   --gr-hairline: rgba(74, 48, 22, 0.14);
   --gr-rule-ruled: rgba(44, 74, 122, 0.13);
-  --gr-slip: #fbf7ec;
-  --gr-slip-well: rgba(74, 48, 22, 0.055);
-  --gr-slip-laid: rgba(74, 48, 22, 0.035);
+  --gr-surface: #fbf7ec;
+  --gr-approval-card-well: rgba(74, 48, 22, 0.055);
+  --gr-approval-card-laid: rgba(74, 48, 22, 0.035);
   --gr-form: var(--gr-page);
   --gr-form-rule: var(--gr-ink-soft);
   --gr-plate: #ede4cf;
@@ -61,19 +61,19 @@
   --gr-ink-wet: #d39a3a;
   --gr-ink-drying: #b07a22;
   --gr-ink-wet-glow: rgba(222, 166, 70, 0.9);
-  --gr-stamp-pr: var(--gr-lapis);
-  --gr-stamp-ci: var(--gr-ink-soft);
+  --gr-badge-pr: var(--gr-lapis);
+  --gr-badge-ci: var(--gr-ink-soft);
 
   /* Ribbons and seals */
-  --gr-ribbon-open: #d3aa54;
-  --gr-ribbon-thinking: #b9975a;
-  --gr-ribbon-waiting: #b8402a;
-  --gr-ribbon-idle: #a99c82;
-  --gr-ribbon-seal: #7f241c;
-  --gr-ribbon-new: #e9dfc8;
-  --gr-ribbon-ink: #24190f;
-  --gr-ribbon-ink-light: #fbf3e4;
-  --gr-ribbon-meta: #3a2a19;
+  --gr-chat-tab-open: #d3aa54;
+  --gr-chat-tab-thinking: #b9975a;
+  --gr-chat-tab-waiting: #b8402a;
+  --gr-chat-tab-idle: #a99c82;
+  --gr-chat-tab-approval: #7f241c;
+  --gr-chat-tab-new: #e9dfc8;
+  --gr-chat-tab-ink: #24190f;
+  --gr-chat-tab-ink-light: #fbf3e4;
+  --gr-chat-tab-meta: #3a2a19;
   --gr-glow: rgba(236, 128, 76, 0.85);
   --gr-mote: #f3c27a;
   --gr-wax: #8e2a20;
@@ -92,11 +92,11 @@
   --gr-font-mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
 
   /* Sizes */
-  --gr-size-chapter: 30px;
-  --gr-size-book-title: 17px;
+  --gr-size-chat: 30px;
+  --gr-size-window-title: 17px;
   --gr-size-text: 17px;
   --gr-leading-text: 1.48;
-  --gr-size-ribbon: 13.5px;
+  --gr-size-chat-tab: 13.5px;
   --gr-size-note: 13px;
   --gr-size-code: 12.5px;
   --gr-leading-code: 1.5;
@@ -130,8 +130,8 @@
   --gr-notch-w: 36px;
 
   /* Shell: title strip and book */
-  --gr-tracking-book-title: 0.32em;
-  --gr-book-title-pad: 4px 12px;
+  --gr-tracking-window-title: 0.32em;
+  --gr-window-title-pad: 4px 12px;
   /* The profiles' menu, a slip hanging from the book's title */
   --gr-z-title-menu: 20;
   --gr-title-menu-width: 260px;
@@ -160,48 +160,48 @@
   --gr-shadow-focus-leaf: 0 2px 3px rgba(0, 0, 0, 0.35), 0 18px 40px -12px rgba(0, 0, 0, 0.7);
 
   /* Shell: thumb index */
-  --gr-thumbs-top: 112px;
-  --gr-thumbs-bottom: 30px;
-  --gr-thumbs-gap: 9px;
-  --gr-thumb-pad-y: 11px;
-  --gr-thumb-pad-spine: 3px;
+  --gr-page-tabs-top: 112px;
+  --gr-page-tabs-bottom: 30px;
+  --gr-page-tabs-gap: 9px;
+  --gr-page-tab-pad-y: 11px;
+  --gr-page-tab-pad-spine: 3px;
   --gr-shadow-notch: inset 5px 0 7px -3px rgba(0, 0, 0, 0.6);
   --gr-tracking-label: 0.06em;
-  --gr-thumb-index-gap: 7px;
-  --gr-thumb-key-pad: 4px 2px;
-  --gr-thumb-key-tracking-symbols: 2px;
-  --gr-thumb-key-tracking-words: 0.02em;
+  --gr-command-palette-tab-gap: 7px;
+  --gr-page-tab-key-pad: 4px 2px;
+  --gr-page-tab-key-tracking-symbols: 2px;
+  --gr-page-tab-key-tracking-words: 0.02em;
 
   /* Shell: ribbons */
-  --gr-ribbons-h: 66px;
-  --gr-ribbons-edge-inset: 24px;
-  --gr-ribbon-w: 26px;
-  --gr-ribbon-len: 48px;
-  --gr-ribbon-len-long: 60px;
-  --gr-ribbon-gap: 4px;
-  --gr-ribbon-slot-min: 6px;
-  --gr-ribbon-current-gap: 10px;
-  --gr-ribbon-new-gap: 18px;
-  --gr-ribbon-notch: 8px;
-  --gr-ribbon-icon-inset: 3px;
-  --gr-ribbon-icon-foot: 11px;
-  --gr-ribbon-z-current: 50;
-  --gr-ribbon-z-lifted: 100;
-  --gr-ribbon-slip: #f4ead3;
-  --gr-ribbon-slip-top: 18px;
-  --gr-ribbon-slip-gap: 6px;
-  --gr-ribbon-slip-pad: 4px 10px 5px;
-  --gr-radius-ribbon-slip: 2px;
-  --gr-size-ribbon-meta: 11.5px;
-  --gr-leading-ribbon: 1.16;
-  --gr-ribbon-highlight: rgba(255, 255, 255, 0.16);
-  --gr-ribbon-lowlight: rgba(0, 0, 0, 0.12);
-  --gr-ribbon-sheen: rgba(255, 244, 214, 0.38);
-  --gr-shadow-ribbon-drop: inset 0 4px 4px -2px rgba(0, 0, 0, 0.5);
-  --gr-seal-size: 28px;
-  --gr-seal-top: 24px;
-  --gr-size-seal: 14px;
-  --gr-shadow-seal: 0 0 0 3px rgba(90, 22, 14, 0.55), 0 3px 6px rgba(0, 0, 0, 0.5);
+  --gr-chat-tabs-h: 66px;
+  --gr-chat-tabs-edge-inset: 24px;
+  --gr-chat-tab-w: 26px;
+  --gr-chat-tab-len: 48px;
+  --gr-chat-tab-len-long: 60px;
+  --gr-chat-tab-gap: 4px;
+  --gr-chat-tab-slot-min: 6px;
+  --gr-chat-tab-current-gap: 10px;
+  --gr-chat-tab-new-gap: 18px;
+  --gr-chat-tab-notch: 8px;
+  --gr-chat-tab-icon-inset: 3px;
+  --gr-chat-tab-icon-foot: 11px;
+  --gr-chat-tab-z-current: 50;
+  --gr-chat-tab-z-lifted: 100;
+  --gr-chat-tab-label: #f4ead3;
+  --gr-chat-tab-label-top: 18px;
+  --gr-chat-tab-label-gap: 6px;
+  --gr-chat-tab-label-pad: 4px 10px 5px;
+  --gr-radius-chat-tab-label: 2px;
+  --gr-size-chat-tab-meta: 11.5px;
+  --gr-leading-chat-tab: 1.16;
+  --gr-chat-tab-highlight: rgba(255, 255, 255, 0.16);
+  --gr-chat-tab-lowlight: rgba(0, 0, 0, 0.12);
+  --gr-chat-tab-sheen: rgba(255, 244, 214, 0.38);
+  --gr-shadow-chat-tab-drop: inset 0 4px 4px -2px rgba(0, 0, 0, 0.5);
+  --gr-approval-size: 28px;
+  --gr-approval-top: 24px;
+  --gr-size-approval: 14px;
+  --gr-shadow-approval: 0 0 0 3px rgba(90, 22, 14, 0.55), 0 3px 6px rgba(0, 0, 0, 0.5);
   --gr-mote-size: 3px;
   --gr-mote-blur: 6px;
   --gr-mote-delay: 1.1s;
@@ -217,12 +217,12 @@
   --gr-head-row-gap: 10px;
   --gr-head-pad-bottom: 10px;
   --gr-rule-double: 3px;
-  --gr-facing-margin-outer: 64px;
-  --gr-facing-pad-top: 26px;
-  --gr-facing-tabs-gap: 22px;
-  --gr-size-facing-tab: 22px;
-  --gr-leading-facing-tab: 1.1;
-  --gr-facing-tab-max: 260px;
+  --gr-right-page-margin-outer: 64px;
+  --gr-right-page-pad-top: 26px;
+  --gr-right-page-tabs-gap: 22px;
+  --gr-size-right-page-tab: 22px;
+  --gr-leading-right-page-tab: 1.1;
+  --gr-right-page-tab-max: 260px;
 
   /* Second chapter: the open chapters to put on the facing page */
   --gr-second-ask-gap: 14px;
@@ -232,9 +232,9 @@
   --gr-second-rule: 1px solid var(--gr-hairline);
 
   /* Helper: what a subagent did, on the facing page */
-  --gr-helper-task-gap: 6px;
-  --gr-helper-task-pad-bottom: 12px;
-  --gr-helper-task-rule: 1px solid var(--gr-hairline);
+  --gr-subagent-task-gap: 6px;
+  --gr-subagent-task-pad-bottom: 12px;
+  --gr-subagent-task-rule: 1px solid var(--gr-hairline);
   --gr-underline-active: 2px;
   --gr-size-section-head: 15px;
   --gr-tracking-section-head: 0.14em;
@@ -252,7 +252,7 @@
   --gr-key-pad: 2px 4px;
 
   /* Chat: running head */
-  --gr-leading-chapter: 1.05;
+  --gr-leading-chat: 1.05;
   --gr-icon-button: 26px;
   --gr-rename-rule: 1.5px dotted var(--gr-ink-soft);
   --gr-tags-gap: 12px;
@@ -260,13 +260,13 @@
   --gr-tag-field-min: 48px;
 
   /* Chat: pictures and files sent with an entry */
-  --gr-enclosures-gap: 26px;
-  --gr-enclosures-pad: 6px 0 10px 4px;
-  --gr-enclosure-gap: 7px;
-  --gr-enclosure-caption-gap: 8px;
-  --gr-size-enclosure-caption: 13px;
-  --gr-tracking-enclosure: 0.05em;
-  --gr-enclosure-x: 22px;
+  --gr-attachments-gap: 26px;
+  --gr-attachments-pad: 6px 0 10px 4px;
+  --gr-attachment-gap: 7px;
+  --gr-attachment-caption-gap: 8px;
+  --gr-size-attachment-caption: 13px;
+  --gr-tracking-attachment: 0.05em;
+  --gr-attachment-x: 22px;
   --gr-plate-width: 236px;
   --gr-plate-height: 128px;
   --gr-plate-frame: 6px;
@@ -333,7 +333,7 @@
   --gr-card-offset: 4px;
   --gr-card-anchor-rule: 1.5px;
   --gr-card-pad: 16px 24px 14px;
-  --gr-card-paper: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0) 0 26px, var(--gr-slip-laid) 26px 27px), var(--gr-slip);
+  --gr-card-paper: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0) 0 26px, var(--gr-approval-card-laid) 26px 27px), var(--gr-surface);
   --gr-card-caret: 16px;
   --gr-card-caret-default: 44px;
   --gr-card-caret-shadow: -1px -1px 0 rgba(74, 48, 22, 0.12);
@@ -370,17 +370,17 @@
   --gr-card-foot-pad: 9px;
 
   /* Chat: the facing page turned to the slips awaiting your seal */
-  --gr-seals-pad-top: 30px;
-  --gr-seals-pad-bottom: 24px;
-  --gr-seals-inset: 4px;
-  --gr-seals-gap: 34px;
-  --gr-seals-tilt-alt: 0.45deg;
-  --gr-seals-note-width: 600px;
-  --gr-seals-foot-gap: 16px;
-  --gr-slip-from-gap: 10px;
-  --gr-size-slip-from: 15px;
-  --gr-size-slip-from-title: 16.5px;
-  --gr-size-slip-open: 12.5px;
+  --gr-approvals-pad-top: 30px;
+  --gr-approvals-pad-bottom: 24px;
+  --gr-approvals-inset: 4px;
+  --gr-approvals-gap: 34px;
+  --gr-approvals-tilt-alt: 0.45deg;
+  --gr-approvals-note-width: 600px;
+  --gr-approvals-foot-gap: 16px;
+  --gr-approval-card-from-gap: 10px;
+  --gr-size-approval-card-from: 15px;
+  --gr-size-approval-card-from-title: 16.5px;
+  --gr-size-approval-card-open: 12.5px;
   --gr-stub-gap: 14px;
   --gr-stub-margin: 14px 0 4px;
   --gr-stub-pad: 10px 18px 10px 20px;
@@ -391,47 +391,47 @@
   --gr-size-stub-code: 13px;
 
   /* Shell: the Index on the facing page */
-  --gr-index-pad-top: 26px;
-  --gr-index-pad-bottom: 24px;
-  --gr-index-width: 760px;
-  --gr-index-caps-gap: 5px;
-  --gr-index-look-up-gap: 14px;
-  --gr-index-look-up-pad: 3px;
-  --gr-index-look-up-rule: 1.5px dotted var(--gr-ink-soft);
-  --gr-size-index-label: 13.5px;
-  --gr-tracking-index-label: 0.07em;
-  --gr-size-index-look-up: 26px;
-  --gr-index-section-gap: 20px;
-  --gr-index-head-gap: 4px;
-  --gr-size-index-head: 13px;
-  --gr-tracking-index-head: 0.12em;
-  --gr-index-cursor-w: 30px;
-  --gr-index-entry-pad-y: 6px;
-  --gr-index-entry-pad-end: 12px;
-  --gr-size-index-entry: 18.5px;
-  --gr-index-label-max: 60%;
-  --gr-index-gloss-gap: 12px;
-  --gr-size-index-gloss: 14.5px;
-  --gr-index-leader-gap: 14px;
-  --gr-index-leader-lift: -5px;
-  --gr-size-index-where: 14px;
-  --gr-tracking-index-where: 0.05em;
-  --gr-index-note-gap: 26px;
-  --gr-index-note-width: 560px;
-  --gr-index-from-gap: 6px;
-  --gr-size-index-command: 16px;
+  --gr-command-palette-pad-top: 26px;
+  --gr-command-palette-pad-bottom: 24px;
+  --gr-command-palette-width: 760px;
+  --gr-command-palette-caps-gap: 5px;
+  --gr-command-palette-look-up-gap: 14px;
+  --gr-command-palette-look-up-pad: 3px;
+  --gr-command-palette-look-up-rule: 1.5px dotted var(--gr-ink-soft);
+  --gr-size-command-palette-label: 13.5px;
+  --gr-tracking-command-palette-label: 0.07em;
+  --gr-size-command-palette-look-up: 26px;
+  --gr-command-palette-section-gap: 20px;
+  --gr-command-palette-head-gap: 4px;
+  --gr-size-command-palette-head: 13px;
+  --gr-tracking-command-palette-head: 0.12em;
+  --gr-command-palette-cursor-w: 30px;
+  --gr-command-palette-entry-pad-y: 6px;
+  --gr-command-palette-entry-pad-end: 12px;
+  --gr-size-command-palette-entry: 18.5px;
+  --gr-command-palette-label-max: 60%;
+  --gr-command-palette-gloss-gap: 12px;
+  --gr-size-command-palette-gloss: 14.5px;
+  --gr-command-palette-leader-gap: 14px;
+  --gr-command-palette-leader-lift: -5px;
+  --gr-size-command-palette-where: 14px;
+  --gr-tracking-command-palette-where: 0.05em;
+  --gr-command-palette-note-gap: 26px;
+  --gr-command-palette-note-width: 560px;
+  --gr-command-palette-from-gap: 6px;
+  --gr-size-command-palette-command: 16px;
   --gr-size-slash-hint: 13.5px;
-  --gr-thumb-open-shift: -10px;
-  --gr-shadow-thumb-open: inset 5px 0 7px -3px rgba(0, 0, 0, 0.45);
+  --gr-page-tab-open-shift: -10px;
+  --gr-shadow-page-tab-open: inset 5px 0 7px -3px rgba(0, 0, 0, 0.45);
 
   /* The Ledger: the plan limits */
-  --gr-ledger-width: 520px;
-  --gr-ledger-gap: 18px;
-  --gr-ledger-section-gap: 32px;
-  --gr-ledger-percent-col: 40px;
+  --gr-usage-width: 520px;
+  --gr-usage-gap: 18px;
+  --gr-usage-section-gap: 32px;
+  --gr-usage-percent-col: 40px;
   /* Where the tokens went: its heads, and the spans to show it over */
-  --gr-ledger-head-gap: 22px;
-  --gr-ledger-spans-gap: 14px;
+  --gr-usage-head-gap: 22px;
+  --gr-usage-spans-gap: 14px;
   /*
    * The Ledger's charts. The series' inks, in a fixed order, checked to stay
    * apart for colour-blind eyes on each light paper (the night sets its own):
@@ -459,14 +459,14 @@
   --gr-chart-tip-shadow: 0 2px 6px rgba(60, 35, 10, 0.18);
 
   /* The Table of contents: every chapter, in parts by project */
-  --gr-contents-width: 680px;
-  --gr-contents-narrow-gap: 22px;
-  --gr-contents-part-gap: 28px;
-  --gr-contents-list-gap: 10px;
-  --gr-contents-row-gap: 7px;
-  --gr-size-contents-part: 22px;
-  --gr-size-contents-look-up: 18px;
-  --gr-contents-excerpt-gap: 2px;
+  --gr-history-width: 680px;
+  --gr-history-narrow-gap: 22px;
+  --gr-history-part-gap: 28px;
+  --gr-history-list-gap: 10px;
+  --gr-history-row-gap: 7px;
+  --gr-size-history-part: 22px;
+  --gr-size-history-look-up: 18px;
+  --gr-history-excerpt-gap: 2px;
 
   /* Scheduled chats: each schedule a dated journal entry */
   --gr-schedules-width: 620px;
@@ -494,7 +494,7 @@
   --gr-kanban-section-gap: 18px;
   --gr-kanban-column-gap: 18px;
   --gr-kanban-column-pad: 6px;
-  --gr-kanban-column-over: var(--gr-slip-well);
+  --gr-kanban-column-over: var(--gr-approval-card-well);
   --gr-kanban-card-gap: 10px;
   --gr-kanban-card-pad: 9px 11px 8px;
   --gr-kanban-card-rule: 1px solid var(--gr-hairline);
@@ -517,26 +517,26 @@
   --gr-kanban-jira-marks-gap: 6px;
 
   /* The Colophon: Grimoire's settings, written out as words to pick */
-  --gr-colophon-width: 640px;
-  --gr-colophon-lead-gap: 20px;
-  --gr-colophon-label-col: 168px;
-  --gr-colophon-label-leading: 1.35;
-  --gr-colophon-row-gap: 16px;
-  --gr-colophon-col-gap: 18px;
-  --gr-colophon-note-pull: 8px;
-  --gr-size-colophon-word: 15.5px;
-  --gr-colophon-word-gap: 14px;
-  --gr-colophon-word-pad: 0 0 1px;
-  --gr-colophon-word-rule: 1.5px solid var(--gr-rubric);
-  --gr-colophon-word-rule-off: 1.5px solid transparent;
-  --gr-colophon-section-gap: 38px;
-  --gr-colophon-preset-row-gap: 8px;
-  --gr-colophon-preset-pad: 16px;
-  --gr-size-colophon-preset-name: 20px;
-  --gr-leading-colophon-preset-name: 1.2;
-  --gr-colophon-actions-gap: 14px;
-  --gr-colophon-account-field-width: 240px;
-  --gr-colophon-profile-field-width: 240px;
+  --gr-settings-width: 640px;
+  --gr-settings-lead-gap: 20px;
+  --gr-settings-label-col: 168px;
+  --gr-settings-label-leading: 1.35;
+  --gr-settings-row-gap: 16px;
+  --gr-settings-col-gap: 18px;
+  --gr-settings-note-pull: 8px;
+  --gr-size-settings-word: 15.5px;
+  --gr-settings-word-gap: 14px;
+  --gr-settings-word-pad: 0 0 1px;
+  --gr-settings-word-rule: 1.5px solid var(--gr-rubric);
+  --gr-settings-word-rule-off: 1.5px solid transparent;
+  --gr-settings-section-gap: 38px;
+  --gr-settings-preset-row-gap: 8px;
+  --gr-settings-preset-pad: 16px;
+  --gr-size-settings-preset-name: 20px;
+  --gr-leading-settings-preset-name: 1.2;
+  --gr-settings-actions-gap: 14px;
+  --gr-settings-account-field-width: 240px;
+  --gr-settings-profile-field-width: 240px;
   --gr-theme-row-gap: 10px;
   --gr-theme-control-gap: 12px;
   --gr-theme-group-gap: 12px;
@@ -562,18 +562,18 @@
   --gr-theme-card-rule-on: 2px solid var(--gr-rubric);
 
   /* Front matter: what your agents load, and where each piece comes from */
-  --gr-front-matter-section-gap: 34px;
-  --gr-front-matter-head-gap: 10px;
-  --gr-front-matter-group-gap: 12px;
-  --gr-front-matter-col-gap: 12px;
-  --gr-front-matter-summary-pad: 7px 0;
-  --gr-front-matter-row-pad: 3px 0;
-  --gr-front-matter-name-col: 220px;
-  --gr-front-matter-from-col: 110px;
-  --gr-front-matter-rule: 1px solid var(--gr-hairline);
-  --gr-front-matter-leader: var(--gr-leader);
-  --gr-front-matter-elsewhere-gap: 14px;
-  --gr-front-matter-elsewhere-space: 22px;
+  --gr-workflow-setup-section-gap: 34px;
+  --gr-workflow-setup-head-gap: 10px;
+  --gr-workflow-setup-group-gap: 12px;
+  --gr-workflow-setup-col-gap: 12px;
+  --gr-workflow-setup-summary-pad: 7px 0;
+  --gr-workflow-setup-row-pad: 3px 0;
+  --gr-workflow-setup-name-col: 220px;
+  --gr-workflow-setup-from-col: 110px;
+  --gr-workflow-setup-rule: 1px solid var(--gr-hairline);
+  --gr-workflow-setup-leader: var(--gr-leader);
+  --gr-workflow-setup-elsewhere-gap: 14px;
+  --gr-workflow-setup-elsewhere-space: 22px;
 
   /* File editor: a file opened on a thumb tab's page, on a sheet of the next page, ruled round */
   --gr-file-editor-min: 240px;
@@ -607,16 +607,16 @@
   --gr-memory-ease: var(--gr-ease-ink);
 
   /* The Scriptorium: your shells, as leaves written in the book's inks */
-  --gr-scriptorium-pad-bottom: 18px;
-  --gr-scriptorium-tabs-gap: 26px;
-  --gr-scriptorium-tabs-pad-bottom: 6px;
-  --gr-size-scriptorium-tab: 18px;
-  --gr-leading-scriptorium-tab: 1.15;
-  --gr-scriptorium-close-gap: 6px;
-  --gr-scriptorium-rule-top: 3px double var(--gr-ink-faint);
-  --gr-scriptorium-rule-foot: 1px solid var(--gr-ink-faint);
-  --gr-scriptorium-sheet-pad: 10px 2px 8px 6px;
-  --gr-scriptorium-foot-gap: 6px;
+  --gr-terminal-pad-bottom: 18px;
+  --gr-terminal-tabs-gap: 26px;
+  --gr-terminal-tabs-pad-bottom: 6px;
+  --gr-size-terminal-tab: 18px;
+  --gr-leading-terminal-tab: 1.15;
+  --gr-terminal-close-gap: 6px;
+  --gr-terminal-rule-top: 3px double var(--gr-ink-faint);
+  --gr-terminal-rule-foot: 1px solid var(--gr-ink-faint);
+  --gr-terminal-sheet-pad: 10px 2px 8px 6px;
+  --gr-terminal-foot-gap: 6px;
   --gr-terminal-font: var(--gr-font-mono);
   --gr-size-terminal: 13px;
   --gr-leading-terminal: 1.3;
@@ -682,7 +682,7 @@
   --gr-files-actions-pad: 10px 0 0;
 
   /* Files: the VS Code editor, in the book's paper, ink and code colours */
-  --gr-editor-page: var(--gr-page-facing);
+  --gr-editor-page: var(--gr-page-right);
   --gr-editor-rule: 1px solid var(--gr-hairline);
   --gr-editor-ink: var(--gr-code-text);
   --gr-editor-keyword: var(--gr-code-keyword);
@@ -709,28 +709,28 @@
   --gr-editor-line: 20px;
 
   /* Review stamps in the chapter's running head */
-  --gr-stamps-gap: 8px;
-  --gr-stamp-pad: 1px 6px;
-  --gr-stamp-rule: 1.5px;
-  --gr-size-stamp: 12.5px;
-  --gr-tracking-stamp: 0.06em;
-  --gr-leading-stamp: 1.3;
-  --gr-stamp-tilt: -1.5deg;
-  --gr-stamp-hover: rgba(44, 74, 122, 0.06);
+  --gr-badges-gap: 8px;
+  --gr-badge-pad: 1px 6px;
+  --gr-badge-rule: 1.5px;
+  --gr-size-badge: 12.5px;
+  --gr-tracking-badge: 0.06em;
+  --gr-leading-badge: 1.3;
+  --gr-badge-tilt: -1.5deg;
+  --gr-badge-hover: rgba(44, 74, 122, 0.06);
 
   /* Chat: the Outline on the facing page */
-  --gr-outline-sub-gap: 18px;
-  --gr-outline-gap: 13px;
-  --gr-outline-width: 640px;
-  --gr-outline-number-col: 34px;
-  --gr-outline-col-gap: 10px;
-  --gr-size-outline: 17px;
-  --gr-leading-outline: 1.35;
-  --gr-outline-leader-min: 20px;
-  --gr-outline-leader-gap: 6px;
-  --gr-outline-leader-lift: -4px;
-  --gr-outline-status-gap: 6px;
-  --gr-size-outline-status: 14.5px;
+  --gr-plan-sub-gap: 18px;
+  --gr-plan-gap: 13px;
+  --gr-plan-width: 640px;
+  --gr-plan-number-col: 34px;
+  --gr-plan-col-gap: 10px;
+  --gr-size-plan: 17px;
+  --gr-leading-plan: 1.35;
+  --gr-plan-leader-min: 20px;
+  --gr-plan-leader-gap: 6px;
+  --gr-plan-leader-lift: -4px;
+  --gr-plan-status-gap: 6px;
+  --gr-size-plan-status: 14.5px;
 
   /* Chat: composer */
   --gr-composer-margin: 0 24px 0 30px;
@@ -788,7 +788,7 @@
   /* Chat: Mermaid diagrams, drawn in the page's paper and inks */
   --gr-diagram-ink: var(--gr-ink);
   --gr-diagram-page: var(--gr-page);
-  --gr-diagram-node: var(--gr-slip);
+  --gr-diagram-node: var(--gr-surface);
   --gr-diagram-line: var(--gr-ink-soft);
   --gr-diagram-accent: var(--gr-rubric);
   --gr-diagram-font: var(--gr-font-text);
@@ -805,63 +805,63 @@
   --gr-follow-up-line-gap: 2px;
 
   /* Chat: approval slip, tucked into the page */
-  --gr-slip-margin: 16px 4px 4px 0;
-  --gr-slip-pad: 15px 22px 14px 24px;
-  --gr-slip-gap: 10px;
-  --gr-slip-tilt: -0.6deg;
-  --gr-slip-laid-pitch: 27px;
-  --gr-slip-corner: 30px;
-  --gr-slip-corner-offset: -5px;
-  --gr-shadow-slip-corner: drop-shadow(1px 1px 1px rgba(60, 35, 10, 0.35));
-  --gr-shadow-slip-corner-far: drop-shadow(-1px -1px 1px rgba(60, 35, 10, 0.3));
-  --gr-slip-head-gap: 12px;
-  --gr-size-slip-head: 13px;
-  --gr-size-slip-title: 14px;
-  --gr-tracking-slip-head: 0.07em;
-  --gr-slip-command-gap: 12px;
-  --gr-slip-command-pad: 11px 14px;
-  --gr-size-slip-command: 16px;
-  --gr-leading-slip-command: 1.45;
-  --gr-slip-meta-gap: 6px 20px;
-  --gr-slip-choices-gap: 18px;
-  --gr-slip-choices-lift: 2px;
-  --gr-seal-button-gap: 12px;
-  --gr-seal-button-pad: 4px 16px 4px 4px;
-  --gr-radius-seal-button: 30px;
-  --gr-size-seal-button: 15.5px;
-  --gr-tracking-seal-button: 0.06em;
-  --gr-seal-button-hover: rgba(142, 42, 32, 0.08);
+  --gr-approval-card-margin: 16px 4px 4px 0;
+  --gr-approval-card-pad: 15px 22px 14px 24px;
+  --gr-approval-card-gap: 10px;
+  --gr-approval-card-tilt: -0.6deg;
+  --gr-approval-card-laid-pitch: 27px;
+  --gr-approval-card-corner: 30px;
+  --gr-approval-card-corner-offset: -5px;
+  --gr-shadow-approval-card-corner: drop-shadow(1px 1px 1px rgba(60, 35, 10, 0.35));
+  --gr-shadow-approval-card-corner-far: drop-shadow(-1px -1px 1px rgba(60, 35, 10, 0.3));
+  --gr-approval-card-head-gap: 12px;
+  --gr-size-approval-card-head: 13px;
+  --gr-size-approval-card-title: 14px;
+  --gr-tracking-approval-card-head: 0.07em;
+  --gr-approval-card-command-gap: 12px;
+  --gr-approval-card-command-pad: 11px 14px;
+  --gr-size-approval-card-command: 16px;
+  --gr-leading-approval-card-command: 1.45;
+  --gr-approval-card-meta-gap: 6px 20px;
+  --gr-approval-card-choices-gap: 18px;
+  --gr-approval-card-choices-lift: 2px;
+  --gr-approve-button-gap: 12px;
+  --gr-approve-button-pad: 4px 16px 4px 4px;
+  --gr-radius-approve-button: 30px;
+  --gr-size-approve-button: 15.5px;
+  --gr-tracking-approve-button: 0.06em;
+  --gr-approve-button-hover: rgba(142, 42, 32, 0.08);
   --gr-wax-size: 46px;
   --gr-shadow-wax: 0 0 0 3px rgba(90, 22, 14, 0.5), 0 3px 6px rgba(60, 20, 10, 0.45);
   --gr-wax-ring-inset: -6px;
   --gr-wax-ring: 1.5px;
-  --gr-slip-choice-gap: 8px;
-  --gr-slip-choice-pad: 6px;
-  --gr-size-slip-choice: 14.5px;
-  --gr-tracking-slip-choice: 0.05em;
-  --gr-slip-choice-hover: rgba(74, 48, 22, 0.07);
-  --gr-size-slip-choice-detail: 13.5px;
-  --gr-size-slip-choice-code: 12px;
+  --gr-approval-card-choice-gap: 8px;
+  --gr-approval-card-choice-pad: 6px;
+  --gr-size-approval-card-choice: 14.5px;
+  --gr-tracking-approval-card-choice: 0.05em;
+  --gr-approval-card-choice-hover: rgba(74, 48, 22, 0.07);
+  --gr-size-approval-card-choice-detail: 13.5px;
+  --gr-size-approval-card-choice-code: 12px;
 
   /* Chat: fold-out, e.g. a file's corrections */
-  --gr-fold-margin-top: 8px;
-  --gr-fold-rule: linear-gradient(rgba(74, 48, 22, 0), rgba(74, 48, 22, 0.2), rgba(74, 48, 22, 0));
-  --gr-fold-mark-col: calc(var(--gr-margin-col) + 14px);
-  --gr-fold-head-gap: 12px;
-  --gr-fold-head-pad: 6px 14px 5px;
+  --gr-expandable-margin-top: 8px;
+  --gr-expandable-rule: linear-gradient(rgba(74, 48, 22, 0), rgba(74, 48, 22, 0.2), rgba(74, 48, 22, 0));
+  --gr-expandable-mark-col: calc(var(--gr-margin-col) + 14px);
+  --gr-expandable-head-gap: 12px;
+  --gr-expandable-head-pad: 6px 14px 5px;
   --gr-size-fold-head: 13.5px;
   --gr-size-fold-file: 12px;
-  --gr-fold-body-pad: 4px 0;
-  --gr-fold-body-max: 98px;
-  --gr-fold-command-max: 40vh;
-  --gr-fold-line-number: 36px;
+  --gr-expandable-body-pad: 4px 0;
+  --gr-expandable-body-max: 98px;
+  --gr-expandable-command-max: 40vh;
+  --gr-expandable-line-number: 36px;
   --gr-size-fold-mark: 13px;
-  --gr-fold-mark-pad: 14px;
+  --gr-expandable-mark-pad: 14px;
   --gr-strike: 1.5px;
   --gr-size-caret: 15px;
-  --gr-fold-foot-gap: 14px;
-  --gr-fold-foot-pad: 4px 14px 6px;
-  --gr-fold-break-gap: 4px;
+  --gr-expandable-foot-gap: 14px;
+  --gr-expandable-foot-pad: 4px 14px 6px;
+  --gr-expandable-break-gap: 4px;
 
   /* Chat: question form, printed on the page */
   --gr-form-margin: 20px 0 4px;
@@ -911,16 +911,16 @@
   /* Radii */
   --gr-radius-page: 3px;
   --gr-radius-cover: 7px;
-  --gr-radius-slip: 2px;
+  --gr-radius-surface: 2px;
   --gr-radius-notch: 18px 0 0 18px;
   --gr-radius-key: 3px;
-  --gr-radius-stamp: 3px;
+  --gr-radius-badge: 3px;
 
   /* Shadows */
-  --gr-shadow-book: 0 22px 44px rgba(0, 0, 0, 0.5);
-  --gr-shadow-ribbon: 0 3px 3px rgba(0, 0, 0, 0.55);
-  --gr-shadow-slip: 0 1px 0 rgba(74, 48, 22, 0.2), 0 8px 16px -10px rgba(60, 35, 10, 0.5);
-  --gr-shadow-slip-tucked: 0 2px 0 rgba(74, 48, 22, 0.12), 0 16px 26px -14px rgba(60, 35, 10, 0.6);
+  --gr-shadow-frame: 0 22px 44px rgba(0, 0, 0, 0.5);
+  --gr-shadow-chat-tab: 0 3px 3px rgba(0, 0, 0, 0.55);
+  --gr-shadow-surface: 0 1px 0 rgba(74, 48, 22, 0.2), 0 8px 16px -10px rgba(60, 35, 10, 0.5);
+  --gr-shadow-surface-tucked: 0 2px 0 rgba(74, 48, 22, 0.12), 0 16px 26px -14px rgba(60, 35, 10, 0.6);
   --gr-shadow-next: 0 -1px 0 rgba(74, 48, 22, 0.12), 0 -10px 18px -12px rgba(60, 35, 10, 0.4);
   --gr-shadow-card: 0 2px 0 rgba(74, 48, 22, 0.12), 0 24px 44px -16px rgba(30, 15, 5, 0.6);
 
@@ -928,7 +928,7 @@
   --gr-drawing-empty-page: url('../drawings/empty-page.svg');
   --gr-drawing-spine: url('../drawings/spine.svg');
   --gr-drawing-thought: url('../drawings/thought.svg');
-  --gr-drawing-chapter-opening: url('../drawings/chapter-opening.svg');
+  --gr-drawing-chat-intro: url('../drawings/chat-intro.svg');
   --gr-drawing-opacity: 0.16;
 
   /* Motion */
@@ -941,8 +941,8 @@
   --gr-dur-sheen: 5s;
   --gr-dur-breathe: 2.2s;
   --gr-dur-await: 2.4s;
-  --gr-dur-seal: 380ms;
-  --gr-dur-slip: 120ms;
+  --gr-dur-approval: 380ms;
+  --gr-dur-chat-tab-label: 120ms;
   --gr-dur-page-turn: 700ms;
   --gr-ease-ink: cubic-bezier(0.2, 0.7, 0.2, 1);
   --gr-ease-sway: cubic-bezier(0.45, 0, 0.55, 1);

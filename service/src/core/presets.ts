@@ -95,7 +95,7 @@ export class PresetStore {
 }
 
 /**
- * New chapters that begin with a preset follow it when it's renamed, and
+ * New chats that begin with a preset follow it when it's renamed, and
  * begin with your last settings again once it's removed.
  */
 export function registerPresets(
@@ -104,10 +104,10 @@ export function registerPresets(
   settings: SettingsStore,
   emit: Emit,
 ): void {
-  const follow = (from: string, to: GrimoireSettings['newChapter']) => {
-    const start = settings.get().newChapter;
+  const follow = (from: string, to: GrimoireSettings['newChat']) => {
+    const start = settings.get().newChat;
     if (start.from === 'preset' && start.preset.toLowerCase() === from.toLowerCase()) {
-      emit('settings.changed', { settings: settings.set({ newChapter: to }) });
+      emit('settings.changed', { settings: settings.set({ newChat: to }) });
     }
   };
   registry.register('presets.list', () => presets.list());

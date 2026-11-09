@@ -24,7 +24,7 @@ describe('presets', () => {
       prompt: ' Fix the failing test ',
     });
     expect(presets.list()[0]!.prompt).toBe('Fix the failing test');
-    // Saved again from a chapter's settings card, which has no first entry.
+    // Saved again from a chat's settings card, which has no first entry.
     presets.save({ name: 'bug fix', agent: 'codex', settings: { mode: 'plan' } });
     expect(presets.list()).toEqual([
       {
@@ -73,22 +73,22 @@ describe('presets', () => {
     expect(personal.list().map((preset) => preset.name)).toEqual(['Bug fix', 'Review']);
   });
 
-  it('keeps new chapters beginning with a preset as it’s renamed, and with your last settings once it’s gone', async () => {
+  it('keeps new chats beginning with a preset as it’s renamed, and with your last settings once it’s gone', async () => {
     const { registry, settings, emit } = setUp();
     await registry.dispatch('presets.save', { name: 'Bug fix', agent: 'codex', settings: {} });
     await registry.dispatch('presets.save', { name: 'Review', agent: 'codex', settings: {} });
-    settings.set({ newChapter: { from: 'preset', preset: 'Bug fix' } });
+    settings.set({ newChat: { from: 'preset', preset: 'Bug fix' } });
 
     await registry.dispatch('presets.rename', { from: 'Review', to: 'Read through' });
     expect(emit).not.toHaveBeenCalled();
     await registry.dispatch('presets.rename', { from: 'bug fix', to: 'Fix a bug' });
-    expect(settings.get().newChapter).toEqual({ from: 'preset', preset: 'Fix a bug' });
+    expect(settings.get().newChat).toEqual({ from: 'preset', preset: 'Fix a bug' });
     expect(emit).toHaveBeenLastCalledWith('settings.changed', { settings: settings.get() });
 
     expect(await registry.dispatch('presets.remove', { name: 'Fix a bug' })).toEqual([
       { name: 'Read through', agent: 'codex', settings: {} },
     ]);
-    expect(settings.get().newChapter).toEqual({ from: 'last-used' });
+    expect(settings.get().newChat).toEqual({ from: 'last-used' });
     expect(emit).toHaveBeenCalledTimes(2);
   });
 });

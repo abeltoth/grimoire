@@ -1,0 +1,540 @@
+@let all = settings.all();
+<section aria-labelledby="gr-settings-general">
+  <h2 id="gr-settings-general">Settings</h2>
+  <p class="lead">Kept as soon as they’re picked, and the same in every window.</p>
+
+  @if (settings.failed(); as error) {
+    <p class="error" role="alert">That setting couldn’t be kept: {{ error }}</p>
+  }
+
+  <div class="form">
+    <span class="label" id="gr-settings-names">Names</span>
+    <span class="words" role="radiogroup" aria-labelledby="gr-settings-names">
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="all.wording === 'book'"
+        (click)="set({ wording: 'book' })"
+      >
+        The book’s
+      </button>
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="all.wording === 'plain'"
+        (click)="set({ wording: 'plain' })"
+      >
+        Plain
+      </button>
+    </span>
+    <p class="note">
+      @if (all.wording === 'book') {
+        The Colophon, the Ledger, chapters and seals.
+      } @else {
+        Settings, Usage, chats and approvals.
+      }
+    </p>
+
+    <span class="label" id="gr-settings-drawings">Drawings</span>
+    <span class="words" role="radiogroup" aria-labelledby="gr-settings-drawings">
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="all.drawings"
+        (click)="set({ drawings: true })"
+      >
+        Drawn
+      </button>
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="!all.drawings"
+        (click)="set({ drawings: false })"
+      >
+        Left out
+      </button>
+    </span>
+    <p class="note">
+      The sigils on the pages. Those that say something, such as the thought mark, stay.
+    </p>
+
+    <span class="label" id="gr-settings-agent">{{
+      wording.say('Default agent for new chapters', 'Default agent for new chats')
+    }}</span>
+    <span class="words" role="radiogroup" aria-labelledby="gr-settings-agent">
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="all.defaultAgent === null"
+        (click)="pickAgent(null)"
+      >
+        The one used last
+      </button>
+      @for (agent of chats.agents(); track agent.id) {
+        <button
+          type="button"
+          class="word"
+          role="radio"
+          [attr.aria-checked]="all.defaultAgent === agent.id"
+          (click)="pickAgent(agent.id)"
+        >
+          {{ agent.name }}
+        </button>
+      }
+    </span>
+
+    <span class="label" id="gr-settings-start">{{
+      wording.say('New chapters begin with', 'New chats start with')
+    }}</span>
+    <span class="words" role="radiogroup" aria-labelledby="gr-settings-start">
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="startPreset() === null"
+        (click)="pickStart(null)"
+      >
+        Your last settings
+      </button>
+      @for (preset of presets.all(); track preset.name) {
+        <button
+          type="button"
+          class="word"
+          role="radio"
+          [attr.aria-checked]="startPreset() === preset.name"
+          (click)="pickStart(preset.name)"
+        >
+          {{ preset.name }}
+        </button>
+      }
+    </span>
+    @if (!presets.all().length) {
+      <p class="note">
+        {{
+          wording.say(
+            'Save a preset on a chapter’s settings card to begin new chapters with it.',
+            'Save a preset in a chat’s settings to start new chats with it.'
+          )
+        }}
+      </p>
+    }
+
+    <span class="label" id="gr-settings-suggestions">{{
+      wording.say('Suggest the next entry', 'Suggest the next message')
+    }}</span>
+    <span class="words" role="radiogroup" aria-labelledby="gr-settings-suggestions">
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="all.suggestions"
+        (click)="set({ suggestions: true })"
+      >
+        On
+      </button>
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="!all.suggestions"
+        (click)="set({ suggestions: false })"
+      >
+        Off
+      </button>
+    </span>
+    <p class="note">
+      {{
+        wording.say(
+          'After a reply, what you might write next shows in grey on the empty page; Tab writes it in.',
+          'After a reply, what you might send next shows in grey in the empty message box; Tab uses it.'
+        )
+      }}
+    </p>
+
+    <span class="label" id="gr-settings-follow-ups">{{
+      wording.say('Suggest separate chapters', 'Suggest separate tasks')
+    }}</span>
+    <span class="words" role="radiogroup" aria-labelledby="gr-settings-follow-ups">
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="all.followUps"
+        (click)="set({ followUps: true })"
+      >
+        On
+      </button>
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="!all.followUps"
+        (click)="set({ followUps: false })"
+      >
+        Off
+      </button>
+    </span>
+    <p class="note">
+      {{
+        wording.say(
+          'Now and then, when a reply turns up separate work, it is offered as a card under it; opening one begins a new chapter with it written in.',
+          'Now and then, when a reply turns up separate work, it shows as a card under it; clicking one opens a new chat with it written in.'
+        )
+      }}
+    </p>
+
+    <span class="label" id="gr-settings-mcp">{{
+      wording.say('MCP servers in every chapter', 'MCP servers in every chat')
+    }}</span>
+    <span class="words" role="group" aria-labelledby="gr-settings-mcp">
+      @for (name of mcpServers(); track name) {
+        <button
+          type="button"
+          class="word"
+          role="checkbox"
+          [attr.aria-checked]="!all.mcpOff.includes(name)"
+          (click)="toggleMcp(name)"
+        >
+          {{ name }}
+        </button>
+      } @empty {
+        <span class="none">{{ mcpRead() ? 'None' : 'Asking your agents…' }}</span>
+      }
+    </span>
+    <p class="note">
+      {{
+        wording.say(
+          'Those underlined start in every chapter. One turned off takes no room in the context; open chapters change at their next entry. Turn one off for a single chapter on its settings card.',
+          'Those underlined start in every chat. One turned off takes no room in the context; open chats change at their next message. Turn one off for a single chat in its settings.'
+        )
+      }}
+    </p>
+
+    <label class="label" for="gr-settings-jira">Jira issues on the Kanban board</label>
+    <textarea
+      #jiraField
+      id="gr-settings-jira"
+      class="line prompt"
+      rows="2"
+      spellcheck="false"
+      [value]="all.jiraQuery"
+      (change)="setJiraQuery(jiraField)"
+    ></textarea>
+    <p class="note">
+      Those this Jira query finds, through your claude.ai Atlassian connector. Emptied, it finds yours
+      not done, and those done in the last two weeks.
+    </p>
+
+    @if (accounts.agent(); as agent) {
+      @let signIn = accounts.state();
+      <span class="label" id="gr-settings-account">{{ agent.name }} signs in as</span>
+      <span class="words" role="radiogroup" aria-labelledby="gr-settings-account">
+        @for (email of accounts.emails(); track email) {
+          <span class="account">
+            <button
+              type="button"
+              class="word"
+              role="radio"
+              [attr.aria-checked]="accounts.isCurrent(email)"
+              [disabled]="!!signIn?.pending"
+              (click)="accounts.isCurrent(email) || accounts.signIn(email)"
+            >
+              {{ email }}
+            </button>
+            @if (!accounts.isCurrent(email) && !signIn?.pending) {
+              <button
+                type="button"
+                class="forget"
+                [attr.aria-label]="'Forget ' + email"
+                [title]="'Forget ' + email"
+                (click)="accounts.forget(email)"
+              >
+                ×
+              </button>
+            }
+          </span>
+        }
+        @if (addingAccount()) {
+          <input
+            #accountField
+            class="line account-field"
+            type="email"
+            autocomplete="off"
+            aria-label="Email of the account to sign in to"
+            placeholder="Their email"
+            (keydown.enter)="addAccount(accountField.value)"
+            (keydown.escape)="$event.preventDefault(); addingAccount.set(false)"
+            (blur)="addAccount(accountField.value)"
+          />
+        } @else if (!signIn?.pending) {
+          <button type="button" class="gr-link" (click)="startAddingAccount()">
+            Another account
+          </button>
+        }
+      </span>
+      @if (signIn?.pending; as pending) {
+        <p class="note" role="status">
+          Waiting for you to sign in as {{ pending.email }} in the browser.
+          <span class="actions">
+            @if (pending.url) {
+              <button type="button" class="gr-link" (click)="copyPage(pending.url)">
+                {{ copiedPage() === pending.url ? 'Link copied' : 'Copy the sign-in link' }}
+              </button>
+            }
+            <button type="button" class="gr-link" (click)="accounts.cancel()">Cancel</button>
+          </span>
+        </p>
+        <label class="note code" for="gr-settings-sign-in-code">
+          If the page shows a code, paste it here:
+          <input
+            #codeField
+            id="gr-settings-sign-in-code"
+            class="line code-field"
+            autocomplete="off"
+            (keydown.enter)="accounts.code(codeField.value); codeField.value = ''"
+          />
+        </label>
+      } @else if (signIn) {
+        <p class="note">
+          @if (signIn.account; as account) {
+            @if (planName(account.plan); as plan) {
+              {{ plan }}{{ account.expiresAt ? ', until ' + day(account.expiresAt) : '' }}.
+            }
+            {{
+              wording.say(
+                'Every chapter uses it, as does Claude Code in a terminal; open chapters switch at their next entry.',
+                'Every chat uses it, as does Claude Code in a terminal; open chats switch at their next message.'
+              )
+            }}
+          } @else {
+            Not signed in.
+          }
+        </p>
+      }
+      @if (accounts.failed(); as error) {
+        <p class="note failed" role="alert">{{ error }}</p>
+      }
+    }
+  </div>
+</section>
+
+<section class="presets" aria-labelledby="gr-settings-presets">
+  <h2 id="gr-settings-presets">Presets</h2>
+  <p class="lead">
+    {{
+      wording.say(
+        'Settings saved under a name, to begin chapters with. Save one on a chapter’s settings card, and save it again under its name to change its settings.',
+        'Settings saved under a name, to start chats with. Save one in a chat’s settings, and save it again under its name to change them.'
+      )
+    }}
+  </p>
+
+  @if (presets.failed(); as error) {
+    <p class="error" role="alert">{{ error }}</p>
+  }
+
+  @for (preset of presets.all(); track preset.name; let i = $index) {
+    <article class="preset">
+      @if (renaming() === preset.name) {
+        <input
+          #nameField
+          class="line name-field"
+          autocomplete="off"
+          [attr.aria-label]="'New name for ' + preset.name"
+          [value]="preset.name"
+          (keydown.enter)="rename(preset.name, nameField.value)"
+          (keydown.escape)="$event.preventDefault(); renaming.set(null)"
+          (blur)="rename(preset.name, nameField.value)"
+        />
+      } @else {
+        <h3>{{ preset.name }}</h3>
+      }
+      <p class="sub">
+        {{ described.describe(preset) }} ·
+        <code>{{ chats.folderName(preset.settings.cwd) }}</code>
+      </p>
+
+      <label class="label" [for]="'gr-preset-prompt-' + i">{{
+        wording.say('First entry', 'First message')
+      }}</label>
+      <textarea
+        class="line prompt"
+        rows="2"
+        [id]="'gr-preset-prompt-' + i"
+        [placeholder]="
+          wording.say('None: its chapters begin on a blank page', 'None: its chats start empty')
+        "
+        [value]="preset.prompt ?? ''"
+        (change)="setPrompt(preset, $any($event.target).value)"
+      ></textarea>
+
+      <div class="actions">
+        @if (removing() === preset.name) {
+          <span class="ask">{{
+            wording.say(
+              'Remove “' + preset.name + '”? Chapters begun with it keep their settings.',
+              'Remove “' + preset.name + '”? Chats started with it keep their settings.'
+            )
+          }}</span>
+          <button type="button" class="gr-link danger" (click)="remove(preset.name)">Remove</button>
+          <button type="button" class="gr-link" (click)="removing.set(null)">Keep it</button>
+        } @else {
+          <button type="button" class="gr-link" (click)="startRenaming(preset.name)">Rename</button>
+          <button type="button" class="gr-link" (click)="removing.set(preset.name)">Remove</button>
+        }
+      </div>
+    </article>
+  } @empty {
+    <p class="none">
+      {{
+        wording.say(
+          'No presets yet. Save one on a chapter’s settings card.',
+          'No presets yet. Save one in a chat’s settings.'
+        )
+      }}
+    </p>
+  }
+</section>
+
+<section class="theme" aria-labelledby="gr-settings-theme">
+  <h2 id="gr-settings-theme">{{ wording.say('The theme', 'Theme') }}</h2>
+  <gr-theme-editor />
+</section>
+
+<section class="profiles" aria-labelledby="gr-settings-profiles">
+  <h2 id="gr-settings-profiles">{{ wording.say('Volumes', 'Profiles') }}</h2>
+  <p class="lead">
+    {{
+      wording.say(
+        'Each volume keeps its own chapters, settings, presets and scheduled chats, and Claude Code keeps its own sign-in, memory and chats in the volume’s Claude folder. Opening another puts this one’s chapters away until you’re back.',
+        'Each profile keeps its own chats, settings, presets and scheduled chats, and Claude Code keeps its own sign-in, memory and chat history in the profile’s Claude folder. Switching puts this one’s chats away until you’re back.'
+      )
+    }}
+  </p>
+
+  @if (profiles.failed(); as error) {
+    <p class="error" role="alert">{{ error }}</p>
+  }
+  @if (profiles.refused(); as reason) {
+    <p class="error" role="alert">{{ reason }}</p>
+  }
+  @if (deleted(); as gone) {
+    <p class="none" role="status">
+      “{{ gone.name }}” is deleted. Its Claude folder stays at <code>{{ gone.folder }}</code>.
+    </p>
+  }
+
+  @for (profile of profiles.list().profiles; track profile.id) {
+    @let inUse = profile.id === profiles.list().active;
+    <article class="profile">
+      @if (renamingProfile() === profile.id) {
+        <input
+          #profileField
+          class="line name-field"
+          autocomplete="off"
+          [attr.aria-label]="'New name for ' + profile.name"
+          [value]="profile.name"
+          (keydown.enter)="renameProfile(profile, profileField.value)"
+          (keydown.escape)="$event.preventDefault(); renamingProfile.set(null)"
+          (blur)="renameProfile(profile, profileField.value)"
+        />
+      } @else {
+        <h3>
+          {{ profile.name }}
+          @if (inUse) {
+            <span class="in-use">{{ wording.say('open now', 'in use') }}</span>
+          }
+        </h3>
+      }
+      <p class="sub">
+        @if (!profile.claudeFolder) {
+          Claude Code’s usual place:
+        }
+        <code>{{ chats.folderName(folderOf(profile)) }}</code>
+        <button
+          type="button"
+          class="gr-link copy"
+          [attr.aria-label]="'Copy the path of ' + profile.name + '’s Claude folder'"
+          (click)="copyFolder(profile)"
+        >
+          {{ copiedFolder() === profile.id ? 'Copied' : 'Copy the path' }}
+        </button>
+      </p>
+      @if (made() === profile.id && !inUse) {
+        <p class="sub" role="status">
+          Not signed in yet: Claude Code signs in afresh in its Claude folder.
+          <button type="button" class="gr-link" (click)="profiles.switchToSignIn(profile.id)">
+            {{ wording.say('Open it and sign in', 'Switch to it and sign in') }}
+          </button>
+        </p>
+      }
+
+      <div class="actions">
+        @if (deleting() === profile.id) {
+          <span class="ask"
+            >Delete “{{ profile.name }}”?
+            {{
+              wording.say(
+                'Its settings, presets and scheduled chats go. Its Claude folder, with its chapters, stays at',
+                'Its settings, presets and scheduled chats go. Its Claude folder, with its chats, stays at'
+              )
+            }}
+            <code>{{ folderOf(profile) }}</code
+            >.</span
+          >
+          <button type="button" class="gr-link danger" (click)="deleteProfile(profile)">
+            Delete
+          </button>
+          <button type="button" class="gr-link" (click)="deleting.set(null)">Keep it</button>
+        } @else {
+          @if (!inUse) {
+            <button
+              type="button"
+              class="gr-link"
+              [disabled]="!!profiles.switching()"
+              (click)="profiles.switch(profile.id)"
+            >
+              {{ wording.say('Open this volume', 'Switch to it') }}
+            </button>
+          }
+          <button type="button" class="gr-link" (click)="startRenamingProfile(profile.id)">
+            Rename
+          </button>
+          <button
+            type="button"
+            class="gr-link"
+            [disabled]="!deletable(profile)"
+            [attr.title]="whyKept(profile)"
+            (click)="deleted.set(null); deleting.set(profile.id)"
+          >
+            Delete
+          </button>
+        }
+      </div>
+    </article>
+  }
+
+  <div class="actions">
+    @if (creating()) {
+      <input
+        #newProfileField
+        class="line profile-field"
+        autocomplete="off"
+        [attr.aria-label]="wording.say('Name of the new volume', 'Name of the new profile')"
+        placeholder="Its name, such as Work"
+        (keydown.enter)="create(newProfileField.value)"
+        (keydown.escape)="$event.preventDefault(); creating.set(false)"
+        (blur)="create(newProfileField.value)"
+      />
+    } @else {
+      <button type="button" class="gr-link" (click)="startCreating()">
+        {{ wording.say('New volume', 'New profile') }}
+      </button>
+    }
+  </div>
+</section>

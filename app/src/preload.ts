@@ -36,10 +36,10 @@ const bridge: GrimoireBridge = {
     close: () => ipcRenderer.send('grimoire:window', 'close'),
   },
   popOut: (chatId) => ipcRenderer.send('grimoire:popOut', chatId),
-  onLeafClosed: (listener) => {
+  onPopoutClosed: (listener) => {
     const handler = (_: IpcRendererEvent, chatId: string) => listener(chatId);
-    ipcRenderer.on('grimoire:leafClosed', handler);
-    return () => ipcRenderer.removeListener('grimoire:leafClosed', handler);
+    ipcRenderer.on('grimoire:popoutClosed', handler);
+    return () => ipcRenderer.removeListener('grimoire:popoutClosed', handler);
   },
   openExternal: (url) => ipcRenderer.send('grimoire:openExternal', url),
 };

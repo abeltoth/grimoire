@@ -2,7 +2,7 @@ import type { AlwaysAllow, Approval } from '@grimoire/contract';
 import { type DiffLine, fileChange } from './diff';
 import { relativeTo } from './rows';
 
-/** What an approval asks for, as the slip shows it. */
+/** What an approval asks for, as the approval card shows it. */
 export type Ask =
   | { kind: 'command'; asks: string; command: string; about?: string }
   | { kind: 'file'; asks: string; file: string; path: string; lines: DiffLine[]; about?: string }

@@ -1,0 +1,61 @@
+:host {
+  display: contents;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--gr-head-row-gap);
+}
+
+.spacer {
+  flex: 1;
+}
+
+/* What the subagent's task is for, what kind of subagent on which model, and where it is with it. */
+.task {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--gr-subagent-task-gap);
+  margin: var(--gr-right-page-pad-top) var(--page-inset-end) 0 var(--page-inset-start);
+  padding-bottom: var(--gr-subagent-task-pad-bottom);
+  border-bottom: var(--gr-subagent-task-rule);
+}
+
+.title {
+  max-width: 100%;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--gr-font-display);
+  font-weight: 400;
+  font-size: var(--gr-size-settings-word);
+  color: var(--gr-ink);
+}
+
+.meta,
+.none,
+.line {
+  margin: 0;
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+/* A line after the transcript's last row: what it waits for, or why there's little to read. */
+.line {
+  margin-top: var(--gr-space-3);
+}
+
+.line.waiting {
+  color: var(--gr-ink);
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--gr-right-page-pad-top) var(--page-inset-end) 0 var(--page-inset-start);
+}

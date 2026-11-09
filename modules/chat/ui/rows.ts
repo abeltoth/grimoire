@@ -1,12 +1,12 @@
-import type { Enclosure, Entry, HookRun, TokenUse, ToolBlock } from '@grimoire/contract';
+import type { Attachment, Entry, HookRun, TokenUse, ToolBlock } from '@grimoire/contract';
 import { weightOf } from '@ui/app/core/tokens';
 import { deedOf } from './commands';
 import { type DiffLine, type FileChange, fileChange } from './diff';
 
-/** What a margin note folds out: a file's corrections or what a tool printed. */
+/** What a tool note expands: a file's diff or what a tool printed. */
 export type Fold =
   | {
-      kind: 'corrections';
+      kind: 'diff';
       file: string;
       path: string;
       lines: DiffLine[];
@@ -36,7 +36,7 @@ export type Deed =
   | 'added'
   | 'other';
 
-/** A margin note: a tool the agent used. */
+/** A tool note: a tool the agent used. */
 export interface Note {
   key: string;
   verb: string;
@@ -57,13 +57,13 @@ export interface Note {
   removed?: number;
   /** The change was undone. */
   withdrawn?: boolean;
-  /** The details, folded out only when you ask. */
+  /** The details, expanded only when you ask. */
   fold?: Fold;
-  /** The tool call, when it handed a task to a helper, whose run can be shown on its own page. */
-  helper?: ToolBlock;
+  /** The tool call, when it handed a task to a subagent, whose run can be shown on its own page. */
+  subagent?: ToolBlock;
 }
 
-/** A run of notes, summed up on one line that folds out to them. */
+/** A run of notes, summed up on one line that expands to them. */
 export interface Summary {
   key: string;
   /** Such as "Read 2 files, changed 3 files, ran 1 command". */
@@ -92,7 +92,7 @@ export type Row =
       key: string;
       text: string;
       /** Pictures and files sent with it. */
-      enclosures: readonly Enclosure[];
+      attachments: readonly Attachment[];
       at?: number;
       withdrawn: boolean;
       /** Undo would restore something: this turn or a later one changed files, not yet undone. */
@@ -112,14 +112,14 @@ export type Row =
       hooks?: HookLog;
     };
 
-/** What a turn spent: by model, and weighed; `costly` for one of the chapter's costliest. */
+/** What a turn spent: by model, and weighed; `costly` for one of the chat's costliest. */
 export interface TurnSpent {
   uses: readonly TokenUse[];
   weight: number;
   costly: boolean;
 }
 
-/** The hooks run on a turn, counted up on its closing line, which folds out to them. */
+/** The hooks run on a turn, counted up on its closing line, which expands to them. */
 export interface HookLog {
   key: string;
   runs: readonly HookRun[];
@@ -128,10 +128,10 @@ export interface HookLog {
   failed: number;
 }
 
-/** How many of a chapter's turns are marked its costliest, once it has more than that. */
+/** How many of a chat's turns are marked its costliest, once it has more than that. */
 const COSTLIEST = 3;
 
-// The plan shows in the Outline; ToolSearch only loads other tools.
+// The plan shows in the Plan; ToolSearch only loads other tools.
 const UNNOTED_TOOLS = new Set([
   'TaskCreate',
   'TaskUpdate',
@@ -144,10 +144,10 @@ const UNNOTED_TOOLS = new Set([
 /** The tool Grimoire gives the agent to add a task to your Kanban board with; its input's `title` names it. */
 const ADD_TODO_TOOL = 'mcp__grimoire__add_todo';
 
-/** The tool a helper ends its run with: its report, in its input's `message`, reads as its last reply. */
+/** The tool a subagent ends its run with: its report, in its input's `message`, reads as its last reply. */
 const HANDBACK_TOOL = 'SubagentHandback';
 
-/** A helper's report, when the tool call hands one back. */
+/** A subagent's report, when the tool call hands one back. */
 function handbackOf(block: ToolBlock): string | undefined {
   const message = (block.input as { message?: unknown } | undefined)?.message;
   return block.tool === HANDBACK_TOOL && typeof message === 'string' ? message : undefined;
@@ -161,7 +161,7 @@ export interface UndoMarks {
 
 /**
  * Lays out a transcript: your entries, the agent's replies, and its tools as
- * margin notes. The file changes made after a withdrawn entry are marked so.
+ * tool notes. The file changes made after a withdrawn entry are marked so.
  */
 export function toRows(
   entries: readonly Entry[],
@@ -211,7 +211,7 @@ export function toRows(
         kind: 'you',
         key: entry.id,
         text: entry.text,
-        enclosures: entry.enclosures ?? [],
+        attachments: entry.attachments ?? [],
         ...(entry.at ? { at: entry.at } : {}),
         withdrawn: withdrawn.has(entry.id),
         undoable: false,
@@ -277,8 +277,8 @@ function mergeEdits(notes: readonly Note[]): Note[] {
       merged.push(note);
       continue;
     }
-    const before = last.fold?.kind === 'corrections' ? last.fold : undefined;
-    const after = note.fold?.kind === 'corrections' ? note.fold : undefined;
+    const before = last.fold?.kind === 'diff' ? last.fold : undefined;
+    const after = note.fold?.kind === 'diff' ? note.fold : undefined;
     const added = (last.added ?? 0) + (note.added ?? 0);
     const removed = (last.removed ?? 0) + (note.removed ?? 0);
     merged[merged.length - 1] = {
@@ -385,7 +385,7 @@ function toNote(key: string, block: ToolBlock, cwd?: string): Note {
     running: !block.result,
     failed: block.result?.isError === true,
     ...detailsOf(block, shell ? commandTitle(target, description) : { title: target || verb }, cwd),
-    ...(did === 'helped' ? { helper: block } : {}),
+    ...(did === 'helped' ? { subagent: block } : {}),
   };
 }
 
@@ -421,7 +421,7 @@ function detailsOf(
       added,
       removed,
       fold: {
-        kind: 'corrections',
+        kind: 'diff',
         file: relativeTo(cwd, change.file),
         path: change.file,
         lines: change.lines,
@@ -434,7 +434,7 @@ function detailsOf(
 }
 
 /**
- * Whether a SendMessage call resumed a helper, as its result says; until it
+ * Whether a SendMessage call resumed a subagent, as its result says; until it
  * has one, it's taken to. A message to another of your sessions resumes none.
  */
 function resumes(block: ToolBlock): boolean {
@@ -497,7 +497,7 @@ function nameOf(path: string): string {
   return path.split(/[\\/]/).filter(Boolean).at(-1) ?? path;
 }
 
-/** A path inside the chapter's folder, written relative to it. */
+/** A path inside the chat's folder, written relative to it. */
 export function relativeTo(cwd: string | undefined, file: string): string {
   if (!cwd || !file) return file;
   const normalize = (p: string) => p.replaceAll('\\', '/');

@@ -1,5 +1,5 @@
 /*
- * The editor's look, from the theme. book-theme.ts reads these and hands
+ * The editor's look, from the theme. editor-theme.ts reads these and hands
  * them to the VS Code editor, which draws with colours and sizes, not CSS.
  */
 gr-code-editor {

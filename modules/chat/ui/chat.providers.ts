@@ -1,61 +1,61 @@
 import { type EnvironmentProviders, effect, inject, untracked } from '@angular/core';
 import { Chats } from '@ui/app/core/chats';
-import { Facing } from '@ui/app/shell/facing';
+import { RightPageState } from '@ui/app/shell/right-page-state';
 import { provideShellEntries } from '@ui/app/shell/shell-registry';
-import { ChapterPage, SECOND_CHAPTER } from './chapter-page';
-import { HelperPage } from './helper-page';
-import { HELPER_PAGE, Helpers } from './helpers';
-import { Outline, outlineFoot } from './outline';
-import { SealsPage } from './seals-page';
-import { SecondChapter } from './second-chapter';
+import { ChatPage, SECOND_CHAT } from './chat-page';
+import { SubagentPage } from './subagent-page';
+import { SUBAGENT_PAGE, Subagents } from './subagents';
+import { Plan, planFoot } from './plan';
+import { ApprovalsPage } from './approvals-page';
+import { SecondChat } from './second-chat';
 
 /**
- * The chat module (ADR-008): it fills the left page with the open chapter,
- * the facing page's Outline with its plan, its Second chapter with
- * another chapter beside it, its Helper with what a subagent one of a
- * chapter's tool calls started did, and the facing page with the slips
- * awaiting your seal when it's turned there.
+ * The chat module (ADR-008): it fills the left page with the open chat,
+ * the right page's Plan with its plan, its Second chat with
+ * another chat beside it, its Subagent with what a subagent one of a
+ * chat's tool calls started did, and the right page with the waiting
+ * approvals when it's turned there.
  */
 export function provideChat(): EnvironmentProviders {
   return provideShellEntries((shell) => {
-    shell.chapterPage.set(ChapterPage);
-    shell.sealsPage.set(SealsPage);
+    shell.chatPage.set(ChatPage);
+    shell.approvalsPage.set(ApprovalsPage);
     const chats = inject(Chats);
-    shell.facingPages.add({
-      id: 'outline',
+    shell.rightPages.add({
+      id: 'plan',
       label: 'Outline',
       plainLabel: 'Plan',
       order: 10,
-      component: Outline,
-      foot: () => outlineFoot(chats),
+      component: Plan,
+      foot: () => planFoot(chats),
     });
-    shell.facingPages.add({
-      id: SECOND_CHAPTER,
+    shell.rightPages.add({
+      id: SECOND_CHAT,
       label: 'Second chapter',
       plainLabel: 'Second chat',
       order: 40,
-      component: SecondChapter,
+      component: SecondChat,
       heading: () => chats.beside()?.title || undefined,
       whole: true,
     });
-    const helpers = inject(Helpers);
-    shell.facingPages.add({
-      id: HELPER_PAGE,
+    const subagents = inject(Subagents);
+    shell.rightPages.add({
+      id: SUBAGENT_PAGE,
       label: 'Helper',
       plainLabel: 'Subagent',
       order: 45,
-      component: HelperPage,
+      component: SubagentPage,
       heading: () => {
-        const input = helpers.block()?.input as { description?: unknown } | undefined;
+        const input = subagents.block()?.input as { description?: unknown } | undefined;
         return typeof input?.description === 'string' && input.description ? input.description : undefined;
       },
       whole: true,
     });
 
-    // A chapter put beside the one you're on, or found there as the book opens, shows on the facing page.
-    const facing = inject(Facing);
+    // A chat put beside the one you're on, or found there as the book opens, shows on the right page.
+    const rightPage = inject(RightPageState);
     effect(() => {
-      if (chats.besideId()) untracked(() => facing.showPage(SECOND_CHAPTER));
+      if (chats.besideId()) untracked(() => rightPage.showPage(SECOND_CHAT));
     });
   });
 }

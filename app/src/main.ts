@@ -6,7 +6,7 @@ import { app, BrowserWindow, dialog, ipcMain, net, protocol, screen, shell, type
 import { existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import type { EventPayload, Layout, LooseLeaf, Profiles } from '@grimoire/contract';
+import type { EventPayload, Layout, Popout, Profiles } from '@grimoire/contract';
 import { ActiveProfile } from './active-profile';
 import type { ServiceClient } from './service-client';
 import { ensureService } from './service-launcher';
@@ -40,7 +40,7 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 let service: Promise<ServiceClient> | undefined;
-/** The profile in use: when another is put in use, the windows open on its chapters. */
+/** The profile in use: when another is put in use, the windows open on its chats. */
 const activeProfile = new ActiveProfile();
 
 function getService(): Promise<ServiceClient> {
@@ -133,7 +133,7 @@ ipcMain.on('grimoire:window', (event, action: unknown) => {
 
 ipcMain.on('grimoire:popOut', (event, chatId: unknown) => {
   if (!isTrusted(event.senderFrame) || typeof chatId !== 'string' || !chatId) return;
-  openLeaf({ chatId });
+  openPopout({ chatId });
 });
 
 // A web page, such as a Jira issue, opens in the system's browser; nothing but https does.
@@ -142,83 +142,83 @@ ipcMain.on('grimoire:openExternal', (event, url: unknown) => {
   if (originOf(url).startsWith('https://')) void shell.openExternal(url);
 });
 
-/** The book's window: the one that holds every chapter not popped out. */
-let book: BrowserWindow | undefined;
-/** The loose leaves' windows, by the chapter each holds. */
-const leaves = new Map<string, BrowserWindow>();
-/** The chapters popped out, as the layout keeps them so they open again with the book. */
-let loose: LooseLeaf[] = [];
-/** While the book closes or the app quits: the leaves close with it, and open again next time. */
-let keepLeaves = false;
+/** The book's window: the one that holds every chat not popped out. */
+let mainWindow: BrowserWindow | undefined;
+/** The popouts' windows, by the chat each holds. */
+const popoutWindows = new Map<string, BrowserWindow>();
+/** The chats popped out, as the layout keeps them so they open again with the book. */
+let popouts: Popout[] = [];
+/** While the book closes or the app quits: the popouts close with it, and open again next time. */
+let keepPopouts = false;
 
-app.on('before-quit', () => (keepLeaves = true));
+app.on('before-quit', () => (keepPopouts = true));
 
-function saveLoose(): void {
+function savePopouts(): void {
   getService()
-    .then((client) => client.request('layout.set', { loose } satisfies Partial<Layout>))
+    .then((client) => client.request('layout.set', { popouts } satisfies Partial<Layout>))
     .catch((error: unknown) => console.error(error));
 }
 
-/** Opens the chapters that were popped out when the book last closed, each where it was. */
-function reopenLeaves(): void {
+/** Opens the chats that were popped out when the book last closed, each where it was. */
+function reopenPopouts(): void {
   getService()
     .then((client) => client.request('layout.get', {}))
     .then((layout) => {
-      const saved = (layout as Partial<Layout> | undefined)?.loose ?? [];
+      const saved = (layout as Partial<Layout> | undefined)?.popouts ?? [];
       // Any popped out meanwhile stay out too.
-      loose = [...saved, ...loose.filter((kept) => !saved.some((leaf) => leaf.chatId === kept.chatId))];
-      for (const leaf of saved) openLeaf(leaf);
+      popouts = [...saved, ...popouts.filter((kept) => !saved.some((popout) => popout.chatId === kept.chatId))];
+      for (const popout of saved) openPopout(popout);
     })
     .catch((error: unknown) => console.error(error));
 }
 
 /**
- * Another profile is in use: the last one's leaves close, kept in its
+ * Another profile is in use: the last one's popouts close, kept in its
  * layout as they were, and the book opens again on the new one's
- * chapters, with the leaves it had popped out.
+ * chats, with the popouts it had.
  */
 function openProfile(): void {
-  // Destroyed, not closed: a leaf closing would put its chapter back, in the new profile's layout.
-  for (const leaf of leaves.values()) leaf.destroy();
-  leaves.clear();
-  loose = [];
-  if (!book) return;
-  book.webContents.reload();
-  if (!headless) reopenLeaves();
+  // Destroyed, not closed: a popout closing would put its chat back, in the new profile's layout.
+  for (const popout of popoutWindows.values()) popout.destroy();
+  popoutWindows.clear();
+  popouts = [];
+  if (!mainWindow) return;
+  mainWindow.webContents.reload();
+  if (!headless) reopenPopouts();
 }
 
-/** A popped-out chapter's window; one per chapter. */
-function openLeaf(leaf: LooseLeaf): void {
-  const open = leaves.get(leaf.chatId);
+/** A popped-out chat's window; one per chat. */
+function openPopout(popout: Popout): void {
+  const open = popoutWindows.get(popout.chatId);
   if (open) {
     if (open.isMinimized()) open.restore();
     open.focus();
     return;
   }
-  const win = createWindow(leaf);
-  leaves.set(leaf.chatId, win);
-  if (!loose.some((kept) => kept.chatId === leaf.chatId)) {
-    loose = [...loose, { chatId: leaf.chatId }];
-    saveLoose();
+  const win = createWindow(popout);
+  popoutWindows.set(popout.chatId, win);
+  if (!popouts.some((kept) => kept.chatId === popout.chatId)) {
+    popouts = [...popouts, { chatId: popout.chatId }];
+    savePopouts();
   }
   win.on('close', () => {
-    leaves.delete(leaf.chatId);
-    if (keepLeaves) {
+    popoutWindows.delete(popout.chatId);
+    if (keepPopouts) {
       // Closing with the book: it opens again where it is.
       const bounds = win.getNormalBounds();
-      loose = loose.map((kept) => (kept.chatId === leaf.chatId ? { ...kept, bounds } : kept));
+      popouts = popouts.map((kept) => (kept.chatId === popout.chatId ? { ...kept, bounds } : kept));
     } else {
-      // Closed by itself: its chapter goes back into the book.
-      loose = loose.filter((kept) => kept.chatId !== leaf.chatId);
-      book?.webContents.send('grimoire:leafClosed', leaf.chatId);
+      // Closed by itself: its chat goes back into the book.
+      popouts = popouts.filter((kept) => kept.chatId !== popout.chatId);
+      mainWindow?.webContents.send('grimoire:popoutClosed', popout.chatId);
     }
-    saveLoose();
+    savePopouts();
   });
 }
 
-/** Where a new leaf goes: one page wide, at the side of the screen the book is on. */
-function leafPlace(): { width: number; height: number; x?: number; y?: number } {
-  const area = screen.getDisplayMatching(book?.getBounds() ?? screen.getPrimaryDisplay().bounds).workArea;
+/** Where a new popout goes: one page wide, at the side of the screen the book is on. */
+function popoutPlace(): { width: number; height: number; x?: number; y?: number } {
+  const area = screen.getDisplayMatching(mainWindow?.getBounds() ?? screen.getPrimaryDisplay().bounds).workArea;
   const width = Math.min(860, area.width);
   const height = Math.min(960, area.height);
   return { width, height, x: area.x + area.width - width, y: area.y + Math.round((area.height - height) / 2) };
@@ -233,24 +233,24 @@ function serveUi(request: Request): Promise<Response> {
   return net.fetch(pathToFileURL(file).toString());
 }
 
-/** The book's window, or a loose leaf's: a window on one chapter. */
-function createWindow(leaf?: LooseLeaf): BrowserWindow {
+/** The book's window, or a popout's: a window on one chat. */
+function createWindow(popout?: Popout): BrowserWindow {
   const isMac = process.platform === 'darwin';
-  const size = leaf
-    ? (leaf.bounds ?? leafPlace())
+  const size = popout
+    ? (popout.bounds ?? popoutPlace())
     : // Captures use the design's 1920×1080 frame.
       capturePath
       ? { width: 1920, height: 1080, useContentSize: true, enableLargerThanScreen: true }
       : { width: 1600, height: 960 };
   const win = new BrowserWindow({
     ...size,
-    minWidth: leaf ? 560 : 960,
+    minWidth: popout ? 560 : 960,
     minHeight: 600,
     show: false,
     title: 'Grimoire',
     // Matches --gr-desk, so there's no white flash before the first paint.
     backgroundColor: '#15110e',
-    // Grimoire draws its own title strip: native traffic lights on Mac,
+    // Grimoire draws its own title bar: native traffic lights on Mac,
     // drawn window controls elsewhere.
     ...(isMac ? { titleBarStyle: 'hidden' as const, trafficLightPosition: { x: 16, y: 12 } } : { frame: false }),
     webPreferences: {
@@ -267,23 +267,23 @@ function createWindow(leaf?: LooseLeaf): BrowserWindow {
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   if (!headless) win.once('ready-to-show', () => win.show());
   const page = devUrl ?? `${APP_ORIGIN}/index.html`;
-  void win.loadURL(leaf ? `${page}?leaf=${encodeURIComponent(leaf.chatId)}` : page);
+  void win.loadURL(popout ? `${page}?popout=${encodeURIComponent(popout.chatId)}` : page);
   return win;
 }
 
-/** The book's window; its leaves open again with it, and close with it. */
-function openBook(): BrowserWindow {
-  keepLeaves = false;
+/** The book's window; its popouts open again with it, and close with it. */
+function openMainWindow(): BrowserWindow {
+  keepPopouts = false;
   const win = createWindow();
-  book = win;
+  mainWindow = win;
   win.on('close', () => {
-    keepLeaves = true;
-    for (const leaf of leaves.values()) leaf.close();
+    keepPopouts = true;
+    for (const popout of popoutWindows.values()) popout.close();
   });
   win.on('closed', () => {
-    if (book === win) book = undefined;
+    if (mainWindow === win) mainWindow = undefined;
   });
-  if (!headless) reopenLeaves();
+  if (!headless) reopenPopouts();
   return win;
 }
 
@@ -291,7 +291,7 @@ if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   app.on('second-instance', () => {
-    const win = book ?? BrowserWindow.getAllWindows()[0];
+    const win = mainWindow ?? BrowserWindow.getAllWindows()[0];
     if (win) {
       if (win.isMinimized()) win.restore();
       win.focus();
@@ -304,14 +304,14 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) openBook();
+    if (BrowserWindow.getAllWindows().length === 0) openMainWindow();
   });
 
   void app.whenReady().then(() => {
     if (!devUrl) protocol.handle('app', serveUi);
     // Start or reach the service right away, so the first command is fast.
     getService().catch((error: unknown) => console.error(error));
-    const win = openBook();
+    const win = openMainWindow();
     if (smoke) void runSmokeTest(win, stopService);
     else if (captureAt !== -1) void runCapture(win, capturePath, stopService);
   });

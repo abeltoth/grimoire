@@ -16,34 +16,34 @@ import type {
   AgentCommand,
   AgentId,
   ContextUsage,
-  Enclosure,
+  Attachment,
   PromptCache,
   QueuedEntry,
 } from '@grimoire/contract';
 import { Icon } from '@ui/design-system/icon';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { Chats } from '@ui/app/core/chats';
-import { LEAF } from '@ui/app/core/leaf';
+import { POPOUT } from '@ui/app/core/popout';
 import { Settings } from '@ui/app/core/settings';
 import { Wording } from '@ui/app/core/wording';
 import { AgentCommands } from '@ui/app/shell/agent-commands';
 import { Focus } from '@ui/app/shell/focus';
 import { Drafts } from './drafts';
-import { Enclosures } from './enclosures';
+import { Attachments } from './attachments';
 import { readPicture } from './pictures';
 
 /**
  * The next page, tucked under the transcript: where you write the next
  * entry. Enter sends it; Shift+Enter starts a new line. What you send
  * while a turn runs waits above it until the turn ends. A "/" at the start
- * turns the facing page to the agent's commands, which the entry's keys
+ * turns the right page to the agent's commands, which the entry's keys
  * move through and use. Files and pictures come in through Attach, or by
  * dropping or pasting them, and go with the entry. What the agent suggests
  * you write next shows in grey on the empty page, and Tab writes it in.
  */
 @Component({
   selector: 'gr-composer',
-  imports: [Enclosures, Icon],
+  imports: [Attachments, Icon],
   templateUrl: './composer.html',
   styleUrl: './composer.css',
   host: { role: 'region', '[attr.aria-label]': "wording.say('Next page', 'Message')" },
@@ -57,56 +57,56 @@ export class Composer {
   private readonly drafts = inject(Drafts);
   private readonly focus = inject(Focus);
   private readonly settings = inject(Settings);
-  /** In a loose leaf's window: no facing page, so its commands are listed above it. */
-  protected readonly leaf = !!inject(LEAF);
+  /** In a popout's window: no right page, so its commands are listed above it. */
+  protected readonly popout = !!inject(POPOUT);
 
-  readonly chapterId = input.required<string>();
+  readonly chatId = input.required<string>();
   readonly agent = input.required<AgentId>();
-  /** The chapter's folder, where the agent's commands are looked up. */
+  /** The chat's folder, where the agent's commands are looked up. */
   readonly cwd = input<string>();
-  /** A blank chapter's composer: it takes the first entry. */
+  /** A blank chat's composer: it takes the first entry. */
   readonly first = input(false);
-  /** The first entry the chapter's preset has written in, until you change it. */
+  /** The first entry the chat's preset has written in, until you change it. */
   readonly prompt = input('');
   readonly queued = input<readonly QueuedEntry[]>([]);
-  /** How full the context window is: the chapter's page allowance. */
+  /** How full the context window is: the chat's page allowance. */
   readonly context = input<ContextUsage>();
   /** What the last reply left in the prompt cache, while no turn runs. */
   readonly cache = input<PromptCache>();
-  /** What you wrote in this chapter, oldest first, for Up to bring back. */
+  /** What you wrote in this chat, oldest first, for Up to bring back. */
   readonly sent = input<readonly string[]>([]);
   /** The entry field's ID, one for each page's entry. */
   readonly entryId = input('gr-next-entry');
-  /** On the facing page, so its commands are looked up on the left page. */
+  /** On the right page, so its commands are looked up on the left page. */
   readonly beside = input(false);
-  /** What the agent suggests you write next, while the chapter is idle with nothing queued. */
+  /** What the agent suggests you write next, while the chat is idle with nothing queued. */
   readonly suggestion = input<string>();
 
   /** The model the entry goes to as well, in parallel; none until Parallel is pressed. */
   protected readonly parallel = linkedSignal<string, string | null>({
-    source: this.chapterId,
+    source: this.chatId,
     computation: () => null,
   });
   /** The agent's other models, which a parallel text could be on. */
   protected readonly otherModels = computed(() => {
     const listed = this.chats.models()[this.agent()];
-    const chapter = this.chats.all().find((c) => c.id === this.chapterId());
-    const own = chapter?.settings.model ?? listed?.default;
+    const chat = this.chats.all().find((c) => c.id === this.chatId());
+    const own = chat?.settings.model ?? listed?.default;
     return (listed?.models ?? []).filter((model) => model.id !== own);
   });
   /**
-   * Whether the entry can go to two models, the second on the facing page:
-   * not from the facing page or a loose leaf, and from a chapter that has
+   * Whether the entry can go to two models, the second on the right page:
+   * not from the right page or a popout, and from a chat that has
    * begun only when the agent can copy it.
    */
   protected readonly canParallel = computed(() => {
-    const chapter = this.chats.all().find((c) => c.id === this.chapterId());
-    if (!chapter || this.beside() || this.leaf || !this.otherModels().length) return false;
-    return chapter.status === 'blank' || this.chats.can(this.agent(), 'fork');
+    const chat = this.chats.all().find((c) => c.id === this.chatId());
+    if (!chat || this.beside() || this.popout || !this.otherModels().length) return false;
+    return chat.status === 'blank' || this.chats.can(this.agent(), 'fork');
   });
-  /** Whether it can go now: a chapter that has begun is copied between turns. */
+  /** Whether it can go now: a chat that has begun is copied between turns. */
   protected readonly parallelNow = computed(() => {
-    const status = this.chats.all().find((c) => c.id === this.chapterId())?.status;
+    const status = this.chats.all().find((c) => c.id === this.chatId())?.status;
     return status === 'blank' || status === 'idle';
   });
   /** The second model, while Parallel is on and the entry can go to it. */
@@ -139,12 +139,12 @@ export class Composer {
   private readonly entry = viewChild.required<ElementRef<HTMLTextAreaElement>>('entry');
 
   /**
-   * What you're writing; each chapter keeps its own until it's sent. A
+   * What you're writing; each chat keeps its own until it's sent. A
    * preset's first entry is written in while there's nothing else, and
    * another preset's takes its place until you change it.
    */
   protected readonly draft = linkedSignal<{ id: string; prompt: string }, string>({
-    source: () => ({ id: this.chapterId(), prompt: this.prompt() }),
+    source: () => ({ id: this.chatId(), prompt: this.prompt() }),
     computation: ({ id, prompt }, previous) => {
       const kept = this.drafts.of(id).text;
       const untouched = !kept || (previous?.source.id === id && kept === previous.source.prompt);
@@ -152,14 +152,14 @@ export class Composer {
     },
   });
   /** The pictures and files to send with it. */
-  protected readonly enclosures = linkedSignal<string, readonly Enclosure[]>({
-    source: this.chapterId,
-    computation: (id) => this.drafts.of(id).enclosures,
+  protected readonly attachments = linkedSignal<string, readonly Attachment[]>({
+    source: this.chatId,
+    computation: (id) => this.drafts.of(id).attachments,
   });
 
   /** Whether you wrote since the agent made its suggestion: it's gone until the next. */
   private readonly dismissed = linkedSignal({
-    source: () => ({ id: this.chapterId(), suggestion: this.suggestion() }),
+    source: () => ({ id: this.chatId(), suggestion: this.suggestion() }),
     computation: () => false,
   });
   /**
@@ -173,31 +173,31 @@ export class Composer {
     return suggestion;
   });
 
-  /** Whether the facing page lists the agent's commands for this entry. */
+  /** Whether the right page lists the agent's commands for this entry. */
   protected readonly lookingUp = computed(
-    () => this.commands.lookUp()?.chapterId === this.chapterId(),
+    () => this.commands.lookUp()?.chatId === this.chatId(),
   );
-  /** The command the facing page points at, while it lists them. */
+  /** The command the right page points at, while it lists them. */
   protected readonly chosen = computed(() =>
     this.lookingUp() ? this.commands.chosen() : undefined,
   );
 
   constructor() {
-    // What you write stays with its chapter while you turn to another.
+    // What you write stays with its chat while you turn to another.
     effect(() =>
-      this.drafts.keep(this.chapterId(), { text: this.draft(), enclosures: this.enclosures() }),
+      this.drafts.keep(this.chatId(), { text: this.draft(), attachments: this.attachments() }),
     );
-    // A fresh page for another chapter; the commands were looked up for the last one.
+    // A fresh page for another chat; the commands were looked up for the last one.
     effect(() => {
-      const chapterId = this.chapterId();
+      const chatId = this.chatId();
       untracked(() => {
         const lookUp = this.commands.lookUp();
-        if (lookUp && lookUp.chapterId !== chapterId) this.commands.close();
+        if (lookUp && lookUp.chatId !== chatId) this.commands.close();
       });
     });
-    // Another chapter's entries to bring back.
+    // Another chat's entries to bring back.
     effect(() => {
-      this.chapterId();
+      this.chatId();
       this.recalled = null;
     });
     const minute = setInterval(() => this.now.set(Date.now()), 60_000);
@@ -224,7 +224,7 @@ export class Composer {
     if (slash) {
       const cwd = this.cwd();
       this.commands.open({
-        chapterId: this.chapterId(),
+        chatId: this.chatId(),
         agent: this.agent(),
         ...(cwd ? { cwd } : {}),
         query: slash[1]!,
@@ -305,9 +305,9 @@ export class Composer {
     entry.setSelectionRange(text.length, text.length);
   }
 
-  /** Has the agent sum the chapter up before your next entry. */
+  /** Has the agent sum the chat up before your next entry. */
   protected compact(): void {
-    void this.chats.send(this.chapterId(), '/compact');
+    void this.chats.send(this.chatId(), '/compact');
   }
 
   /** Writes the command's name in full, ready for what it takes. */
@@ -329,22 +329,22 @@ export class Composer {
   protected send(entry: HTMLTextAreaElement): void {
     if (this.lookingUp()) this.commands.close();
     const text = entry.value.trim();
-    const enclosures = this.enclosures();
-    if (!text && !enclosures.length) return;
+    const attachments = this.attachments();
+    if (!text && !attachments.length) return;
     // Cleared on the element too: Enter can come before the last keystroke is rendered.
     entry.value = '';
     this.draft.set('');
     this.dismissed.set(true);
-    this.enclosures.set([]);
+    this.attachments.set([]);
     const second = this.second();
     if (!second) {
-      void this.chats.send(this.chapterId(), text, enclosures);
+      void this.chats.send(this.chatId(), text, attachments);
       return;
     }
     this.parallel.set(null);
-    // The second chapter goes on the facing page, so both pages show.
+    // The second chat goes on the right page, so both pages show.
     this.focus.leave();
-    void this.chats.sendParallel(this.chapterId(), second.id, text, enclosures);
+    void this.chats.sendParallel(this.chatId(), second.id, text, attachments);
   }
 
   /** Turns Parallel on, on the first of the other models, or off. */
@@ -356,7 +356,7 @@ export class Composer {
   /** Asks for files with the system's picker. */
   protected async attach(): Promise<void> {
     const paths = await this.bridge.chooseFiles().catch(() => []);
-    this.enclose(paths.map((path): Enclosure => ({ kind: 'file', path })));
+    this.enclose(paths.map((path): Attachment => ({ kind: 'file', path })));
   }
 
   /** A pasted picture comes in as a plate; anything else pastes as usual. */
@@ -381,8 +381,8 @@ export class Composer {
     }
   }
 
-  protected unenclose(enclosure: Enclosure): void {
-    this.enclosures.update((all) => all.filter((kept) => kept !== enclosure));
+  protected unenclose(attachment: Attachment): void {
+    this.attachments.update((all) => all.filter((kept) => kept !== attachment));
     this.entry().nativeElement.focus();
   }
 
@@ -394,13 +394,13 @@ export class Composer {
   }
 
   /** Adds to what goes with the entry; a file already there isn't added twice. */
-  private enclose(added: readonly Enclosure[]): void {
-    this.enclosures.update((all) => [
+  private enclose(added: readonly Attachment[]): void {
+    this.attachments.update((all) => [
       ...all,
       ...added.filter(
-        (enclosure) =>
-          enclosure.kind !== 'file' ||
-          !all.some((kept) => kept.kind === 'file' && kept.path === enclosure.path),
+        (attachment) =>
+          attachment.kind !== 'file' ||
+          !all.some((kept) => kept.kind === 'file' && kept.path === attachment.path),
       ),
     ]);
   }
@@ -411,7 +411,7 @@ export class Composer {
     this.draft.update((draft) =>
       [draft.trim(), ...entries.map((queued) => queued.text)].filter(Boolean).join('\n\n'),
     );
-    this.enclose(entries.flatMap((queued) => queued.enclosures ?? []));
+    this.enclose(entries.flatMap((queued) => queued.attachments ?? []));
     const entry = this.entry().nativeElement;
     entry.value = this.draft();
     entry.focus();
@@ -419,11 +419,11 @@ export class Composer {
   }
 
   protected async edit(queued: QueuedEntry): Promise<void> {
-    if (await this.chats.unqueue(this.chapterId(), queued.id)) this.takeBack([queued]);
+    if (await this.chats.unqueue(this.chatId(), queued.id)) this.takeBack([queued]);
   }
 
   protected remove(queued: QueuedEntry): void {
-    void this.chats.unqueue(this.chapterId(), queued.id);
+    void this.chats.unqueue(this.chatId(), queued.id);
   }
 }
 

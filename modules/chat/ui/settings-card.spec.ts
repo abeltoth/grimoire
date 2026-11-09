@@ -8,7 +8,7 @@ import { DEFAULT_SETTINGS } from '@grimoire/contract';
 import { fakeBridge, pick, render, write } from '@ui/testing/app-harness';
 
 describe('settings-card', () => {
-  it('changes a blank chapter\'s settings on its settings card', async () => {
+  it('changes a blank chat\'s settings on its settings card', async () => {
     const { bridge, calls } = fakeBridge();
     const { fixture, el, texts } = await render(bridge);
     const model = el.querySelector<HTMLButtonElement>('.meta [data-setting="model"]')!;
@@ -68,7 +68,7 @@ describe('settings-card', () => {
     });
   });
 
-  it('begins a chapter on Auto, then shows the model Auto picked', async () => {
+  it('begins a chat on Auto, then shows the model Auto picked', async () => {
     const { bridge, calls, answers } = fakeBridge();
     answers['agents.start'] = (request: CommandRequest<'agents.start'>): OpenChat => ({
       id: 'chat-1',
@@ -81,7 +81,7 @@ describe('settings-card', () => {
       queued: [],
       plan: [],
       withdrawn: [],
-      dogEars: [],
+      pins: [],
       tags: [],
       copied: [],
     });
@@ -129,7 +129,7 @@ describe('settings-card', () => {
     });
   });
 
-  it('changes only the model and permission once the chapter has begun', async () => {
+  it('changes only the model and permission once the chat has begun', async () => {
     const { bridge, calls, emit } = fakeBridge();
     const { fixture, el, texts } = await render(bridge);
     await write(fixture, el, 'Hello');
@@ -163,7 +163,7 @@ describe('settings-card', () => {
     expect(el.querySelector('gr-settings-card')).toBeNull();
   });
 
-  it("turns MCP servers off for one chapter on its settings card, and not for the next", async () => {
+  it("turns MCP servers off for one chat on its settings card, and not for the next", async () => {
     const { bridge, answers, calls, emit } = fakeBridge();
     const empty = { memory: [], skills: [], agents: [], commands: [], hooks: [], mcpServers: [], plugins: [], permissions: [] };
     answers['agents.setup'] = (request: CommandRequest<'agents.setup'>): AgentSetup => ({
@@ -185,7 +185,7 @@ describe('settings-card', () => {
     await fixture.whenStable();
 
     const column = 'gr-settings-card [data-setting="mcp"]';
-    // What each costs; one off in every chapter stays off here.
+    // What each costs; one off in every chat stays off here.
     expect(texts(`${column} .choice`)).toEqual(['github 4,200 tokens', 'slack off in every chapter']);
     expect(texts(`${column} .choice[aria-checked="true"]`)).toEqual(['github 4,200 tokens']);
     expect(texts(`${column} .choice[aria-disabled]`)).toEqual(['slack off in every chapter']);
@@ -200,13 +200,13 @@ describe('settings-card', () => {
     emit('agents.settings', { chatId: 'chat-1', settings: { cwd: 'C:/work/grimoire', mcpOff: ['github'] } });
     await fixture.whenStable();
     expect(texts(`${column} .choice[aria-checked="true"]`)).toEqual([]);
-    // A new chapter takes the settings used last, but not the servers turned off for this one.
+    // A new chat takes the settings used last, but not the servers turned off for this one.
     expect(calls.filter((c) => c.command === 'layout.set').at(-1)?.request).toEqual({
       lastUsed: { agent: 'claude-code', settings: { cwd: 'C:/work/grimoire' } },
     });
   });
 
-  it('saves a chapter\'s settings as a preset, and puts chapters on it', async () => {
+  it('saves a chat\'s settings as a preset, and puts chats on it', async () => {
     const { bridge, calls, answers } = fakeBridge();
     let saved: Preset[] = [];
     answers['presets.list'] = () => saved;
@@ -240,7 +240,7 @@ describe('settings-card', () => {
     expect(head()[5]).toBe('Plan a feature');
     expect(document.activeElement).toBe(el.querySelector(`${presetColumn} .action`));
 
-    // Another setting takes the chapter off the preset; picking the preset puts it back.
+    // Another setting takes the chat off the preset; picking the preset puts it back.
     pick(el, 'Plan only');
     pick(el, 'Low');
     await fixture.whenStable();
@@ -249,7 +249,7 @@ describe('settings-card', () => {
     await fixture.whenStable();
     expect(head().slice(2)).toEqual(['Extra high effort', 'Ask first', '~', 'Plan a feature']);
 
-    // Once begun in another folder, the chapter can't take it.
+    // Once begun in another folder, the chat can't take it.
     pick(el, '~/git/breeder');
     await fixture.whenStable();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }));

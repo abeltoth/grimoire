@@ -7,8 +7,8 @@ import { GRIMOIRE_BRIDGE } from './bridge';
 const SOON_MS = 300;
 
 /**
- * Grimoire's settings, as the service keeps them (ADR-007): set on the
- * Colophon, and the same in every window.
+ * Grimoire's settings, as the service keeps them (ADR-007): set in
+ * Settings, and the same in every window.
  */
 @Injectable({ providedIn: 'root' })
 export class Settings {

@@ -1,0 +1,197 @@
+:host {
+  display: contents;
+}
+
+.row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-head-row-gap);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--gr-font-display);
+  font-weight: 400;
+  font-size: var(--gr-size-right-page-tab);
+  line-height: var(--gr-leading-right-page-tab);
+  box-shadow: inset 0 calc(var(--gr-underline-active) * -1) 0 var(--gr-rubric);
+}
+
+.hint {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--gr-command-palette-caps-gap);
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.hint .gr-kbd {
+  color: var(--gr-ink);
+}
+
+.caps {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--gr-command-palette-caps-gap);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.command-palette {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  z-index: 1;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: var(--gr-command-palette-pad-top) var(--page-inset-end) var(--gr-command-palette-pad-bottom)
+    var(--page-inset-start);
+}
+
+.look-up {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-command-palette-look-up-gap);
+  padding-bottom: var(--gr-command-palette-look-up-pad);
+  border-bottom: var(--gr-command-palette-look-up-rule);
+}
+
+.look-up label {
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-command-palette-label);
+  letter-spacing: var(--gr-tracking-command-palette-label);
+  color: var(--gr-ink-soft);
+  white-space: nowrap;
+}
+
+.look-up input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: var(--gr-size-command-palette-look-up);
+  color: var(--gr-pen);
+  caret-color: var(--gr-pen);
+  outline: none;
+}
+
+.count,
+.note {
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.entries {
+  display: flex;
+  flex-direction: column;
+  max-width: var(--gr-command-palette-width);
+}
+
+.section {
+  margin-top: var(--gr-command-palette-section-gap);
+}
+
+h3 {
+  margin: 0 0 var(--gr-command-palette-head-gap);
+  font-family: var(--gr-font-sc);
+  font-weight: 500;
+  font-size: var(--gr-size-command-palette-head);
+  letter-spacing: var(--gr-tracking-command-palette-head);
+  color: var(--gr-rubric);
+}
+
+/* The cursor's column hangs in the margin, before the text. */
+.entry {
+  display: flex;
+  align-items: baseline;
+  width: calc(100% + var(--gr-command-palette-cursor-w) + var(--gr-command-palette-entry-pad-end));
+  margin-left: calc(var(--gr-command-palette-cursor-w) * -1);
+  padding: var(--gr-command-palette-entry-pad-y) var(--gr-command-palette-entry-pad-end) var(--gr-command-palette-entry-pad-y) 0;
+  border-radius: var(--gr-radius-note);
+  font-size: var(--gr-size-command-palette-entry);
+  color: var(--gr-ink);
+  text-align: left;
+}
+
+.entry:hover {
+  background: var(--gr-note-hover);
+}
+
+.entry[aria-selected='true'] {
+  background: var(--gr-ix-selected);
+}
+
+.cursor {
+  flex: none;
+  width: var(--gr-command-palette-cursor-w);
+  display: flex;
+  justify-content: center;
+  align-self: center;
+  color: var(--gr-gilt-ink);
+  visibility: hidden;
+}
+
+.entry[aria-selected='true'] .cursor {
+  visibility: visible;
+}
+
+/* Long titles and folders are cut short; the shortcut or place always shows. */
+.label,
+.gloss {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.label {
+  flex: none;
+  max-width: var(--gr-command-palette-label-max);
+}
+
+.gloss {
+  flex: 0 100 auto;
+  margin-left: var(--gr-command-palette-gloss-gap);
+  font-style: italic;
+  font-size: var(--gr-size-command-palette-gloss);
+  color: var(--gr-ink-soft);
+}
+
+.gloss code {
+  font-style: normal;
+}
+
+.leader {
+  flex: 1;
+  min-width: var(--gr-leader-min);
+  margin: 0 var(--gr-command-palette-leader-gap);
+  border-bottom: var(--gr-leader);
+  transform: translateY(var(--gr-command-palette-leader-lift));
+}
+
+.where {
+  flex: none;
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--gr-command-palette-caps-gap);
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-command-palette-where);
+  letter-spacing: var(--gr-tracking-command-palette-where);
+  color: var(--gr-ink-soft);
+  white-space: nowrap;
+}
+
+.where .gr-kbd {
+  color: var(--gr-ink);
+}
+
+.note {
+  margin: var(--gr-command-palette-note-gap) 0 0;
+  max-width: var(--gr-command-palette-note-width);
+}

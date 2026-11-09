@@ -2,7 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { GRIMOIRE_BRIDGE } from '../core/bridge';
 
 /**
- * Focus mode: the book lies at a single page, the chapter alone on the
+ * Focus mode: the book lies at a single page, the chat alone on the
  * desk, and everything else is put away until you turn back to two pages.
  * The book opens the way you left it.
  */

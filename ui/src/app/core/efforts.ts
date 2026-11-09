@@ -1,6 +1,6 @@
 import type { EffortLevel } from '@grimoire/contract';
 
-/** The effort levels, as the settings card and the running head name them. */
+/** The effort levels, as the settings card and the page header name them. */
 export const EFFORTS: readonly { level: EffortLevel; label: string; detail: string }[] = [
   { level: 'low', label: 'Low', detail: 'Quick, with little thinking' },
   { level: 'medium', label: 'Medium', detail: 'Balanced thinking and speed' },

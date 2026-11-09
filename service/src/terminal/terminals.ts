@@ -40,7 +40,7 @@ interface Running {
 }
 
 /**
- * The shells the Scriptorium runs (ADR-010): they live in the background
+ * The shells the Terminal runs (ADR-010): they live in the background
  * service, so they keep running when the page or the app closes, and
  * windows draw them again from the screen kept here.
  */

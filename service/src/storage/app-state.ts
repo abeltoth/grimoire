@@ -1,7 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { PERSONAL_PROFILE } from '@grimoire/contract';
 
-/** The profile in use, whose settings, layout, presets, schedules and chapters the stores keep. */
+/** The profile in use, whose settings, layout, presets, schedules and chats the stores keep. */
 export function activeProfile(db: DatabaseSync): string {
   const row = db.prepare("SELECT value FROM app_state WHERE key = 'activeProfile'").get() as
     | { value: string }

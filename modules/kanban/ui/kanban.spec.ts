@@ -104,7 +104,7 @@ describe('kanban', () => {
       });
 
     async function openBoard(fixture: { whenStable(): Promise<unknown> }, el: HTMLElement) {
-      [...el.querySelectorAll<HTMLButtonElement>('gr-thumb-index .thumb')]
+      [...el.querySelectorAll<HTMLButtonElement>('gr-page-tabs .page-tab')]
         .find((tab) => tab.textContent!.trim() === 'Kanban')!
         .click();
       await fixture.whenStable();
@@ -134,7 +134,7 @@ describe('kanban', () => {
     const drag = (type: string, target: Element) =>
       target.dispatchEvent(new Event(type, { bubbles: true, cancelable: true }));
 
-    it('writes a new card at the foot of To do, in the folder of the chapter you’re on, and changes it in place', async () => {
+    it('writes a new card at the foot of To do, in the folder of the chat you’re on, and changes it in place', async () => {
       const { bridge, calls, answers } = withBoard([card('a', 'Write ribbon tests', 'todo')]);
       answers['layout.get'] = () => ({
         current: null,
@@ -142,7 +142,7 @@ describe('kanban', () => {
       });
       const { fixture, el, texts } = await render(bridge);
       await openBoard(fixture, el);
-      expect(texts('gr-thumb-page .title')).toEqual(['Kanban']);
+      expect(texts('gr-tab-page .title')).toEqual(['Kanban']);
       expect(texts('gr-kanban-page h3')).toEqual(['To do 1', 'In progress 0', 'Done 0']);
 
       el.querySelector<HTMLButtonElement>('gr-kanban-page .add')!.click();
@@ -227,7 +227,7 @@ describe('kanban', () => {
       ]);
     });
 
-    it('opens a new chapter from a card with its task written in, unsent; its first message puts the card in progress', async () => {
+    it('opens a new chat from a card with its task written in, unsent; its first message puts the card in progress', async () => {
       const { bridge, calls, answers, emit } = withBoard([
         card('a', 'Context meter', 'todo', { notes: 'Fill it in from the usage events.' }),
       ]);
@@ -242,7 +242,7 @@ describe('kanban', () => {
         queued: [],
         plan: [],
         withdrawn: [],
-        dogEars: [],
+        pins: [],
         tags: [],
         copied: [],
       });
@@ -256,12 +256,12 @@ describe('kanban', () => {
         'Context meter\n\nFill it in from the usage events.',
       );
       expect(texts('.meta button')).toContain('~/git/grimoire');
-      expect(texts('gr-thumb-page .title')).toEqual(['Kanban']);
-      // Again, it turns to that blank chapter rather than open another.
-      const chapters = el.querySelectorAll('gr-ribbon.chapter').length;
+      expect(texts('gr-tab-page .title')).toEqual(['Kanban']);
+      // Again, it turns to that blank chat rather than open another.
+      const chats = el.querySelectorAll('gr-chat-tab.chat').length;
       button(cardEl(el, 'Context meter'), 'New chapter').click();
       await fixture.whenStable();
-      expect(el.querySelectorAll('gr-ribbon.chapter')).toHaveLength(chapters);
+      expect(el.querySelectorAll('gr-chat-tab.chat')).toHaveLength(chats);
       expect(calls.filter((c) => c.command === 'agents.start' || c.command === 'kanban.link')).toEqual([]);
       expect(board(texts).todo).toEqual(['Context meter']);
 
@@ -279,17 +279,17 @@ describe('kanban', () => {
       expect(texts('[data-card="a"] .chats li')).toEqual(['Context meter waiting for you']);
       expect(el.querySelector('[data-card="a"] .status gr-icon')!.classList).toContain('breathe');
 
-      // The chapter bears its card's stamp.
-      expect(texts('gr-review-stamps button')).toEqual(['Context meter']);
-      expect(el.querySelector('gr-review-stamps button')!.getAttribute('title')).toBe(
+      // The chat bears its card's badge.
+      expect(texts('gr-header-badges button')).toEqual(['Context meter']);
+      expect(el.querySelector('gr-header-badges button')!.getAttribute('title')).toBe(
         'This chapter’s card on the Kanban board, in In progress: Context meter',
       );
 
       // Closed, it's opened again from the card.
-      button(el.querySelector('gr-chapter-page gr-running-head')!, 'Close').click();
+      button(el.querySelector('gr-chat-page gr-page-header')!, 'Close').click();
       await fixture.whenStable();
       expect(texts('[data-card="a"] .chats li')).toEqual(['Context meter not open']);
-      expect(texts('gr-review-stamps button')).toEqual([]);
+      expect(texts('gr-header-badges button')).toEqual([]);
       el.querySelector<HTMLButtonElement>('[data-card="a"] .chat')!.click();
       await fixture.whenStable();
       expect(calls.find((c) => c.command === 'agents.open')!.request).toEqual({
@@ -298,7 +298,7 @@ describe('kanban', () => {
         settings: { cwd: 'C:/Users/me/git/grimoire' },
       });
       expect(texts('[data-card="a"] .chats li')).toEqual(['Context meter idle']);
-      expect(texts('gr-review-stamps button')).toEqual(['Context meter']);
+      expect(texts('gr-header-badges button')).toEqual(['Context meter']);
     });
 
     it('closes a card, keeping it under the board, and opens it again', async () => {
@@ -346,7 +346,7 @@ describe('kanban', () => {
       expect(board(texts)).toEqual({ todo: ['A'], doing: ['B'], done: ['C'] });
     });
 
-    it('notes a task the agent added, turning to the board, where its card links back to the chapter', async () => {
+    it('notes a task the agent added, turning to the board, where its card links back to the chat', async () => {
       const { bridge, calls, answers, emit } = fakeBridge();
       let cards: Card[] = [];
       answers['kanban.list'] = () => cards;
@@ -361,7 +361,7 @@ describe('kanban', () => {
         queued: [],
         plan: [],
         withdrawn: [],
-        dogEars: [],
+        pins: [],
         tags: [],
         copied: [],
       });
@@ -391,17 +391,17 @@ describe('kanban', () => {
       emit('kanban.changed', { cards });
       await fixture.whenStable();
 
-      expect(texts('gr-chapter-page .note > *')).toEqual(['Added to the board', 'Context meter']);
-      el.querySelector<HTMLButtonElement>('gr-chapter-page .note')!.click();
+      expect(texts('gr-chat-page .note > *')).toEqual(['Added to the board', 'Context meter']);
+      el.querySelector<HTMLButtonElement>('gr-chat-page .note')!.click();
       await fixture.whenStable();
-      expect(texts('gr-thumb-page .title')).toEqual(['Kanban']);
+      expect(texts('gr-tab-page .title')).toEqual(['Kanban']);
       expect(el.querySelector('gr-output')).toBeNull();
       expect(board(texts).todo).toEqual(['Context meter']);
       expect(texts('[data-card="a"] .made-in')).toEqual(['From Claude Code, in Track the meter']);
       expect(el.querySelector('[data-card="a"] .chats')).toBeNull();
 
-      // Closed, the chapter is opened again from the card.
-      button(el.querySelector('gr-chapter-page gr-running-head')!, 'Close').click();
+      // Closed, the chat is opened again from the card.
+      button(el.querySelector('gr-chat-page gr-page-header')!, 'Close').click();
       await fixture.whenStable();
       el.querySelector<HTMLButtonElement>('[data-card="a"] .made-in .chat')!.click();
       await fixture.whenStable();
@@ -410,7 +410,7 @@ describe('kanban', () => {
         chatId: 'chat-1',
         settings: { cwd },
       });
-      expect(texts('gr-chapter-page .note > *')).toEqual([]);
+      expect(texts('gr-chat-page .note > *')).toEqual([]);
       expect(calls.filter((c) => c.command === 'kanban.link')).toEqual([]);
     });
 
@@ -482,7 +482,7 @@ describe('kanban', () => {
       expect(texts('gr-kanban-page .closed li')).toEqual(['Context meter In Review · GRIM-12 Reopen']);
     });
 
-    it('opens a chapter from a Jira card with its key, summary and description written in, where the board shows', async () => {
+    it('opens a chat from a Jira card with its key, summary and description written in, where the board shows', async () => {
       const { bridge, calls, answers } = withBoard([
         card('a', 'A', 'todo'),
         card('b', 'B', 'todo', { cwd: 'C:/Users/me/git/breeder' }),

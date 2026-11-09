@@ -13,9 +13,9 @@ import type { IconName } from '../../design-system/icon';
 import { Chats } from '../core/chats';
 import { Profiles } from '../core/profiles';
 import { Wording } from '../core/wording';
-import { Facing } from './facing';
+import { RightPageState } from './right-page-state';
 import { Focus } from './focus';
-import { noteWaitingChapters } from './focus-notes';
+import { noteWaitingChats } from './focus-notes';
 import type { Shortcut } from './shortcut';
 
 interface Entry {
@@ -31,25 +31,25 @@ interface Labelled {
   plainLabel?: string;
 }
 
-/** A tab on the fore-edge that turns the facing page to one of the book's pages. */
-export interface ThumbTab extends Entry, Labelled {
+/** A tab on the fore-edge that turns the right page to one of the book's pages. */
+export interface PageTab extends Entry, Labelled {
   /** What the page shows; without it the page is blank, its feature not written yet. */
   component?: Type<unknown>;
 }
 
-/** Something the facing page can show, picked from the tabs in its running head. */
-export interface FacingPageEntry extends Entry, Labelled {
+/** Something the right page can show, picked from the tabs in its page header. */
+export interface RightPageEntry extends Entry, Labelled {
   /** Without it the tab shows but can't be picked yet. */
   component?: Type<unknown>;
-  /** A line for the running foot while it shows, such as "3 of 5 done". */
+  /** A line for the page footer while it shows, such as "3 of 5 done". */
   foot?: () => string;
-  /** What its tab says for now, such as the title of the chapter it shows; its label when none. */
+  /** What its tab says for now, such as the title of the chat it shows; its label when none. */
   heading?: () => string | undefined;
-  /** It draws the whole page itself, its running head with the tabs and its foot. */
+  /** It draws the whole page itself, its page header with the tabs and its foot. */
   whole?: boolean;
 }
 
-/** A status in the chapter's running foot, such as the git branch. */
+/** A status in the chat's page footer, such as the git branch. */
 export interface Indicator extends Entry {
   label: string;
   icon?: IconName;
@@ -61,8 +61,8 @@ export interface Indicator extends Entry {
   open?: () => void;
 }
 
-/** A stamp in the chapter's running head, such as its pull request's review. */
-export interface Stamp extends Entry {
+/** A badge in the chat's page header, such as its pull request's review. */
+export interface Badge extends Entry {
   label: string;
   /** An alert is stamped in rubric, a quiet one in plain ink. */
   tone?: 'alert' | 'quiet';
@@ -71,9 +71,9 @@ export interface Stamp extends Entry {
   open?: () => void;
 }
 
-/** Something you can do from the Index or with a shortcut. */
+/** Something you can do from the command palette or with a shortcut. */
 export interface Command extends Entry, Labelled {
-  /** A gloss the Index shows after the label, such as "with your last settings". */
+  /** A gloss the command palette shows after the label, such as "with your last settings". */
   hint?: string | (() => string);
   shortcut?: Shortcut;
   run?: () => void;
@@ -102,29 +102,29 @@ export class Slot<T extends Entry> {
 }
 
 /**
- * The places in the shell that features fill (ADR-008): thumb tabs, facing
- * pages, running-foot indicators, running-head stamps and commands. The shell draws whatever is
+ * The places in the shell that features fill (ADR-008): page tabs, right
+ * pages, page-footer indicators, page-header badges and commands. The shell draws whatever is
  * registered here and knows nothing about the features themselves.
  */
 @Injectable({ providedIn: 'root' })
 export class ShellRegistry {
-  readonly thumbs = new Slot<ThumbTab>();
-  readonly facingPages = new Slot<FacingPageEntry>();
+  readonly pageTabs = new Slot<PageTab>();
+  readonly rightPages = new Slot<RightPageEntry>();
   readonly indicators = new Slot<Indicator>();
-  readonly stamps = new Slot<Stamp>();
+  readonly badges = new Slot<Badge>();
   readonly commands = new Slot<Command>();
-  /** What the left page shows for the open chapter: the chat module's page. */
-  readonly chapterPage = signal<Type<unknown> | undefined>(undefined);
+  /** What the left page shows for the open chat: the chat module's page. */
+  readonly chatPage = signal<Type<unknown> | undefined>(undefined);
   /**
-   * What the facing page shows when it's turned to the slips awaiting your
-   * seal: the chat module's page. It takes a `backTo` input, the label of
+   * What the right page shows when it's turned to the waiting approvals:
+   * the chat module's page. It takes a `backTo` input, the label of
    * the page it turns back to.
    */
-  readonly sealsPage = signal<Type<unknown> | undefined>(undefined);
+  readonly approvalsPage = signal<Type<unknown> | undefined>(undefined);
   /**
    * Opens a file on the Files page, with its changes since the last commit
    * if it has any: the files module's. The path is in full, or from the
-   * open chapter's folder. Missing where there's no facing page to open it
+   * open chat's folder. Missing where there's no right page to open it
    * on, so nothing offers to.
    */
   readonly openFile = signal<((path: string) => void) | undefined>(undefined);
@@ -140,17 +140,17 @@ export function provideShellEntries(
 /** The shell's own commands. */
 export function provideShell(): EnvironmentProviders {
   return provideShellEntries((shell) => {
-    const facing = inject(Facing);
+    const rightPage = inject(RightPageState);
     shell.commands.add({
-      id: 'shell.index',
+      id: 'shell.commandPalette',
       label: 'Index',
       plainLabel: 'Command palette',
       shortcut: 'Mod+K',
-      run: () => facing.openIndex(),
+      run: () => rightPage.openCommandPalette(),
     });
     const chats = inject(Chats);
     shell.commands.add({
-      id: 'chapters.new',
+      id: 'chats.new',
       label: 'New chapter',
       plainLabel: 'New chat',
       hint: () => {
@@ -158,9 +158,9 @@ export function provideShell(): EnvironmentProviders {
         return preset ? `from the preset ${preset}` : 'with your last settings';
       },
       shortcut: 'Mod+N',
-      run: () => chats.newChapter(),
+      run: () => chats.newChat(),
     });
-    // Focus mode in the Index: in, or back out to two pages.
+    // Focus mode in the command palette: in, or back out to two pages.
     const focus = inject(Focus);
     const wording = inject(Wording);
     effect((onCleanup) => {
@@ -186,7 +186,7 @@ export function provideShell(): EnvironmentProviders {
             }),
       );
     });
-    // Each other profile in the Index, to switch to.
+    // Each other profile in the command palette, to switch to.
     const profiles = inject(Profiles);
     effect((onCleanup) => {
       for (const profile of profiles.others()) {
@@ -201,7 +201,7 @@ export function provideShell(): EnvironmentProviders {
       }
     });
     shell.commands.add({
-      id: 'chapters.close',
+      id: 'chats.close',
       label: 'Close chapter',
       plainLabel: 'Close chat',
       shortcut: 'Mod+W',
@@ -210,6 +210,6 @@ export function provideShell(): EnvironmentProviders {
         if (id) void chats.close(id);
       },
     });
-    noteWaitingChapters(shell);
+    noteWaitingChats(shell);
   });
 }

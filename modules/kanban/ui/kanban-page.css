@@ -226,7 +226,7 @@ h3 {
   font-style: normal;
 }
 
-/* The chats it began, the latest with its live status, as the ribbons show it. */
+/* The chats it began, the latest with its live status, as the chat tabs show it. */
 .chats {
   margin: var(--gr-kanban-card-line-gap) 0 0;
   padding: 0;

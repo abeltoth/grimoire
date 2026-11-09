@@ -45,13 +45,13 @@
   padding: var(--gr-follow-up-pad);
   text-align: start;
   background: var(--gr-card-paper);
-  border-radius: var(--gr-radius-slip);
-  box-shadow: var(--gr-shadow-slip);
+  border-radius: var(--gr-radius-surface);
+  box-shadow: var(--gr-shadow-surface);
   color: var(--gr-ink);
 }
 
 .card:hover {
-  box-shadow: var(--gr-shadow-slip-tucked);
+  box-shadow: var(--gr-shadow-surface-tucked);
 }
 
 .title,

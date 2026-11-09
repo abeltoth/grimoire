@@ -1,0 +1,41 @@
+@for (item of shown(); track $index) {
+  @if (item.kind === 'plate') {
+    <figure class="plate">
+      <img class="plate-img" [src]="item.src" [alt]="item.caption" />
+      <figcaption>
+        <span
+          ><b>Plate {{ item.number }}.</b> {{ item.caption }}</span
+        >
+        @if (removable()) {
+          <button
+            type="button"
+            class="x"
+            [attr.aria-label]="'Remove plate ' + item.number"
+            (click)="removed.emit(item.attachment)"
+          >
+            <gr-icon name="close" />
+          </button>
+        }
+      </figcaption>
+    </figure>
+  } @else {
+    <figure class="ref">
+      <div class="ref-body"><gr-icon name="page" /><code>{{ item.name }}</code></div>
+      <figcaption>
+        <span
+          ><b>Ref. {{ item.number }}.</b> Attached file</span
+        >
+        @if (removable()) {
+          <button
+            type="button"
+            class="x"
+            [attr.aria-label]="'Remove ' + item.file"
+            (click)="removed.emit(item.attachment)"
+          >
+            <gr-icon name="close" />
+          </button>
+        }
+      </figcaption>
+    </figure>
+  }
+}

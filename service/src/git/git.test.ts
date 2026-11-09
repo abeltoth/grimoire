@@ -71,7 +71,7 @@ describe('Git', () => {
     expect(status?.branch).toBe('main');
   });
 
-  it('gives a change as corrections, and a new file as all inserted', async () => {
+  it('gives a change as a diff, and a new file as all inserted', async () => {
     write('a.txt', 'one\n2\nthree\n');
     write('c.txt', 'sea\nsee\n');
     expect(await new Git().diff(repo, 'a.txt')).toEqual([

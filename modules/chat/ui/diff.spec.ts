@@ -71,7 +71,7 @@ describe('askOf', () => {
     });
   });
 
-  it('shows a file change relative to the chapter folder', () => {
+  it('shows a file change relative to the chat folder', () => {
     expect(
       askOf(
         approval('Edit', { file_path: 'C:\\repo\\src\\a.ts', old_string: 'a', new_string: 'b' }),

@@ -1,6 +1,6 @@
 /**
  * A setup of your own, such as work or personal: its own Claude folder,
- * and its own settings, layout, presets, schedules and open chapters
+ * and its own settings, layout, presets, schedules and open chats
  * (ADR-009: Grimoire's own data).
  */
 export interface Profile {
@@ -37,9 +37,9 @@ declare module './commands' {
      */
     'profiles.remove': { request: { id: string }; response: Profiles };
     /**
-     * Puts the open chapters away and makes the profile the one in use:
+     * Puts the open chats away and makes the profile the one in use:
      * Claude Code moves to its Claude folder, and the book opens with its
-     * settings, layout, presets, schedules and chapters. Refused while a
+     * settings, layout, presets, schedules and chats. Refused while a
      * chat is busy, an approval waits, or a sign-in is under way.
      */
     'profiles.switch': { request: { id: string }; response: Profiles };

@@ -38,22 +38,22 @@ export function registerAgentCommands(registry: CommandRegistry, hub: AgentHub):
   );
   registry.register('agents.folders', () => hub.folders());
   registry.register('agents.configure', ({ chatId, change }) => hub.configure(chatId, change));
-  registry.register('agents.start', ({ agent, settings, text, title, enclosures }) =>
-    hub.start(agent, settings, text, title, enclosures),
+  registry.register('agents.start', ({ agent, settings, text, title, attachments }) =>
+    hub.start(agent, settings, text, title, attachments),
   );
   registry.register('agents.rename', ({ chatId, title }) => hub.rename(chatId, title));
   registry.register('agents.tag', ({ chatId, tags }) => hub.tag(chatId, tags));
-  registry.register('agents.send', ({ chatId, text, enclosures }) =>
-    hub.send(chatId, text, enclosures),
+  registry.register('agents.send', ({ chatId, text, attachments }) =>
+    hub.send(chatId, text, attachments),
   );
   registry.register('agents.undo', ({ chatId, entryId }) => hub.undo(chatId, entryId));
-  registry.register('agents.helper', ({ chatId, toolId }) => hub.helper(chatId, toolId));
+  registry.register('agents.subagent', ({ chatId, toolId }) => hub.subagent(chatId, toolId));
   registry.register('agents.fork', ({ chatId, entryId }) => hub.fork(chatId, entryId));
-  registry.register('agents.parallel', ({ from, model, text, enclosures }) =>
-    hub.parallel(from, model, text, enclosures),
+  registry.register('agents.parallel', ({ from, model, text, attachments }) =>
+    hub.parallel(from, model, text, attachments),
   );
-  registry.register('agents.dogEar', ({ chatId, dogEar, folded }) =>
-    hub.dogEar(chatId, dogEar, folded),
+  registry.register('agents.pin', ({ chatId, pin, folded }) =>
+    hub.pin(chatId, pin, folded),
   );
   registry.register('agents.takeFollowUp', ({ chatId, index }) => hub.takeFollowUp(chatId, index));
   registry.register('agents.unqueue', ({ chatId, id }) => hub.unqueue(chatId, id));

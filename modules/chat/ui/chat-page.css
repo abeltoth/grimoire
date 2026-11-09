@@ -1,0 +1,93 @@
+:host {
+  display: contents;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--gr-head-row-gap);
+}
+
+/* One line: a long title is cut short, and shows in full when you point at it. */
+.title {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--gr-font-display);
+  font-weight: 400;
+  font-size: var(--gr-size-chat);
+  line-height: var(--gr-leading-chat);
+}
+
+/* The title, rewritten in place, in pen. */
+.title.rename {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-bottom: var(--gr-rename-rule);
+  background: transparent;
+  color: var(--gr-pen);
+  caret-color: var(--gr-pen);
+  outline: none;
+}
+
+.title.rename::placeholder {
+  font-style: italic;
+  color: var(--gr-ink-placeholder);
+}
+
+/* A chat without a title yet. */
+.title.untitled {
+  font-style: italic;
+  color: var(--gr-ink-soft);
+}
+
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: var(--gr-icon-button);
+  height: var(--gr-icon-button);
+  color: var(--gr-ink-soft);
+  border-radius: var(--gr-radius-control);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.meta {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--gr-head-gap);
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.meta button {
+  border-bottom: 1px dotted var(--gr-link-underline);
+  line-height: var(--gr-leading-meta);
+}
+
+.meta button:hover {
+  color: var(--gr-ink);
+}
+
+/* A chat that only reads, as another edits its project. */
+.read-only {
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.read-only p {
+  margin: 0;
+}
+
+/* The setting whose card is open. */
+.meta button.on {
+  color: var(--gr-ink);
+  border-bottom: var(--gr-card-anchor-rule) solid var(--gr-rubric);
+}

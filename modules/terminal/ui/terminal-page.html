@@ -1,0 +1,63 @@
+@if (terminals.failed(); as error) {
+  <p class="none" role="alert">The shells couldn’t be reached: {{ error }}</p>
+} @else if (!terminals.read()) {
+  <p class="none">{{ wording.say('Lighting the lamps…', 'Starting…') }}</p>
+} @else {
+  @let shown = terminals.shown();
+  @let labels = terminals.labels();
+  <div class="tabs">
+    <div role="tablist" aria-label="Terminals">
+      @for (terminal of terminals.terminals(); track terminal.id; let i = $index) {
+        <span class="tab" [class.shown]="terminal.id === shown?.id">
+          <button
+            type="button"
+            role="tab"
+            [attr.aria-selected]="terminal.id === shown?.id"
+            [attr.title]="terminal.cwd"
+            (click)="terminals.show(terminal.id)"
+          >
+            {{ labels[i] }}
+          </button>
+          <button
+            type="button"
+            class="close"
+            [attr.aria-label]="'Close ' + labels[i]"
+            title="Close"
+            (click)="terminals.close(terminal.id)"
+          >
+            <gr-icon name="close" />
+          </button>
+        </span>
+      }
+    </div>
+    <button type="button" class="gr-link" (click)="terminals.open()">
+      <gr-icon name="plus" />New
+    </button>
+    @if (shown) {
+      <p class="about">
+        <span class="sc">{{ shown.shell }}</span>, {{ wording.say('begun', 'started') }} at
+        {{ time(shown.openedAt) }} in
+        <code>{{ chats.folderName(shown.cwd) }}</code>
+      </p>
+    }
+  </div>
+
+  @if (shown) {
+    <div class="leaf" role="tabpanel">
+      @for (terminal of terminals.terminals(); track terminal.id) {
+        <gr-terminal-sheet
+          [terminal]="terminal"
+          [shown]="terminal.id === shown.id"
+          (fitted)="terminals.size.set($event)"
+        />
+      }
+    </div>
+  } @else {
+    <p class="none">
+      Every shell is closed.
+      <button type="button" class="gr-link" (click)="terminals.open()">
+        <gr-icon name="plus" />New
+      </button>
+    </p>
+  }
+}

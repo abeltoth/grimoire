@@ -13,52 +13,52 @@ import {
 } from '@angular/core';
 import { Drawing } from '@ui/design-system/drawing';
 import { Icon } from '@ui/design-system/icon';
-import { type Chapter, Chats } from '@ui/app/core/chats';
-import { Facing } from '@ui/app/shell/facing';
+import { type Chat, Chats } from '@ui/app/core/chats';
+import { RightPageState } from '@ui/app/shell/right-page-state';
 import { ShellRegistry } from '@ui/app/shell/shell-registry';
 import type { Answer, ApprovalDecision, HookRun } from '@grimoire/contract';
-import { ApprovalSlip } from './approval-slip';
-import { Corrections } from '@ui/design-system/corrections';
-import { Enclosures } from './enclosures';
+import { ApprovalCard } from './approval-card';
+import { DiffView } from '@ui/design-system/diff-view';
+import { Attachments } from './attachments';
 import { MarkdownView } from './markdown/markdown-view';
 import { parseMarkdown } from './markdown/markdown';
 import { Output } from '@ui/design-system/output';
 import { QuestionsForm } from './questions-form';
-import { SealStub } from './seal-stub';
+import { ApprovalStub } from './approval-stub';
 import { duration } from './duration';
-import { Helpers } from './helpers';
+import { Subagents } from './subagents';
 import { type Note, type TurnSpent, toRows } from './rows';
 import { hookOutcome, hookTook, hookWhen, hooksRan } from './hook-log';
 import { tokenCount, usesInWords } from '@ui/app/core/tokens';
 import { Wording } from '@ui/app/core/wording';
 
-/** The Kanban board's thumb tab, which a note for a task the agent added there turns to. */
+/** The Kanban board's page tab, which a note for a task the agent added there turns to. */
 const BOARD = 'kanban';
 
 /**
- * The chapter's transcript: your entries, the agent's replies, its tools
- * as margin notes, and Stop while a turn runs. It keeps the newest text
- * in view unless you scrolled back. A note for a task handed to a helper
- * turns the facing page to what the helper did, where there's one; one for
+ * The chat's transcript: your entries, the agent's replies, its tools
+ * as tool notes, and Stop while a turn runs. It keeps the newest text
+ * in view unless you scrolled back. A note for a task handed to a subagent
+ * turns the right page to what the subagent did, where there's one; one for
  * a task the agent added to the Kanban board, to the board.
  *
- * As a helper's run, it only reads: its task is signed `askedBy`, its
+ * As a subagent's run, it only reads: its task is signed `askedBy`, its
  * replies `by`, and it has no Stop, Undo or Fork. What's put inside it
  * follows the last row.
  */
 @Component({
   selector: 'gr-transcript',
   imports: [
-    Enclosures,
-    ApprovalSlip,
-    Corrections,
+    Attachments,
+    ApprovalCard,
+    DiffView,
     Drawing,
     Icon,
     MarkdownView,
     NgTemplateOutlet,
     Output,
     QuestionsForm,
-    SealStub,
+    ApprovalStub,
   ],
   templateUrl: './transcript.html',
   styleUrl: './transcript.css',
@@ -66,33 +66,33 @@ const BOARD = 'kanban';
 })
 export class Transcript {
   private readonly chats = inject(Chats);
-  private readonly helpers = inject(Helpers);
+  private readonly subagents = inject(Subagents);
   protected readonly shell = inject(ShellRegistry);
-  protected readonly facing = inject(Facing);
+  protected readonly rightPage = inject(RightPageState);
   protected readonly wording = inject(Wording);
   private readonly element = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
 
-  readonly chapter = input.required<Chapter>();
-  /** A helper's run, which only reads. */
-  readonly helper = input(false, { transform: booleanAttribute });
-  /** Who signs the replies; the chapter's agent when unset. */
+  readonly chat = input.required<Chat>();
+  /** A subagent's run, which only reads. */
+  readonly subagent = input(false, { transform: booleanAttribute });
+  /** Who signs the replies; the chat's agent when unset. */
   readonly by = input<string>();
   /** Who signs the entries that ask; you when unset. */
   readonly askedBy = input<string>();
   readonly stop = output<void>();
 
   protected readonly rows = computed(() =>
-    toRows(this.chapter().entries, this.chapter().settings.cwd, {
-      withdrawn: new Set(this.chapter().withdrawn),
-      copied: new Set(this.chapter().copied),
+    toRows(this.chat().entries, this.chat().settings.cwd, {
+      withdrawn: new Set(this.chat().withdrawn),
+      copied: new Set(this.chat().copied),
     }),
   );
-  protected readonly agentName = computed(() => this.by() ?? this.chats.agentName(this.chapter().agent));
+  protected readonly agentName = computed(() => this.by() ?? this.chats.agentName(this.chat().agent));
   protected readonly running = computed(() =>
-    ['thinking', 'writing', 'waiting'].includes(this.chapter().status),
+    ['thinking', 'writing', 'waiting'].includes(this.chat().status),
   );
-  protected readonly writing = computed(() => this.chapter().status === 'writing');
-  /** Code listings are numbered through the chapter: each reply's first number. */
+  protected readonly writing = computed(() => this.chat().status === 'writing');
+  /** Code listings are numbered through the chat: each reply's first number. */
   protected readonly listingStarts = computed(() => {
     const starts = new Map<string, number>();
     const rows = this.rows();
@@ -106,7 +106,7 @@ export class Transcript {
   });
   /** Stop shows while the agent works; while it waits for you, you answer instead. */
   protected readonly stoppable = computed(
-    () => !this.helper() && ['thinking', 'writing'].includes(this.chapter().status),
+    () => !this.subagent() && ['thinking', 'writing'].includes(this.chat().status),
   );
   /** The row the running turn writes on: the last, but for the closing line its hooks show on. */
   private readonly lastRow = computed(() => {
@@ -118,7 +118,7 @@ export class Transcript {
   /** Your entry that began the running turn, and when you wrote it. */
   protected readonly turn = computed(() => {
     if (!this.running()) return undefined;
-    const began = this.chapter().entries.filter((entry) => entry.kind === 'user').at(-1);
+    const began = this.chat().entries.filter((entry) => entry.kind === 'user').at(-1);
     return began?.kind === 'user' && began.at !== undefined ? { key: began.id, at: began.at } : undefined;
   });
   private readonly turnKey = computed(() => this.turn()?.key);
@@ -141,9 +141,9 @@ export class Transcript {
     const head = tokens.costly ? 'One of the costliest turns in this chapter: ' : 'This turn: ';
     return `${head}${tokenCount(tokens.weight)} tokens, weighed as the API prices them\n${usesInWords(tokens.uses)}`;
   }
-  /** The thinking you're reading, and the runs of notes and hooks you folded out. */
+  /** The thinking you're reading, and the runs of notes and hooks you expanded. */
   private readonly open = signal<ReadonlySet<string>>(new Set());
-  /** The note whose details you folded out: one at a time, so opening another closes it. */
+  /** The note whose details you expanded: one at a time, so opening another closes it. */
   private readonly foldedOut = signal<string | null>(null);
   /** The entry being undone, until the agent is done. */
   private readonly undoing = signal<string | null>(null);
@@ -161,9 +161,9 @@ export class Transcript {
     });
     afterRenderEffect(() => {
       this.rows();
-      this.chapter().error;
-      this.chapter().approvals;
-      this.chapter().followUps;
+      this.chat().error;
+      this.chat().approvals;
+      this.chat().followUps;
       this.open();
       this.foldedOut();
       if (this.following) this.element.scrollTop = this.element.scrollHeight;
@@ -171,38 +171,38 @@ export class Transcript {
   }
 
   protected decide(approvalId: string, decision: ApprovalDecision): void {
-    void this.chats.decide(this.chapter().id, approvalId, decision);
+    void this.chats.decide(this.chat().id, approvalId, decision);
   }
 
   protected answer(approvalId: string, answers: Answer[]): void {
-    void this.chats.answer(this.chapter().id, approvalId, answers);
+    void this.chats.answer(this.chat().id, approvalId, answers);
   }
 
-  /** Fork works while the chapter is idle. */
+  /** Fork works while the chat is idle. */
   protected canFork(): boolean {
-    return this.chapter().status === 'idle' && !this.forking();
+    return this.chat().status === 'idle' && !this.forking();
   }
 
   protected async fork(row: { key: string }): Promise<void> {
     if (!this.canFork()) return;
     this.forking.set(true);
     try {
-      await this.chats.fork(this.chapter().id, row.key);
+      await this.chats.fork(this.chat().id, row.key);
     } finally {
       this.forking.set(false);
     }
   }
 
-  /** Undo shows on entries it can restore files for, and works while the chapter is idle. */
+  /** Undo shows on entries it can restore files for, and works while the chat is idle. */
   protected canUndo(): boolean {
-    return this.chapter().status === 'idle' && this.undoing() === null;
+    return this.chat().status === 'idle' && this.undoing() === null;
   }
 
   protected async undo(row: { key: string }): Promise<void> {
     if (!this.canUndo()) return;
     this.undoing.set(row.key);
     try {
-      await this.chats.undo(this.chapter().id, row.key);
+      await this.chats.undo(this.chat().id, row.key);
     } finally {
       this.undoing.set(null);
     }
@@ -213,27 +213,27 @@ export class Transcript {
     this.following = scrollTop + clientHeight >= scrollHeight - 24;
   }
 
-  /** Whether a note turns the facing page to its helper's run, rather than folding out. */
-  protected showsHelper(note: Note): boolean {
-    return !!note.helper && this.helpers.canShow();
+  /** Whether a note turns the right page to its subagent's run, rather than folding out. */
+  protected showsSubagent(note: Note): boolean {
+    return !!note.subagent && this.subagents.canShow();
   }
 
   /**
-   * Whether a note turns the facing page to the Kanban board, rather than
+   * Whether a note turns the right page to the Kanban board, rather than
    * folding out: one for a task the agent added there, where there's one.
    */
   protected showsBoard(note: Note): boolean {
-    return note.did === 'added' && !note.running && !note.failed && !!this.shell.thumbs.get(BOARD);
+    return note.did === 'added' && !note.running && !note.failed && !!this.shell.pageTabs.get(BOARD);
   }
 
-  /** Whether a note turns the facing page, to its helper's run or to the board. */
+  /** Whether a note turns the right page, to its subagent's run or to the board. */
   protected turnsPage(note: Note): boolean {
-    return this.showsHelper(note) || this.showsBoard(note);
+    return this.showsSubagent(note) || this.showsBoard(note);
   }
 
   protected press(note: Note): void {
-    if (this.showsHelper(note)) this.helpers.show(this.chapter().id, note.helper!);
-    else if (this.showsBoard(note)) this.facing.openThumb(BOARD);
+    if (this.showsSubagent(note)) this.subagents.show(this.chat().id, note.subagent!);
+    else if (this.showsBoard(note)) this.rightPage.openPageTab(BOARD);
     else if (note.fold) this.foldedOut.update((key) => (key === note.key ? null : note.key));
   }
 

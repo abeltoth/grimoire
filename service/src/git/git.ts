@@ -49,7 +49,7 @@ export class Git {
   /** The top folder of the repository or worktree the folder is in; null outside one. */
   async root(cwd: string): Promise<string | null> {
     try {
-      // Git writes it with forward slashes; written the system's way, it matches the chapter's folder.
+      // Git writes it with forward slashes; written the system's way, it matches the chat's folder.
       return path.resolve((await this.git(expand(cwd), 'rev-parse', '--show-toplevel')).trim());
     } catch {
       return null;
@@ -230,7 +230,7 @@ function changeOf(xy: string, file: string): GitChange {
   return { path: file, kind, staged: staged !== '.' };
 }
 
-/** A unified diff as corrections; the lines between its hunks are left out, marked "⋯". */
+/** A unified diff as diff lines; the lines between its hunks are left out, marked "⋯". */
 export function parseDiff(out: string): DiffLine[] {
   const lines: DiffLine[] = [];
   let hunks = 0;

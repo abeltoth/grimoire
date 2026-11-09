@@ -1,0 +1,134 @@
+<div class="look-up">
+  <label for="gr-history-look-up">{{ wording.say('Look up', 'Search') }}</label>
+  <input
+    #lookUpField
+    id="gr-history-look-up"
+    type="text"
+    autocomplete="off"
+    spellcheck="false"
+    [value]="lookUp()"
+    (input)="look(lookUpField.value)"
+    (keydown.enter)="openFirst()"
+  />
+  <span class="count" aria-live="polite">{{ count() }}</span>
+</div>
+
+@if (failed(); as error) {
+  <p class="none" role="alert">{{ error }}</p>
+}
+@if (searchFailed(); as error) {
+  <p class="none" role="alert">{{ error }}</p>
+}
+
+@if (parts(); as parts) {
+  @if (tags().length) {
+    <p
+      class="narrow"
+      role="group"
+      [attr.aria-label]="wording.say('Show chapters tagged', 'Show chats tagged')"
+    >
+      <span class="label">Tagged</span>
+      @for (tag of tags(); track tag) {
+        <button type="button" class="pick" [attr.aria-pressed]="isPicked(tag)" (click)="pick(tag)">
+          {{ tag }}
+        </button>
+      }
+      @if (narrowedTo().length) {
+        <button type="button" class="gr-link" (click)="showAll()">
+          {{ wording.say('Show every chapter', 'Show every chat') }}
+        </button>
+      }
+    </p>
+  }
+
+  @for (part of parts; track part.folder) {
+    <section class="part" [attr.aria-label]="'Part ' + part.numeral + ', ' + part.title">
+      <h3>Part {{ part.numeral }}</h3>
+      <h2>
+        {{ part.title }}&ngsp;<code>{{ part.folderName }}</code>
+      </h2>
+      <ol>
+        @for (chat of part.chats; track chat.id) {
+          <li
+            [attr.data-chat]="chat.id"
+            [attr.aria-current]="chat.id === chats.currentId() ? 'page' : null"
+          >
+            <button
+              type="button"
+              class="chat"
+              [attr.title]="chat.title || null"
+              (click)="open(chat)"
+            >
+              {{ chat.title || wording.untitled() }}
+            </button>
+            <span class="tags" role="group" aria-label="Tags">
+              @for (tag of chat.tags; track tag) {
+                <span class="tag"
+                  >{{ tag
+                  }}<button
+                    type="button"
+                    class="untag"
+                    [attr.aria-label]="'Remove tag ' + tag"
+                    (click)="untag(chat, tag)"
+                  >
+                    <gr-icon name="close" /></button
+                ></span>
+              }
+              @if (adding() === chat.id) {
+                <input
+                  #field
+                  class="field"
+                  aria-label="New tag"
+                  placeholder="tag"
+                  autocomplete="off"
+                  spellcheck="false"
+                  (keydown.enter)="finish(chat, field, true, true)"
+                  (keydown.escape)="$event.preventDefault(); finish(chat, field, false, true)"
+                  (blur)="finish(chat, field, true, false)"
+                />
+              } @else {
+                <span class="add-at">
+                  <button type="button" class="gr-link add" (click)="adding.set(chat.id)">
+                    + Tag
+                  </button>
+                </span>
+              }
+            </span>
+            <span class="leader" aria-hidden="true"></span>
+            <span class="when">{{ dated(chat.updatedAt) }}</span>
+            @if (hitOf(chat); as hit) {
+              <p class="excerpt">
+                <span class="by">{{ byOf(hit) }}</span
+                >&ngsp;
+                @for (part of hit.excerpt; track $index) {
+                  @if (part.match) {
+                    <b>{{ part.text }}</b>
+                  } @else {
+                    <span>{{ part.text }}</span>
+                  }
+                }
+              </p>
+            }
+          </li>
+        }
+      </ol>
+    </section>
+  } @empty {
+    <p class="none">
+      @if (hits()) {
+        {{ wording.say('Nothing in the chapters matches', 'No chat matches') }} “{{ lookUp() }}”.
+      } @else if (narrowedTo().length) {
+        {{ wording.say('No chapter has every tag picked.', 'No chat has every tag picked.') }}
+      } @else {
+        {{
+          wording.say(
+            'No chapters yet. Each chat you begin is written in here.',
+            'No chats yet. Each chat you start is listed here.'
+          )
+        }}
+      }
+    </p>
+  }
+} @else {
+  <p class="none">Asking your agents…</p>
+}

@@ -1,15 +1,15 @@
 import { type ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideChat } from '../../../modules/chat/ui/chat.providers';
-import { provideColophon } from '../../../modules/colophon/ui/colophon.providers';
+import { provideSettings } from '../../../modules/settings/ui/settings.providers';
 import { provideFiles } from '../../../modules/files/ui/files.providers';
-import { provideFrontMatter } from '../../../modules/front-matter/ui/front-matter.providers';
+import { provideWorkflowSetup } from '../../../modules/workflow-setup/ui/workflow-setup.providers';
 import { provideGit } from '../../../modules/git/ui/git.providers';
-import { provideTableOfContents } from '../../../modules/history/ui/history.providers';
+import { provideHistory } from '../../../modules/history/ui/history.providers';
 import { provideKanban } from '../../../modules/kanban/ui/kanban.providers';
-import { provideLedger } from '../../../modules/ledger/ui/ledger.providers';
-import { provideMemoryMap } from '../../../modules/memory-map/ui/memory-map.providers';
+import { provideUsage } from '../../../modules/usage/ui/usage.providers';
+import { provideMemories } from '../../../modules/memories/ui/memories.providers';
 import { provideScheduledChats } from '../../../modules/schedules/ui/schedules.providers';
-import { provideScriptorium } from '../../../modules/terminal/ui/terminal.providers';
+import { provideTerminal } from '../../../modules/terminal/ui/terminal.providers';
 import { provideShell } from './shell/shell-registry';
 
 // Zoneless change detection is Angular's default.
@@ -20,13 +20,13 @@ export const appConfig: ApplicationConfig = {
     provideChat(),
     provideFiles(),
     provideGit(),
-    provideTableOfContents(),
-    provideFrontMatter(),
+    provideHistory(),
+    provideWorkflowSetup(),
     provideKanban(),
-    provideMemoryMap(),
-    provideLedger(),
+    provideMemories(),
+    provideUsage(),
     provideScheduledChats(),
-    provideScriptorium(),
-    provideColophon(),
+    provideTerminal(),
+    provideSettings(),
   ],
 };

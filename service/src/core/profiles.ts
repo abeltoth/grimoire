@@ -12,11 +12,11 @@ import { activeProfile, setActiveProfile } from '../storage/app-state';
 
 type Emit = <K extends EventName>(event: K, payload: EventPayload<K>) => void;
 
-/** The longest name a profile may have: room for it in the title strip. */
+/** The longest name a profile may have: room for it in the title bar. */
 const MAX_NAME = 40;
 
 /** What each profile keeps of its own, by table; deleting a profile clears them. */
-const OWN_TABLES = ['settings', 'layout', 'presets', 'chapters'] as const;
+const OWN_TABLES = ['settings', 'layout', 'presets', 'open_chats'] as const;
 
 interface ProfileRow {
   id: string;
@@ -178,7 +178,7 @@ export class ProfileStore {
 export interface Switching {
   /** Why the open chats can't be put away now, naming them; undefined when they can. */
   busy(): string | undefined;
-  /** Stops the open chats' processes and forgets them; their chapters stay with their profile. */
+  /** Stops the open chats' processes and forgets them; their chats stay with their profile. */
   putAway(): void;
   /** Has the agents forget what they said, and stop their spare processes. */
   reset(): void;
@@ -191,7 +191,7 @@ export interface Switching {
 }
 
 /**
- * Puts the open chapters away and makes the profile the one in use, with
+ * Puts the open chats away and makes the profile the one in use, with
  * Claude Code in its Claude folder. Refused, saying why, while a chat is
  * busy; switching to the profile in use does nothing.
  */

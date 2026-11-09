@@ -11,10 +11,10 @@ import type {
   ChatStatus,
   ChatSummary,
   ContextUsage,
-  DogEar,
+  Pin,
   EffortLevel,
   Editor,
-  Enclosure,
+  Attachment,
   Entry,
   EventName,
   EventPayload,
@@ -29,13 +29,13 @@ import type {
 } from '@grimoire/contract';
 import { fitEffort } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from './bridge';
-import { LEAF } from './leaf';
+import { POPOUT } from './popout';
 import { PresetList } from './preset-list';
 import { Settings } from './settings';
 
-/** A chapter: one chat, or a blank page waiting for its first message. */
-export interface Chapter {
-  /** The chat's ID; a local one while the chapter is blank. */
+/** An open chat: a chat, or a blank page waiting for its first message. */
+export interface Chat {
+  /** The chat's ID; a local one while the chat is blank. */
   id: string;
   agent: AgentId;
   /** Empty until the agent names the chat. */
@@ -54,8 +54,8 @@ export interface Chapter {
   plan: readonly PlanStep[];
   /** Your entries whose file changes were undone. */
   withdrawn: readonly string[];
-  /** The dog-ears folded down: pinned, starred. */
-  dogEars: readonly DogEar[];
+  /** The pins folded down: pinned, starred. */
+  pins: readonly Pin[];
   /** Your tags, in the order you added them. */
   tags: readonly string[];
   /** Your entries copied from the chat this one was forked from; they can't be undone. */
@@ -65,44 +65,44 @@ export interface Chapter {
   /** The separate tasks the agent offered after its last reply, until a turn begins. */
   followUps?: readonly FollowUp[];
   /**
-   * While another chapter's chat edits its project: that chat. This one
+   * While another chat edits its project: that chat. This one
    * can't edit files until it's made the editing chat (ADR-011).
    */
   readOnly?: Editor;
   /** Why the last turn failed, until the next message. */
   error?: string;
-  /** When a blank chapter was opened, in ms since the epoch. */
+  /** When a blank chat was opened, in ms since the epoch. */
   begunAt?: number;
-  /** The first entry a blank chapter has written in, from its preset. */
+  /** The first entry a blank chat has written in, from its preset. */
   prompt?: string;
 }
 
 const DEFAULT_AGENT = 'claude-code';
 
-/** The settings a chapter's settings card changes. */
+/** The settings a chat's settings card changes. */
 export type Setting = 'agent' | 'model' | 'effort' | 'mode' | 'folder' | 'preset';
 
-/** A pick on the settings card. The agent and folder change only on a blank chapter. */
+/** A pick on the settings card. The agent and folder change only on a blank chat. */
 export interface SettingsPick {
   agent?: AgentId;
   model?: string;
-  /** Auto, on a blank chapter: the model and effort are picked for its first entry. */
+  /** Auto, on a blank chat: the model and effort are picked for its first entry. */
   autoModel?: boolean;
   effort?: EffortLevel;
   mode?: ApprovalMode;
   cwd?: string;
-  /** The MCP servers turned off for this chapter, by name. */
+  /** The MCP servers turned off for this chat, by name. */
   mcpOff?: string[];
 }
 
-/** The settings a new chapter takes: the ones last picked or begun with. */
+/** The settings a new chat takes: the ones last picked or begun with. */
 interface LastUsed {
   agent: AgentId;
   settings: NewChatSettings;
 }
 
 /**
- * The open chapters, as the window sees them: a mirror of the agent hub's
+ * The open chats, as the window sees them: a mirror of the agent hub's
  * open chats (ADR-007), kept current by its events. The hub remembers
  * which chats are open, and the layout which one you were on, so the book
  * opens where you left it.
@@ -110,8 +110,8 @@ interface LastUsed {
 @Injectable({ providedIn: 'root' })
 export class Chats {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
-  /** The chapter this window holds as a loose leaf; null in the book. */
-  readonly leaf = inject(LEAF);
+  /** The chat this window holds as a popout; null in the book. */
+  readonly popout = inject(POPOUT);
   private readonly settings = inject(Settings);
   private readonly presets = inject(PresetList);
   private nextBlank = 1;
@@ -120,23 +120,23 @@ export class Chats {
   /** Each agent's models, once it has listed them. */
   readonly models = signal<Readonly<Record<AgentId, AgentModels>>>({});
   readonly folders = signal<RecentFolders>({ home: '', recent: [] });
-  /** The chapter whose settings card is open, and the setting it opened on. */
+  /** The chat whose settings card is open, and the setting it opened on. */
   readonly settingsCard = signal<{ id: string; on: Setting } | null>(null);
   private lastUsed: LastUsed | null = null;
-  /** Told when a blank chapter's first message starts its chat. */
+  /** Told when a blank chat's first message starts it. */
   private readonly begun = new Set<(blankId: string, chat: OpenChat) => void>();
-  /** The blank chapters whose chats are starting, by local ID: each gives the chat's ID, unless it couldn't start. */
+  /** The blank chats that are starting, by local ID: each gives the chat's ID, unless it couldn't start. */
   private readonly starting = new Map<string, Promise<string | undefined>>();
-  readonly all = signal<readonly Chapter[]>([]);
+  readonly all = signal<readonly Chat[]>([]);
   readonly currentId = signal<string | undefined>(undefined);
-  readonly current = computed(() => this.all().find((chapter) => chapter.id === this.currentId()));
-  /** The chapter on the facing page, beside the one you're on; none until you put one there. */
+  readonly current = computed(() => this.all().find((chat) => chat.id === this.currentId()));
+  /** The chat on the right page, beside the one you're on; none until you put one there. */
   readonly besideId = signal<string | undefined>(undefined);
-  readonly beside = computed(() => this.all().find((chapter) => chapter.id === this.besideId()));
+  readonly beside = computed(() => this.all().find((chat) => chat.id === this.besideId()));
 
   constructor() {
-    // A loose leaf's window closed: its chapter comes back into the book.
-    if (!this.leaf) this.bridge.onLeafClosed((chatId) => void this.comeBack(chatId));
+    // A popout's window closed: its chat comes back into the book.
+    if (!this.popout) this.bridge.onPopoutClosed((chatId) => void this.comeBack(chatId));
     this.listen('agents.entry', ({ chatId, entry }) =>
       this.update(chatId, (c) => ({ ...c, entries: upsert(c.entries, entry) })),
     );
@@ -174,8 +174,8 @@ export class Chats {
       this.update(chatId, (c) => ({ ...c, settings })),
     );
     this.listen('agents.plan', ({ chatId, plan }) => this.update(chatId, (c) => ({ ...c, plan })));
-    this.listen('agents.dogEars', ({ chatId, dogEars }) =>
-      this.update(chatId, (c) => ({ ...c, dogEars })),
+    this.listen('agents.pins', ({ chatId, pins }) =>
+      this.update(chatId, (c) => ({ ...c, pins })),
     );
     this.listen('agents.tags', ({ chatId, tags }) => this.update(chatId, (c) => ({ ...c, tags })));
     this.listen('agents.withdrawn', ({ chatId, withdrawn }) =>
@@ -224,7 +224,7 @@ export class Chats {
   }
 
   /**
-   * The model as a chapter shows it; on Auto, "Auto" until its first entry,
+   * The model as a chat shows it; on Auto, "Auto" until its first entry,
    * then with the model Auto picked: "Auto: Sonnet 5.5".
    */
   modelLabel(agent: AgentId, settings: NewChatSettings, begun: boolean): string {
@@ -233,8 +233,8 @@ export class Chats {
   }
 
   /**
-   * The effort levels a chapter's model takes, and the one it runs at: the
-   * chapter's own, else the model's default, as near as the model takes it.
+   * The effort levels a chat's model takes, and the one it runs at: the
+   * chat's own, else the model's default, as near as the model takes it.
    */
   effortOf(
     agent: AgentId,
@@ -276,18 +276,18 @@ export class Chats {
   }
 
   /**
-   * Changes a chapter's settings. A blank chapter takes any of them; a
-   * chapter that has begun only a new model or permission. A new chapter
+   * Changes a chat's settings. A blank chat takes any of them; a
+   * chat that has begun only a new model or permission. A new chat
    * takes the settings picked last.
    */
   async configure(id: string, pick: SettingsPick): Promise<void> {
-    const chapter = this.find(id);
-    if (!chapter) return;
-    if (chapter.status === 'blank') {
-      const agent = pick.agent ?? chapter.agent;
+    const chat = this.find(id);
+    if (!chat) return;
+    if (chat.status === 'blank') {
+      const agent = pick.agent ?? chat.agent;
       // Another agent has other models: it starts on its default, at its effort.
-      const { model: _, effort: ___, ...kept } = chapter.settings;
-      const base = agent === chapter.agent ? chapter.settings : kept;
+      const { model: _, effort: ___, ...kept } = chat.settings;
+      const base = agent === chat.agent ? chat.settings : kept;
       const { agent: __, ...change } = pick;
       const settings: NewChatSettings = { ...base, ...change };
       // Auto picks the model and effort; picking a model yourself ends it.
@@ -306,9 +306,9 @@ export class Chats {
     };
     try {
       await this.bridge.invoke('agents.configure', { chatId: id, change });
-      const { autoModel, ...kept } = chapter.settings;
+      const { autoModel, ...kept } = chat.settings;
       this.remember({
-        agent: chapter.agent,
+        agent: chat.agent,
         settings: { ...kept, ...(autoModel && !change.model ? { autoModel } : {}), ...change },
       });
     } catch (error) {
@@ -316,7 +316,7 @@ export class Chats {
     }
   }
 
-  /** Gives a blank chapter these settings, as a preset holds them. */
+  /** Gives a blank chat these settings, as a preset holds them. */
   setUp(id: string, agent: AgentId, settings: NewChatSettings, prompt?: string): void {
     if (this.find(id)?.status !== 'blank') return;
     this.update(id, ({ prompt: _, ...c }) => ({ ...c, agent, settings, ...(prompt ? { prompt } : {}) }));
@@ -324,13 +324,13 @@ export class Chats {
   }
 
   /**
-   * What a new chapter begins with, as the Colophon says: a preset's
+   * What a new chat begins with, as Settings says: a preset's
    * settings, or those used last, if they were with the default agent.
    */
   startOf(): { preset?: string; agent: AgentId; settings: NewChatSettings; prompt?: string } {
-    const { newChapter, defaultAgent } = this.settings.all();
-    if (newChapter.from === 'preset') {
-      const preset = this.presets.all().find((p) => p.name === newChapter.preset);
+    const { newChat, defaultAgent } = this.settings.all();
+    if (newChat.from === 'preset') {
+      const preset = this.presets.all().find((p) => p.name === newChat.preset);
       if (preset) return { ...preset, preset: preset.name };
     }
     const agent = defaultAgent ?? this.lastUsed?.agent ?? DEFAULT_AGENT;
@@ -338,19 +338,19 @@ export class Chats {
   }
 
   /**
-   * Opens a blank chapter, with the settings given or what new chapters
+   * Opens a blank chat, with the settings given or what new chats
    * begin with, and a preset's first entry written in, and turns to it.
-   * Gives the blank chapter's local ID.
+   * Gives the blank chat's local ID.
    */
-  newChapter(from?: { agent: AgentId; settings: NewChatSettings; prompt?: string }): string {
+  newChat(from?: { agent: AgentId; settings: NewChatSettings; prompt?: string }): string {
     const { id } = this.blank(from);
     this.turnTo(id);
     return id;
   }
 
   /**
-   * Tells `handle` each time a blank chapter's first message starts its
-   * chat: the chapter's local ID, and the chat it is now. Returns a
+   * Tells `handle` each time a blank chat's first message starts it:
+   * its local ID, and the chat it is now. Returns a
    * function that stops telling it.
    */
   onBegun(handle: (blankId: string, chat: OpenChat) => void): () => void {
@@ -359,38 +359,38 @@ export class Chats {
   }
 
   /**
-   * Takes one of the separate tasks a chapter's agent offered: it goes from
-   * the chapter, and a blank chapter opens with it written in, not sent,
-   * where the chapter works and with its settings.
+   * Takes one of the separate tasks a chat's agent offered: it goes from
+   * the chat, and a blank chat opens with it written in, not sent,
+   * where the chat works and with its settings.
    */
   async takeFollowUp(id: string, index: number): Promise<void> {
     try {
       const start = await this.bridge.invoke('agents.takeFollowUp', { chatId: id, index });
-      this.newChapter(start);
+      this.newChat(start);
     } catch (error) {
       this.fail(id, error);
     }
   }
 
-  /** Opens a blank chapter on the facing page, beside the one you're on. */
+  /** Opens a blank chat on the right page, beside the one you're on. */
   newBeside(): void {
     this.setBeside(this.blank().id);
   }
 
-  /** Puts an open chapter on the facing page, beside the one you're on, which stays. */
+  /** Puts an open chat on the right page, beside the one you're on, which stays. */
   putBeside(id: string): void {
     if (id !== this.currentId() && this.find(id)) this.setBeside(id);
   }
 
-  /** Takes the chapter off the facing page; it stays open, a ribbon away. */
+  /** Takes the chat off the right page; it stays open, a chat tab away. */
   setAside(): void {
     this.setBeside(undefined);
   }
 
-  /** A blank chapter, with the settings given or what new chapters begin with, added to the book. */
-  private blank(from?: { agent: AgentId; settings: NewChatSettings; prompt?: string }): Chapter {
+  /** A blank chat, with the settings given or what new chats begin with, added to the book. */
+  private blank(from?: { agent: AgentId; settings: NewChatSettings; prompt?: string }): Chat {
     const start = from ?? this.startOf();
-    const blank: Chapter = {
+    const blank: Chat = {
       id: `blank-${this.nextBlank++}`,
       agent: start.agent,
       title: '',
@@ -401,7 +401,7 @@ export class Chats {
       queued: [],
       plan: [],
       withdrawn: [],
-      dogEars: [],
+      pins: [],
       tags: [],
       copied: [],
       begunAt: Date.now(),
@@ -415,57 +415,57 @@ export class Chats {
     this.turnTo(id);
   }
 
-  /** Adds a chapter the service began by itself, such as a scheduled chat's run, without turning to it. */
+  /** Adds a chat the service began by itself, such as a scheduled chat's run, without turning to it. */
   adopt(chat: OpenChat): void {
     if (this.find(chat.id)) return;
     this.all.update((all) => [...all, fromOpenChat(chat)]);
   }
 
-  /** Whether a chapter is open in the book. */
+  /** Whether a chat is open in the book. */
   has(id: string): boolean {
     return !!this.find(id);
   }
 
   /**
-   * Closes a chapter and turns to the next one, or to a blank page. The
-   * chat itself stays with the agent. A loose leaf's window closes with it.
+   * Closes a chat and turns to the next one, or to a blank page. The
+   * chat itself stays with the agent. A popout's window closes with it.
    */
   async close(id: string): Promise<void> {
-    const chapter = this.find(id);
-    if (!chapter) return;
+    const chat = this.find(id);
+    if (!chat) return;
     this.takeOut(id);
-    if (chapter.status !== 'blank')
+    if (chat.status !== 'blank')
       await this.bridge.invoke('agents.close', { chatId: id }).catch(() => {});
-    if (this.leaf) this.bridge.window.close();
+    if (this.popout) this.bridge.window.close();
   }
 
   /**
-   * Pops a chapter that has begun out of the book, into a window of its
-   * own: a loose leaf. It's out of the book until that window closes.
+   * Pops a chat that has begun out of the book, into a window of its
+   * own: a popout. It's out of the book until that window closes.
    */
   popOut(id: string): void {
-    const chapter = this.find(id);
-    if (!chapter || chapter.status === 'blank' || this.leaf) return;
+    const chat = this.find(id);
+    if (!chat || chat.status === 'blank' || this.popout) return;
     this.takeOut(id);
     this.bridge.popOut(id);
   }
 
-  /** Takes a chapter out of the book; when it was open, turns to the next one, or a blank page. */
+  /** Takes a chat out of the book; when it was open, turns to the next one, or a blank page. */
   private takeOut(id: string): void {
     const all = this.all();
-    const index = all.findIndex((chapter) => chapter.id === id);
+    const index = all.findIndex((chat) => chat.id === id);
     if (index === -1) return;
-    const rest = all.filter((chapter) => chapter.id !== id);
+    const rest = all.filter((chat) => chat.id !== id);
     this.all.set(rest);
     if (this.besideId() === id) this.setAside();
-    if (this.currentId() === id && !this.leaf) {
+    if (this.currentId() === id && !this.popout) {
       const next = rest[Math.min(index, rest.length - 1)];
       if (next) this.turnTo(next.id);
-      else this.newChapter();
+      else this.newChat();
     }
   }
 
-  /** A loose leaf's chapter comes back into the book, open, unless it was closed. */
+  /** A popout's chat comes back into the book, open, unless it was closed. */
   private async comeBack(id: string): Promise<void> {
     if (this.find(id)) return this.turnTo(id);
     const open = await this.bridge.invoke('agents.openChats', {}).catch(() => []);
@@ -476,21 +476,21 @@ export class Chats {
   }
 
   /**
-   * Sends a message, with any pictures and files; a blank chapter's first
+   * Sends a message, with any pictures and files; a blank chat's first
    * one starts the chat. Gives the chat's ID, unless it couldn't be sent.
    */
-  async send(id: string, text: string, enclosures: readonly Enclosure[] = []): Promise<string | undefined> {
-    // What you send while a blank chapter's chat starts goes to the chat once it has.
+  async send(id: string, text: string, attachments: readonly Attachment[] = []): Promise<string | undefined> {
+    // What you send while a blank chat starts goes to it once it has.
     const starting = this.starting.get(id);
     if (starting) {
       const chatId = await starting;
-      return chatId === undefined ? undefined : this.send(chatId, text, enclosures);
+      return chatId === undefined ? undefined : this.send(chatId, text, attachments);
     }
-    const chapter = this.find(id);
-    if (!chapter) return undefined;
+    const chat = this.find(id);
+    if (!chat) return undefined;
     this.update(id, ({ error: _, ...c }) => c);
-    if (chapter.status === 'blank') {
-      const started = this.start(chapter, text, enclosures);
+    if (chat.status === 'blank') {
+      const started = this.start(chat, text, attachments);
       this.starting.set(id, started);
       return started.finally(() => this.starting.delete(id));
     }
@@ -498,7 +498,7 @@ export class Chats {
       await this.bridge.invoke('agents.send', {
         chatId: id,
         text,
-        ...(enclosures.length ? { enclosures: [...enclosures] } : {}),
+        ...(attachments.length ? { attachments: [...attachments] } : {}),
       });
       return id;
     } catch (error) {
@@ -507,30 +507,30 @@ export class Chats {
     }
   }
 
-  /** Starts a blank chapter's chat with its first message. */
+  /** Starts a blank chat with its first message. */
   private async start(
-    chapter: Chapter,
+    chat: Chat,
     text: string,
-    enclosures: readonly Enclosure[],
+    attachments: readonly Attachment[],
   ): Promise<string | undefined> {
-    const { id } = chapter;
+    const { id } = chat;
     try {
-      const chat = await this.bridge.invoke('agents.start', {
-        agent: chapter.agent,
-        settings: chapter.settings,
+      const opened = await this.bridge.invoke('agents.start', {
+        agent: chat.agent,
+        settings: chat.settings,
         text,
-        ...(enclosures.length ? { enclosures: [...enclosures] } : {}),
-        ...(chapter.title ? { title: chapter.title } : {}),
+        ...(attachments.length ? { attachments: [...attachments] } : {}),
+        ...(chat.title ? { title: chat.title } : {}),
       });
       // Tags given to the blank page go to its chat.
       const tags = this.find(id)?.tags ?? [];
-      this.all.update((all) => all.map((c) => (c.id === id ? fromOpenChat(chat) : c)));
-      if (this.currentId() === id) this.turnTo(chat.id);
-      if (this.besideId() === id) this.setBeside(chat.id);
-      this.remember({ agent: chapter.agent, settings: chapter.settings });
-      for (const handle of this.begun) handle(id, chat);
-      if (tags.length) await this.tag(chat.id, tags);
-      return chat.id;
+      this.all.update((all) => all.map((c) => (c.id === id ? fromOpenChat(opened) : c)));
+      if (this.currentId() === id) this.turnTo(opened.id);
+      if (this.besideId() === id) this.setBeside(opened.id);
+      this.remember({ agent: chat.agent, settings: chat.settings });
+      for (const handle of this.begun) handle(id, opened);
+      if (tags.length) await this.tag(opened.id, tags);
+      return opened.id;
     } catch (error) {
       this.fail(id, error);
       return undefined;
@@ -538,8 +538,8 @@ export class Chats {
   }
 
   /**
-   * Sends a message to two models: to the chapter, and to a chat of its
-   * own on the second model, which goes on the facing page. A chapter that
+   * Sends a message to two models: to the chat, and to a chat of its
+   * own on the second model, which goes on the right page. A chat that
    * has begun is copied for it; a blank one starts first, then the second
    * starts afresh.
    */
@@ -547,32 +547,32 @@ export class Chats {
     id: string,
     model: string,
     text: string,
-    enclosures: readonly Enclosure[] = [],
+    attachments: readonly Attachment[] = [],
   ): Promise<void> {
-    const chapter = this.find(id);
-    if (!chapter) return;
+    const chat = this.find(id);
+    if (!chat) return;
     let first = id;
     let from: ParallelFrom = { chatId: id };
-    if (chapter.status === 'blank') {
-      const started = await this.send(id, text, enclosures);
+    if (chat.status === 'blank') {
+      const started = await this.send(id, text, attachments);
       if (!started) return;
       first = started;
       from = {
-        agent: chapter.agent,
-        settings: chapter.settings,
-        ...(chapter.title ? { title: chapter.title } : {}),
+        agent: chat.agent,
+        settings: chat.settings,
+        ...(chat.title ? { title: chat.title } : {}),
         alongside: started,
       };
     } else this.update(id, ({ error: _, ...c }) => c);
     try {
-      const chat = await this.bridge.invoke('agents.parallel', {
+      const second = await this.bridge.invoke('agents.parallel', {
         from,
         model,
         text,
-        ...(enclosures.length ? { enclosures: [...enclosures] } : {}),
+        ...(attachments.length ? { attachments: [...attachments] } : {}),
       });
-      this.all.update((all) => [...all.filter((c) => c.id !== chat.id), fromOpenChat(chat)]);
-      this.setBeside(chat.id);
+      this.all.update((all) => [...all.filter((c) => c.id !== second.id), fromOpenChat(second)]);
+      this.setBeside(second.id);
     } catch (error) {
       this.fail(first, error);
     }
@@ -598,7 +598,7 @@ export class Chats {
     return lists.flatMap((list) => list ?? []).sort((a, b) => b.updatedAt - a.updatedAt);
   }
 
-  /** Opens a saved chat as a chapter, or turns to it when it's open already. */
+  /** Opens a saved chat, or turns to it when it's open already. */
   async openChat(chat: ChatSummary): Promise<void> {
     if (this.find(chat.id)) return this.turnTo(chat.id);
     try {
@@ -622,14 +622,14 @@ export class Chats {
   }
 
   /**
-   * Forks the chapter after the turn one of your entries began, and turns
-   * to the variant; from a loose leaf, it's popped out as one too.
+   * Forks the chat after the turn one of your entries began, and turns
+   * to the variant; from a popout, it's popped out as one too.
    */
   async fork(id: string, entryId: string): Promise<void> {
     this.update(id, ({ error: _, ...c }) => c);
     try {
       const chat = await this.bridge.invoke('agents.fork', { chatId: id, entryId });
-      if (this.leaf) return this.bridge.popOut(chat.id);
+      if (this.popout) return this.bridge.popOut(chat.id);
       this.all.update((all) => [...all.filter((c) => c.id !== chat.id), fromOpenChat(chat)]);
       this.turnTo(chat.id);
     } catch (error) {
@@ -637,43 +637,43 @@ export class Chats {
     }
   }
 
-  /** Gives a chapter a new title; a blank chapter's chat starts with it. */
+  /** Gives a chat a new title; a blank chat starts with it. */
   async rename(id: string, title: string): Promise<void> {
-    const chapter = this.find(id);
+    const chat = this.find(id);
     const named = title.trim();
-    if (!chapter || !named || named === chapter.title) return;
+    if (!chat || !named || named === chat.title) return;
     this.update(id, ({ error: _, ...c }) => ({ ...c, title: named }));
-    if (chapter.status === 'blank') return;
+    if (chat.status === 'blank') return;
     try {
       await this.bridge.invoke('agents.rename', { chatId: id, title: named });
     } catch (error) {
-      this.update(id, (c) => ({ ...c, title: chapter.title }));
+      this.update(id, (c) => ({ ...c, title: chat.title }));
       this.fail(id, error);
     }
   }
 
-  /** Sets a chapter's tags: trimmed, without blanks, each once whatever its case. */
+  /** Sets a chat's tags: trimmed, without blanks, each once whatever its case. */
   async tag(id: string, tags: readonly string[]): Promise<void> {
-    const chapter = this.find(id);
-    if (!chapter) return;
+    const chat = this.find(id);
+    if (!chat) return;
     const seen = new Set<string>();
     const kept = tags
       .map((tag) => tag.trim())
       .filter((tag) => tag && !seen.has(tag.toLowerCase()) && seen.add(tag.toLowerCase()));
-    if (kept.join('\n') === chapter.tags.join('\n')) return;
+    if (kept.join('\n') === chat.tags.join('\n')) return;
     this.update(id, ({ error: _, ...c }) => ({ ...c, tags: kept }));
-    if (chapter.status === 'blank') return;
+    if (chat.status === 'blank') return;
     try {
       await this.bridge.invoke('agents.tag', { chatId: id, tags: kept });
     } catch (error) {
-      this.update(id, (c) => ({ ...c, tags: chapter.tags }));
+      this.update(id, (c) => ({ ...c, tags: chat.tags }));
       this.fail(id, error);
     }
   }
 
-  /** Folds a chapter's dog-ear down, or unfolds it. */
-  dogEar(id: string, dogEar: DogEar, folded: boolean): Promise<void> {
-    return this.settle(id, this.bridge.invoke('agents.dogEar', { chatId: id, dogEar, folded }));
+  /** Folds a chat's pin down, or unfolds it. */
+  pin(id: string, pin: Pin, folded: boolean): Promise<void> {
+    return this.settle(id, this.bridge.invoke('agents.pin', { chatId: id, pin, folded }));
   }
 
   /** Takes a message out of the queue; false when it had already gone. */
@@ -687,7 +687,7 @@ export class Chats {
   }
 
   /**
-   * Makes the chapter's chat the one that edits its project: the one that
+   * Makes the chat the one that edits its project: the one that
    * did only reads from now on.
    */
   async takeOver(id: string): Promise<void> {
@@ -699,7 +699,7 @@ export class Chats {
     }
   }
 
-  /** Seals or denies an approval; a failure shows as the chapter's error. */
+  /** Approves or denies an approval; a failure shows as the chat's error. */
   decide(id: string, approvalId: string, decision: ApprovalDecision): Promise<void> {
     return this.settle(id, this.bridge.invoke('agents.decide', { approvalId, decision }));
   }
@@ -717,7 +717,7 @@ export class Chats {
     }
   }
 
-  /** Shows why a request failed as the chapter's error. */
+  /** Shows why a request failed as the chat's error. */
   fail(id: string, error: unknown): void {
     this.update(id, (c) => ({
       ...c,
@@ -725,9 +725,9 @@ export class Chats {
     }));
   }
 
-  /** Opens the chapters the hub has open, on the one you were on; else a blank page. */
+  /** Opens the chats the hub has open, on the one you were on; else a blank page. */
   private async restore(): Promise<void> {
-    if (this.leaf) return this.restoreLeaf(this.leaf);
+    if (this.popout) return this.restorePopout(this.popout);
     try {
       // A blank page begins as the settings say, so they're asked for too.
       const [chats, layout] = await Promise.all([
@@ -736,9 +736,9 @@ export class Chats {
         this.settings.ready,
         this.presets.ready,
       ]);
-      // The chapters popped out are in windows of their own.
-      const loose = new Set((layout?.loose ?? []).map((leaf) => leaf.chatId));
-      this.all.set((chats ?? []).filter((chat) => !loose.has(chat.id)).map(fromOpenChat));
+      // The chats popped out are in windows of their own.
+      const popouts = new Set((layout?.popouts ?? []).map((popout) => popout.chatId));
+      this.all.set((chats ?? []).filter((chat) => !popouts.has(chat.id)).map(fromOpenChat));
       this.lastUsed = layout?.lastUsed ?? null;
       const current = layout?.current;
       const beside = layout?.beside;
@@ -747,11 +747,11 @@ export class Chats {
     } catch {
       // The service is unreachable: start on a blank page.
     }
-    this.newChapter();
+    this.newChat();
   }
 
-  /** A loose leaf's window holds its one chapter; it closes when the chapter isn't open. */
-  private async restoreLeaf(id: string): Promise<void> {
+  /** A popout's window holds its one chat; it closes when the chat isn't open. */
+  private async restorePopout(id: string): Promise<void> {
     const chats = await this.bridge.invoke('agents.openChats', {}).catch(() => []);
     const chat = chats?.find((c) => c.id === id);
     if (!chat) return this.bridge.window.close();
@@ -760,32 +760,32 @@ export class Chats {
   }
 
   /**
-   * Turns to a chapter and remembers it, so the book opens there next time.
-   * Turning to the chapter on the facing page swaps the two pages.
+   * Turns to a chat and remembers it, so the book opens there next time.
+   * Turning to the chat on the right page swaps the two pages.
    */
   private turnTo(id: string): void {
     if (this.settingsCard()?.id !== id) this.closeSettings();
     const was = this.currentId();
     if (id === this.besideId()) this.setBeside(was && was !== id && this.find(was) ? was : undefined);
     this.currentId.set(id);
-    if (this.leaf) return;
-    const chapter = this.find(id);
+    if (this.popout) return;
+    const chat = this.find(id);
     this.bridge
-      .invoke('layout.set', { current: chapter && chapter.status !== 'blank' ? id : null })
+      .invoke('layout.set', { current: chat && chat.status !== 'blank' ? id : null })
       .catch(() => {});
   }
 
-  /** Puts a chapter on the facing page, or none, and remembers it. */
+  /** Puts a chat on the right page, or none, and remembers it. */
   private setBeside(id: string | undefined): void {
     if (this.settingsCard()?.id === this.besideId() && id !== this.besideId()) this.closeSettings();
     this.besideId.set(id);
-    const chapter = id ? this.find(id) : undefined;
+    const chat = id ? this.find(id) : undefined;
     this.bridge
-      .invoke('layout.set', { beside: chapter && chapter.status !== 'blank' ? chapter.id : null })
+      .invoke('layout.set', { beside: chat && chat.status !== 'blank' ? chat.id : null })
       .catch(() => {});
   }
 
-  /** The settings a new chapter takes next; MCP servers turned off for one chapter stay with it. */
+  /** The settings a new chat takes next; MCP servers turned off for one chat stay with it. */
   private remember({ agent, settings: { mcpOff: _, ...settings } }: LastUsed): void {
     const lastUsed = { agent, settings };
     this.lastUsed = lastUsed;
@@ -801,12 +801,12 @@ export class Chats {
     }
   }
 
-  private find(id: string): Chapter | undefined {
-    return this.all().find((chapter) => chapter.id === id);
+  private find(id: string): Chat | undefined {
+    return this.all().find((chat) => chat.id === id);
   }
 
-  private update(id: string, change: (chapter: Chapter) => Chapter): void {
-    this.all.update((all) => all.map((chapter) => (chapter.id === id ? change(chapter) : chapter)));
+  private update(id: string, change: (chat: Chat) => Chat): void {
+    this.all.update((all) => all.map((chat) => (chat.id === id ? change(chat) : chat)));
   }
 
   private listen<K extends EventName>(event: K, handle: (payload: EventPayload<K>) => void): void {
@@ -814,7 +814,7 @@ export class Chats {
   }
 }
 
-function fromOpenChat(chat: OpenChat): Chapter {
+function fromOpenChat(chat: OpenChat): Chat {
   return {
     id: chat.id,
     agent: chat.agent,
@@ -826,7 +826,7 @@ function fromOpenChat(chat: OpenChat): Chapter {
     queued: chat.queued,
     plan: chat.plan ?? [],
     withdrawn: chat.withdrawn ?? [],
-    dogEars: chat.dogEars ?? [],
+    pins: chat.pins ?? [],
     tags: chat.tags ?? [],
     copied: chat.copied ?? [],
     ...(chat.context ? { context: chat.context } : {}),

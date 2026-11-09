@@ -78,7 +78,7 @@
             @if (open() === change.path) {
               @if (diff(); as lines) {
                 @if (lines.length) {
-                  <gr-corrections
+                  <gr-diff-view
                     [file]="change.path"
                     [lines]="lines"
                     caption="not committed yet"

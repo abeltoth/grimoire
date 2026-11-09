@@ -6,7 +6,7 @@ import type {
 import { fakeBridge, render } from '@ui/testing/app-harness';
 
 describe('git', () => {
-  it("shows the chapter's branch and review stamps, and its repository on the Git page", async () => {
+  it("shows the chat's branch and header badges, and its repository on the Git page", async () => {
     const { bridge, calls, answers } = fakeBridge();
     const now = Date.now();
     answers['git.status'] = (): GitStatus => ({
@@ -55,8 +55,8 @@ describe('git', () => {
     expect(branch.getAttribute('title')).toBe(
       '2 files not committed · 2 ahead of origin/feature/context-meter',
     );
-    expect(texts('gr-review-stamps button')).toEqual(['PR #12: in review', 'CI: 1 check failing']);
-    expect(el.querySelector('gr-review-stamps .alert')!.textContent!.trim()).toBe('CI: 1 check failing');
+    expect(texts('gr-header-badges button')).toEqual(['PR #12: in review', 'CI: 1 check failing']);
+    expect(el.querySelector('gr-header-badges .alert')!.textContent!.trim()).toBe('CI: 1 check failing');
     expect(calls.find((c) => c.command === 'git.status')!.request).toEqual({ cwd: 'C:/Users/me' });
 
     branch.click();
@@ -92,17 +92,17 @@ describe('git', () => {
     expect(calls.filter((c) => c.command === 'git.diff').map((c) => c.request)).toEqual([
       { cwd: 'C:/Users/me', path: 'ui/src/context-meter.component.ts' },
     ]);
-    expect(texts('gr-git-page gr-corrections .code')).toEqual([
+    expect(texts('gr-git-page gr-diff-view .code')).toEqual([
       'export class ContextMeter {',
       'used = 0;',
       'used = input(0);',
     ]);
-    expect(texts('gr-git-page gr-corrections .head .detail')[0]).toBe('corrections, not committed yet');
+    expect(texts('gr-git-page gr-diff-view .head .detail')[0]).toBe('corrections, not committed yet');
 
     // Folded back in.
     el.querySelector<HTMLButtonElement>('gr-git-page .change')!.click();
     await fixture.whenStable();
-    expect(el.querySelector('gr-git-page gr-corrections')).toBeNull();
+    expect(el.querySelector('gr-git-page gr-diff-view')).toBeNull();
   });
 
   it('says so on the Git page when the folder is not in a repository', async () => {

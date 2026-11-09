@@ -1,16 +1,16 @@
 import type { EnvironmentProviders } from '@angular/core';
 import { provideShellEntries } from '@ui/app/shell/shell-registry';
-import { ScriptoriumPage } from './scriptorium-page';
+import { TerminalPage } from './terminal-page';
 
-/** The terminal module (ADR-008): its thumb tab turns the facing page to the Scriptorium, your shells. */
-export function provideScriptorium(): EnvironmentProviders {
+/** The terminal module (ADR-008): its page tab turns the right page to the Terminal, your shells. */
+export function provideTerminal(): EnvironmentProviders {
   return provideShellEntries((shell) => {
-    shell.thumbs.add({
-      id: 'scriptorium',
+    shell.pageTabs.add({
+      id: 'terminals',
       label: 'Scriptorium',
       plainLabel: 'Terminal',
       order: 55,
-      component: ScriptoriumPage,
+      component: TerminalPage,
     });
   });
 }

@@ -27,7 +27,7 @@
               <span class="time">{{ time(row.at) }}</span>
             }
             <span class="spacer"></span>
-            @if (row.undoable && !helper()) {
+            @if (row.undoable && !subagent()) {
               <button
                 type="button"
                 class="gr-link"
@@ -37,7 +37,7 @@
                 Undo
               </button>
             }
-            @if (!helper()) {
+            @if (!subagent()) {
               <button
                 type="button"
                 class="gr-link"
@@ -53,8 +53,8 @@
               <span class="text">{{ row.text }}</span>
             </p>
           }
-          @if (row.enclosures.length) {
-            <gr-enclosures class="enclosed" [enclosures]="row.enclosures" [cwd]="chapter().settings.cwd" />
+          @if (row.attachments.length) {
+            <gr-attachments class="enclosed" [attachments]="row.attachments" [cwd]="chat().settings.cwd" />
           }
         </article>
       </div>
@@ -155,7 +155,7 @@
   </div>
 }
 
-@for (approval of chapter().approvals; track approval.id) {
+@for (approval of chat().approvals; track approval.id) {
   <div class="row">
     @if (approval.questions) {
       <gr-questions-form
@@ -163,21 +163,21 @@
         [agentName]="agentName()"
         (answered)="answer(approval.id, $event)"
       />
-    } @else if (facing.seals()) {
-      <gr-seal-stub class="wide" [approval]="approval" [cwd]="chapter().settings.cwd" />
+    } @else if (rightPage.approvals()) {
+      <gr-approval-stub class="wide" [approval]="approval" [cwd]="chat().settings.cwd" />
     } @else {
-      <gr-approval-slip
+      <gr-approval-card
         class="wide"
         [approval]="approval"
         [agentName]="agentName()"
-        [cwd]="chapter().settings.cwd"
+        [cwd]="chat().settings.cwd"
         (decided)="decide(approval.id, $event)"
       />
     }
   </div>
 }
 
-@if (chapter().error; as error) {
+@if (chat().error; as error) {
   <div class="row">
     <p class="error" role="alert">{{ error }}</p>
   </div>
@@ -187,7 +187,7 @@
 
 <!--
   The notes beside a row. A run of them is summed up on one line, which folds
-  out to the notes; what you fold out of them spans the text and the margin.
+  out to the notes; what you expand of them spans the text and the margin.
 -->
 <ng-template #marginTemplate let-row>
   <div class="notes">
@@ -263,8 +263,8 @@
 </ng-template>
 
 <!--
-  The hooks a turn ran, folded out of its closing line a line each; what one
-  printed folds out of its line, across the text and the margin.
+  The hooks a turn ran, expanded of its closing line a line each; what one
+  printed expands of its line, across the text and the margin.
 -->
 <ng-template #hooksTemplate let-hooks>
   @for (run of hooks.runs; track run.id) {
@@ -297,12 +297,12 @@
   }
 </ng-template>
 
-<!-- The details of the notes you folded out, across the text and the margin. -->
+<!-- The details of the notes you expanded, across the text and the margin. -->
 <ng-template #foldsTemplate let-notes>
   @for (note of notes; track note.key) {
     @if (note.fold && isFoldedOut(note) && !turnsPage(note)) {
-      @if (note.fold.kind === 'corrections') {
-        <gr-corrections
+      @if (note.fold.kind === 'diff') {
+        <gr-diff-view
           class="wide"
           [file]="note.fold.file"
           [lines]="note.fold.lines"

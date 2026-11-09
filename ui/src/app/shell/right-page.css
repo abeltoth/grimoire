@@ -1,0 +1,34 @@
+:host {
+  display: contents;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--gr-head-row-gap);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  z-index: 1;
+  padding: var(--gr-right-page-pad-top) var(--page-inset-end) 0 var(--page-inset-start);
+}
+
+/* The sigil, sunk into the foot of the page. */
+.sigil {
+  position: absolute;
+  left: var(--gr-sigil-left);
+  bottom: calc(var(--gr-sigil-bleed) * -1);
+  width: var(--gr-sigil-size);
+  height: var(--gr-sigil-size);
+  transform: translateX(-50%);
+  color: var(--gr-ink);
+  opacity: var(--gr-drawing-opacity);
+  pointer-events: none;
+}

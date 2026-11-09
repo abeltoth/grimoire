@@ -22,8 +22,8 @@ import type {
   ApprovalMode,
   ChatId,
   ChatSettings,
-  Enclosure,
-  HelperRun,
+  Attachment,
+  SubagentRun,
   PlanUsage,
   UsageBreakdown,
 } from '@grimoire/contract';
@@ -48,10 +48,10 @@ import { type AddTodo, TodoChat } from './todos';
 import {
   type ClaudeMessage,
   ClaudeTranscript,
-  helperAgentId,
-  helperCallIn,
+  subagentAgentId,
+  subagentCallIn,
   runBeganWith,
-  savedHelperState,
+  savedSubagentState,
   turnEnd,
   wholeRun,
 } from './transcript';
@@ -60,7 +60,7 @@ import { toPlanUsage, toUsageBreakdown } from './usage';
 // Loaded on first use: it's large, and the service starts without it.
 const sdk = () => import('@anthropic-ai/claude-agent-sdk');
 
-// Claude Code keeps its plan with its task tools only when asked to; the Outline shows it.
+// Claude Code keeps its plan with its task tools only when asked to; the Plan shows it.
 // Read at each start, as switching profiles changes which Claude folder it uses.
 const env = () => ({ ...process.env, CLAUDE_CODE_ENABLE_TODO_TOOLS: '1' });
 
@@ -169,7 +169,7 @@ export class ClaudeAdapter implements AgentAdapter {
     };
   }
 
-  async helper(chatId: ChatId, cwd: string, toolId: string): Promise<HelperRun> {
+  async subagent(chatId: ChatId, cwd: string, toolId: string): Promise<SubagentRun> {
     const { getSessionMessages, getSubagentMessages, listSubagents } = await sdk();
     const saved = await this.savedIn(chatId, cwd);
     const ids = await listSubagents(chatId, saved);
@@ -178,15 +178,15 @@ export class ClaudeAdapter implements AgentAdapter {
       if (!runs.has(id)) runs.set(id, getSubagentMessages(chatId, id, saved));
       return runs.get(id)!;
     };
-    // The chat made the tool call; a helper's helper is started from inside its run.
-    let call = helperCallIn(await getSessionMessages(chatId, saved), toolId);
+    // The chat made the tool call; a subagent's subagent is started from inside its run.
+    let call = subagentCallIn(await getSessionMessages(chatId, saved), toolId);
     for (const id of ids) {
       if (call) break;
-      call = helperCallIn(await runOf(id), toolId);
+      call = subagentCallIn(await runOf(id), toolId);
     }
     // Its result names the run; a result that doesn't, the run that began with its task.
-    let agentId = call?.result && helperAgentId(call.result.text);
-    // A message sent to a helper names it as its recipient.
+    let agentId = call?.result && subagentAgentId(call.result.text);
+    // A message sent to a subagent names it as its recipient.
     if (!agentId && call?.sentTo && ids.includes(call.sentTo)) agentId = call.sentTo;
     if (!agentId && call?.prompt) {
       for (const id of ids) {
@@ -196,18 +196,18 @@ export class ClaudeAdapter implements AgentAdapter {
         }
       }
     }
-    if (!agentId) return { entries: [], ...(call ? { state: savedHelperState([], call.result) } : {}) };
-    // A message resumed the helper's run: all of it shows, where it is with what it was sent last.
+    if (!agentId) return { entries: [], ...(call ? { state: savedSubagentState([], call.result) } : {}) };
+    // A message resumed the subagent's run: all of it shows, where it is with what it was sent last.
     if (call?.sentTo) {
       const entries = wholeRun(await runOf(agentId));
       const since = entries.findLastIndex((entry) => entry.kind === 'user') + 1;
-      return { entries, state: savedHelperState(entries.slice(since), call.result) };
+      return { entries, state: savedSubagentState(entries.slice(since), call.result) };
     }
     const run = new ClaudeTranscript(false);
     for (const message of await runOf(agentId)) run.applyRun(message);
     // Its task is the tool call's input; what it was sent later isn't yours.
     const entries = run.entries.filter((entry) => entry.kind === 'agent');
-    return { entries, state: savedHelperState(entries, call?.result) };
+    return { entries, state: savedSubagentState(entries, call?.result) };
   }
 
   async fork(chatId: ChatId, cwd: string, entryId: string, title: string): Promise<ChatId> {
@@ -411,7 +411,7 @@ export class ClaudeAdapter implements AgentAdapter {
     id: string,
     bind: (chatId: ChatId) => ChatEvents,
     title?: string,
-    enclosures: Enclosure[] = [],
+    attachments: Attachment[] = [],
   ): Promise<LiveChat> {
     let spare = this.takeSpare();
     if (spare && !sameNames(spare.mcpOff, this.mcpOff(settings))) {
@@ -419,7 +419,7 @@ export class ClaudeAdapter implements AgentAdapter {
       spare = undefined;
     }
     try {
-      if (spare) return await this.claim(spare, settings, text, id, bind, title, enclosures);
+      if (spare) return await this.claim(spare, settings, text, id, bind, title, attachments);
     } catch {
       // Refused, or the spare died: start the usual way.
     } finally {
@@ -427,7 +427,7 @@ export class ClaudeAdapter implements AgentAdapter {
     }
     const chatId = randomUUID();
     const live = this.run(chatId, settings, false, bind(chatId), title);
-    live.send(text, id, enclosures);
+    live.send(text, id, attachments);
     return live;
   }
 
@@ -503,11 +503,11 @@ export class ClaudeAdapter implements AgentAdapter {
     id: string,
     bind: (chatId: ChatId) => ChatEvents,
     title: string | undefined,
-    enclosures: Enclosure[],
+    attachments: Attachment[],
   ): Promise<LiveChat> {
     const process = await spare.process;
     const input = new MessageQueue<SDKUserMessage>();
-    input.push(userMessage(text, id, enclosures, settings.cwd));
+    input.push(userMessage(text, id, attachments, settings.cwd));
     const query = process.claim({
       prompt: input,
       options: {
@@ -604,8 +604,8 @@ export class ClaudeAdapter implements AgentAdapter {
     })();
 
     return {
-      send: (text, id, enclosures = []) =>
-        input.push(userMessage(text, id, enclosures, settings.cwd)),
+      send: (text, id, attachments = []) =>
+        input.push(userMessage(text, id, attachments, settings.cwd)),
       interrupt: async () => {
         await (await started).interrupt();
       },
@@ -854,19 +854,19 @@ class Deferred<T> {
 function userMessage(
   text: string,
   uuid: string,
-  enclosures: readonly Enclosure[],
+  attachments: readonly Attachment[],
   cwd: string,
 ): SDKUserMessage {
-  const written = withReferences(text, enclosures, cwd);
-  const pictures = enclosures.flatMap((enclosure) =>
-    enclosure.kind === 'picture'
+  const written = withReferences(text, attachments, cwd);
+  const pictures = attachments.flatMap((attachment) =>
+    attachment.kind === 'picture'
       ? [
           {
             type: 'image' as const,
             source: {
               type: 'base64' as const,
-              media_type: enclosure.mediaType as 'image/png',
-              data: enclosure.data,
+              media_type: attachment.mediaType as 'image/png',
+              data: attachment.data,
             },
           },
         ]

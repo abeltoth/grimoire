@@ -1,0 +1,64 @@
+/* The chat tabs hang from the book's foot onto the desk below it. */
+:host {
+  flex: none;
+  height: var(--gr-chat-tabs-h);
+  margin-top: calc((var(--gr-cover-rim) + var(--gr-page-block-foot)) * -1);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: start;
+  position: relative;
+  z-index: 2;
+}
+
+.half {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  column-gap: var(--gr-chat-tab-gap);
+}
+
+/* The chats before the open one. */
+.left-half {
+  justify-content: flex-end;
+  padding-left: var(--gr-chat-tabs-edge-inset);
+}
+
+/* The chats after it, then the waiting approvals and New chat. */
+.right-half {
+  padding-right: var(--gr-chat-tabs-edge-inset);
+}
+
+/* The open chat's chat tab hangs in the spine, clear of the others. */
+.spine {
+  display: flex;
+  padding: 0 var(--gr-chat-tab-current-gap);
+}
+
+/* The chats' tabs hang side by side, and lie partly on one another when too many to fit. */
+.chat {
+  flex: 0 1 var(--gr-chat-tab-w);
+  min-width: var(--gr-chat-tab-slot-min);
+}
+
+.approvals,
+.new {
+  flex: none;
+  margin-left: var(--gr-chat-tab-new-gap);
+}
+
+/* The quill at work. */
+.quill {
+  margin-left: 1px;
+  color: var(--gr-gilt-ink);
+  transform-origin: 20% 90%;
+  animation: gr-bob var(--gr-dur-quill) ease-in-out infinite;
+}
+
+.breathe {
+  animation: gr-breathe var(--gr-dur-breathe) ease-in-out infinite;
+}
+
+.spin {
+  transform-origin: 50% 50%;
+  animation: gr-spin var(--gr-dur-sigil) linear infinite;
+}

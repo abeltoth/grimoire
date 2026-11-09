@@ -37,8 +37,8 @@ describe('questions-form', () => {
       'II.Which warnings do you want?Tick any.',
     ]);
     expect(texts('gr-questions-form .recommended')).toEqual(['recommended']);
-    // Questions don't wait for a seal.
-    expect(texts('gr-ribbon .seal')).toEqual([]);
+    // Questions don't wait for an approval.
+    expect(texts('gr-chat-tab .approval')).toEqual([]);
 
     const options = [...el.querySelectorAll<HTMLInputElement>('gr-questions-form .option input')];
     expect(options.map((o) => o.type)).toEqual(['radio', 'radio', 'checkbox', 'checkbox']);

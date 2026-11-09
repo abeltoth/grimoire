@@ -1,5 +1,5 @@
 @if (!bare()) {
-  <gr-title-strip />
+  <gr-title-bar />
 }
 
 <div class="stage">
@@ -7,33 +7,33 @@
     <!-- The desk either side of the page drags the window; on a Mac its buttons sit in this corner. -->
     <div class="desk" aria-hidden="true"></div>
   }
-  <gr-book [bare]="bare()" [single]="single()">
+  <gr-frame [bare]="bare()" [single]="single()">
     <gr-page
       side="left"
       [alone]="single()"
       [attr.aria-label]="
-        wording.say('Chapter: ', 'Chat: ') + (chapters.current()?.title || wording.untitled())
+        wording.say('Chapter: ', 'Chat: ') + (chats.current()?.title || wording.untitled())
       "
     >
       @if (commandsHere()) {
-        <gr-command-index [backTo]="wording.say('chapter', 'chat')" />
-      } @else if (registry.chapterPage(); as chapterPage) {
-        <ng-container *ngComponentOutlet="chapterPage" />
+        <gr-slash-commands [backTo]="wording.say('chapter', 'chat')" />
+      } @else if (registry.chatPage(); as chatPage) {
+        <ng-container *ngComponentOutlet="chatPage" />
       } @else {
-        <div class="chapter"></div>
-        <gr-running-foot><gr-status-indicators /></gr-running-foot>
+        <div class="chat"></div>
+        <gr-page-footer><gr-status-indicators /></gr-page-footer>
       }
     </gr-page>
     @if (!single()) {
-      <gr-facing-page />
+      <gr-right-page />
     }
     @if (!bare()) {
-      <gr-thumb-index />
+      <gr-page-tabs />
     }
-  </gr-book>
+  </gr-frame>
   @if (bare()) {
     <div class="desk end"><gr-window-controls /></div>
   } @else {
-    <gr-ribbons />
+    <gr-chat-tabs />
   }
 </div>

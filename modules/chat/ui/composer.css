@@ -111,7 +111,7 @@
   caret-color: var(--gr-ink);
 }
 
-/* A command is written in the pen the facing page lists it in. */
+/* A command is written in the pen the right page lists it in. */
 .entry.slash {
   color: var(--gr-pen);
 }
@@ -140,7 +140,7 @@
 }
 
 .enclosed {
-  padding: var(--gr-enclosures-pad);
+  padding: var(--gr-attachments-pad);
 }
 
 .drop-hint {
@@ -159,7 +159,7 @@
   flex: 1;
 }
 
-/* The context meter: how much of the chapter's page allowance is written. */
+/* The context meter: how much of the chat's page allowance is written. */
 .allowance {
   display: flex;
   align-items: center;
@@ -211,7 +211,7 @@
   cursor: default;
 }
 
-/* Parallel texts: the second model the entry goes to as well. */
+/* Parallel chats: the second model the entry goes to as well. */
 .parallel {
   display: flex;
   flex-wrap: wrap;

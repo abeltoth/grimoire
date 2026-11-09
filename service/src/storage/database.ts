@@ -1,4 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
+import { RENAMED_TOKENS } from './renamed-tokens';
 
 /** Each migration moves the database up one version. Append new ones; never edit old ones. */
 const MIGRATIONS = [
@@ -206,6 +207,17 @@ const MIGRATIONS = [
      group_id TEXT PRIMARY KEY,
      chat_id TEXT NOT NULL
    );`,
+  // Stored names follow the code's plain names; a saved theme keeps its changes under the new token names.
+  `ALTER TABLE chapters RENAME TO open_chats;
+   ALTER TABLE dog_ears RENAME TO pins;
+   ALTER TABLE pins RENAME COLUMN dog_ear TO pin;
+   UPDATE layout SET key = 'popouts' WHERE key = 'loose';
+   UPDATE settings SET key = 'newChat' WHERE key = 'newChapter';
+   UPDATE settings SET value = (
+     SELECT json_group_object(COALESCE(renamed.value, token.key), token.value)
+     FROM json_each(settings.value) token
+     LEFT JOIN json_each('${JSON.stringify(Object.fromEntries(RENAMED_TOKENS))}') renamed ON renamed.key = token.key
+   ) WHERE key = 'theme' AND json_type(value) = 'object';`,
 ];
 
 /**

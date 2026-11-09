@@ -4,7 +4,7 @@ import type { DiffLine, GitBranch, GitBranches, GitChange } from '@grimoire/cont
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { Chats } from '@ui/app/core/chats';
 import { ShellRegistry } from '@ui/app/shell/shell-registry';
-import { Corrections } from '@ui/design-system/corrections';
+import { DiffView } from '@ui/design-system/diff-view';
 import { Icon } from '@ui/design-system/icon';
 import { GitState, branchLabel, upstreamDistance } from './git-state';
 
@@ -20,13 +20,13 @@ const KINDS: Record<GitChange['kind'], string> = {
 };
 
 /**
- * The Git page: the open chapter's branch tree, and what isn't committed
- * yet, each change folding out as corrections. It only reads; the agent
+ * The Git page: the open chat's branch tree, and what isn't committed
+ * yet, each change expanding as a diff. It only reads; the agent
  * does the committing.
  */
 @Component({
   selector: 'gr-git-page',
-  imports: [Corrections, Icon, NgTemplateOutlet],
+  imports: [DiffView, Icon, NgTemplateOutlet],
   templateUrl: './git-page.html',
   styleUrl: './git-page.css',
 })
@@ -38,7 +38,7 @@ export class GitPage {
   protected readonly shell = inject(ShellRegistry);
 
   protected readonly branches = signal<GitBranches | null>(null);
-  /** The change folded out, and its corrections once read. */
+  /** The change expanded, and its diff once read. */
   protected readonly open = signal<string | null>(null);
   protected readonly diff = signal<readonly DiffLine[] | null>(null);
 

@@ -1,20 +1,20 @@
 import { type EnvironmentProviders, effect, inject } from '@angular/core';
-import { Facing } from '@ui/app/shell/facing';
+import { RightPageState } from '@ui/app/shell/right-page-state';
 import { provideShellEntries } from '@ui/app/shell/shell-registry';
 import { GitPage } from './git-page';
-import { GitState, branchLabel, stampsOf, statusDetail } from './git-state';
+import { GitState, branchLabel, badgesOf, statusDetail } from './git-state';
 
 /**
- * The git module (ADR-008): the open chapter's branch in the running foot,
- * its pull request's stamps in the running head, and the Git page, which
- * both of them turn the facing page to.
+ * The git module (ADR-008): the open chat's branch in the page footer,
+ * its pull request's badges in the page header, and the Git page, which
+ * both of them turn the right page to.
  */
 export function provideGit(): EnvironmentProviders {
   return provideShellEntries((shell) => {
     const git = inject(GitState);
-    const facing = inject(Facing);
-    const open = () => facing.showPage('git');
-    shell.facingPages.add({ id: 'git', label: 'Git', order: 30, component: GitPage });
+    const rightPage = inject(RightPageState);
+    const open = () => rightPage.showPage('git');
+    shell.rightPages.add({ id: 'git', label: 'Git', order: 30, component: GitPage });
 
     // Outside a repository there's no branch to show.
     effect((onCleanup) => {
@@ -35,8 +35,8 @@ export function provideGit(): EnvironmentProviders {
     effect((onCleanup) => {
       const pr = git.pullRequest();
       if (!pr) return;
-      for (const [i, stamp] of stampsOf(pr).entries()) {
-        onCleanup(shell.stamps.add({ ...stamp, order: i, open }));
+      for (const [i, badge] of badgesOf(pr).entries()) {
+        onCleanup(shell.badges.add({ ...badge, order: i, open }));
       }
     });
   });

@@ -1,0 +1,224 @@
+/* An approval card of laid paper, tucked into the page at a slight angle. */
+:host {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-approval-card-gap);
+  margin: var(--gr-approval-card-margin);
+  padding: var(--gr-approval-card-pad);
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 calc(var(--gr-approval-card-laid-pitch) - 1px),
+      var(--gr-approval-card-laid) calc(var(--gr-approval-card-laid-pitch) - 1px) var(--gr-approval-card-laid-pitch)
+    ),
+    var(--gr-surface);
+  box-shadow: var(--gr-shadow-surface-tucked);
+  transform: rotate(var(--gr-approval-card-tilt));
+}
+
+/* The page's corners holding the approval card in place. */
+.corner {
+  position: absolute;
+  z-index: 2;
+  width: var(--gr-approval-card-corner);
+  height: var(--gr-approval-card-corner);
+  background: var(--gr-page);
+}
+
+.corner-near {
+  top: var(--gr-approval-card-corner-offset);
+  left: var(--gr-approval-card-corner-offset);
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+  filter: var(--gr-shadow-approval-card-corner);
+}
+
+.corner-far {
+  bottom: var(--gr-approval-card-corner-offset);
+  right: var(--gr-approval-card-corner-offset);
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  filter: var(--gr-shadow-approval-card-corner-far);
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-approval-card-head-gap);
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-approval-card-head);
+  letter-spacing: var(--gr-tracking-approval-card-head);
+  color: var(--gr-ink-soft);
+}
+
+.head b {
+  color: var(--gr-rubric);
+  font-weight: 500;
+  font-size: var(--gr-size-approval-card-title);
+}
+
+/* On the right page: the chat it's from, in plain text. */
+:host(.from) .head {
+  gap: var(--gr-approval-card-from-gap);
+  font-family: var(--gr-font-text);
+  font-size: var(--gr-size-approval-card-from);
+  letter-spacing: 0;
+}
+
+:host(.from) .head b {
+  color: var(--gr-ink);
+  font-size: var(--gr-size-approval-card-from-title);
+}
+
+:host(.from) .asks {
+  font-style: italic;
+}
+
+:host(.from) .gr-link {
+  font-size: var(--gr-size-approval-card-open);
+}
+
+/* Hints show on the approval card you're on; Esc turns back there. */
+:host(.from:not(:focus-within)) .gr-kbd,
+:host(.from) .deny .gr-kbd {
+  display: none;
+}
+
+/* Exactly what will run. */
+.well {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-approval-card-command-gap);
+  padding: var(--gr-approval-card-command-pad);
+  background: var(--gr-approval-card-well);
+  border-top: 1px solid var(--gr-hairline);
+  border-bottom: 1px solid var(--gr-hairline);
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-approval-card-command);
+  line-height: var(--gr-leading-approval-card-command);
+  color: var(--gr-ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.well.detail {
+  display: block;
+  font-size: var(--gr-size-code);
+  max-height: var(--gr-expandable-body-max);
+  overflow: auto;
+}
+
+.prompt {
+  color: var(--gr-ink-soft);
+  user-select: none;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gr-approval-card-meta-gap);
+  font-size: var(--gr-size-aside);
+  font-style: italic;
+  color: var(--gr-ink-soft);
+}
+
+.meta code {
+  font-family: var(--gr-font-mono);
+  font-style: normal;
+  font-size: var(--gr-size-code);
+  color: var(--gr-ink);
+}
+
+gr-diff-view {
+  margin-top: 0;
+}
+
+.choices {
+  display: flex;
+  align-items: center;
+  gap: var(--gr-approval-card-choices-gap);
+  margin-top: var(--gr-approval-card-choices-lift);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.approve-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gr-approve-button-gap);
+  padding: var(--gr-approve-button-pad);
+  border-radius: var(--gr-radius-approve-button);
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-approve-button);
+  font-weight: 500;
+  letter-spacing: var(--gr-tracking-approve-button);
+  color: var(--gr-ink);
+}
+
+.approve-button:hover {
+  background: var(--gr-approve-button-hover);
+}
+
+/* The wax seal, its ring pulsing while it waits. */
+.wax {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--gr-wax-size);
+  height: var(--gr-wax-size);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 34% 30%,
+    var(--gr-wax-light),
+    var(--gr-wax) 58%,
+    var(--gr-wax-dark)
+  );
+  color: var(--gr-wax-ink);
+  box-shadow: var(--gr-shadow-wax);
+}
+
+.wax::after {
+  content: '';
+  position: absolute;
+  inset: var(--gr-wax-ring-inset);
+  border-radius: 50%;
+  border: var(--gr-wax-ring) solid var(--gr-wax);
+  opacity: 0;
+  animation: gr-await var(--gr-dur-await) ease-out infinite;
+}
+
+.choice {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--gr-approval-card-choice-gap);
+  padding: var(--gr-approval-card-choice-pad);
+  border-radius: var(--gr-radius-control);
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-approval-card-choice);
+  letter-spacing: var(--gr-tracking-approval-card-choice);
+  color: var(--gr-ink);
+}
+
+.choice:hover {
+  background: var(--gr-approval-card-choice-hover);
+}
+
+.choice small {
+  font-family: var(--gr-font-text);
+  font-style: italic;
+  font-size: var(--gr-size-approval-card-choice-detail);
+  letter-spacing: 0;
+  color: var(--gr-ink-soft);
+}
+
+.choice small code {
+  font-family: var(--gr-font-mono);
+  font-style: normal;
+  font-size: var(--gr-size-approval-card-choice-code);
+  color: var(--gr-ink);
+}
+
+.deny {
+  color: var(--gr-rubric);
+}

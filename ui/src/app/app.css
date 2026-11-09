@@ -16,7 +16,7 @@
   padding: 0 var(--gr-stage-pad-x) var(--gr-stage-pad-bottom);
 }
 
-.chapter {
+.chat {
   flex: 1;
   min-height: 0;
 }
@@ -47,7 +47,7 @@
     minmax(var(--gr-focus-desk-min), 1fr);
 }
 
-:host(.focus) gr-book {
+:host(.focus) gr-frame {
   min-height: 0;
   margin: var(--gr-focus-desk-pad) 0;
 }

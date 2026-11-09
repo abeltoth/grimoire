@@ -8,7 +8,7 @@ const SIGN_IN_NEXT = 'grimoire.signInNext';
 /**
  * Your profiles, such as work and personal, and the one in use, as the
  * service keeps them (ADR-009): each with its own Claude folder, settings,
- * presets, schedules and chapters. Switching puts the open chapters away;
+ * presets, schedules and chats. Switching puts the open chats away;
  * the window then opens again on the new profile's.
  */
 @Injectable({ providedIn: 'root' })
@@ -26,11 +26,11 @@ export class Profiles {
   );
   /** Why the last profile couldn't be made, renamed or deleted. */
   readonly failed = signal<string | null>(null);
-  /** Why the last switch was refused, such as a chapter still being written. */
+  /** Why the last switch was refused, such as a chat still being written. */
   readonly refused = signal<string | null>(null);
   /** The profile being switched to, until the service has answered. */
   readonly switching = signal<string | null>(null);
-  /** The profile in use was switched to so it could be signed in; the Colophon asks for the account. */
+  /** The profile in use was switched to so it could be signed in; Settings asks for the account. */
   readonly signInNext = signal(false);
 
   constructor() {

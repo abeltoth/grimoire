@@ -1,0 +1,41 @@
+:host {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--gr-badges-gap);
+  margin-left: auto;
+}
+
+:host:empty {
+  display: none;
+}
+
+/* Inked on the page like a reviewer's rubber stamp. */
+.badge {
+  padding: var(--gr-badge-pad);
+  border: var(--gr-badge-rule) solid currentColor;
+  border-radius: var(--gr-radius-badge);
+  font-family: var(--gr-font-display-sc);
+  font-size: var(--gr-size-badge);
+  letter-spacing: var(--gr-tracking-badge);
+  line-height: var(--gr-leading-badge);
+  color: var(--gr-badge-pr);
+  transform: rotate(var(--gr-badge-tilt));
+  white-space: nowrap;
+}
+
+.badge + .badge {
+  transform: rotate(calc(var(--gr-badge-tilt) * -1));
+}
+
+.badge.quiet {
+  color: var(--gr-badge-ci);
+}
+
+.badge.alert {
+  color: var(--gr-rubric);
+}
+
+.badge:hover:not([aria-disabled='true']) {
+  background: var(--gr-badge-hover);
+}

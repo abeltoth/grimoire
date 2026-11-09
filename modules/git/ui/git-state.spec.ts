@@ -1,5 +1,5 @@
 import type { GitStatus, PullRequest } from '@grimoire/contract';
-import { branchLabel, stampsOf, statusDetail } from './git-state';
+import { branchLabel, badgesOf, statusDetail } from './git-state';
 
 const status = (over: Partial<GitStatus> = {}): GitStatus => ({
   root: '/repo',
@@ -47,23 +47,23 @@ describe('statusDetail', () => {
   });
 });
 
-describe('stampsOf', () => {
-  it('stamps the review, and the checks once there are any', () => {
-    expect(stampsOf(pr()).map((stamp) => stamp.label)).toEqual(['PR #7: in review']);
-    expect(stampsOf(pr({ review: 'approved', checks: { passed: 2, failed: 0, pending: 0 } }))).toEqual([
+describe('badgesOf', () => {
+  it('badges the review, and the checks once there are any', () => {
+    expect(badgesOf(pr()).map((badge) => badge.label)).toEqual(['PR #7: in review']);
+    expect(badgesOf(pr({ review: 'approved', checks: { passed: 2, failed: 0, pending: 0 } }))).toEqual([
       { id: 'git.pullRequest', label: 'PR #7: approved', detail: 'Seven' },
       { id: 'git.checks', label: 'CI: passing', tone: 'quiet', detail: '2 passed' },
     ]);
-    expect(stampsOf(pr({ checks: { passed: 1, failed: 0, pending: 2 } }))[1]!.label).toBe(
+    expect(badgesOf(pr({ checks: { passed: 1, failed: 0, pending: 2 } }))[1]!.label).toBe(
       'CI: 2 checks running',
     );
   });
 
-  it('stamps changes requested and failing checks in rubric', () => {
-    const stamps = stampsOf(
+  it('badges changes requested and failing checks in rubric', () => {
+    const badges = badgesOf(
       pr({ review: 'changes-requested', checks: { passed: 1, failed: 2, pending: 0 } }),
     );
-    expect(stamps.map(({ label, tone }) => [label, tone])).toEqual([
+    expect(badges.map(({ label, tone }) => [label, tone])).toEqual([
       ['PR #7: changes requested', 'alert'],
       ['CI: 2 checks failing', 'alert'],
     ]);
@@ -71,9 +71,9 @@ describe('stampsOf', () => {
 
   it('leaves the checks off a merged or closed pull request', () => {
     const checks = { passed: 1, failed: 1, pending: 0 };
-    expect(stampsOf(pr({ state: 'merged', checks }))).toEqual([
+    expect(badgesOf(pr({ state: 'merged', checks }))).toEqual([
       { id: 'git.pullRequest', label: 'PR #7: merged', tone: 'quiet', detail: 'Seven' },
     ]);
-    expect(stampsOf(pr({ state: 'draft' }))[0]!.label).toBe('PR #7: draft');
+    expect(badgesOf(pr({ state: 'draft' }))[0]!.label).toBe('PR #7: draft');
   });
 });

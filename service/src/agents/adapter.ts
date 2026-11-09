@@ -14,11 +14,11 @@ import type {
   ChatSummary,
   ContextUsage,
   PromptCache,
-  Enclosure,
+  Attachment,
   Entry,
   FollowUp,
-  HelperRun,
-  HelperState,
+  SubagentRun,
+  SubagentState,
   HookRun,
   PlanStep,
   PlanUsage,
@@ -27,8 +27,8 @@ import type {
   UsageBreakdown,
 } from '@grimoire/contract';
 
-/** A chat as the agent lists it; its dog-ears and tags are Grimoire's (ADR-009). */
-export type SavedChat = Omit<ChatSummary, 'dogEars' | 'tags'>;
+/** A chat as the agent lists it; its pins and tags are Grimoire's (ADR-009). */
+export type SavedChat = Omit<ChatSummary, 'pins' | 'tags'>;
 
 /** One agent, such as Claude Code. The hub reaches agents only through this (ADR-006). */
 export interface AgentAdapter {
@@ -46,11 +46,11 @@ export interface AgentAdapter {
   /** Gives a saved chat a new title. Agents that can't rename chats leave it out. */
   rename?(chatId: ChatId, cwd: string, title: string): Promise<void>;
   /**
-   * A saved helper's run: what the subagent the chat's tool call `toolId`
+   * A saved subagent's run: what the subagent the chat's tool call `toolId`
    * started did, your task left out, and where it is with it. No entries
-   * when there's no record of it. Agents without helpers leave it out.
+   * when there's no record of it. Agents without subagents leave it out.
    */
-  helper?(chatId: ChatId, cwd: string, toolId: string): Promise<HelperRun>;
+  subagent?(chatId: ChatId, cwd: string, toolId: string): Promise<SubagentRun>;
   /** The chat's title; empty until the agent names it. */
   title(chatId: ChatId, cwd: string): Promise<string>;
   models(): Promise<AgentModels>;
@@ -103,7 +103,7 @@ export interface AgentAdapter {
     id: string,
     bind: (chatId: ChatId) => ChatEvents,
     title?: string,
-    enclosures?: Enclosure[],
+    attachments?: Attachment[],
   ): Promise<LiveChat>;
   /** Keeps a spare process started, so the next new chat opens at once (ADR-010). */
   warm?(): void;
@@ -135,7 +135,7 @@ export interface LiveChat {
    * Sends your message, with any pictures and files; `id` is its entry's ID,
    * which the agent keeps so undo() can find it.
    */
-  send(text: string, id: string, enclosures?: Enclosure[]): void;
+  send(text: string, id: string, attachments?: Attachment[]): void;
   /** Stops the running turn; the chat stays live. */
   interrupt(): Promise<void>;
   /** Changes the model or permission; the agent takes it from its next request. */
@@ -156,10 +156,10 @@ export interface ChatEvents {
   entry(entry: Entry): void;
   /** Text streamed into a block of an entry the hub already has. */
   text(entryId: string, block: number, text: string): void;
-  /** A new or changed entry in the run of the helper the tool call `toolId` started, complete. */
-  helperEntry(toolId: string, entry: Entry): void;
-  /** The helper the tool call `toolId` started began, or ended its task. */
-  helperState(toolId: string, state: HelperState): void;
+  /** A new or changed entry in the run of the subagent the tool call `toolId` started, complete. */
+  subagentEntry(toolId: string, entry: Entry): void;
+  /** The subagent the tool call `toolId` started began, or ended its task. */
+  subagentState(toolId: string, state: SubagentState): void;
   /** Asks for a decision. `signal` aborts when the agent stops waiting for it. */
   approval(request: ApprovalRequest, signal: AbortSignal): Promise<Verdict>;
   /**

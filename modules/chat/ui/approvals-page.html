@@ -1,0 +1,41 @@
+<gr-page-header>
+  <div class="row">
+    <h2 class="title">{{ wording.say('Awaiting your seal', 'Waiting for approval') }}</h2>
+    <span class="hint">{{ summary() }}</span>
+    <span class="spacer"></span>
+    <button type="button" class="gr-link" (click)="rightPage.closeApprovals()">
+      {{ wording.back(backTo()) }} <span class="gr-kbd">Esc</span>
+    </button>
+  </div>
+</gr-page-header>
+
+<div class="approvals">
+  @for (approvalCard of approvalCards(); track approvalCard.approval.id) {
+    <gr-approval-card
+      [approval]="approvalCard.approval"
+      [agentName]="chats.agentName(approvalCard.chat.agent)"
+      [cwd]="approvalCard.chat.settings.cwd"
+      [from]="approvalCard.chat.title || wording.untitled()"
+      [autofocus]="approvalCard.approval.id === first()"
+      (decided)="decide(approvalCard, $event)"
+      (opened)="open(approvalCard)"
+    />
+  }
+  <p class="note">
+    {{
+      wording.say(
+        'Sealing a slip here answers it in its chapter, too. Each chapter carries on as soon as its slip is sealed.',
+        'Answering a request here answers it in its chat, too. Each chat carries on as soon as it’s answered.'
+      )
+    }}
+  </p>
+</div>
+
+<gr-page-footer>
+  <span class="spacer"></span>
+  <span
+    ><span class="gr-kbd">↑</span> <span class="gr-kbd">↓</span>
+    {{ wording.say('move between slips', 'move between requests') }}</span
+  >
+  <span><span class="gr-kbd">Esc</span> back</span>
+</gr-page-footer>
