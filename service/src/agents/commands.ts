@@ -17,16 +17,6 @@ export function registerAgentCommands(registry: CommandRegistry, hub: AgentHub):
   registry.register('agents.cancelSignIn', ({ agent }) => hub.cancelSignIn(agent));
   registry.register('agents.setup', ({ agent, cwd }) => hub.setup(agent, cwd));
   registry.register('agents.setupFolders', () => hub.setupFolders());
-  registry.register('agents.memories', ({ agent, cwd }) => hub.memories(agent, cwd));
-  registry.register('agents.openMemory', ({ agent, cwd, path }) =>
-    hub.openMemory(agent, cwd, path),
-  );
-  registry.register('agents.saveMemory', ({ agent, cwd, path, text, changedAt }) =>
-    hub.saveMemory(agent, cwd, path, text, changedAt),
-  );
-  registry.register('agents.deleteMemory', ({ agent, cwd, path, changedAt }) =>
-    hub.deleteMemory(agent, cwd, path, changedAt),
-  );
   registry.register('agents.openSetupFile', ({ agent, cwd, path }) =>
     hub.openSetupFile(agent, cwd, path),
   );

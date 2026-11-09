@@ -7,8 +7,12 @@ import {
   readdirSync,
   statSync,
 } from 'node:fs';
+import { homedir } from 'node:os';
 import path from 'node:path';
 import type { AgentMemories, Memory, MemoryFolder } from '@grimoire/contract';
+import { claudeHome } from '@grimoire/service/agents/claude/config-dir';
+import { readSettingsFile, settingsFilesIn } from '@grimoire/service/agents/claude/settings-files';
+import type { MemorySource } from './memories';
 
 /** The memory index's file name in a memory folder. */
 export const INDEX = 'MEMORY.md';
@@ -286,3 +290,20 @@ export function readMemories(input: {
     at: input.at,
   };
 }
+
+/** The memories Claude Code keeps on its own for a folder, where its settings say. */
+export const claudeMemories: MemorySource = {
+  read: async (cwd) => {
+    const claudeFolder = claudeHome();
+    const settings = settingsFilesIn(cwd, claudeFolder, process.platform).map((file) => readSettingsFile(file));
+    return readMemories({
+      cwd,
+      claudeFolder,
+      settings: memorySettings(
+        settings.flatMap(({ source, settings: own }) => (source === 'plugin' ? [] : [{ source, settings: own }])),
+        homedir(),
+      ),
+      at: Date.now(),
+    });
+  },
+};

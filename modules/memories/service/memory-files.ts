@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { AgentId, AgentMemories, Memory, SetupFile } from '@grimoire/contract';
-import { fileAt, samePath, unchangedSince, writeUnchanged } from './files';
+import { fileAt, samePath, unchangedSince, writeUnchanged } from '@grimoire/service/agents/files';
 
 /**
  * The index without its lines for a memory file, such as

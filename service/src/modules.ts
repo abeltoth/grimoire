@@ -3,9 +3,10 @@ import type { ServiceModule } from './module';
 import { files } from '../../modules/files/service';
 import { git } from '../../modules/git/service';
 import { kanban } from '../../modules/kanban/service';
+import { memories } from '../../modules/memories/service';
 import { schedules } from '../../modules/schedules/service';
 import { search } from '../../modules/search/service';
 import { terminal } from '../../modules/terminal/service';
 import { usage } from '../../modules/usage/service';
 
-export const MODULES: readonly ServiceModule[] = [files, git, kanban, schedules, search, terminal, usage];
+export const MODULES: readonly ServiceModule[] = [files, git, kanban, memories, schedules, search, terminal, usage];

@@ -19,7 +19,7 @@ describe('memories', () => {
       links,
       indexed,
     });
-    answers['agents.memories'] = (request: CommandRequest<'agents.memories'>): AgentMemories => ({
+    answers['memories.list'] = (request: CommandRequest<'memories.list'>): AgentMemories => ({
       cwd: request.cwd ?? 'C:/Users/me',
       folder,
       index: { path: `${folder}/MEMORY.md`, exists: true },
@@ -84,7 +84,7 @@ describe('memories', () => {
     el.querySelector<HTMLButtonElement>('gr-memories-page .elsewhere .gr-link')!.click();
     await new Promise((resolve) => setTimeout(resolve));
     await fixture.whenStable();
-    expect(calls.filter((c) => c.command === 'agents.memories').map((c) => c.request)).toEqual([
+    expect(calls.filter((c) => c.command === 'memories.list').map((c) => c.request)).toEqual([
       { agent: 'claude-code' },
       { agent: 'claude-code', cwd: 'C:/Users/me/git/breeder' },
     ]);
@@ -94,7 +94,7 @@ describe('memories', () => {
   it('says on the Memories page when there are no memories, or memory is off', async () => {
     const { bridge, answers } = fakeBridge();
     let enabled = true;
-    answers['agents.memories'] = (): AgentMemories => ({
+    answers['memories.list'] = (): AgentMemories => ({
       cwd: 'C:/Users/me',
       folder: 'C:/Users/me/.claude/projects/C--Users-me/memory',
       index: { path: 'C:/Users/me/.claude/projects/C--Users-me/memory/MEMORY.md', exists: false },
@@ -144,7 +144,7 @@ describe('memories', () => {
       memory('testing-strategy', 'reference', ['design-tokens']),
     ];
     const texts_: Record<string, string> = {};
-    answers['agents.memories'] = (): AgentMemories => ({
+    answers['memories.list'] = (): AgentMemories => ({
       cwd: 'C:/Users/me',
       folder,
       index: { path: `${folder}/MEMORY.md`, exists: true },
@@ -154,18 +154,18 @@ describe('memories', () => {
       elsewhere: [],
       at: Date.now(),
     });
-    answers['agents.openMemory'] = (request: CommandRequest<'agents.openMemory'>): SetupFile => ({
+    answers['memories.open'] = (request: CommandRequest<'memories.open'>): SetupFile => ({
       path: request.path,
       text: texts_[request.path] ?? `Text of ${request.path.split('/').at(-1)}`,
       exists: true,
       changedAt: 100,
       editable: true,
     });
-    answers['agents.saveMemory'] = (request: CommandRequest<'agents.saveMemory'>): SetupFile => {
+    answers['memories.save'] = (request: CommandRequest<'memories.save'>): SetupFile => {
       texts_[request.path] = request.text;
       return { path: request.path, text: request.text, exists: true, changedAt: 200, editable: true };
     };
-    answers['agents.deleteMemory'] = (request: CommandRequest<'agents.deleteMemory'>) => {
+    answers['memories.delete'] = (request: CommandRequest<'memories.delete'>) => {
       memories = memories.filter((one) => one.path !== request.path);
     };
     const { fixture, el, texts } = await render(bridge);
@@ -192,7 +192,7 @@ describe('memories', () => {
     el.querySelector<HTMLButtonElement>('gr-memories-page [data-memory="design-tokens"] .name button')!.click();
     await settle();
     expect(calls).toContainEqual({
-      command: 'agents.openMemory',
+      command: 'memories.open',
       request: { agent: 'claude-code', cwd: 'C:/Users/me', path: path('design-tokens') },
     });
     expect(editor()!.value).toBe('Text of design-tokens.md');
@@ -209,7 +209,7 @@ describe('memories', () => {
     link('Save').click();
     await settle();
     expect(calls).toContainEqual({
-      command: 'agents.saveMemory',
+      command: 'memories.save',
       request: {
         agent: 'claude-code',
         cwd: 'C:/Users/me',
@@ -240,14 +240,14 @@ describe('memories', () => {
     link('Keep it').click();
     await fixture.whenStable();
     expect(el.querySelector('gr-memories-page .ask')).toBeNull();
-    expect(calls.some((c) => c.command === 'agents.deleteMemory')).toBe(false);
+    expect(calls.some((c) => c.command === 'memories.delete')).toBe(false);
 
     link('Delete').click();
     await fixture.whenStable();
     el.querySelector<HTMLButtonElement>('gr-memories-page .gr-link.danger')!.click();
     await settle();
     expect(calls).toContainEqual({
-      command: 'agents.deleteMemory',
+      command: 'memories.delete',
       request: { agent: 'claude-code', cwd: 'C:/Users/me', path: path('angular-conventions'), changedAt: 100 },
     });
     expect(editor()).toBeNull();
@@ -260,7 +260,7 @@ describe('memories', () => {
   it('keeps an open memory with changes from being left by turning the right page away', async () => {
     const { bridge, answers } = fakeBridge();
     const folder = 'C:/Users/me/.claude/projects/C--Users-me/memory';
-    answers['agents.memories'] = (): AgentMemories => ({
+    answers['memories.list'] = (): AgentMemories => ({
       cwd: 'C:/Users/me',
       folder,
       index: { path: `${folder}/MEMORY.md`, exists: false },
@@ -279,7 +279,7 @@ describe('memories', () => {
       elsewhere: [],
       at: Date.now(),
     });
-    answers['agents.openMemory'] = (request: CommandRequest<'agents.openMemory'>): SetupFile => ({
+    answers['memories.open'] = (request: CommandRequest<'memories.open'>): SetupFile => ({
       path: request.path,
       text: 'Short answers.',
       exists: true,
@@ -322,7 +322,7 @@ describe('memories', () => {
     });
     let memories = [memory('tone')];
     let text = 'Short answers.';
-    answers['agents.memories'] = (): AgentMemories => ({
+    answers['memories.list'] = (): AgentMemories => ({
       cwd: 'C:/Users/me',
       folder,
       index: { path: `${folder}/MEMORY.md`, exists: true },
@@ -332,7 +332,7 @@ describe('memories', () => {
       elsewhere: [],
       at: Date.now(),
     });
-    answers['agents.openMemory'] = (request: CommandRequest<'agents.openMemory'>): SetupFile => ({
+    answers['memories.open'] = (request: CommandRequest<'memories.open'>): SetupFile => ({
       path: request.path,
       text,
       exists: true,
@@ -349,16 +349,16 @@ describe('memories', () => {
       await fixture.whenStable();
     };
     const names = () => [...el.querySelectorAll('gr-memories-page .card .name')].map((n) => n.textContent!.trim());
-    const reads = () => calls.filter((c) => c.command === 'agents.memories').length;
+    const reads = () => calls.filter((c) => c.command === 'memories.list').length;
     expect(names()).toEqual(['tone']);
 
     // Another folder's memories changing reads nothing.
-    emit('agents.memoriesChanged', { agent: 'claude-code', cwd: 'D:/elsewhere' });
+    emit('memories.changed', { agent: 'claude-code', cwd: 'D:/elsewhere' });
     await settle();
     expect(reads()).toBe(1);
 
     memories = [memory('tone'), memory('commits')];
-    emit('agents.memoriesChanged', { agent: 'claude-code', cwd: 'C:/Users/me' });
+    emit('memories.changed', { agent: 'claude-code', cwd: 'C:/Users/me' });
     await settle();
     expect(names()).toEqual(['tone', 'commits']);
 
@@ -367,7 +367,7 @@ describe('memories', () => {
     await settle();
     const editor = () => el.querySelector<HTMLTextAreaElement>('gr-memories-page textarea')!;
     text = 'Shorter answers.';
-    emit('agents.memoriesChanged', { agent: 'claude-code', cwd: 'C:/Users/me' });
+    emit('memories.changed', { agent: 'claude-code', cwd: 'C:/Users/me' });
     await settle();
     expect(editor().value).toBe('Shorter answers.');
 
@@ -376,7 +376,7 @@ describe('memories', () => {
     editor().dispatchEvent(new Event('input'));
     await fixture.whenStable();
     text = 'Theirs.';
-    emit('agents.memoriesChanged', { agent: 'claude-code', cwd: 'C:/Users/me' });
+    emit('memories.changed', { agent: 'claude-code', cwd: 'C:/Users/me' });
     await settle();
     expect(editor().value).toBe('Mine.');
   });

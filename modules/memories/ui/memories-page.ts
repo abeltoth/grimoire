@@ -131,7 +131,7 @@ export class MemoriesPage {
       observer.observe(map);
     });
     // A memory shown changed, appeared or went: read them again.
-    const off = this.bridge.on('agents.memoriesChanged', ({ agent, cwd }) =>
+    const off = this.bridge.on('memories.changed', ({ agent, cwd }) =>
       this.memoriesChanged(agent, cwd),
     );
     inject(DestroyRef).onDestroy(() => {
@@ -149,7 +149,7 @@ export class MemoriesPage {
       const agents = this.chats.agents();
       const answers = await Promise.all(
         agents.map((agent) =>
-          this.bridge.invoke('agents.memories', { agent: agent.id, ...(cwd ? { cwd } : {}) }),
+          this.bridge.invoke('memories.list', { agent: agent.id, ...(cwd ? { cwd } : {}) }),
         ),
       );
       if (ask !== this.asked) return;
@@ -173,7 +173,7 @@ export class MemoriesPage {
     const done = this.pending.add();
     this.trouble.set(null);
     try {
-      const file = await this.bridge.invoke('agents.openMemory', {
+      const file = await this.bridge.invoke('memories.open', {
         agent: agent.id,
         cwd,
         path: memory.path,
@@ -198,7 +198,7 @@ export class MemoriesPage {
   /** Writes the open memory over the file as it was opened. */
   protected readonly writeMemory = (file: SetupFile, text: string): Promise<SetupFile> => {
     const edit = this.editing()!;
-    return this.bridge.invoke('agents.saveMemory', {
+    return this.bridge.invoke('memories.save', {
       agent: edit.agent.id,
       cwd: edit.cwd,
       path: file.path,
@@ -220,7 +220,7 @@ export class MemoriesPage {
     if (!edit) return;
     const done = this.pending.add();
     try {
-      await this.bridge.invoke('agents.deleteMemory', {
+      await this.bridge.invoke('memories.delete', {
         agent: edit.agent.id,
         cwd: edit.cwd,
         path: edit.file.path,
@@ -253,7 +253,7 @@ export class MemoriesPage {
   private async reopen(edit: Editing): Promise<void> {
     const done = this.pending.add();
     try {
-      const file = await this.bridge.invoke('agents.openMemory', {
+      const file = await this.bridge.invoke('memories.open', {
         agent: edit.agent.id,
         cwd: edit.cwd,
         path: edit.file.path,

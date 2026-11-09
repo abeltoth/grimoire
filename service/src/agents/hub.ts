@@ -7,7 +7,6 @@ import type {
   AgentCommand,
   AgentId,
   AgentInfo,
-  AgentMemories,
   AgentModels,
   AgentSetup,
   AgentSignIn,
@@ -49,8 +48,6 @@ import { EntryIds } from '../storage/entry-ids';
 import { Tags } from '../storage/tags';
 import type { AgentAdapter, ChatEvents, LiveChat, SignInRun, Verdict } from './adapter';
 import { samePath } from './files';
-import { MemoryFiles } from './memory-files';
-import { MemoryWatcher } from './memory-watcher';
 import { SetupFiles } from './setup-files';
 import { SetupWatcher } from './setup-watcher';
 
@@ -155,12 +152,8 @@ export class AgentHub {
   private readonly accounts = new Map<AgentId, AgentAccount | null>();
   private readonly signIns = new Map<AgentId, SigningIn>();
   private readonly setupFiles = new SetupFiles((agent, cwd) => this.setup(agent, cwd));
-  private readonly memoryFiles = new MemoryFiles((agent, cwd) => this.memories(agent, cwd));
   private readonly setupWatcher = new SetupWatcher((agent, cwd) =>
     this.emit('agents.setupChanged', { agent, cwd }),
-  );
-  private readonly memoryWatcher = new MemoryWatcher((agent, cwd) =>
-    this.emit('agents.memoriesChanged', { agent, cwd }),
   );
 
   constructor(
@@ -205,39 +198,6 @@ export class AgentHub {
       this.setupWatcher.watch(agent, setup);
     }
     return setup;
-  }
-
-  /** The memories the agent keeps for a folder, your home folder when there's none; null when it keeps none. */
-  async memories(agent: AgentId, cwd?: string): Promise<AgentMemories | null> {
-    const memories = (await this.adapter(agent).memories?.(cwd ?? homedir())) ?? null;
-    if (memories) this.memoryWatcher.watch(agent, memories);
-    return memories;
-  }
-
-  /** One of the memories the agent keeps for the folder. */
-  openMemory(agent: AgentId, cwd: string | undefined, file: string): Promise<SetupFile> {
-    return this.memoryFiles.open(agent, cwd ?? homedir(), file);
-  }
-
-  /** Writes one of the memories the agent keeps for the folder, unless it changed since it was opened. */
-  saveMemory(
-    agent: AgentId,
-    cwd: string | undefined,
-    file: string,
-    text: string,
-    changedAt: number,
-  ): Promise<SetupFile> {
-    return this.memoryFiles.save(agent, cwd ?? homedir(), file, text, changedAt);
-  }
-
-  /** Deletes one of the memories the agent keeps for the folder, and its line in the index. */
-  deleteMemory(
-    agent: AgentId,
-    cwd: string | undefined,
-    file: string,
-    changedAt: number,
-  ): Promise<void> {
-    return this.memoryFiles.delete(agent, cwd ?? homedir(), file, changedAt);
   }
 
   /** One of the files the agent's setup in the folder lists. */
@@ -750,7 +710,6 @@ export class AgentHub {
     for (const id of [...this.chats.keys()]) this.release(id);
     this.accounts.clear();
     this.setupWatcher.dispose();
-    this.memoryWatcher.dispose();
   }
 
   /** Every window hears who each agent is signed in as now, read again, as after a profile switch. */

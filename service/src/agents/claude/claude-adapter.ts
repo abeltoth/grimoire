@@ -16,7 +16,6 @@ import type {
   AgentAccount,
   AgentCommand,
   AgentInfo,
-  AgentMemories,
   AgentModels,
   AgentSetup,
   ApprovalMode,
@@ -32,14 +31,14 @@ import { readUserSettings } from './effort';
 import { FollowUpsKept, savedFollowUps } from './follow-ups';
 import { GRIMOIRE_SERVER, grimoireOptions } from './grimoire-tools';
 import { mcpOff, mcpSettings } from './mcp';
-import { memorySettings, readMemories } from './memories';
 import { MessageQueue } from './message-queue';
 import { toAgentModels } from './models';
 import { claudeEnv as env, sdk } from './probe';
 import { ASK_TOOL, alwaysAllowOf, toClaudeAnswers, toQuestions } from './permissions';
 import { readOnlyHooks } from './read-only';
 import { withReferences } from './references';
-import { commandFiles, readSettingsFile, settingsFilesIn, toSetup } from './setup';
+import { readSettingsFile, settingsFilesIn } from './settings-files';
+import { commandFiles, toSetup } from './setup';
 import { type AgentToolInput, type PickerSources, RATER_PROMPT, pickFor, readRating } from './subagents';
 import { AUTO_PROMPT, autoPick, messageForRater } from './auto-model';
 import { readAccount, signIn } from './sign-in';
@@ -312,27 +311,6 @@ export class ClaudeAdapter implements AgentAdapter {
     this.modelList = undefined;
     this.commandLists.clear();
     this.dispose();
-  }
-
-  /** The memories Claude Code keeps on its own for a folder, where its settings say. */
-  async memories(cwd: string): Promise<AgentMemories> {
-    const home = homedir();
-    const claudeFolder = claudeHome();
-    const settings = settingsFilesIn(cwd, claudeFolder, process.platform).map((file) =>
-      readSettingsFile(file),
-    );
-    return readMemories({
-      cwd,
-      claudeFolder,
-      settings: memorySettings(
-        settings.map(({ source, settings: own }) => ({
-          source: source as 'user' | 'project' | 'local' | 'managed',
-          settings: own,
-        })),
-        home,
-      ),
-      at: Date.now(),
-    });
   }
 
   /** What Claude Code loads in a folder: its memory, skills, subagents, commands, hooks, MCP servers, plugins and permissions. */

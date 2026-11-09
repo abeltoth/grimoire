@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import type { AgentId, AgentMemories } from '@grimoire/contract';
-import { FolderWatcher, type Target } from './folder-watcher';
+import { FolderWatcher, type Target } from '@grimoire/service/agents/folder-watcher';
 
 /**
  * The folders to watch for memories' changes: the memory folder, for any

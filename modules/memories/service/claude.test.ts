@@ -10,7 +10,7 @@ import {
   readHeader,
   readMemories,
   toMemories,
-} from './memories';
+} from './claude';
 
 const memory = (name: string, type: string, body: string, description = `About ${name}`) =>
   `---\nname: ${name}\ndescription: "${description}"\nmetadata:\n  node_type: memory\n  type: ${type}\n  modified: 2026-10-31T22:01:13.499Z\n---\n\n${body}\n`;
