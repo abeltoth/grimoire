@@ -28,10 +28,10 @@ describe('toRows', () => {
     const reply = rows[1]!;
     if (reply.kind !== 'reply') throw new Error('expected a reply');
     expect(
-      reply.notes.map(({ mark, verb, target, running }) => ({ mark, verb, target, running })),
+      reply.notes.map(({ verb, target, running }) => ({ verb, target, running })),
     ).toEqual([
-      { mark: '*', verb: 'Read', target: '/repo/src/login.ts', running: false },
-      { mark: '†', verb: 'Ran', target: 'npm test', running: true },
+      { verb: 'Read', target: '/repo/src/login.ts', running: false },
+      { verb: 'Ran', target: 'npm test', running: true },
     ]);
   });
 
@@ -57,7 +57,7 @@ describe('toRows', () => {
     ]);
   });
 
-  it('puts the byline on the first reply of a turn and restarts the marks', () => {
+  it('puts the byline on the first reply of a turn', () => {
     const rows = toRows([
       you('u1', 'One'),
       agent('a1', tool('Glob', { pattern: '*.ts' }), text('First'), text('Second')),
@@ -75,7 +75,7 @@ describe('toRows', () => {
       ['Third', true],
     ]);
     expect(replies[2]!.notes).toEqual([
-      expect.objectContaining({ mark: '*', verb: 'Searched', failed: true }),
+      expect.objectContaining({ verb: 'Searched', failed: true }),
     ]);
   });
 
@@ -205,7 +205,6 @@ describe('toRows', () => {
   it('sums up a run whose changes were all undone as withdrawn', () => {
     const changed = (target: string): Note => ({
       key: target,
-      mark: '*',
       verb: 'Edited',
       target,
       label: target,
@@ -226,12 +225,12 @@ describe('toRows', () => {
     });
   });
 
-  it('keeps thinking as its own row and doubles the marks after six notes', () => {
+  it('keeps thinking as its own row', () => {
     const tools = Array.from({ length: 7 }, () => tool('WebFetch', { url: 'https://example.com' }));
     const rows = toRows([agent('a1', { kind: 'thinking', text: 'Hmm' }, ...tools)]);
     expect(rows[0]).toEqual({ kind: 'thinking', key: 'a1/0', text: 'Hmm' });
     const notes = rows[1]!.kind === 'notes' ? rows[1]!.notes : [];
-    expect(notes.map((note) => note.mark)).toEqual(['*', '†', '‡', '§', '‖', '¶', '**']);
+    expect(notes).toHaveLength(7);
   });
 
   it("counts a turn's hooks on its closing line as they run, and what it spent once it ended", () => {

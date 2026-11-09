@@ -271,12 +271,6 @@ p {
   padding-left: var(--gr-note-run-indent);
 }
 
-.mark {
-  color: var(--gr-rubric);
-  font-weight: 700;
-  font-size: var(--gr-size-note-mark);
-}
-
 /* A long command or path is cut short; you see it in full when you point at it. */
 .target {
   min-width: 0;

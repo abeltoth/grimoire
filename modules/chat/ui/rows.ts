@@ -20,10 +20,9 @@ export type Deed =
   | 'added'
   | 'other';
 
-/** A margin note: a tool the agent used, marked like a footnote. */
+/** A margin note: a tool the agent used. */
 export interface Note {
   key: string;
-  mark: string;
   verb: string;
   /** The file, command or search in full. */
   target: string;
@@ -112,8 +111,6 @@ export interface HookLog {
 /** How many of a chapter's turns are marked its costliest, once it has more than that. */
 const COSTLIEST = 3;
 
-const MARKS = ['*', '†', '‡', '§', '‖', '¶'];
-
 // The plan shows in the Outline; ToolSearch only loads other tools.
 const UNNOTED_TOOLS = new Set([
   'TaskCreate',
@@ -153,7 +150,6 @@ export function toRows(
 ): Row[] {
   const rows: Row[] = [];
   let pending: Note[] = [];
-  let marks = 0;
   let bylined = false;
   let undone = false;
   let spent: Extract<Row, { kind: 'spent' }> | undefined;
@@ -201,7 +197,6 @@ export function toRows(
         undoable: false,
       });
       undone = withdrawn.has(entry.id);
-      marks = 0;
       bylined = false;
       continue;
     }
@@ -210,14 +205,8 @@ export function toRows(
       const report = block.kind === 'tool' ? handbackOf(block) : undefined;
       if (block.kind === 'tool' && report === undefined) {
         if (UNNOTED_TOOLS.has(block.tool)) return;
-        const note = toNote(
-          key,
-          block,
-          MARKS[marks % MARKS.length]!.repeat(1 + Math.floor(marks / MARKS.length)),
-          cwd,
-        );
+        const note = toNote(key, block, cwd);
         pending.push(undone && note.counts ? { ...note, withdrawn: true } : note);
-        marks++;
       } else if (block.kind === 'thinking') {
         rows.push({ kind: 'thinking', key, text: block.text });
       } else {
@@ -310,14 +299,13 @@ function markUndoable(rows: Row[], copied: ReadonlySet<string>): void {
   }
 }
 
-function toNote(key: string, block: ToolBlock, mark: string, cwd?: string): Note {
+function toNote(key: string, block: ToolBlock, cwd?: string): Note {
   const input = (block.input ?? {}) as Record<string, unknown>;
   const text = (name: string) => (typeof input[name] === 'string' ? (input[name] as string) : '');
   const file = (name: string) => relativeTo(cwd, text(name));
   const [verb, target, did] = describe(block.tool, text, file, resumes(block));
   return {
     key,
-    mark,
     verb,
     target,
     label: did === 'changed' || did === 'read' ? nameOf(target) : target,

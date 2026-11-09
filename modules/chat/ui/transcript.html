@@ -240,10 +240,7 @@
     [attr.aria-expanded]="note.fold && !turnsPage(note) ? isOpen(note.key) : null"
     (click)="press(note)"
   >
-    <span class="note-head"
-      ><span class="mark">{{ note.mark }}</span
-      >{{ note.verb }}</span
-    >
+    <span class="note-head">{{ note.verb }}</span>
     @if (note.label) {
       <span class="target">{{ note.label }}</span>
     }
