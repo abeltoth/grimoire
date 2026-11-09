@@ -271,6 +271,11 @@ p {
   padding-left: var(--gr-note-run-indent);
 }
 
+/* While a run works, what's done fades: the eye goes to what's running or failed. */
+.run.live .note.done {
+  opacity: var(--gr-note-faded);
+}
+
 /* A long command or path is cut short; you see it in full when you point at it. */
 .target {
   min-width: 0;
@@ -279,6 +284,12 @@ p {
   font-family: var(--gr-font-mono);
   font-size: var(--gr-size-note-detail);
   color: var(--gr-ink);
+}
+
+/* A command shown by what it does, in words rather than code. */
+.target.described {
+  font-family: var(--gr-font-text);
+  font-size: inherit;
 }
 
 .detail {

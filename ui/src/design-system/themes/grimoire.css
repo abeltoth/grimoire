@@ -298,6 +298,7 @@
   --gr-note-pad: 2px 4px 3px 10px;
   --gr-radius-note: 2px;
   --gr-note-hover: rgba(74, 48, 22, 0.05);
+  --gr-note-faded: 0.5;
   --gr-size-code-inline: 0.78em;
   --gr-code-inline-pad: 1px 4px;
   --gr-code-inline-bg: rgba(74, 48, 22, 0.075);
@@ -859,6 +860,7 @@
   --gr-size-caret: 15px;
   --gr-fold-foot-gap: 14px;
   --gr-fold-foot-pad: 4px 14px 6px;
+  --gr-fold-break-gap: 4px;
 
   /* Chat: question form, printed on the page */
   --gr-form-margin: 20px 0 4px;

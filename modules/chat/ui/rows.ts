@@ -4,7 +4,14 @@ import { type DiffLine, type FileChange, fileChange } from './diff';
 
 /** What a margin note folds out: a file's corrections or what a tool printed. */
 export type Fold =
-  | { kind: 'corrections'; file: string; path: string; lines: DiffLine[] }
+  | {
+      kind: 'corrections';
+      file: string;
+      path: string;
+      lines: DiffLine[];
+      /** Where each edit after the first begins, when edits in a row to the file are merged. */
+      breaks?: number[];
+    }
   | { kind: 'output'; title: string; text: string };
 
 /** What a tool did, to sum up a run of notes. */
@@ -26,8 +33,10 @@ export interface Note {
   verb: string;
   /** The file, command or search in full. */
   target: string;
-  /** What the note's one line shows of it: a file's name, or the target itself. */
+  /** What the note's one line shows of it: a file's name, a command's description, or the target itself. */
   label: string;
+  /** How many tool calls in a row it stands for, when edits to one file are merged. */
+  times?: number;
   did: Deed;
   running: boolean;
   failed: boolean;
@@ -243,8 +252,54 @@ function hookLog(key: string, runs: readonly HookRun[]): HookLog {
   return { key, runs, running: counted('running'), blocked: counted('blocked'), failed: counted('failed') };
 }
 
-function margin(notes: Note[]): Margin {
+function margin(pending: Note[]): Margin {
+  const notes = mergeEdits(pending);
   return notes.length > 1 ? { notes, summary: summarize(notes) } : { notes };
+}
+
+/** Changes in a row to the same file, none failed, read as one note: its counts added up, its edits stacked. */
+function mergeEdits(notes: readonly Note[]): Note[] {
+  const merged: Note[] = [];
+  for (const note of notes) {
+    const last = merged.at(-1);
+    if (!last || !mergeable(last, note)) {
+      merged.push(note);
+      continue;
+    }
+    const before = last.fold?.kind === 'corrections' ? last.fold : undefined;
+    const after = note.fold?.kind === 'corrections' ? note.fold : undefined;
+    const added = (last.added ?? 0) + (note.added ?? 0);
+    const removed = (last.removed ?? 0) + (note.removed ?? 0);
+    merged[merged.length - 1] = {
+      ...last,
+      times: (last.times ?? 1) + 1,
+      running: last.running || note.running,
+      counts: `+${added} −${removed}`,
+      added,
+      removed,
+      ...(before && after
+        ? {
+            fold: {
+              ...before,
+              lines: [...before.lines, ...after.lines],
+              breaks: [...(before.breaks ?? []), before.lines.length],
+            },
+          }
+        : {}),
+    };
+  }
+  return merged;
+}
+
+function mergeable(a: Note, b: Note): boolean {
+  return (
+    a.did === 'changed' &&
+    b.did === 'changed' &&
+    a.target === b.target &&
+    !a.failed &&
+    !b.failed &&
+    !!a.withdrawn === !!b.withdrawn
+  );
 }
 
 const times = (n: number) => (n === 1 ? 'once' : n === 2 ? 'twice' : `${n} times`);
@@ -308,7 +363,7 @@ function toNote(key: string, block: ToolBlock, cwd?: string): Note {
     key,
     verb,
     target,
-    label: did === 'changed' || did === 'read' ? nameOf(target) : target,
+    label: did === 'changed' || did === 'read' ? nameOf(target) : (did === 'ran' && text('description').trim()) || target,
     did,
     running: !block.result,
     failed: block.result?.isError === true,

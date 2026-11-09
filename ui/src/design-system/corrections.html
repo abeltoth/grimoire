@@ -13,6 +13,7 @@
       class="line"
       [class.removed]="line.kind === 'removed'"
       [class.inserted]="line.kind === 'inserted'"
+      [class.break]="line.break"
     >
       <span class="number">{{ line.kind === 'inserted' ? '‸' : '' }}</span>
       <span class="code">{{ line.text }}</span>

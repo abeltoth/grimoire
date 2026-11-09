@@ -6,6 +6,8 @@ interface Line extends DiffLine {
   key: number;
   /** The correction mark in the margin. */
   mark: string;
+  /** It begins another edit, when several are stacked. */
+  break: boolean;
 }
 
 /**
@@ -21,6 +23,8 @@ interface Line extends DiffLine {
 export class Corrections {
   readonly file = input.required<string>();
   readonly lines = input.required<readonly DiffLine[]>();
+  /** Where each stacked edit after the first begins, as line indexes. */
+  readonly breaks = input<readonly number[]>([]);
   /** Who marked them, such as "as proposed by Claude Code". */
   readonly caption = input.required<string>();
   /** Whether it offers to open the file in Files. */
@@ -30,9 +34,15 @@ export class Corrections {
 
   private readonly body = viewChild.required<ElementRef<HTMLElement>>('body');
 
-  protected readonly marked = computed<Line[]>(() =>
-    this.lines().map((line, key, lines) => ({ ...line, key, mark: markOf(lines, key) })),
-  );
+  protected readonly marked = computed<Line[]>(() => {
+    const breaks = new Set(this.breaks());
+    return this.lines().map((line, key, lines) => ({
+      ...line,
+      key,
+      mark: markOf(lines, key, breaks),
+      break: breaks.has(key),
+    }));
+  });
   protected readonly inserted = computed(
     () => this.lines().filter((line) => line.kind === 'inserted').length,
   );
@@ -45,11 +55,12 @@ export class Corrections {
   );
 }
 
-function markOf(lines: readonly DiffLine[], index: number): string {
+/** A run of inserted lines is marked once, and doesn't run on into the next stacked edit. */
+function markOf(lines: readonly DiffLine[], index: number, breaks: ReadonlySet<number>): string {
   const line = lines[index]!;
   if (line.kind === 'removed') return 'dele';
-  if (line.kind !== 'inserted' || lines[index - 1]?.kind === 'inserted') return '';
+  if (line.kind !== 'inserted' || (!breaks.has(index) && lines[index - 1]?.kind === 'inserted')) return '';
   let run = 1;
-  while (lines[index + run]?.kind === 'inserted') run++;
+  while (lines[index + run]?.kind === 'inserted' && !breaks.has(index + run)) run++;
   return run === 1 ? '‸ insert' : `‸ insert ${run} lines`;
 }

@@ -65,6 +65,13 @@
   text-align: center;
 }
 
+/* Where another stacked edit begins. */
+.line.break {
+  margin-top: var(--gr-fold-break-gap);
+  padding-top: var(--gr-fold-break-gap);
+  border-top: 1px dashed var(--gr-hairline);
+}
+
 /* Long lines wrap: what changes stays in view. */
 .code {
   white-space: pre-wrap;

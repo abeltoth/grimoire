@@ -213,7 +213,7 @@
         }
       </button>
       @if (isOpen(summary.key)) {
-        <div class="run">
+        <div class="run" [class.live]="summary.running">
           @for (note of row.notes; track note.key) {
             <ng-container *ngTemplateOutlet="noteTemplate; context: { $implicit: note }" />
           }
@@ -235,6 +235,7 @@
   <button
     type="button"
     class="note"
+    [class.done]="!note.running && !note.failed"
     [attr.title]="note.target || null"
     [attr.aria-disabled]="note.fold || turnsPage(note) ? null : true"
     [attr.aria-expanded]="note.fold && !turnsPage(note) ? isOpen(note.key) : null"
@@ -242,7 +243,10 @@
   >
     <span class="note-head">{{ note.verb }}</span>
     @if (note.label) {
-      <span class="target">{{ note.label }}</span>
+      <span class="target" [class.described]="note.label !== note.target">{{ note.label }}</span>
+    }
+    @if (note.times) {
+      <span class="detail">×{{ note.times }}</span>
     }
     @if (note.failed) {
       <span class="detail failed">failed</span>
@@ -300,6 +304,7 @@
           class="wide"
           [file]="note.fold.file"
           [lines]="note.fold.lines"
+          [breaks]="note.fold.breaks ?? []"
           [caption]="'as marked by ' + agentName()"
           [openable]="!!shell.openFile()"
           (open)="shell.openFile()?.(note.fold.path)"

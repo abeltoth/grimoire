@@ -136,6 +136,56 @@ describe('toRows', () => {
     ]);
   });
 
+  it('shows a command by what it does, when the agent said', () => {
+    const rows = toRows([agent('a1', tool('Bash', { command: 'npm test -w ui', description: 'Run UI tests' }))]);
+    const notes = rows[0]!.kind === 'notes' ? rows[0]!.notes : [];
+    expect(notes.map(({ target, label }) => ({ target, label }))).toEqual([
+      { target: 'npm test -w ui', label: 'Run UI tests' },
+    ]);
+  });
+
+  it('merges changes in a row to one file, stacking their corrections', () => {
+    const done = { text: 'Updated.', isError: false };
+    const edit = (id: string, file: string, from: string, to: string, result?: ToolBlock['result']) => ({
+      ...tool('Edit', { file_path: file, old_string: from, new_string: to }, result),
+      id,
+    });
+    const rows = toRows(
+      [
+        agent(
+          'a1',
+          edit('e1', '/repo/a.ts', 'one', 'ONE', done),
+          edit('e2', '/repo/a.ts', 'two', 'TWO\nTHREE', done),
+          edit('e3', '/repo/a.ts', 'x', 'y', { text: 'String not found.', isError: true }),
+          edit('e4', '/repo/a.ts', 'four', 'FOUR'),
+          edit('e5', '/repo/b.ts', 'five', 'FIVE', done),
+        ),
+      ],
+      '/repo',
+    );
+    const notes = rows[0]!.kind === 'notes' ? rows[0]!.notes : [];
+    expect(notes.map(({ label, times, counts, running, failed }) => ({ label, times, counts, running, failed }))).toEqual([
+      { label: 'a.ts', times: 2, counts: '+3 −2', running: false, failed: false },
+      { label: 'a.ts', times: undefined, counts: undefined, running: false, failed: true },
+      { label: 'a.ts', times: undefined, counts: '+1 −1', running: true, failed: false },
+      { label: 'b.ts', times: undefined, counts: '+1 −1', running: false, failed: false },
+    ]);
+    expect(notes[0]!.fold).toEqual({
+      kind: 'corrections',
+      file: 'a.ts',
+      path: '/repo/a.ts',
+      lines: [
+        { kind: 'removed', text: 'one' },
+        { kind: 'inserted', text: 'ONE' },
+        { kind: 'removed', text: 'two' },
+        { kind: 'inserted', text: 'TWO' },
+        { kind: 'inserted', text: 'THREE' },
+      ],
+      breaks: [2],
+    });
+    expect(rows[0]!.kind === 'notes' && rows[0]!.summary).toMatchObject({ text: 'Changed 2 files', counts: '+5 −4' });
+  });
+
   it('links a message that resumed a helper to its run, but not one sent elsewhere', () => {
     const resumed = { text: '{"success":true,"resumedAgentId":"a819"}', isError: false };
     const sent = { text: '{"success":true,"message":"Sent"}', isError: false };
