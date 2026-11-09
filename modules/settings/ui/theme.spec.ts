@@ -11,7 +11,7 @@ import {
   densityOf,
   hexOf,
   isColour,
-  lookUpTokens,
+  searchTokens,
   pxOf,
   textFontOf,
   tokenGroups,
@@ -78,16 +78,16 @@ describe('the theme’s tokens', () => {
     }
   });
 
-  it('are looked up by name, value or heading', () => {
+  it('are searched by name, value or heading', () => {
     const groups = tokenGroups(theme);
-    const found = (lookUp: string) =>
-      lookUpTokens(groups, lookUp).flatMap((group) => group.tokens.map((token) => token.name));
+    const found = (query: string) =>
+      searchTokens(groups, query).flatMap((group) => group.tokens.map((token) => token.name));
     expect(found('RUBRIC')).toContain('--gr-rubric');
     expect(found('#f3ebd9')).toEqual(['--gr-page']);
-    expect(lookUpTokens(groups, 'composer').map((group) => group.title)).toEqual([
+    expect(searchTokens(groups, 'composer').map((group) => group.title)).toEqual([
       'Chat: composer',
     ]);
-    expect(lookUpTokens(groups, '  ')).toHaveLength(groups.length);
+    expect(searchTokens(groups, '  ')).toHaveLength(groups.length);
   });
 
   it('are read from a theme file, whatever it sets', () => {

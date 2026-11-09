@@ -74,17 +74,17 @@
   }
 } @else {
   <h2>{{ chats.folderName(v.root() ?? cwd()) }}</h2>
-  <div class="look-up">
-    <label for="gr-files-look-up">{{ wording.say('Look up', 'Find') }}</label>
+  <div class="search">
+    <label for="gr-files-search">{{ wording.say('Look up', 'Find') }}</label>
     <input
-      #lookUpField
-      id="gr-files-look-up"
+      #searchField
+      id="gr-files-search"
       type="text"
       autocomplete="off"
       spellcheck="false"
       placeholder="a file, by name"
       [value]="v.query()"
-      (input)="find(lookUpField.value)"
+      (input)="find(searchField.value)"
     />
   </div>
   @if (v.note(); as note) {

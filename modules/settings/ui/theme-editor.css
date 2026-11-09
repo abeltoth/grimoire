@@ -168,21 +168,21 @@ h3 {
   color: var(--gr-ink-soft);
 }
 
-.look-up {
+.search {
   display: flex;
   align-items: baseline;
   gap: var(--gr-theme-control-gap);
   margin-bottom: var(--gr-theme-group-gap);
 }
 
-.look-up label {
+.search label {
   font-family: var(--gr-font-sc);
   font-size: var(--gr-size-label);
   letter-spacing: var(--gr-tracking-label);
   color: var(--gr-ink-soft);
 }
 
-.look-up .line {
+.search .line {
   flex: 1;
 }
 
@@ -220,7 +220,7 @@ h3 {
   color: var(--gr-rubric);
 }
 
-/* A heading of the theme's, folded shut until you open it or look something up. */
+/* A heading of the theme's, folded shut until you open it or search for something. */
 .group {
   border-top: 1px solid var(--gr-hairline);
 }

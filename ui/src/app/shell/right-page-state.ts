@@ -1,8 +1,8 @@
 import { Injectable, computed, signal } from '@angular/core';
 import type { AgentCommand, AgentId } from '@grimoire/contract';
 
-/** What you're looking up among an agent's commands, from the start of an entry. */
-export interface CommandLookUp {
+/** What you're searching for among an agent's commands, from the start of a message. */
+export interface CommandSearch {
   chatId: string;
   agent: AgentId;
   /** The chat's folder; the agent's commands can differ between folders. */
@@ -24,10 +24,10 @@ export class RightPageState {
   readonly approvals = signal(false);
   /** The approval card to start on; the oldest when unset. */
   readonly firstApproval = signal<string | undefined>(undefined);
-  /** What the command palette looks up while the right page shows it; null when it doesn't. */
+  /** What the command palette searches for while the right page shows it; null when it doesn't. */
   readonly commandPalette = signal<string | null>(null);
   /** The agent's commands the right page lists; null when it doesn't. */
-  readonly commands = signal<CommandLookUp | null>(null);
+  readonly commands = signal<CommandSearch | null>(null);
   /** Which of its own pages the right page shows, by ID; the first that can be picked when unset. */
   readonly page = signal<string | undefined>(undefined);
   /** The page tab whose page the right page shows; null when it shows none. */
@@ -67,20 +67,20 @@ export class RightPageState {
     this.approvals.set(true);
   }
 
-  openCommandPalette(lookUp = ''): void {
+  openCommandPalette(query = ''): void {
     if (!this.mayLeave()) return;
     this.approvals.set(false);
     this.commands.set(null);
     this.pageTab.set(null);
-    this.commandPalette.set(lookUp);
+    this.commandPalette.set(query);
   }
 
-  openCommands(lookUp: CommandLookUp): void {
+  openCommands(search: CommandSearch): void {
     if (!this.mayLeave()) return;
     this.approvals.set(false);
     this.commandPalette.set(null);
     this.pageTab.set(null);
-    this.commands.set(lookUp);
+    this.commands.set(search);
   }
 
   /** Turns the right page back to its own pages, at this one. */

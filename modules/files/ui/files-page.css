@@ -47,17 +47,17 @@ ul {
   padding: 0;
 }
 
-/* The look-up, written in pen, as the command palette's is. */
-.look-up {
+/* The search field, written in pen, as the command palette's is. */
+.search {
   display: flex;
   align-items: baseline;
-  gap: var(--gr-command-palette-look-up-gap);
+  gap: var(--gr-command-palette-search-gap);
   max-width: var(--gr-files-width);
-  padding-bottom: var(--gr-command-palette-look-up-pad);
-  border-bottom: var(--gr-command-palette-look-up-rule);
+  padding-bottom: var(--gr-command-palette-search-pad);
+  border-bottom: var(--gr-command-palette-search-rule);
 }
 
-.look-up label {
+.search label {
   font-family: var(--gr-font-sc);
   font-size: var(--gr-size-command-palette-label);
   letter-spacing: var(--gr-tracking-command-palette-label);
@@ -65,7 +65,7 @@ ul {
   white-space: nowrap;
 }
 
-.look-up input {
+.search input {
   flex: 1;
   min-width: 0;
   padding: 0;
@@ -78,7 +78,7 @@ ul {
   outline: none;
 }
 
-.look-up input::placeholder {
+.search input::placeholder {
   font-family: var(--gr-font-text);
   font-style: italic;
   color: var(--gr-ink-placeholder);

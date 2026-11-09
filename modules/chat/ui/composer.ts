@@ -62,7 +62,7 @@ export class Composer {
 
   readonly chatId = input.required<string>();
   readonly agent = input.required<AgentId>();
-  /** The chat's folder, where the agent's commands are looked up. */
+  /** The chat's folder, where the agent's commands are searched. */
   readonly cwd = input<string>();
   /** A blank chat's composer: it takes the first entry. */
   readonly first = input(false);
@@ -77,7 +77,7 @@ export class Composer {
   readonly sent = input<readonly string[]>([]);
   /** The entry field's ID, one for each page's entry. */
   readonly entryId = input('gr-next-entry');
-  /** On the right page, so its commands are looked up on the left page. */
+  /** On the right page, so its commands are searched on the left page. */
   readonly beside = input(false);
   /** What the agent suggests you write next, while the chat is idle with nothing queued. */
   readonly suggestion = input<string>();
@@ -169,17 +169,17 @@ export class Composer {
   protected readonly suggested = computed(() => {
     const suggestion = this.suggestion();
     if (!suggestion || this.dismissed() || !this.settings.all().suggestions) return undefined;
-    if (this.draft() || this.queued().length || this.lookingUp()) return undefined;
+    if (this.draft() || this.queued().length || this.searchingCommands()) return undefined;
     return suggestion;
   });
 
   /** Whether the right page lists the agent's commands for this entry. */
-  protected readonly lookingUp = computed(
-    () => this.commands.lookUp()?.chatId === this.chatId(),
+  protected readonly searchingCommands = computed(
+    () => this.commands.search()?.chatId === this.chatId(),
   );
   /** The command the right page points at, while it lists them. */
   protected readonly chosen = computed(() =>
-    this.lookingUp() ? this.commands.chosen() : undefined,
+    this.searchingCommands() ? this.commands.chosen() : undefined,
   );
 
   constructor() {
@@ -187,12 +187,12 @@ export class Composer {
     effect(() =>
       this.drafts.keep(this.chatId(), { text: this.draft(), attachments: this.attachments() }),
     );
-    // A fresh page for another chat; the commands were looked up for the last one.
+    // A fresh page for another chat; the commands were searched for the last one.
     effect(() => {
       const chatId = this.chatId();
       untracked(() => {
-        const lookUp = this.commands.lookUp();
-        if (lookUp && lookUp.chatId !== chatId) this.commands.close();
+        const search = this.commands.search();
+        if (search && search.chatId !== chatId) this.commands.close();
       });
     });
     // Another chat's entries to bring back.
@@ -212,11 +212,11 @@ export class Composer {
     });
     inject(DestroyRef).onDestroy(() => {
       clearInterval(minute);
-      if (this.lookingUp()) this.commands.close();
+      if (this.searchingCommands()) this.commands.close();
     });
   }
 
-  /** Keeps what you write, and looks up the agent's commands while it's a "/" and a name. */
+  /** Keeps what you write, and searches the agent's commands while it's a "/" and a name. */
   protected write(text: string): void {
     this.draft.set(text);
     if (text) this.dismissed.set(true);
@@ -230,13 +230,13 @@ export class Composer {
         query: slash[1]!,
         use: (command) => this.use(command),
       });
-    } else if (this.lookingUp()) this.commands.close();
+    } else if (this.searchingCommands()) this.commands.close();
   }
 
   protected key(event: KeyboardEvent, entry: HTMLTextAreaElement): void {
     if (event.isComposing) return;
     const chosen = this.chosen();
-    if (this.lookingUp() && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+    if (this.searchingCommands() && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
       event.preventDefault();
       this.commands.move(event.key === 'ArrowDown' ? 1 : -1);
     } else if (
@@ -327,7 +327,7 @@ export class Composer {
   }
 
   protected send(entry: HTMLTextAreaElement): void {
-    if (this.lookingUp()) this.commands.close();
+    if (this.searchingCommands()) this.commands.close();
     const text = entry.value.trim();
     const attachments = this.attachments();
     if (!text && !attachments.length) return;

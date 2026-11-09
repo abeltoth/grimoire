@@ -109,9 +109,9 @@ export class ChatPage {
     return id === undefined ? this.chats.current() : this.chats.all().find((c) => c.id === id);
   });
   protected readonly composer = viewChild(Composer);
-  /** Whether a popout's page lists the agent's commands, looked up from its entry. */
-  protected readonly lookingUp = computed(
-    () => this.popout && this.commands.lookUp()?.chatId === this.chat()?.id,
+  /** Whether a popout's page lists the agent's commands, searched from its composer. */
+  protected readonly searchingCommands = computed(
+    () => this.popout && this.commands.search()?.chatId === this.chat()?.id,
   );
   private readonly running = computed(() =>
     ['thinking', 'writing', 'waiting'].includes(this.chat()?.status ?? ''),

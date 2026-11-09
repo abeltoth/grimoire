@@ -43,8 +43,8 @@ export class SlashCommands {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
 
   protected readonly agentName = computed(() => {
-    const lookUp = this.commands.lookUp();
-    return lookUp ? this.chats.agentName(lookUp.agent) : '';
+    const search = this.commands.search();
+    return search ? this.chats.agentName(search.agent) : '';
   });
 
   protected readonly sections = computed<Section[]>(() => {
@@ -68,7 +68,7 @@ export class SlashCommands {
     const name = this.agentName();
     if (!all) return `Asking ${name} for its commands and skills…`;
     if ('error' in all) return `${name}’s commands and skills couldn’t be listed: ${all.error}`;
-    return `Nothing in ${name}’s commands and skills matches “/${this.commands.lookUp()?.query}”.`;
+    return `Nothing in ${name}’s commands and skills matches “/${this.commands.search()?.query}”.`;
   });
 
   constructor() {
@@ -81,16 +81,16 @@ export class SlashCommands {
   /** What the right-hand column says: how full the chat is for /compact, its folder for /init. */
   protected where(command: AgentCommand): { text: string; folder?: true } {
     if (command.kind === 'skill') return { text: 'skill' };
-    const lookUp = this.commands.lookUp();
-    const context = this.chats.all().find((chat) => chat.id === lookUp?.chatId)?.context;
+    const search = this.commands.search();
+    const context = this.chats.all().find((chat) => chat.id === search?.chatId)?.context;
     if (command.name === 'compact' && context?.limit)
       return { text: `${Math.round((context.used / context.limit) * 100)}% used` };
-    if (command.name === 'init') return { text: this.chats.folderName(lookUp?.cwd), folder: true };
+    if (command.name === 'init') return { text: this.chats.folderName(search?.cwd), folder: true };
     return { text: 'command' };
   }
 
   protected use(command: AgentCommand): void {
-    this.commands.lookUp()?.use(command);
+    this.commands.search()?.use(command);
   }
 
   protected back(event: Event): void {

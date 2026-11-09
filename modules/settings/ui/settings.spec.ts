@@ -691,7 +691,7 @@ describe('settings', () => {
     expect(sets()).toEqual([{ theme: { '--gr-page': '#ffffff' } }]);
     expect(texts('gr-theme-editor .count')).toEqual([expect.stringMatching(/ tokens · 1 changed$/)]);
 
-    const field = el.querySelector<HTMLInputElement>('#gr-theme-look-up')!;
+    const field = el.querySelector<HTMLInputElement>('#gr-theme-search')!;
     field.value = 'composer';
     field.dispatchEvent(new Event('input'));
     await fixture.whenStable();
@@ -782,7 +782,7 @@ describe('settings', () => {
     expect(kept.theme).toEqual({ '--gr-font-text': sans!.value, ...roomy!.tokens });
 
     // One of its tokens changed by hand is none of the densities.
-    const field = el.querySelector<HTMLInputElement>('#gr-theme-look-up')!;
+    const field = el.querySelector<HTMLInputElement>('#gr-theme-search')!;
     field.value = '--gr-space-3';
     field.dispatchEvent(new Event('input'));
     await fixture.whenStable();

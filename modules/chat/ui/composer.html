@@ -47,7 +47,7 @@
     [id]="entryId()"
     class="entry"
     rows="2"
-    [class.slash]="lookingUp()"
+    [class.slash]="searchingCommands()"
     [placeholder]="
       suggested() ??
       (first()
@@ -55,14 +55,14 @@
         : wording.say('Write the next entry…', 'Write the next message…'))
     "
     [value]="draft()"
-    [attr.aria-controls]="lookingUp() ? 'gr-command-entries' : null"
-    [attr.aria-expanded]="lookingUp() ? true : null"
+    [attr.aria-controls]="searchingCommands() ? 'gr-command-entries' : null"
+    [attr.aria-expanded]="searchingCommands() ? true : null"
     [attr.aria-activedescendant]="chosen() ? 'gr-command-' + chosen()!.name : null"
     (input)="write($any($event.target).value)"
     (keydown)="key($event, entry)"
     (paste)="paste($event)"
   ></textarea>
-  @if (lookingUp()) {
+  @if (searchingCommands()) {
     <span class="slash-hint"
       >{{ chats.agentName(agent()) }}’s commands and skills are
       @if (popout) {

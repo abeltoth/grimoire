@@ -110,7 +110,7 @@ describe('App', () => {
     expect(texts('gr-settings-card .column.on h3')).toEqual(['Agent']);
   });
 
-  it('looks up actions and chats in the command palette, turned to with Ctrl+K', async () => {
+  it('searches actions and chats in the command palette, turned to with Ctrl+K', async () => {
     const { bridge, calls, answers } = fakeBridge();
     answers['agents.chats'] = () => [
       { id: 'c7', agent: 'claude-code', title: 'Old notes', cwd: 'C:/Users/me', updatedAt: 0, pins: ['pin', 'star'], tags: [] },
@@ -152,7 +152,7 @@ describe('App', () => {
       'New onboarding flow',
       'Fix flaky login test',
     ]);
-    const field = el.querySelector<HTMLInputElement>('#gr-command-palette-look-up')!;
+    const field = el.querySelector<HTMLInputElement>('#gr-command-palette-search')!;
     expect(document.activeElement).toBe(field);
 
     field.value = 'new';
@@ -193,7 +193,7 @@ describe('App', () => {
     expect(notch.getAttribute('aria-current')).toBe('page');
     expect(texts('gr-command-palette .row .gr-link')).toEqual(['Back to the Outline Esc']);
 
-    const field = el.querySelector<HTMLInputElement>('#gr-command-palette-look-up')!;
+    const field = el.querySelector<HTMLInputElement>('#gr-command-palette-search')!;
     field.value = 'zzz';
     field.dispatchEvent(new Event('input'));
     await fixture.whenStable();
@@ -244,7 +244,7 @@ describe('App', () => {
     const { fixture, el, texts } = await render(bridge);
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }));
     await fixture.whenStable();
-    const field = el.querySelector<HTMLInputElement>('#gr-command-palette-look-up')!;
+    const field = el.querySelector<HTMLInputElement>('#gr-command-palette-search')!;
     field.value = 'preset';
     field.dispatchEvent(new Event('input'));
     await fixture.whenStable();

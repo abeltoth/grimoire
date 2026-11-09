@@ -1,4 +1,4 @@
-/* What you looked up is written in your entry; the slash commands only show it. */
+/* What you search for is written in your message; the slash commands only show it. */
 .from {
   display: inline-flex;
   align-items: baseline;
@@ -11,7 +11,7 @@
 
 .slash {
   font-style: normal;
-  font-size: var(--gr-size-command-palette-look-up);
+  font-size: var(--gr-size-command-palette-search);
   line-height: 1;
   color: var(--gr-pen);
 }

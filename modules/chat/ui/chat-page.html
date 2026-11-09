@@ -1,5 +1,5 @@
 @if (chat(); as c) {
-  @if (lookingUp()) {
+  @if (searchingCommands()) {
     <gr-slash-commands [backTo]="wording.say('chapter', 'chat')" [foot]="false" />
   } @else {
     @if (!beside()) {

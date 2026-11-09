@@ -20,15 +20,15 @@ import { Wording } from '@ui/app/core/wording';
 import { Icon } from '@ui/design-system/icon';
 import { dated, keptTags, numeral, partTitle, partsOf, tagsOf, withTags } from './chat-groups';
 
-/** How long the look-up waits for you to stop writing before it searches. */
-const LOOK_UP_DELAY_MS = 150;
+/** How long the search field waits for you to stop writing before it searches. */
+const SEARCH_DELAY_MS = 150;
 
 /**
  * The History page: every chat you've had, in parts by the project it
  * ran in, each chat with its tags and the day it was last written in.
- * Looking up words narrows the list to the chats with them, each with the
+ * Searching for words narrows the list to the chats with them, each with the
  * passage that has them; tags narrow it too, and "+ Tag" on a chat adds
- * one. A chat's title, or Enter in the look-up, opens it on the left
+ * one. A chat's title, or Enter in the search field, opens it on the left
  * page, and the history stays open beside it.
  */
 @Component({
@@ -45,7 +45,7 @@ export class HistoryPage {
   private readonly injector = inject(Injector);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly field = viewChild<ElementRef<HTMLInputElement>>('field');
-  private readonly lookUpField = viewChild.required<ElementRef<HTMLInputElement>>('lookUpField');
+  private readonly searchField = viewChild.required<ElementRef<HTMLInputElement>>('searchField');
 
   /** Every agent's chats; undefined until they've answered. */
   private readonly listed = signal<readonly ChatSummary[] | undefined>(undefined);
@@ -54,9 +54,9 @@ export class HistoryPage {
   /** The chat a new tag is being written for. */
   protected readonly adding = signal<ChatId | null>(null);
   protected readonly failed = signal<string | null>(null);
-  /** What's looked up. */
-  protected readonly lookUp = signal('');
-  /** The chats with what's looked up, by chat; null while nothing is. */
+  /** What's searched for. */
+  protected readonly query = signal('');
+  /** The chats with what's searched for, by chat; null while nothing is. */
   protected readonly hits = signal<ReadonlyMap<ChatId, SearchHit> | null>(null);
   protected readonly searching = signal(false);
   protected readonly searchFailed = signal<string | null>(null);
@@ -86,7 +86,7 @@ export class HistoryPage {
     }));
   });
 
-  /** How many chats have what's looked up, while something is. */
+  /** How many chats have what's searched for, while something is. */
   protected readonly count = computed(() => {
     if (!this.hits()) return this.searching() ? 'Looking…' : '';
     const count = this.parts()?.reduce((sum, part) => sum + part.chats.length, 0) ?? 0;
@@ -109,11 +109,11 @@ export class HistoryPage {
     ];
     inject(DestroyRef).onDestroy(() => stops.forEach((stop) => stop()));
     afterRenderEffect(() => this.field()?.nativeElement.focus());
-    afterNextRender(() => this.lookUpField().nativeElement.focus());
+    afterNextRender(() => this.searchField().nativeElement.focus());
     inject(DestroyRef).onDestroy(() => this.stopWaiting());
   }
 
-  /** The passage a chat has what's looked up in, unless that's its title. */
+  /** The passage a chat has what's searched for in, unless that's its title. */
   protected hitOf(chat: ChatSummary): SearchHit | undefined {
     const hit = this.hits()?.get(chat.id);
     return hit?.kind === 'title' ? undefined : hit;
@@ -124,9 +124,9 @@ export class HistoryPage {
     return hit.kind === 'you' ? 'You' : this.chats.agentName(hit.agent);
   }
 
-  /** Looks up what's written, once you stop writing; nothing written lists every chat again. */
-  protected look(query: string): void {
-    this.lookUp.set(query);
+  /** Searches for what's written, once you stop writing; nothing written lists every chat again. */
+  protected setQuery(query: string): void {
+    this.query.set(query);
     this.stopWaiting();
     this.searches++;
     if (!query.trim()) {
@@ -140,11 +140,11 @@ export class HistoryPage {
     const timer = setTimeout(() => {
       this.waiting = undefined;
       void this.search(query).finally(done);
-    }, LOOK_UP_DELAY_MS);
+    }, SEARCH_DELAY_MS);
     this.waiting = { timer, done };
   }
 
-  /** Enter in the look-up opens the first chat listed. */
+  /** Enter in the search field opens the first chat listed. */
   protected openFirst(): void {
     const first = this.parts()?.[0]?.chats[0];
     if (first) this.open(first);

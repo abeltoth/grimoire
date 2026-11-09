@@ -130,6 +130,23 @@ describe('storage', () => {
     db.close();
   });
 
+  it("keeps a saved theme's changes to the search fields under their new names", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'grimoire-db-'));
+    dirs.push(dir);
+    const file = path.join(dir, 'grimoire.db');
+
+    const old = openDatabase(file, 19);
+    old.exec(
+      `INSERT INTO settings (profile, key, value) VALUES
+         ('personal', 'theme', '{"--gr-size-history-look-up":"20px","--gr-ink":"#000000"}');`,
+    );
+    old.close();
+
+    const db = openDatabase(file);
+    expect(new SettingsStore(db).get().theme).toEqual({ '--gr-size-history-search': '20px', '--gr-ink': '#000000' });
+    db.close();
+  });
+
   it('keeps the chats sent in parallel together, and the one that edits each group', () => {
     const parallels = new Parallels(openDatabase(':memory:'));
     expect(parallels.groupOf('a')).toBe('a');

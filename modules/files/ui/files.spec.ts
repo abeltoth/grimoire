@@ -341,7 +341,7 @@ describe('files', () => {
     it('finds files by name', async () => {
       const { bridge, calls } = repository();
       const { fixture, el, texts, button, editor } = await openFiles(bridge);
-      const field = el.querySelector<HTMLInputElement>('#gr-files-look-up')!;
+      const field = el.querySelector<HTMLInputElement>('#gr-files-search')!;
       field.value = 'src';
       field.dispatchEvent(new Event('input'));
       await fixture.whenStable();

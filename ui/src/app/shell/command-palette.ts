@@ -39,7 +39,7 @@ interface CommandPaletteEntry {
   run: () => void;
 }
 
-/** An entry as listed: its label split around the part you looked up. */
+/** An entry as listed: its label split around the part you searched for. */
 interface Listed extends CommandPaletteEntry {
   parts: [before: string, match: string, after: string];
 }
@@ -54,7 +54,7 @@ const MAX_CHATS = 8;
 
 /**
  * The command palette, on the right page: every action
- * with its shortcut, and the chats you've had, looked up as you type. ↑ and ↓
+ * with its shortcut, and the chats you've had, searched as you type. ↑ and ↓
  * move, Enter opens, and Esc turns back. "New chat from preset" lists the
  * presets instead, until Esc.
  */
@@ -79,13 +79,13 @@ export class CommandPalette {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly field = viewChild.required<ElementRef<HTMLInputElement>>('field');
 
-  protected readonly lookUp = linkedSignal(() => this.rightPage.commandPalette() ?? '');
+  protected readonly query = linkedSignal(() => this.rightPage.commandPalette() ?? '');
   private readonly pastChats = signal<readonly ChatSummary[]>([]);
   /** Whether the command palette lists the presets, to begin a chat with one. */
   protected readonly listingPresets = signal(false);
 
   protected readonly sections = computed<Section[]>(() => {
-    const lookUp = this.lookUp().trim();
+    const query = this.query().trim();
     if (this.listingPresets()) {
       const presets = this.presets.all().map(
         (preset): CommandPaletteEntry => ({
@@ -97,7 +97,7 @@ export class CommandPalette {
           run: () => this.chats.newChat(preset),
         }),
       );
-      return [{ title: 'Presets', entries: matching(presets, lookUp) }].filter((s) => s.entries.length);
+      return [{ title: 'Presets', entries: matching(presets, query) }].filter((s) => s.entries.length);
     }
     const commands = this.registry.commands
       .all()
@@ -121,7 +121,7 @@ export class CommandPalette {
       opensList: true,
       run: () => {
         this.listingPresets.set(true);
-        this.lookUp.set('');
+        this.query.set('');
       },
     };
     const after = commands.findIndex((entry) => entry.id === 'action-chats.new') + 1;
@@ -139,10 +139,10 @@ export class CommandPalette {
       }),
     );
     const sections: Section[] = [
-      { title: 'Actions', entries: matching(actions, lookUp) },
+      { title: 'Actions', entries: matching(actions, query) },
       {
         title: this.wording.say('Chapters', 'Chats'),
-        entries: matching(chats, lookUp).slice(0, MAX_CHATS),
+        entries: matching(chats, query).slice(0, MAX_CHATS),
       },
     ];
     return sections.filter((section) => section.entries.length);
@@ -160,7 +160,7 @@ export class CommandPalette {
 
   protected readonly entriesLabel = computed(() => {
     const entries = this.wording.say('Index entries', 'Commands and chats');
-    return this.lookUp() ? `${entries} for ${this.lookUp()}` : entries;
+    return this.query() ? `${entries} for ${this.query()}` : entries;
   });
 
   /** Why nothing is listed. */
@@ -171,8 +171,8 @@ export class CommandPalette {
           'No saved presets yet. Save one in a chat’s settings.',
         )
       : this.wording.say(
-          `Nothing in the index matches “${this.lookUp()}”.`,
-          `Nothing matches “${this.lookUp()}”.`,
+          `Nothing in the index matches “${this.query()}”.`,
+          `Nothing matches “${this.query()}”.`,
         ),
   );
 
@@ -220,7 +220,7 @@ export class CommandPalette {
     event.preventDefault();
     if (this.listingPresets()) {
       this.listingPresets.set(false);
-      this.lookUp.set('');
+      this.query.set('');
     } else this.rightPage.closeCommandPalette();
   }
 
@@ -232,9 +232,9 @@ export class CommandPalette {
   }
 }
 
-/** The entries whose label holds what you looked up, split around it. */
-function matching(entries: CommandPaletteEntry[], lookUp: string): Listed[] {
-  const needle = lookUp.toLowerCase();
+/** The entries whose label holds what you searched for, split around it. */
+function matching(entries: CommandPaletteEntry[], query: string): Listed[] {
+  const needle = query.toLowerCase();
   return entries.flatMap((entry) => {
     const at = entry.label.toLowerCase().indexOf(needle);
     if (at === -1) return [];

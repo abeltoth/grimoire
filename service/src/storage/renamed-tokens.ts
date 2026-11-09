@@ -260,3 +260,12 @@ export const RENAMED_TOKENS: readonly (readonly [string, string])[] = [
   ['--gr-tracking-slip-head', '--gr-tracking-approval-card-head'],
   ['--gr-tracking-stamp', '--gr-tracking-badge'],
 ];
+
+/** The search fields' tokens, old to new; migration 20 moves a saved theme's changes to them. */
+export const SEARCH_TOKENS: readonly (readonly [string, string])[] = [
+  ['--gr-command-palette-look-up-gap', '--gr-command-palette-search-gap'],
+  ['--gr-command-palette-look-up-pad', '--gr-command-palette-search-pad'],
+  ['--gr-command-palette-look-up-rule', '--gr-command-palette-search-rule'],
+  ['--gr-size-command-palette-look-up', '--gr-size-command-palette-search'],
+  ['--gr-size-history-look-up', '--gr-size-history-search'],
+];

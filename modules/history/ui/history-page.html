@@ -1,13 +1,13 @@
-<div class="look-up">
-  <label for="gr-history-look-up">{{ wording.say('Look up', 'Search') }}</label>
+<div class="search">
+  <label for="gr-history-search">{{ wording.say('Look up', 'Search') }}</label>
   <input
-    #lookUpField
-    id="gr-history-look-up"
+    #searchField
+    id="gr-history-search"
     type="text"
     autocomplete="off"
     spellcheck="false"
-    [value]="lookUp()"
-    (input)="look(lookUpField.value)"
+    [value]="query()"
+    (input)="setQuery(searchField.value)"
     (keydown.enter)="openFirst()"
   />
   <span class="count" aria-live="polite">{{ count() }}</span>
@@ -116,7 +116,7 @@
   } @empty {
     <p class="none">
       @if (hits()) {
-        {{ wording.say('Nothing in the chapters matches', 'No chat matches') }} “{{ lookUp() }}”.
+        {{ wording.say('Nothing in the chapters matches', 'No chat matches') }} “{{ query() }}”.
       } @else if (narrowedTo().length) {
         {{ wording.say('No chapter has every tag picked.', 'No chat has every tag picked.') }}
       } @else {

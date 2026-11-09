@@ -18,11 +18,11 @@
 </gr-page-header>
 
 <div class="command-palette">
-  <div class="look-up">
-    <label for="gr-command-palette-look-up">{{ wording.say('Look up', 'Search') }}</label>
+  <div class="search">
+    <label for="gr-command-palette-search">{{ wording.say('Look up', 'Search') }}</label>
     <input
       #field
-      id="gr-command-palette-look-up"
+      id="gr-command-palette-search"
       type="text"
       role="combobox"
       autocomplete="off"
@@ -31,8 +31,8 @@
       aria-controls="gr-command-palette-entries"
       aria-autocomplete="list"
       [attr.aria-activedescendant]="selected() ? 'gr-command-palette-' + selected() : null"
-      [value]="lookUp()"
-      (input)="lookUp.set(field.value)"
+      [value]="query()"
+      (input)="query.set(field.value)"
       (keydown)="key($event)"
     />
     <span class="count">{{ count() }}</span>

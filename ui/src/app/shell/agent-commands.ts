@@ -1,9 +1,9 @@
 import { Injectable, PendingTasks, computed, inject, linkedSignal, signal } from '@angular/core';
 import type { AgentCommand } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '../core/bridge';
-import { type CommandLookUp, RightPageState } from './right-page-state';
+import { type CommandSearch, RightPageState } from './right-page-state';
 
-/** A command as listed: its name as you'd write it, split around what you looked up. */
+/** A command as listed: its name as you'd write it, split around what you searched for. */
 export interface ListedCommand extends AgentCommand {
   parts: [before: string, match: string, after: string];
 }
@@ -12,7 +12,7 @@ export interface ListedCommand extends AgentCommand {
 type Loaded = { commands: AgentCommand[] } | { error: string };
 
 /**
- * An agent's commands and skills, looked up from the start of an entry: the
+ * An agent's commands and skills, searched from the start of a message: the
  * entry asks for them as you write "/", the right page lists them, and
  * the entry's keys move through them and use one.
  */
@@ -23,23 +23,23 @@ export class AgentCommands {
   private readonly pending = inject(PendingTasks);
   private readonly loaded = signal<Readonly<Record<string, Loaded>>>({});
 
-  /** What's being looked up; null when the right page doesn't show it. */
-  readonly lookUp = this.rightPage.commands.asReadonly();
+  /** What's being searched for; null when the right page doesn't show it. */
+  readonly search = this.rightPage.commands.asReadonly();
 
-  /** The commands for the folder looked up from; undefined while they're asked for. */
+  /** The commands for the folder searched from; undefined while they're asked for. */
   readonly all = computed(() => {
-    const lookUp = this.lookUp();
-    return lookUp ? this.loaded()[key(lookUp)] : undefined;
+    const search = this.search();
+    return search ? this.loaded()[key(search)] : undefined;
   });
 
   /** The commands, then the skills, whose name holds what follows the "/". */
   readonly listed = computed<ListedCommand[]>(() => {
-    const lookUp = this.lookUp();
+    const search = this.search();
     const all = this.all();
-    if (!lookUp || !all || !('commands' in all)) return [];
+    if (!search || !all || !('commands' in all)) return [];
     return [
-      ...narrow(all.commands, 'command', lookUp.query),
-      ...narrow(all.commands, 'skill', lookUp.query),
+      ...narrow(all.commands, 'command', search.query),
+      ...narrow(all.commands, 'skill', search.query),
     ];
   });
 
@@ -51,10 +51,10 @@ export class AgentCommands {
   readonly chosen = computed(() => this.listed().find((command) => command.name === this.selected()));
 
   /** Turns the right page to the commands, asking the agent for them when they're new. */
-  open(lookUp: CommandLookUp): void {
-    const was = this.lookUp();
-    this.rightPage.openCommands(lookUp);
-    if (!was || key(was) !== key(lookUp)) this.pending.run(() => this.load(lookUp));
+  open(search: CommandSearch): void {
+    const was = this.search();
+    this.rightPage.openCommands(search);
+    if (!was || key(was) !== key(search)) this.pending.run(() => this.load(search));
   }
 
   close(): void {
@@ -68,12 +68,12 @@ export class AgentCommands {
     if (next) this.selected.set(next.name);
   }
 
-  private async load(lookUp: CommandLookUp): Promise<void> {
-    const at = key(lookUp);
+  private async load(search: CommandSearch): Promise<void> {
+    const at = key(search);
     try {
       const commands = await this.bridge.invoke('agents.commands', {
-        agent: lookUp.agent,
-        ...(lookUp.cwd ? { cwd: lookUp.cwd } : {}),
+        agent: search.agent,
+        ...(search.cwd ? { cwd: search.cwd } : {}),
       });
       this.loaded.update((loaded) => ({ ...loaded, [at]: { commands } }));
     } catch (error) {
@@ -87,7 +87,7 @@ export class AgentCommands {
   }
 }
 
-function key({ agent, cwd }: CommandLookUp): string {
+function key({ agent, cwd }: CommandSearch): string {
   return `${agent}\n${cwd ?? ''}`;
 }
 
@@ -98,7 +98,7 @@ function narrow(commands: AgentCommand[], kind: AgentCommand['kind'], query: str
     if (command.kind !== kind) return [];
     const at = command.name.toLowerCase().indexOf(needle);
     if (at === -1) return [];
-    // Commands are written with their "/"; it's part of what you looked up when the name starts with it.
+    // Commands are written with their "/"; it's part of what you searched for when the name starts with it.
     const shown = kind === 'command' ? `/${command.name}` : command.name;
     const lead = shown.length - command.name.length;
     const from = at === 0 ? 0 : at + lead;

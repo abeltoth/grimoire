@@ -395,12 +395,12 @@
   --gr-command-palette-pad-bottom: 24px;
   --gr-command-palette-width: 760px;
   --gr-command-palette-caps-gap: 5px;
-  --gr-command-palette-look-up-gap: 14px;
-  --gr-command-palette-look-up-pad: 3px;
-  --gr-command-palette-look-up-rule: 1.5px dotted var(--gr-ink-soft);
+  --gr-command-palette-search-gap: 14px;
+  --gr-command-palette-search-pad: 3px;
+  --gr-command-palette-search-rule: 1.5px dotted var(--gr-ink-soft);
   --gr-size-command-palette-label: 13.5px;
   --gr-tracking-command-palette-label: 0.07em;
-  --gr-size-command-palette-look-up: 26px;
+  --gr-size-command-palette-search: 26px;
   --gr-command-palette-section-gap: 20px;
   --gr-command-palette-head-gap: 4px;
   --gr-size-command-palette-head: 13px;
@@ -465,7 +465,7 @@
   --gr-history-list-gap: 10px;
   --gr-history-row-gap: 7px;
   --gr-size-history-part: 22px;
-  --gr-size-history-look-up: 18px;
+  --gr-size-history-search: 18px;
   --gr-history-excerpt-gap: 2px;
 
   /* Scheduled chats: each schedule a dated journal entry */

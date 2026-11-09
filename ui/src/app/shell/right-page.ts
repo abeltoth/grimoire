@@ -20,7 +20,7 @@ import { type RightPageEntry, ShellRegistry } from './shell-registry';
  * The approvals tab turns it to the waiting approvals for a while,
  * the command palette's tab or shortcut to the command palette, "/" at the start of
  * an entry to the agent's commands, and the other page tabs to their pages.
- * The commands looked up from the chat on the right page show on the
+ * The commands searched from the chat on the right page show on the
  * left page instead, so the entry stays in view. A page drawn whole heads
  * itself with the tabs.
  */
@@ -62,10 +62,10 @@ export class RightPage {
     return page ? this.wording.label(page) : this.wording.say('facing page', 'right page');
   });
 
-  /** Whether the agent's commands show here: not those looked up from the chat on this page. */
+  /** Whether the agent's commands show here: not those searched from the chat on this page. */
   protected readonly commandsHere = computed(() => {
-    const lookUp = this.rightPage.commands();
-    return !!lookUp && lookUp.chatId !== this.chats.besideId();
+    const search = this.rightPage.commands();
+    return !!search && search.chatId !== this.chats.besideId();
   });
 
   /** What the right-hand page is called. */

@@ -24,7 +24,7 @@ import { WindowControls } from './shell/window-controls';
 /**
  * The window: the title bar, and the open book on the desk with its
  * chat tabs. The left page shows the open chat through the page the chat
- * module registers, or the agent's commands while they're looked up from
+ * module registers, or the agent's commands while they're searched from
  * the chat on the right page. Registered commands run from their
  * shortcuts. In focus mode the chat's page lies alone in the middle of
  * the desk; so does a popout's, in a window of its own.
@@ -74,10 +74,10 @@ export class App {
   protected readonly single = computed(
     () => !!this.popout || (this.focus.on() && !this.rightPage.turned()),
   );
-  /** Whether the agent's commands show on this page: those looked up from the chat on the right page. */
+  /** Whether the agent's commands show on this page: those searched from the chat on the right page. */
   protected readonly commandsHere = computed(() => {
-    const lookUp = this.rightPage.commands();
-    return !!lookUp && lookUp.chatId === this.chats.besideId();
+    const search = this.rightPage.commands();
+    return !!search && search.chatId === this.chats.besideId();
   });
   private readonly platform = inject(GRIMOIRE_BRIDGE).platform;
 

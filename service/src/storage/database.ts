@@ -1,5 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
-import { RENAMED_TOKENS } from './renamed-tokens';
+import { RENAMED_TOKENS, SEARCH_TOKENS } from './renamed-tokens';
 
 /** Each migration moves the database up one version. Append new ones; never edit old ones. */
 const MIGRATIONS = [
@@ -218,7 +218,17 @@ const MIGRATIONS = [
      FROM json_each(settings.value) token
      LEFT JOIN json_each('${JSON.stringify(Object.fromEntries(RENAMED_TOKENS))}') renamed ON renamed.key = token.key
    ) WHERE key = 'theme' AND json_type(value) = 'object';`,
+  movedTokens(SEARCH_TOKENS),
 ];
+
+/** SQL that moves a saved theme's changes from each old token name to its new one. */
+function movedTokens(renamed: readonly (readonly [string, string])[]): string {
+  return `UPDATE settings SET value = (
+     SELECT json_group_object(COALESCE(renamed.value, token.key), token.value)
+     FROM json_each(settings.value) token
+     LEFT JOIN json_each('${JSON.stringify(Object.fromEntries(renamed))}') renamed ON renamed.key = token.key
+   ) WHERE key = 'theme' AND json_type(value) = 'object';`;
+}
 
 /**
  * A folder, in SQL, moved out of a worktree Grimoire made for a chat into

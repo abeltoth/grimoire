@@ -17,7 +17,7 @@ import {
   densityOf,
   hexOf,
   isColour,
-  lookUpTokens,
+  searchTokens,
   pxOf,
   textFontOf,
   tokenGroups,
@@ -29,7 +29,7 @@ import {
  * The theme editor: the ready-made themes to choose from, then, to
  * change the one in use, the book's main colours, the size and face of
  * its text and how closely its pages are set, and every token under the
- * theme's own headings, to look up and change. The book is its own preview: a change shows on every page at
+ * theme's own headings, to search and change. The book is its own preview: a change shows on every page at
  * once, and is kept for every window once you stop. Reset puts a token
  * back as the theme draws it; choosing another theme starts afresh.
  */
@@ -49,7 +49,7 @@ export class ThemeEditor {
   /** The theme's tokens under its headings, once its file is read. */
   protected readonly groups = signal<TokenGroup[] | null>(null);
   protected readonly unread = signal<string | null>(null);
-  protected readonly lookUp = signal('');
+  protected readonly query = signal('');
   /** The headings you opened. */
   private readonly opened = signal<ReadonlySet<string>>(new Set());
 
@@ -68,7 +68,7 @@ export class ThemeEditor {
         ...Object.entries(this.files()[this.design.theme()] ?? {}),
       ]),
   );
-  protected readonly shown = computed(() => lookUpTokens(this.groups() ?? [], this.lookUp()));
+  protected readonly shown = computed(() => searchTokens(this.groups() ?? [], this.query()));
   protected readonly main = computed(() =>
     MAIN_TOKENS.map((token) => {
       const value = this.valueOf(token.name);
@@ -144,7 +144,7 @@ export class ThemeEditor {
   }
 
   protected isOpen(title: string): boolean {
-    return !!this.lookUp().trim() || this.opened().has(title);
+    return !!this.query().trim() || this.opened().has(title);
   }
 
   protected toggled(title: string, event: Event): void {

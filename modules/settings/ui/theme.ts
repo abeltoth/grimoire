@@ -224,8 +224,8 @@ export function tokenGroups(css: string): TokenGroup[] {
  * The groups with the tokens whose name or value holds what you looked
  * up, ignoring case; every group for nothing.
  */
-export function lookUpTokens(groups: readonly TokenGroup[], lookUp: string): TokenGroup[] {
-  const needle = lookUp.trim().toLowerCase();
+export function searchTokens(groups: readonly TokenGroup[], query: string): TokenGroup[] {
+  const needle = query.trim().toLowerCase();
   if (!needle) return [...groups];
   return groups
     .map((group) => ({

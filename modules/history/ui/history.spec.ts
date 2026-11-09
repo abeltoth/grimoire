@@ -99,7 +99,7 @@ describe('history', () => {
     expect(el.querySelector('gr-history-page')).not.toBeNull();
   });
 
-  it('looks up words through the chats in the History, each with its passage', async () => {
+  it('searches the chats in the History for words, each with its passage', async () => {
     const { bridge, calls, answers } = fakeBridge();
     answers['agents.chats'] = () => [
       { id: 'c1', agent: 'claude-code', title: 'Context meter', cwd: 'C:/Users/me/git/grimoire', updatedAt: 9, pins: [], tags: [] },
@@ -141,15 +141,15 @@ describe('history', () => {
       .find((t) => t.textContent!.trim() === 'Table of contents')!
       .click();
     await fixture.whenStable();
-    const field = el.querySelector<HTMLInputElement>('#gr-history-look-up')!;
+    const field = el.querySelector<HTMLInputElement>('#gr-history-search')!;
     expect(document.activeElement).toBe(field);
-    const look = async (query: string) => {
+    const search = async (query: string) => {
       field.value = query;
       field.dispatchEvent(new Event('input'));
       await fixture.whenStable();
     };
 
-    await look('timer');
+    await search('timer');
     expect(calls.filter((c) => c.command === 'search.chats').map((c) => c.request)).toEqual([{ query: 'timer' }]);
     expect(texts('gr-history-page li .chat')).toEqual(['Context meter', 'Fix flaky login test']);
     // A passage is shown with who wrote it; a title that has the words shows as it is.
@@ -164,17 +164,17 @@ describe('history', () => {
       { agent: 'claude-code', chatId: 'c1', settings: { cwd: 'C:/Users/me/git/grimoire' } },
     ]);
 
-    await look('zzz');
+    await search('zzz');
     expect(texts('gr-history-page .none')).toEqual(['Nothing in the chapters matches “zzz”.']);
     expect(texts('gr-history-page .count')).toEqual(['0 chapters']);
 
-    await look('boom');
+    await search('boom');
     expect(texts('gr-history-page [role="alert"]')).toEqual([
       'The chapters couldn’t be looked through: the worker stopped',
     ]);
 
-    // Nothing looked up lists every chat again, without asking.
-    await look('  ');
+    // An empty search lists every chat again, without asking.
+    await search('  ');
     expect(texts('gr-history-page li .chat')).toHaveLength(3);
     expect(texts('gr-history-page .count')).toEqual(['']);
     expect(el.querySelector('gr-history-page [role="alert"]')).toBeNull();

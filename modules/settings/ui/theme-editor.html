@@ -122,17 +122,17 @@
 </div>
 
 <h3>{{ wording.say('Every token', 'All tokens') }}</h3>
-<div class="look-up">
-  <label for="gr-theme-look-up">{{ wording.say('Look up', 'Search') }}</label>
+<div class="search">
+  <label for="gr-theme-search">{{ wording.say('Look up', 'Search') }}</label>
   <input
     #field
-    id="gr-theme-look-up"
+    id="gr-theme-search"
     class="line"
     autocomplete="off"
     spellcheck="false"
     placeholder="a name, a value or a heading"
-    [value]="lookUp()"
-    (input)="lookUp.set(field.value)"
+    [value]="query()"
+    (input)="query.set(field.value)"
   />
   <span class="count">{{ count() }}</span>
   @if (changedCount()) {
@@ -184,6 +184,6 @@
       }
     </details>
   } @empty {
-    <p class="none">No token matches “{{ lookUp() }}”.</p>
+    <p class="none">No token matches “{{ query() }}”.</p>
   }
 }
