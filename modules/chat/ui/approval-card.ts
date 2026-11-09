@@ -11,7 +11,7 @@ import {
 import { Chats } from '@ui/app/core/chats';
 import { Wording } from '@ui/app/core/wording';
 import { ShellRegistry } from '@ui/app/shell/shell-registry';
-import type { Approval, ApprovalDecision } from '@grimoire/contract';
+import type { AlwaysAllow, Approval, ApprovalDecision } from '@grimoire/contract';
 import { Icon } from '@ui/design-system/icon';
 import { askOf, scopeText } from './asks';
 import { DiffView } from '@ui/design-system/diff-view';
@@ -55,7 +55,7 @@ export class ApprovalCard {
   protected readonly wording = inject(Wording);
   protected readonly folder = computed(() => this.chats.folderName(this.cwd()));
   protected readonly headId = computed(() => `gr-approval-card-${this.approval().id}`);
-  protected readonly scopeText = scopeText;
+  protected readonly scopeText = (scope: AlwaysAllow['scope']) => scopeText(scope, this.wording.say);
 
   constructor() {
     // Ready for Enter, unless you're writing somewhere.

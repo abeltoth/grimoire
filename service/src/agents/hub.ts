@@ -605,10 +605,10 @@ export class AgentHub {
     if (chat.editor) throw new Error(`${this.editing(chat)}: make this the editing chat to undo`);
     if (chat.status !== 'idle') throw new Error('Stop the turn before undoing');
     const from = chat.entries.findIndex((entry) => entry.kind === 'user' && entry.id === entryId);
-    if (from === -1) throw new Error('This entry is not in the chat');
-    if (chat.withdrawn.includes(entryId)) throw new Error('This entry is already undone');
+    if (from === -1) throw new Error('This message is not in the chat');
+    if (chat.withdrawn.includes(entryId)) throw new Error('This message is already undone');
     if (chat.copied.includes(entryId))
-      throw new Error("This entry was copied from the chat this one was forked from, so it can't be undone");
+      throw new Error("This message was copied from the chat this one was forked from, so it can't be undone");
     chat.live ??= chat.agent.run(chat.id, chat.settings, true, this.eventsFor(chat));
     if (!chat.live.undo) throw new Error(`${chat.agent.info.name} can't undo`);
     await chat.live.undo(entryId);
@@ -646,7 +646,7 @@ export class AgentHub {
 
   /** A title with the first variant letter free in the folder: "Context meter (a)", then "(b)". */
   private async variantTitle(agent: AgentAdapter, title: string, cwd: string): Promise<string> {
-    const base = title.trim().replace(/ \([a-z]\)$/, '') || 'Untitled chapter';
+    const base = title.trim().replace(/ \([a-z]\)$/, '') || 'Untitled chat';
     const taken = new Set((await agent.listChats(cwd)).map((c) => c.title));
     const letter = [...'abcdefghijklmnopqrstuvwxyz'].find((l) => !taken.has(`${base} (${l})`));
     return `${base} (${letter ?? 'z'})`;
@@ -656,7 +656,7 @@ export class AgentHub {
   async rename(chatId: ChatId, title: string): Promise<void> {
     const chat = this.chat(chatId);
     const named = title.trim();
-    if (!named) throw new Error('A chapter needs a title');
+    if (!named) throw new Error('A chat needs a title');
     if (!chat.agent.rename) throw new Error(`${chat.agent.info.name} can't rename chats`);
     await chat.agent.rename(chatId, chat.settings.cwd, named);
     chat.title = named;

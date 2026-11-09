@@ -15,6 +15,7 @@ import type {
 } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { Chats } from '@ui/app/core/chats';
+import { Wording } from '@ui/app/core/wording';
 import { countsInWords, modelLabel, tokenCount } from '@ui/app/core/tokens';
 import {
   type ChartSeries,
@@ -191,6 +192,7 @@ export class UsagePage {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
   private readonly chats = inject(Chats);
   private readonly pending = inject(PendingTasks);
+  protected readonly wording = inject(Wording);
 
   /** The agents with a plan; undefined until they've answered. */
   protected readonly plans = signal<Plan[] | undefined>(undefined);

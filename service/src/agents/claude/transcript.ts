@@ -37,7 +37,7 @@ export interface ClaudeMessage {
  */
 export function turnEnd(messages: readonly ClaudeMessage[], entryId: string): string | undefined {
   const at = messages.findIndex((message) => message.uuid === entryId);
-  if (at === -1) throw new Error('This entry is not in the chat');
+  if (at === -1) throw new Error('This message is not in the chat');
   const next = messages.findIndex((message, i) => i > at && isYourEntry(message));
   return next === -1 ? undefined : messages[next - 1]!.uuid;
 }

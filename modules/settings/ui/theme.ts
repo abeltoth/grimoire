@@ -63,7 +63,7 @@ export interface TokenGroup {
 
 /** The tokens Settings puts first: the book's main colours, and the size of its text. */
 export const MAIN_TOKENS: readonly { name: string; label: string; plainLabel?: string }[] = [
-  { name: '--gr-desk', label: 'Desk' },
+  { name: '--gr-desk', label: 'Desk', plainLabel: 'Background' },
   { name: '--gr-cover', label: 'Cover' },
   { name: '--gr-page', label: 'Paper' },
   { name: '--gr-ink', label: 'Ink' },

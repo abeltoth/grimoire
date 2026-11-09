@@ -52,12 +52,11 @@ export function askOf(approval: Approval, cwd?: string): Ask {
   };
 }
 
-const SCOPES: Record<AlwaysAllow['scope'], string> = {
-  chat: 'in this chapter',
-  project: 'in this project',
-  everywhere: 'in every project',
-};
-
-export function scopeText(scope: AlwaysAllow['scope']): string {
-  return SCOPES[scope];
+export function scopeText(scope: AlwaysAllow['scope'], say: (book: string, plain: string) => string): string {
+  const scopes: Record<AlwaysAllow['scope'], string> = {
+    chat: say('in this chapter', 'in this chat'),
+    project: 'in this project',
+    everywhere: 'in every project',
+  };
+  return scopes[scope];
 }

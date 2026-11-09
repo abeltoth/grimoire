@@ -620,7 +620,7 @@ export class ClaudeAdapter implements AgentAdapter {
       },
       undo: async (entryId) => {
         const result = await (await started).rewindFiles(entryId);
-        if (!result.canRewind) throw new Error(result.error ?? "Claude Code can't undo this entry");
+        if (!result.canRewind) throw new Error(result.error ?? "Claude Code can't undo this message");
       },
       close: () => {
         input.end();

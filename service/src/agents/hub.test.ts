@@ -1063,7 +1063,7 @@ describe('AgentHub', () => {
     expect(fake.renamed.get(id)).toBe('Flaky login test');
     expect(sent).toEqual([{ event: 'agents.title', payload: { chatId: id, title: 'Flaky login test' } }]);
     expect((await hub.open('fake', id, settings)).title).toBe('Flaky login test');
-    await expect(hub.rename(id, '  ')).rejects.toThrow('A chapter needs a title');
+    await expect(hub.rename(id, '  ')).rejects.toThrow('A chat needs a title');
     await expect(hub.rename('missing', 'x')).rejects.toThrow('This chat is not open');
   });
 

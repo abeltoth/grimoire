@@ -85,7 +85,7 @@ export class ScheduleStore {
     const name = draft.name.trim();
     const prompt = draft.prompt.trim();
     if (!name) throw new Error('A schedule needs a name');
-    if (!prompt) throw new Error('A schedule needs an entry to begin with');
+    if (!prompt) throw new Error('A schedule needs a first message');
     if (!isTime(draft.time)) throw new Error(`"${draft.time}" isn't a time such as 08:00`);
     const days = [...new Set(draft.days)].filter((day) => Number.isInteger(day) && day >= 0 && day <= 6).sort();
     const schedule: Schedule = { ...draft, id: draft.id ?? randomUUID(), name, prompt, days };

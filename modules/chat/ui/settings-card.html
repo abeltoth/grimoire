@@ -52,7 +52,12 @@
         class="choice"
         role="radio"
         [attr.aria-checked]="auto()"
-        title="Haiku reads your first entry and picks the model and effort for it"
+        [attr.title]="
+          wording.say(
+            'Haiku reads your first entry and picks the model and effort for it',
+            'Haiku reads your first message and picks the model and effort for it'
+          )
+        "
         (click)="pick({ autoModel: true })"
       >
         <gr-icon name="check" />
@@ -75,7 +80,7 @@
       <p class="none">{{ agentName() }} hasn't listed its models</p>
     }
     @if (autoPicked()) {
-      <p class="none">Auto picked {{ modelName() }} for your first entry</p>
+      <p class="none">Auto picked {{ modelName() }} for your first {{ wording.say('entry', 'message') }}</p>
     }
   </div>
 

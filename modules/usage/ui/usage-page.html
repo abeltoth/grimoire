@@ -1,4 +1,4 @@
-<div class="tabs" role="tablist" aria-label="Ledger">
+<div class="tabs" role="tablist" [attr.aria-label]="wording.say('Ledger', 'Usage')">
   @for (each of views; track each[0]) {
     <button
       type="button"

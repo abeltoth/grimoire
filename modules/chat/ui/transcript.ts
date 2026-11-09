@@ -138,7 +138,9 @@ export class Transcript {
 
   /** What a turn spent, in words, for its title. */
   protected spentTitle(tokens: TurnSpent): string {
-    const head = tokens.costly ? 'One of the costliest turns in this chapter: ' : 'This turn: ';
+    const head = tokens.costly
+      ? this.wording.say('One of the costliest turns in this chapter: ', 'One of the costliest turns in this chat: ')
+      : 'This turn: ';
     return `${head}${tokenCount(tokens.weight)} tokens, weighed as the API prices them\n${usesInWords(tokens.uses)}`;
   }
   /** The thinking you're reading, and the runs of notes and hooks you expanded. */

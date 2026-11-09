@@ -1,4 +1,5 @@
 import { Component, inject } from '@angular/core';
+import { Wording } from '../core/wording';
 import { ShellRegistry } from './shell-registry';
 
 /** The registered badges, for a chat's page header, such as its pull request's review. */
@@ -20,8 +21,9 @@ import { ShellRegistry } from './shell-registry';
     }
   `,
   styleUrl: './header-badges.css',
-  host: { role: 'group', 'aria-label': 'Review stamps' },
+  host: { role: 'group', '[attr.aria-label]': "wording.say('Review stamps', 'Review status')" },
 })
 export class HeaderBadges {
   protected readonly registry = inject(ShellRegistry);
+  protected readonly wording = inject(Wording);
 }
