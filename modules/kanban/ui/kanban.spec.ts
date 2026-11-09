@@ -416,6 +416,12 @@ describe('kanban', () => {
 
     it('shows your Jira issues as cards of their own, each opening in Jira', async () => {
       const synced = new Date(2026, 10, 8, 9, 5).getTime();
+      // The page says "synced at" only for a sync made today.
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date(2026, 10, 8, 12, 0));
+      onTestFinished(() => {
+        vi.useRealTimers();
+      });
       const { bridge, calls, answers } = withBoard([
         card('a', 'Mine', 'doing'),
         issue('j1', 'GRIM-12', 'Context meter', 'doing', { notes: 'Fill it in.' }),
