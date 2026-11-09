@@ -2,6 +2,7 @@
 import type { ServiceModule } from './module';
 import { files } from '../../modules/files/service';
 import { git } from '../../modules/git/service';
+import { history } from '../../modules/history/service';
 import { kanban } from '../../modules/kanban/service';
 import { memories } from '../../modules/memories/service';
 import { schedules } from '../../modules/schedules/service';
@@ -13,6 +14,7 @@ import { workflowSetup } from '../../modules/workflow-setup/service';
 export const MODULES: readonly ServiceModule[] = [
   files,
   git,
+  history,
   kanban,
   memories,
   schedules,

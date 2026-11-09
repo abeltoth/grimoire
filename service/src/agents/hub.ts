@@ -17,7 +17,6 @@ import type {
   ContextUsage,
   PromptCache,
   Attachment,
-  Mark,
   Editor,
   Entry,
   EventName,
@@ -38,10 +37,8 @@ import type {
 import type { DatabaseSync } from 'node:sqlite';
 import { OpenChats } from '../storage/open-chats';
 import { openDatabase } from '../storage/database';
-import { Pins } from '../storage/pins';
 import { Parallels } from '../storage/parallels';
 import { EntryIds } from '../storage/entry-ids';
-import { Tags } from '../storage/tags';
 import type { AgentAdapter, ChatEvents, LiveChat, SignInRun, Verdict } from './adapter';
 
 export type Emit = <K extends EventName>(event: K, payload: EventPayload<K>) => void;
@@ -62,8 +59,6 @@ interface ChatState {
   plan: PlanStep[];
   /** Your messages whose file changes were undone. */
   withdrawn: string[];
-  pins: Mark[];
-  tags: string[];
   /** Your messages copied from the chat this one was forked from. */
   copied: string[];
   /** What the agent suggests you send next, until a turn begins or something is queued. */
@@ -108,10 +103,6 @@ export interface HubStore {
   withdrawn: EntryIds;
   /** Your messages a fork copied; the agent can't undo them. */
   copied: EntryIds;
-  /** Which chats are pinned or starred. */
-  pins: Pins;
-  /** Your tags for chats. */
-  tags: Tags;
   /** The chats sent one entry in parallel, and the one that edits each group. */
   parallels: Parallels;
 }
@@ -121,8 +112,6 @@ export function hubStore(db: DatabaseSync): HubStore {
     chats: new OpenChats(db),
     withdrawn: new EntryIds(db, 'withdrawn'),
     copied: new EntryIds(db, 'copied'),
-    pins: new Pins(db),
-    tags: new Tags(db),
     parallels: new Parallels(db),
   };
 }
@@ -159,15 +148,8 @@ export class AgentHub {
     return [...this.adapters.values()].map((adapter) => adapter.info);
   }
 
-  async listChats(agent: AgentId, cwd?: string): Promise<ChatSummary[]> {
-    const chats = await this.adapter(agent).listChats(cwd);
-    const pins = this.store.pins.all();
-    const tags = this.store.tags.all();
-    return chats.map((chat) => ({
-      ...chat,
-      pins: pins.get(chat.id) ?? [],
-      tags: tags.get(chat.id) ?? [],
-    }));
+  listChats(agent: AgentId, cwd?: string): Promise<ChatSummary[]> {
+    return this.adapter(agent).listChats(cwd);
   }
 
   models(agent: AgentId): Promise<AgentModels> {
@@ -285,8 +267,6 @@ export class AgentHub {
       chat.plan = history.plan;
       if (history.cache && !chat.cache) chat.cache = history.cache;
       chat.withdrawn = this.store.withdrawn.list(chatId);
-      chat.pins = this.store.pins.of(chatId);
-      chat.tags = this.store.tags.of(chatId);
       chat.copied = this.store.copied.list(chatId);
       // What the last turn offered stands, unless the chat went on meanwhile.
       if (history.followUps?.length && chat.status === 'idle' && !chat.followUps) chat.followUps = history.followUps;
@@ -530,27 +510,6 @@ export class AgentHub {
     this.retitled(chat);
   }
 
-  /** Puts a mark on a chat, or takes it off. */
-  pin(chatId: ChatId, mark: Mark, on: boolean): void {
-    this.store.pins.set(chatId, mark, on);
-    const pins = this.store.pins.of(chatId);
-    const chat = this.chats.get(chatId);
-    if (chat) chat.pins = pins;
-    this.emit('agents.pins', { chatId, pins });
-  }
-
-  /** Sets a chat's tags: trimmed, without blanks, and each once whatever its case. */
-  tag(chatId: ChatId, tags: readonly string[]): void {
-    const seen = new Set<string>();
-    const kept = tags
-      .map((tag) => tag.trim())
-      .filter((tag) => tag && !seen.has(tag.toLowerCase()) && seen.add(tag.toLowerCase()));
-    this.store.tags.set(chatId, kept);
-    const chat = this.chats.get(chatId);
-    if (chat) chat.tags = kept;
-    this.emit('agents.tags', { chatId, tags: kept });
-  }
-
   /**
    * Takes one of the separate tasks the chat offered, by its place among
    * them: it goes from the chat, and what a new chat for it begins with
@@ -747,8 +706,6 @@ export class AgentHub {
       queued: [],
       plan: [],
       withdrawn: [],
-      pins: [],
-      tags: [],
       copied: [],
       processes: 0,
       restart: false,
@@ -1089,8 +1046,6 @@ export class AgentHub {
       ...(chat.cache ? { cache: chat.cache } : {}),
       plan: chat.plan,
       withdrawn: [...chat.withdrawn],
-      pins: [...chat.pins],
-      tags: [...chat.tags],
       copied: [...chat.copied],
       ...(chat.suggestion !== undefined ? { suggestion: chat.suggestion } : {}),
       ...(chat.followUps ? { followUps: structuredClone(chat.followUps) } : {}),

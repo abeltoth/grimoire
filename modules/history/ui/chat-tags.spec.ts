@@ -13,7 +13,7 @@ describe('chat-tags', () => {
       field.dispatchEvent(new KeyboardEvent('keydown', { key, cancelable: true }));
       await fixture.whenStable();
     };
-    const tagCalls = () => calls.filter((c) => c.command === 'agents.tag').map((c) => c.request);
+    const tagCalls = () => calls.filter((c) => c.command === 'history.tag').map((c) => c.request);
 
     // A blank chat keeps its tags once it starts.
     await add('ui', 'Enter');

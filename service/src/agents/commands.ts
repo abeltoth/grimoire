@@ -21,7 +21,6 @@ export function registerAgentCommands(registry: CommandRegistry, hub: AgentHub):
     hub.start(agent, settings, text, title, attachments),
   );
   registry.register('agents.rename', ({ chatId, title }) => hub.rename(chatId, title));
-  registry.register('agents.tag', ({ chatId, tags }) => hub.tag(chatId, tags));
   registry.register('agents.send', ({ chatId, text, attachments }) =>
     hub.send(chatId, text, attachments),
   );
@@ -30,9 +29,6 @@ export function registerAgentCommands(registry: CommandRegistry, hub: AgentHub):
   registry.register('agents.fork', ({ chatId, entryId }) => hub.fork(chatId, entryId));
   registry.register('agents.parallel', ({ from, model, text, attachments }) =>
     hub.parallel(from, model, text, attachments),
-  );
-  registry.register('agents.pin', ({ chatId, mark, on }) =>
-    hub.pin(chatId, mark, on),
   );
   registry.register('agents.takeFollowUp', ({ chatId, index }) => hub.takeFollowUp(chatId, index));
   registry.register('agents.unqueue', ({ chatId, id }) => hub.unqueue(chatId, id));

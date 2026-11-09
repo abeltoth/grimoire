@@ -15,9 +15,6 @@ describe('approvals-page', () => {
       queued: [],
       plan: [],
       withdrawn: [],
-      pins: [],
-
-      tags: [],
       copied: [],
     });
     answers['agents.openChats'] = () => [
@@ -92,9 +89,6 @@ describe('approvals-page', () => {
         queued: [],
         plan: [],
         withdrawn: [],
-        pins: [],
-
-        tags: [],
         copied: [],
       },
     ];

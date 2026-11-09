@@ -52,8 +52,6 @@ describe('chat-page', () => {
       queued: [],
       plan: [],
       withdrawn: [],
-      pins: [],
-      tags: [],
       copied: [],
       ...more,
     });
@@ -159,9 +157,6 @@ describe('chat-page', () => {
         queued: [],
         plan: [],
         withdrawn: [],
-        pins: [],
-
-        tags: [],
         copied: [],
       },
     ];
@@ -216,9 +211,6 @@ describe('chat-page', () => {
         queued: [],
         plan: [],
         withdrawn: [],
-        pins: [],
-
-        tags: [],
         copied: ['u1'],
       },
     ];
@@ -243,9 +235,6 @@ describe('chat-page', () => {
       queued: [],
       plan: [],
       withdrawn: [],
-      pins: [],
-
-      tags: [],
       copied: [],
     });
     answers['agents.openChats'] = () => [chat('c1', 'Context meter')];
@@ -335,9 +324,6 @@ describe('chat-page', () => {
         queued: [],
         plan: [],
         withdrawn: [],
-        pins: [],
-
-        tags: [],
         copied: [],
       },
     ];

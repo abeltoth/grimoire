@@ -4,6 +4,7 @@ import type {
   AgentModels,
   ChatId,
   ChatSettings,
+  ChatSummary,
   Attachment,
   Entry,
   FollowUp,
@@ -12,7 +13,7 @@ import type {
   PromptCache,
   SettingsChange,
 } from '@grimoire/contract';
-import type { AgentAdapter, ChatEvents, ChatHistory, LiveChat, SavedChat } from './adapter';
+import type { AgentAdapter, ChatEvents, ChatHistory, LiveChat } from './adapter';
 
 /** A run of the fake agent, which a test drives through `events`. */
 export interface FakeRun {
@@ -37,7 +38,7 @@ export interface FakeRun {
 export class FakeAdapter implements AgentAdapter {
   readonly info: AgentInfo = { id: 'fake', name: 'Fake agent', capabilities: [] };
   readonly runs: FakeRun[] = [];
-  chats: SavedChat[] = [];
+  chats: ChatSummary[] = [];
   transcripts = new Map<ChatId, Entry[]>();
   plans = new Map<ChatId, PlanStep[]>();
   caches = new Map<ChatId, PromptCache>();
@@ -49,7 +50,7 @@ export class FakeAdapter implements AgentAdapter {
   /** When set, undo fails with this. */
   undoError?: string;
 
-  async listChats(cwd?: string): Promise<SavedChat[]> {
+  async listChats(cwd?: string): Promise<ChatSummary[]> {
     return this.chats.filter((chat) => !cwd || chat.cwd === cwd);
   }
 

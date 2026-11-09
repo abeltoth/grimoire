@@ -1,10 +1,17 @@
-import type { ChatSummary } from '@grimoire/contract';
+import type { ChatSummary, Mark } from '@grimoire/contract';
+
+/** A chat as the History lists it: with its pins and tags. */
+export interface ListedChat extends ChatSummary {
+  pins: readonly Mark[];
+  /** In the order you added them. */
+  tags: readonly string[];
+}
 
 /** A part of the History: one project's chats. */
 export interface Part {
   /** The project's folder, as its newest chat names it. */
   folder: string;
-  chats: ChatSummary[];
+  chats: ListedChat[];
 }
 
 /** A worktree Grimoire or Claude Code made, and anything inside it: <repo>/.claude/worktrees/<name>. */
@@ -21,14 +28,14 @@ function keyOf(folder: string): string {
   return /^[a-z]:/i.test(key) ? key.toLowerCase() : key;
 }
 
-const pinned = (chat: ChatSummary) => Number(chat.pins.includes('pin'));
+const pinned = (chat: ListedChat) => Number(chat.pins.includes('pin'));
 
 /**
  * The chats as parts, one per project, the part with the newest chat
  * first. In each part pinned chats come first, then the newest. A chat
  * without a folder ran in your home folder.
  */
-export function partsOf(chats: readonly ChatSummary[], home: string): Part[] {
+export function partsOf(chats: readonly ListedChat[], home: string): Part[] {
   const parts = new Map<string, Part & { newest: number }>();
   for (const chat of [...chats].sort((a, b) => b.updatedAt - a.updatedAt)) {
     const folder = projectOf(chat.cwd ?? home);
@@ -79,7 +86,7 @@ export function numeral(n: number): string {
 const fold = (tag: string) => tag.toLowerCase();
 
 /** Every tag the chats have, each once whatever its case, in alphabetical order. */
-export function tagsOf(chats: readonly ChatSummary[]): string[] {
+export function tagsOf(chats: readonly ListedChat[]): string[] {
   const seen = new Map<string, string>();
   for (const tag of chats.flatMap((chat) => chat.tags)) {
     if (!seen.has(fold(tag))) seen.set(fold(tag), tag);
@@ -88,7 +95,7 @@ export function tagsOf(chats: readonly ChatSummary[]): string[] {
 }
 
 /** The chats that have every one of these tags, whatever their case. */
-export function withTags(chats: readonly ChatSummary[], tags: readonly string[]): ChatSummary[] {
+export function withTags(chats: readonly ListedChat[], tags: readonly string[]): ListedChat[] {
   const wanted = tags.map(fold);
   return chats.filter((chat) => {
     const has = new Set(chat.tags.map(fold));

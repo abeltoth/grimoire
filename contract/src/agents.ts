@@ -137,10 +137,6 @@ export interface ChatSummary {
   cwd?: string;
   /** ms since the epoch. */
   updatedAt: number;
-  /** Its marks: pinned, starred. */
-  pins: Mark[];
-  /** Your tags for it, in the order you added them. */
-  tags: string[];
 }
 
 /** What a live chat is doing. Idle chats aren't running a turn. */
@@ -357,9 +353,6 @@ export interface FollowUp {
   prompt: string;
 }
 
-/** A mark on a chat: the page's top corner pins it, the bottom one stars it. */
-export type Mark = 'pin' | 'star';
-
 /**
  * The chat that edits while another open chat sent the same entry in
  * parallel only reads (ADR-011). Of the chats sent in parallel, one edits:
@@ -392,10 +385,6 @@ export interface OpenChat {
   plan: PlanStep[];
   /** Your messages whose file changes were undone; their edits show as withdrawn. */
   withdrawn: string[];
-  /** The chat's marks: pinned, starred. */
-  pins: Mark[];
-  /** Your tags for it, in the order you added them. */
-  tags: string[];
   /**
    * Your messages copied from the chat this one was forked from. The agent
    * keeps no file checkpoints for them, so they can't be undone.
@@ -484,13 +473,6 @@ declare module './commands' {
       request: { from: ParallelFrom; model: string; text: string; attachments?: Attachment[] };
       response: OpenChat;
     };
-    /** Pins or stars a chat, or takes that back. */
-    'agents.pin': {
-      request: { chatId: ChatId; mark: Mark; on: boolean };
-      response: void;
-    };
-    /** Sets a chat's tags, in the order you added them. */
-    'agents.tag': { request: { chatId: ChatId; tags: string[] }; response: void };
     /**
      * Takes one of the separate tasks offered, by its place among them: it
      * goes from the chat, and what a new chat for it begins with comes
@@ -563,9 +545,6 @@ declare module './events' {
     'agents.settings': { chatId: ChatId; settings: ChatSettings };
     /** The agent changed its plan. */
     'agents.plan': { chatId: ChatId; plan: PlanStep[] };
-    /** A chat's marks changed: the ones it has now. */
-    'agents.pins': { chatId: ChatId; pins: Mark[] };
-    'agents.tags': { chatId: ChatId; tags: string[] };
     /** Edits were undone: your messages whose file changes are now withdrawn. */
     'agents.withdrawn': { chatId: ChatId; withdrawn: string[] };
     /** The agent suggested what you might send next; null once it no longer stands. */

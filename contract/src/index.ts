@@ -13,6 +13,7 @@ export * from './protocol';
 // Each module's additions to the contract (ADR-008).
 export * from '../../modules/files/contract';
 export * from '../../modules/git/contract';
+export * from '../../modules/history/contract';
 export * from '../../modules/kanban/contract';
 export * from '../../modules/memories/contract';
 export * from '../../modules/schedules/contract';

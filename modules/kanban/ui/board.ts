@@ -227,8 +227,6 @@ export class Board {
       title: '',
       cwd: chat.cwd,
       updatedAt: chat.at,
-      pins: [],
-      tags: [],
     });
   }
 

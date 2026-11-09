@@ -416,8 +416,6 @@ export class UsagePage {
       title,
       ...(cwd ? { cwd } : {}),
       updatedAt: 0,
-      pins: [],
-      tags: [],
     });
   }
 

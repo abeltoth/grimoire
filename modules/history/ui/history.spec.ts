@@ -8,11 +8,12 @@ describe('history', () => {
   it('lists every chat in the History, in parts by project, narrowed and tagged there', async () => {
     const { bridge, calls, answers, emit } = fakeBridge();
     answers['agents.chats'] = () => [
-      { id: 'c1', agent: 'claude-code', title: 'Context meter', cwd: 'C:/Users/me/git/grimoire', updatedAt: 9, pins: [], tags: ['ui', 'bug'] },
-      { id: 'c2', agent: 'claude-code', title: 'Fix flaky login test', cwd: 'C:/Users/me/git/breeder', updatedAt: 8, pins: [], tags: ['bug'] },
-      { id: 'c3', agent: 'claude-code', title: 'Refactor storage migrations', cwd: 'C:/Users/me/git/grimoire/.claude/worktrees/storage', updatedAt: 7, pins: [], tags: [] },
-      { id: 'c4', agent: 'claude-code', title: 'Morning repo summary', cwd: 'C:/Users/me/git/grimoire', updatedAt: 1, pins: ['pin'], tags: [] },
+      { id: 'c1', agent: 'claude-code', title: 'Context meter', cwd: 'C:/Users/me/git/grimoire', updatedAt: 9 },
+      { id: 'c2', agent: 'claude-code', title: 'Fix flaky login test', cwd: 'C:/Users/me/git/breeder', updatedAt: 8 },
+      { id: 'c3', agent: 'claude-code', title: 'Refactor storage migrations', cwd: 'C:/Users/me/git/grimoire/.claude/worktrees/storage', updatedAt: 7 },
+      { id: 'c4', agent: 'claude-code', title: 'Morning repo summary', cwd: 'C:/Users/me/git/grimoire', updatedAt: 1 },
     ];
+    answers['history.pinsAndTags'] = () => ({ pins: { c4: ['pin'] }, tags: { c1: ['ui', 'bug'], c2: ['bug'] } });
     answers['agents.open'] = (request: CommandRequest<'agents.open'>): OpenChat => ({
       id: request.chatId,
       agent: request.agent,
@@ -24,8 +25,6 @@ describe('history', () => {
       queued: [],
       plan: [],
       withdrawn: [],
-      pins: [],
-      tags: ['bug'],
       copied: [],
     });
     const { fixture, el, texts } = await render(bridge);
@@ -70,7 +69,7 @@ describe('history', () => {
     field.value = ' storage ';
     field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
     await fixture.whenStable();
-    const tagCalls = () => calls.filter((c) => c.command === 'agents.tag').map((c) => c.request);
+    const tagCalls = () => calls.filter((c) => c.command === 'history.tag').map((c) => c.request);
     expect(tagCalls()).toEqual([{ chatId: 'c3', tags: ['storage'] }]);
     expect(texts('gr-history-page li[data-chat="c3"] .tag')).toEqual(['storage']);
     expect(texts('gr-history-page .pick')).toEqual(['bug', 'storage', 'ui']);
@@ -82,7 +81,7 @@ describe('history', () => {
     expect(texts('gr-history-page .pick')).toEqual(['bug', 'storage']);
 
     // Tags and titles changed on a chat itself show here too.
-    emit('agents.tags', { chatId: 'c2', tags: ['bug', 'login'] });
+    emit('history.tags', { chatId: 'c2', tags: ['bug', 'login'] });
     emit('agents.title', { chatId: 'c4', title: 'Morning summary' });
     await fixture.whenStable();
     expect(texts('gr-history-page li[data-chat="c2"] .tag')).toEqual(['bug', 'login']);
@@ -102,9 +101,9 @@ describe('history', () => {
   it('searches the chats in the History for words, each with its passage', async () => {
     const { bridge, calls, answers } = fakeBridge();
     answers['agents.chats'] = () => [
-      { id: 'c1', agent: 'claude-code', title: 'Context meter', cwd: 'C:/Users/me/git/grimoire', updatedAt: 9, pins: [], tags: [] },
-      { id: 'c2', agent: 'claude-code', title: 'Fix flaky login test', cwd: 'C:/Users/me/git/breeder', updatedAt: 8, pins: [], tags: [] },
-      { id: 'c3', agent: 'claude-code', title: 'Refactor storage migrations', cwd: 'C:/Users/me/git/grimoire', updatedAt: 7, pins: [], tags: [] },
+      { id: 'c1', agent: 'claude-code', title: 'Context meter', cwd: 'C:/Users/me/git/grimoire', updatedAt: 9 },
+      { id: 'c2', agent: 'claude-code', title: 'Fix flaky login test', cwd: 'C:/Users/me/git/breeder', updatedAt: 8 },
+      { id: 'c3', agent: 'claude-code', title: 'Refactor storage migrations', cwd: 'C:/Users/me/git/grimoire', updatedAt: 7 },
     ];
     answers['search.chats'] = ({ query }: CommandRequest<'search.chats'>) => {
       if (query === 'boom') throw new Error('the worker stopped');
@@ -132,8 +131,6 @@ describe('history', () => {
       queued: [],
       plan: [],
       withdrawn: [],
-      pins: [],
-      tags: [],
       copied: [],
     });
     const { fixture, el, texts } = await render(bridge);

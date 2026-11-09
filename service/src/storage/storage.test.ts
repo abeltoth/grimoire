@@ -9,7 +9,6 @@ import { ProfileStore } from '../core/profiles';
 import { SettingsStore } from '../core/settings';
 import { OpenChats } from './open-chats';
 import { migrate, openDatabase } from './database';
-import { Pins } from './pins';
 import { EntryIds } from './entry-ids';
 import { Parallels } from './parallels';
 
@@ -26,7 +25,7 @@ describe('storage', () => {
     migrate(db, 'one', [...first, 'ALTER TABLE a ADD COLUMN y TEXT']);
     migrate(db, 'two', ['CREATE TABLE b (x TEXT)']);
     expect(db.prepare('SELECT owner, version FROM schema_versions ORDER BY owner').all()).toEqual([
-      { owner: 'core', version: 2 },
+      { owner: 'core', version: 3 },
       { owner: 'one', version: 2 },
       { owner: 'two', version: 1 },
     ]);
@@ -98,17 +97,6 @@ describe('storage', () => {
     withdrawn.add('a', ['u3', 'u1']);
     expect(withdrawn.list('a')).toEqual(['u2', 'u3', 'u1']);
     expect(withdrawn.list('c')).toEqual([]);
-  });
-
-  it('keeps each chat\'s pins', () => {
-    const pins = new Pins(openDatabase(':memory:'));
-    pins.set('a', 'star', true);
-    pins.set('a', 'pin', true);
-    pins.set('a', 'pin', true);
-    pins.set('b', 'pin', true);
-    pins.set('b', 'pin', false);
-    expect(pins.of('a')).toEqual(['pin', 'star']);
-    expect(pins.of('b')).toEqual([]);
   });
 
   it('keeps presets in the order first saved, one per name', () => {

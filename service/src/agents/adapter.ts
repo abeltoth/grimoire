@@ -23,14 +23,11 @@ import type {
   TokenUse,
 } from '@grimoire/contract';
 
-/** A chat as the agent lists it; its pins and tags are Grimoire's (ADR-009). */
-export type SavedChat = Omit<ChatSummary, 'pins' | 'tags'>;
-
 /** One agent, such as Claude Code. The hub reaches agents only through this (ADR-006). */
 export interface AgentAdapter {
   readonly info: AgentInfo;
   /** The agent's chats, most recent first. */
-  listChats(cwd?: string): Promise<SavedChat[]>;
+  listChats(cwd?: string): Promise<ChatSummary[]>;
   /** A saved chat: its transcript, and the plan as the agent last left it. */
   history(chatId: ChatId, cwd: string): Promise<ChatHistory>;
   /**

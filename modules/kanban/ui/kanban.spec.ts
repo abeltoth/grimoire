@@ -242,8 +242,6 @@ describe('kanban', () => {
         queued: [],
         plan: [],
         withdrawn: [],
-        pins: [],
-        tags: [],
         copied: [],
       });
       const { fixture, el, texts } = await render(bridge);
@@ -361,8 +359,6 @@ describe('kanban', () => {
         queued: [],
         plan: [],
         withdrawn: [],
-        pins: [],
-        tags: [],
         copied: [],
       });
       const cwd = 'C:/Users/me/git/grimoire';

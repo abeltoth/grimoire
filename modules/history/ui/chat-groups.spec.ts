@@ -1,5 +1,5 @@
-import type { ChatSummary } from '@grimoire/contract';
 import {
+  type ListedChat,
   dated,
   keptTags,
   numeral,
@@ -14,8 +14,8 @@ const chat = (
   id: string,
   cwd: string | undefined,
   updatedAt: number,
-  more: Partial<ChatSummary> = {},
-): ChatSummary => ({
+  more: Partial<ListedChat> = {},
+): ListedChat => ({
   id,
   agent: 'claude-code',
   title: id,

@@ -2,6 +2,7 @@ import { Component, inject, input } from '@angular/core';
 import type { Mark } from '@grimoire/contract';
 import { type Chat, Chats } from '@ui/app/core/chats';
 import { Wording } from '@ui/app/core/wording';
+import { PinsAndTags } from './pins-and-tags';
 
 /**
  * The page's pins: fold the top corner down to pin the chat, the
@@ -39,6 +40,7 @@ import { Wording } from '@ui/app/core/wording';
 })
 export class Pins {
   private readonly chats = inject(Chats);
+  private readonly pinsAndTags = inject(PinsAndTags);
   protected readonly wording = inject(Wording);
   readonly chat = input.required<Chat>();
 
@@ -47,11 +49,12 @@ export class Pins {
   }
 
   protected has(mark: Mark): boolean {
-    return this.chat().pins.includes(mark);
+    return this.pinsAndTags.pins(this.chat().id).includes(mark);
   }
 
   protected toggle(mark: Mark): void {
     if (this.blank()) return;
-    void this.chats.pin(this.chat().id, mark, !this.has(mark));
+    const { id } = this.chat();
+    this.pinsAndTags.pin(id, mark, !this.has(mark)).catch((error: unknown) => this.chats.fail(id, error));
   }
 }

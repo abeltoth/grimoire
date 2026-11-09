@@ -83,6 +83,9 @@ const CORE_MIGRATIONS = [
    );`,
   // The usage module keeps the plan's readings.
   `DROP TABLE usage_readings;`,
+  // The history module keeps the pins and tags.
+  `DROP TABLE pins;
+   DROP TABLE tags;`,
 ];
 
 /**

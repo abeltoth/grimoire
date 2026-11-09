@@ -397,13 +397,11 @@ describe('settings', () => {
       queued: [],
       plan: [],
       withdrawn: [],
-      pins: [],
-      tags: [],
       copied: [],
     });
     answers['agents.openChats'] = () => [waiting('c1', 'Fix flaky login test', 'npm test')];
     answers['agents.chats'] = () => [
-      { id: 'c1', agent: 'claude-code', title: 'Fix flaky login test', updatedAt: 1, pins: [], tags: [] },
+      { id: 'c1', agent: 'claude-code', title: 'Fix flaky login test', updatedAt: 1 },
     ];
     answers['layout.get'] = () => ({ current: 'c1', lastUsed: null });
     const { fixture, el, texts } = await render(bridge);

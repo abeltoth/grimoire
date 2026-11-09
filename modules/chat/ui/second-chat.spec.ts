@@ -14,8 +14,6 @@ describe('second-chat', () => {
       queued: [],
       plan: [],
       withdrawn: [],
-      pins: [],
-      tags: [],
       copied: [],
     });
     const tab = (el: HTMLElement, label: string) =>

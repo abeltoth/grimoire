@@ -978,55 +978,6 @@ describe('AgentHub', () => {
     await expect(hub.rename('missing', 'x')).rejects.toThrow('This chat is not open');
   });
 
-  it('keeps your tags for a chat, each once, across restarts', async () => {
-    const store = hubStore(openDatabase(':memory:'));
-    hub = new AgentHub((event, payload) => sent.push({ event, payload } as Sent), 50, store);
-    hub.addAdapter(fake);
-    const { id } = await hub.start('fake', settings, 'Hello');
-    sent = [];
-
-    hub.tag(id, [' ui ', 'bug', '', 'UI']);
-    expect(sent).toEqual([{ event: 'agents.tags', payload: { chatId: id, tags: ['ui', 'bug'] } }]);
-    expect((await hub.open('fake', id, settings)).tags).toEqual(['ui', 'bug']);
-    fake.chats = [
-      { id, agent: 'fake', title: 'Tagged', updatedAt: 0 },
-      { id: 'other', agent: 'fake', title: 'Plain', updatedAt: 1 },
-    ];
-    expect((await hub.listChats('fake')).map((chat) => chat.tags)).toEqual([['ui', 'bug'], []]);
-    hub.tag(id, ['bug']);
-
-    const restarted = new AgentHub(() => {}, 50, store);
-    restarted.addAdapter(fake);
-    expect((await restarted.open('fake', id, settings)).tags).toEqual(['bug']);
-  });
-
-  it('pins and stars chats, kept across restarts', async () => {
-    const store = hubStore(openDatabase(':memory:'));
-    hub = new AgentHub((event, payload) => sent.push({ event, payload } as Sent), 50, store);
-    hub.addAdapter(fake);
-    const { id } = await hub.start('fake', settings, 'Hello');
-    sent = [];
-
-    hub.pin(id, 'star', true);
-    hub.pin(id, 'pin', true);
-    hub.pin(id, 'star', false);
-    expect(sent.map((s) => s.payload)).toEqual([
-      { chatId: id, pins: ['star'] },
-      { chatId: id, pins: ['pin', 'star'] },
-      { chatId: id, pins: ['pin'] },
-    ]);
-    expect((await hub.open('fake', id, settings)).pins).toEqual(['pin']);
-    fake.chats = [
-      { id, agent: 'fake', title: 'Pinned', updatedAt: 0 },
-      { id: 'other', agent: 'fake', title: 'Plain', updatedAt: 1 },
-    ];
-    expect((await hub.listChats('fake')).map((chat) => chat.pins)).toEqual([['pin'], []]);
-
-    const restarted = new AgentHub(() => {}, 50, store);
-    restarted.addAdapter(fake);
-    expect((await restarted.open('fake', id, settings)).pins).toEqual(['pin']);
-  });
-
   it('passes interrupts to the agent', async () => {
     const { id } = await hub.start('fake', settings, 'Hello');
     expect(await hub.interrupt(id)).toEqual([]);

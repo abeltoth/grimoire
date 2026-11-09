@@ -45,8 +45,6 @@ describe('schedules', () => {
           queued: [],
           plan: [],
           withdrawn: [],
-          pins: [],
-          tags: [],
           copied: [],
         },
       });

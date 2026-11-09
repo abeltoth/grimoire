@@ -81,8 +81,6 @@ describe('settings-card', () => {
       queued: [],
       plan: [],
       withdrawn: [],
-      pins: [],
-      tags: [],
       copied: [],
     });
     const { fixture, el, texts } = await render(bridge);

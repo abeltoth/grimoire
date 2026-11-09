@@ -40,15 +40,13 @@ export function fakeBridge(overrides: Partial<GrimoireBridge> = {}) {
       queued: [],
       plan: [],
       withdrawn: [],
-      pins: [],
-
-      tags: [],
       copied: [],
     }),
     'agents.unqueue': () => true,
     'agents.interrupt': () => [],
     'agents.openChats': () => [],
     'agents.chats': () => [],
+    'history.pinsAndTags': () => ({ pins: {}, tags: {} }),
     'agents.models': () => ({
       models: [
         { id: 'opus', name: 'Opus 5.5', efforts: ['low', 'medium', 'high', 'xhigh', 'max'], effort: 'xhigh' },

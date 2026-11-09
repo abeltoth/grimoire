@@ -35,3 +35,11 @@ export class Tags {
     }
   }
 }
+
+/** Tags trimmed, without blanks, and each once whatever its case. */
+export function keptTags(tags: readonly string[]): string[] {
+  const seen = new Set<string>();
+  return tags
+    .map((tag) => tag.trim())
+    .filter((tag) => tag && !seen.has(tag.toLowerCase()) && seen.add(tag.toLowerCase()));
+}

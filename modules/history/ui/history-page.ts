@@ -18,7 +18,8 @@ import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { Chats } from '@ui/app/core/chats';
 import { Wording } from '@ui/app/core/wording';
 import { Icon } from '@ui/design-system/icon';
-import { dated, keptTags, numeral, partTitle, partsOf, tagsOf, withTags } from './chat-groups';
+import { type ListedChat, dated, numeral, partTitle, partsOf, tagsOf, withTags } from './chat-groups';
+import { PinsAndTags } from './pins-and-tags';
 
 /** How long the search field waits for you to stop writing before it searches. */
 const SEARCH_DELAY_MS = 150;
@@ -40,6 +41,7 @@ const SEARCH_DELAY_MS = 150;
 export class HistoryPage {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
   protected readonly chats = inject(Chats);
+  private readonly pinsAndTags = inject(PinsAndTags);
   protected readonly wording = inject(Wording);
   private readonly pending = inject(PendingTasks);
   private readonly injector = inject(Injector);
@@ -48,7 +50,17 @@ export class HistoryPage {
   private readonly searchField = viewChild.required<ElementRef<HTMLInputElement>>('searchField');
 
   /** Every agent's chats; undefined until they've answered. */
-  private readonly listed = signal<readonly ChatSummary[] | undefined>(undefined);
+  private readonly saved = signal<readonly ChatSummary[] | undefined>(undefined);
+  /** Those chats with their pins and tags. */
+  private readonly listed = computed(() =>
+    this.saved()?.map(
+      (chat): ListedChat => ({
+        ...chat,
+        pins: this.pinsAndTags.pins(chat.id),
+        tags: this.pinsAndTags.tags(chat.id),
+      }),
+    ),
+  );
   /** The tags the list is narrowed to. */
   private readonly picked = signal<readonly string[]>([]);
   /** The chat a new tag is being written for. */
@@ -101,20 +113,16 @@ export class HistoryPage {
     effect(() => {
       if (this.chats.agents().length) untracked(() => void this.load());
     });
-    // Keep up with changes made on the chats themselves.
-    const stops = [
-      this.bridge.on('agents.tags', ({ chatId, tags }) => this.change(chatId, { tags })),
-      this.bridge.on('agents.pins', ({ chatId, pins }) => this.change(chatId, { pins })),
-      this.bridge.on('agents.title', ({ chatId, title }) => this.change(chatId, { title })),
-    ];
-    inject(DestroyRef).onDestroy(() => stops.forEach((stop) => stop()));
+    // Keep up with chats renamed on their own pages.
+    const stop = this.bridge.on('agents.title', ({ chatId, title }) => this.retitle(chatId, title));
+    inject(DestroyRef).onDestroy(stop);
     afterRenderEffect(() => this.field()?.nativeElement.focus());
     afterNextRender(() => this.searchField().nativeElement.focus());
     inject(DestroyRef).onDestroy(() => this.stopWaiting());
   }
 
   /** The passage a chat has what's searched for in, unless that's its title. */
-  protected hitOf(chat: ChatSummary): SearchHit | undefined {
+  protected hitOf(chat: ListedChat): SearchHit | undefined {
     const hit = this.hits()?.get(chat.id);
     return hit?.kind === 'title' ? undefined : hit;
   }
@@ -167,12 +175,12 @@ export class HistoryPage {
     this.picked.set([]);
   }
 
-  protected open(chat: ChatSummary): void {
+  protected open(chat: ListedChat): void {
     void this.chats.openChat(chat);
   }
 
   protected finish(
-    chat: ChatSummary,
+    chat: ListedChat,
     field: HTMLInputElement,
     keep: boolean,
     refocus: boolean,
@@ -183,7 +191,7 @@ export class HistoryPage {
     if (refocus) this.focusAdd(chat.id);
   }
 
-  protected untag(chat: ChatSummary, tag: string): void {
+  protected untag(chat: ListedChat, tag: string): void {
     void this.tag(
       chat,
       chat.tags.filter((kept) => kept !== tag),
@@ -222,32 +230,24 @@ export class HistoryPage {
   private async load(): Promise<void> {
     const done = this.pending.add();
     try {
-      // A service from before tags were listed sends none.
-      const chats = await this.chats.pastChats();
-      this.listed.set(chats.map((chat) => ({ ...chat, tags: chat.tags ?? [] })));
+      this.saved.set(await this.chats.pastChats());
     } finally {
       done();
     }
   }
 
-  private async tag(chat: ChatSummary, tags: readonly string[]): Promise<void> {
-    const kept = keptTags(tags);
-    if (kept.join('\n') === chat.tags.join('\n')) return;
+  private async tag(chat: ListedChat, tags: readonly string[]): Promise<void> {
     this.failed.set(null);
-    this.change(chat.id, { tags: kept });
     try {
-      await this.bridge.invoke('agents.tag', { chatId: chat.id, tags: kept });
+      await this.pinsAndTags.tag(chat.id, tags);
     } catch (error) {
-      this.change(chat.id, { tags: chat.tags });
       const reason = error instanceof Error ? error.message : String(error);
       this.failed.set(`The tags couldn’t be kept: ${reason}`);
     }
   }
 
-  private change(chatId: ChatId, change: Partial<ChatSummary>): void {
-    this.listed.update((listed) =>
-      listed?.map((chat) => (chat.id === chatId ? { ...chat, ...change } : chat)),
-    );
+  private retitle(chatId: ChatId, title: string): void {
+    this.saved.update((saved) => saved?.map((chat) => (chat.id === chatId ? { ...chat, title } : chat)));
   }
 
   private focusAdd(chatId: ChatId): void {

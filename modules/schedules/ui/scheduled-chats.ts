@@ -73,8 +73,6 @@ export class ScheduledChats {
       title: '',
       ...(run.cwd ? { cwd: run.cwd } : {}),
       updatedAt: run.ranAt ?? run.dueAt,
-      pins: [],
-      tags: [],
     });
   }
 

@@ -4,6 +4,7 @@ import {
   Injector,
   afterNextRender,
   afterRenderEffect,
+  computed,
   inject,
   input,
   linkedSignal,
@@ -11,6 +12,7 @@ import {
 } from '@angular/core';
 import { Icon } from '@ui/design-system/icon';
 import { type Chat, Chats } from '@ui/app/core/chats';
+import { PinsAndTags } from './pins-and-tags';
 
 /**
  * A chat's tags, as plain-text labels after its title. "+ Tag" writes a
@@ -26,11 +28,13 @@ import { type Chat, Chats } from '@ui/app/core/chats';
 })
 export class ChatTags {
   private readonly chats = inject(Chats);
+  private readonly pinsAndTags = inject(PinsAndTags);
   private readonly injector = inject(Injector);
   private readonly field = viewChild<ElementRef<HTMLInputElement>>('field');
   private readonly addButton = viewChild<ElementRef<HTMLButtonElement>>('addButton');
 
   readonly chat = input.required<Chat>();
+  protected readonly tags = computed(() => this.pinsAndTags.tags(this.chat().id));
 
   /** Whether a new tag is being written; never on a chat you've just turned to. */
   protected readonly adding = linkedSignal({
@@ -45,18 +49,18 @@ export class ChatTags {
   protected finish(field: HTMLInputElement, keep: boolean, refocus: boolean): void {
     if (!this.adding()) return;
     this.adding.set(false);
-    const { id, tags } = this.chat();
-    if (keep) void this.chats.tag(id, [...tags, field.value]);
+    if (keep) this.save([...this.tags(), field.value]);
     if (refocus) this.focusAdd();
   }
 
   protected remove(tag: string): void {
-    const { id, tags } = this.chat();
-    void this.chats.tag(
-      id,
-      tags.filter((kept) => kept !== tag),
-    );
+    this.save(this.tags().filter((kept) => kept !== tag));
     this.focusAdd();
+  }
+
+  private save(tags: readonly string[]): void {
+    const { id } = this.chat();
+    this.pinsAndTags.tag(id, tags).catch((error: unknown) => this.chats.fail(id, error));
   }
 
   private focusAdd(): void {

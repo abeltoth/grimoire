@@ -20,10 +20,11 @@ import type {
   ApprovalMode,
   ChatId,
   ChatSettings,
+  ChatSummary,
   Attachment,
   SubagentRun,
 } from '@grimoire/contract';
-import type { AgentAdapter, ChatEvents, ChatHistory, LiveChat, SavedChat, SignInRun } from '../adapter';
+import type { AgentAdapter, ChatEvents, ChatHistory, LiveChat, SignInRun } from '../adapter';
 import { CacheTracker, type ReplyUsage } from './cache';
 import { claudeHome } from './config-dir';
 import { readUserSettings } from './effort';
@@ -120,7 +121,7 @@ export class ClaudeAdapter implements AgentAdapter {
     capabilities: ['rename', 'fork', 'undo', 'compact', 'sign-in'],
   };
 
-  async listChats(cwd?: string): Promise<SavedChat[]> {
+  async listChats(cwd?: string): Promise<ChatSummary[]> {
     const { listSessions } = await sdk();
     const sessions = await listSessions(cwd ? { dir: cwd } : undefined);
     return sessions

@@ -113,10 +113,11 @@ describe('App', () => {
   it('searches actions and chats in the command palette, turned to with Ctrl+K', async () => {
     const { bridge, calls, answers } = fakeBridge();
     answers['agents.chats'] = () => [
-      { id: 'c7', agent: 'claude-code', title: 'Old notes', cwd: 'C:/Users/me', updatedAt: 0, pins: ['pin', 'star'], tags: [] },
-      { id: 'c8', agent: 'claude-code', title: 'Fix flaky login test', cwd: 'C:/Users/me/git/grimoire', updatedAt: 1, pins: ['star'], tags: [] },
-      { id: 'c9', agent: 'claude-code', title: 'New onboarding flow', cwd: 'C:/Users/me/git/breeder', updatedAt: 2, pins: [], tags: [] },
+      { id: 'c7', agent: 'claude-code', title: 'Old notes', cwd: 'C:/Users/me', updatedAt: 0 },
+      { id: 'c8', agent: 'claude-code', title: 'Fix flaky login test', cwd: 'C:/Users/me/git/grimoire', updatedAt: 1 },
+      { id: 'c9', agent: 'claude-code', title: 'New onboarding flow', cwd: 'C:/Users/me/git/breeder', updatedAt: 2 },
     ];
+    answers['history.pinsAndTags'] = () => ({ pins: { c7: ['pin', 'star'], c8: ['star'] }, tags: {} });
     answers['agents.open'] = (request: CommandRequest<'agents.open'>): OpenChat => ({
       id: request.chatId,
       agent: request.agent,
@@ -128,9 +129,6 @@ describe('App', () => {
       queued: [],
       plan: [],
       withdrawn: [],
-      pins: [],
-
-      tags: [],
       copied: [],
     });
     const { fixture, el, texts } = await render(bridge);
@@ -290,9 +288,6 @@ describe('App', () => {
       queued: [],
       plan: [],
       withdrawn: [],
-      pins: [],
-
-      tags: [],
       copied: [],
     });
     answers['agents.openChats'] = () => [
@@ -330,9 +325,6 @@ describe('App', () => {
       queued: [],
       plan: [],
       withdrawn: [],
-      pins: [],
-
-      tags: [],
       copied: [],
     });
     answers['agents.openChats'] = () => [chat('c1', 'One'), chat('c2', 'Two'), chat('c3', 'Three')];
@@ -457,8 +449,6 @@ describe('App', () => {
       queued: [],
       plan: [],
       withdrawn: [],
-      pins: [],
-      tags: [],
       copied: [],
     });
     const question = {
@@ -528,8 +518,6 @@ describe('App', () => {
       queued: [],
       plan: [],
       withdrawn: [],
-      pins: [],
-      tags: [],
       copied: [],
     });
     const link = (root: ParentNode, label: string) =>

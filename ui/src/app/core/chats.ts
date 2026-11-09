@@ -11,7 +11,6 @@ import type {
   ChatStatus,
   ChatSummary,
   ContextUsage,
-  Mark,
   EffortLevel,
   Editor,
   Attachment,
@@ -54,10 +53,6 @@ export interface Chat {
   plan: readonly PlanStep[];
   /** Your messages whose file changes were undone. */
   withdrawn: readonly string[];
-  /** Its marks: pinned, starred. */
-  pins: readonly Mark[];
-  /** Your tags, in the order you added them. */
-  tags: readonly string[];
   /** Your messages copied from the chat this one was forked from; they can't be undone. */
   copied: readonly string[];
   /** What the agent suggests you send next, while it's idle with nothing queued. */
@@ -174,10 +169,6 @@ export class Chats {
       this.update(chatId, (c) => ({ ...c, settings })),
     );
     this.listen('agents.plan', ({ chatId, plan }) => this.update(chatId, (c) => ({ ...c, plan })));
-    this.listen('agents.pins', ({ chatId, pins }) =>
-      this.update(chatId, (c) => ({ ...c, pins })),
-    );
-    this.listen('agents.tags', ({ chatId, tags }) => this.update(chatId, (c) => ({ ...c, tags })));
     this.listen('agents.withdrawn', ({ chatId, withdrawn }) =>
       this.update(chatId, (c) => ({ ...c, withdrawn })),
     );
@@ -401,8 +392,6 @@ export class Chats {
       queued: [],
       plan: [],
       withdrawn: [],
-      pins: [],
-      tags: [],
       copied: [],
       begunAt: Date.now(),
       ...(start.prompt ? { prompt: start.prompt } : {}),
@@ -522,14 +511,11 @@ export class Chats {
         ...(attachments.length ? { attachments: [...attachments] } : {}),
         ...(chat.title ? { title: chat.title } : {}),
       });
-      // Tags given to the blank page go to its chat.
-      const tags = this.find(id)?.tags ?? [];
       this.all.update((all) => all.map((c) => (c.id === id ? fromOpenChat(opened) : c)));
       if (this.currentId() === id) this.turnTo(opened.id);
       if (this.besideId() === id) this.setBeside(opened.id);
       this.remember({ agent: chat.agent, settings: chat.settings });
       for (const handle of this.begun) handle(id, opened);
-      if (tags.length) await this.tag(opened.id, tags);
       return opened.id;
     } catch (error) {
       this.fail(id, error);
@@ -650,30 +636,6 @@ export class Chats {
       this.update(id, (c) => ({ ...c, title: chat.title }));
       this.fail(id, error);
     }
-  }
-
-  /** Sets a chat's tags: trimmed, without blanks, each once whatever its case. */
-  async tag(id: string, tags: readonly string[]): Promise<void> {
-    const chat = this.find(id);
-    if (!chat) return;
-    const seen = new Set<string>();
-    const kept = tags
-      .map((tag) => tag.trim())
-      .filter((tag) => tag && !seen.has(tag.toLowerCase()) && seen.add(tag.toLowerCase()));
-    if (kept.join('\n') === chat.tags.join('\n')) return;
-    this.update(id, ({ error: _, ...c }) => ({ ...c, tags: kept }));
-    if (chat.status === 'blank') return;
-    try {
-      await this.bridge.invoke('agents.tag', { chatId: id, tags: kept });
-    } catch (error) {
-      this.update(id, (c) => ({ ...c, tags: chat.tags }));
-      this.fail(id, error);
-    }
-  }
-
-  /** Puts a mark on a chat, or takes it off. */
-  pin(id: string, mark: Mark, on: boolean): Promise<void> {
-    return this.settle(id, this.bridge.invoke('agents.pin', { chatId: id, mark, on }));
   }
 
   /** Takes a message out of the queue; false when it had already gone. */
@@ -826,8 +788,6 @@ function fromOpenChat(chat: OpenChat): Chat {
     queued: chat.queued,
     plan: chat.plan ?? [],
     withdrawn: chat.withdrawn ?? [],
-    pins: chat.pins ?? [],
-    tags: chat.tags ?? [],
     copied: chat.copied ?? [],
     ...(chat.context ? { context: chat.context } : {}),
     ...(chat.cache ? { cache: chat.cache } : {}),
