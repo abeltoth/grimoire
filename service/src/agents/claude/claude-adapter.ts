@@ -233,6 +233,12 @@ export class ClaudeAdapter implements AgentAdapter {
     return info?.customTitle ?? info?.summary ?? '';
   }
 
+  /** The title you or Claude Code gave the chat, without falling back on its first prompt; undefined until it has one. */
+  private async generatedTitle(chatId: ChatId, cwd: string): Promise<string | undefined> {
+    const { getSessionInfo } = await sdk();
+    return (await getSessionInfo(chatId, await this.savedIn(chatId, cwd)))?.customTitle || undefined;
+  }
+
   /**
    * Where to look for a saved chat: its folder, or every folder when it was
    * saved under another, as a chat begun in a worktree that now works in
@@ -553,6 +559,20 @@ export class ClaudeAdapter implements AgentAdapter {
     });
     const transcript = new ClaudeTranscript(true, events);
     const cache = new CacheTracker();
+    // Claude Code names a new chat during its first turn: looked for as each reply comes, one read at a time, until it has.
+    let named = false;
+    let naming = false;
+    const lookForName = () => {
+      if (named || naming) return;
+      naming = true;
+      this.generatedTitle(chatId, settings.cwd)
+        .then((title) => {
+          if (!title) return;
+          named = true;
+          events.title(title);
+        }, () => {})
+        .finally(() => (naming = false));
+    };
     void (async () => {
       try {
         const live = await started;
@@ -560,8 +580,10 @@ export class ClaudeAdapter implements AgentAdapter {
           transcript.apply(message);
           // At most one a turn, after its result.
           if (message.type === 'prompt_suggestion') events.suggestion(message.suggestion);
-          if (message.type === 'assistant' && message.parent_tool_use_id === null)
+          if (message.type === 'assistant' && message.parent_tool_use_id === null) {
             cache.reply(message.message.usage as ReplyUsage, Date.now());
+            lookForName();
+          }
           if (message.type !== 'result') continue;
           events.turnEnded(resultError(message));
           // What the turn offered shows once it ended, unless the next has begun.

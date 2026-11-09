@@ -196,6 +196,16 @@ const MIGRATIONS = [
      chat_id TEXT NOT NULL,
      PRIMARY KEY (profile, project)
    );`,
+  // Only chats sent one entry in parallel share who edits (ADR-011); other chats on a project all edit.
+  `DROP TABLE editors;
+   CREATE TABLE parallels (
+     chat_id TEXT PRIMARY KEY,
+     group_id TEXT NOT NULL
+   );
+   CREATE TABLE parallel_editors (
+     group_id TEXT PRIMARY KEY,
+     chat_id TEXT NOT NULL
+   );`,
 ];
 
 /**

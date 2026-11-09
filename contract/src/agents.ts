@@ -65,9 +65,14 @@ export interface ChatSettings {
 /** Settings for a new chat; the folder defaults to your home folder. */
 export type NewChatSettings = Omit<ChatSettings, 'cwd'> & { cwd?: string };
 
-/** What a second model's chat comes from: a chat that has begun, or a new chapter's settings. */
+/**
+ * What a second model's chat comes from: a chat that has begun, or a new
+ * chapter's settings, with the chat the chapter just began, which edits
+ * while the second only reads.
+ */
 export type ParallelFrom =
-  { chatId: ChatId } | { agent: AgentId; settings: NewChatSettings; title?: string };
+  | { chatId: ChatId }
+  | { agent: AgentId; settings: NewChatSettings; title?: string; alongside: ChatId };
 
 /**
  * The settings you can change once a chat has begun. Its MCP servers change
@@ -408,10 +413,10 @@ export interface FollowUp {
 export type DogEar = 'pin' | 'star';
 
 /**
- * The chat that edits a project while another open chat on it only reads
- * (ADR-011). Of the chats open on one project, the git repository a folder
- * is in, or the folder outside one, one edits: the first opened, until you
- * make another the editing chat. The others can't edit files.
+ * The chat that edits while another open chat sent the same entry in
+ * parallel only reads (ADR-011). Of the chats sent in parallel, one edits:
+ * the first opened, until you make another the editing chat. The others
+ * can't edit files. Any other chat edits.
  */
 export interface Editor {
   chatId: ChatId;
@@ -452,7 +457,7 @@ export interface OpenChat {
   suggestion?: string;
   /** The separate tasks the agent offered after its last reply, until a turn begins. */
   followUps?: FollowUp[];
-  /** While another chat edits its project: that chat. This one can't edit files. */
+  /** While another chat it was sent in parallel with edits: that chat. This one can't edit files. */
   readOnly?: Editor;
 }
 

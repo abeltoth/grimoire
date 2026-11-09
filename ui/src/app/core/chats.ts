@@ -561,6 +561,7 @@ export class Chats {
         agent: chapter.agent,
         settings: chapter.settings,
         ...(chapter.title ? { title: chapter.title } : {}),
+        alongside: started,
       };
     } else this.update(id, ({ error: _, ...c }) => c);
     try {

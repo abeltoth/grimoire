@@ -5901,7 +5901,7 @@ describe('App', () => {
         expect(started).toBeGreaterThan(-1);
         expect(second).toBeGreaterThan(started);
         expect(calls[second]!.request).toMatchObject({
-          from: { agent: 'claude-code' },
+          from: { agent: 'claude-code', alongside: 'chat-1' },
           model: 'sonnet',
           text: 'Fix the login test',
         });

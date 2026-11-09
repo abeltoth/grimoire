@@ -10,8 +10,8 @@ import { ScheduleStore } from '../schedules/store';
 import { Chapters } from './chapters';
 import { openDatabase } from './database';
 import { DogEars } from './dog-ears';
-import { Editors } from './editors';
 import { EntryIds } from './entry-ids';
+import { Parallels } from './parallels';
 
 const dirs: string[] = [];
 afterEach(() => {
@@ -104,17 +104,17 @@ describe('storage', () => {
     db.close();
   });
 
-  it('keeps the chat that edits each project, per profile', () => {
-    const db = openDatabase(':memory:');
-    let profile = 'personal';
-    const editors = new Editors(db, () => profile);
-    editors.set('c:\\git\\app', 'a');
-    editors.set('c:\\git\\app', 'b');
-    editors.set('c:\\notes', 'c');
-    expect(editors.of('c:\\git\\app')).toBe('b');
-    expect(editors.of('c:\\notes')).toBe('c');
-    profile = 'work';
-    expect(editors.of('c:\\git\\app')).toBeUndefined();
+  it('keeps the chats sent in parallel together, and the one that edits each group', () => {
+    const parallels = new Parallels(openDatabase(':memory:'));
+    expect(parallels.groupOf('a')).toBe('a');
+    parallels.join('b', 'a');
+    // A copy of a copy joins the first chat's group.
+    parallels.join('c', 'b');
+    expect([parallels.groupOf('b'), parallels.groupOf('c')]).toEqual(['a', 'a']);
+    expect(parallels.editorOf('a')).toBeUndefined();
+    parallels.setEditor('a', 'b');
+    parallels.setEditor('a', 'c');
+    expect(parallels.editorOf('a')).toBe('c');
   });
 
   it('keeps open chapters in order across restarts', () => {

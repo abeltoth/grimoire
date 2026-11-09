@@ -47,7 +47,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { Chapters } from '../storage/chapters';
 import { openDatabase } from '../storage/database';
 import { DogEars } from '../storage/dog-ears';
-import { Editors } from '../storage/editors';
+import { Parallels } from '../storage/parallels';
 import { EntryIds } from '../storage/entry-ids';
 import { Tags } from '../storage/tags';
 import { UsageReadings, sameAccount } from '../storage/usage-readings';
@@ -84,9 +84,7 @@ interface ChatState {
   suggestion?: string;
   /** The separate tasks the agent offered after its last reply, until a turn begins or you take each. */
   followUps?: FollowUp[];
-  /** Its project, as projectOf() gives it: of the open chats on one, one edits it (ADR-011). */
-  project: string;
-  /** While another chat edits its project: that chat. This one can't edit files. */
+  /** While another chat it was sent in parallel with edits (ADR-011): that chat. This one can't edit files. */
   editor?: ChatId;
   /** While the agent process runs. */
   live?: LiveChat;
@@ -130,8 +128,8 @@ export interface HubStore {
   tags: Tags;
   /** Each reading of the agents' plan limits. */
   usage: UsageReadings;
-  /** The chat that edits each project. */
-  editors: Editors;
+  /** The chats sent one entry in parallel, and the one that edits each group. */
+  parallels: Parallels;
 }
 
 export function hubStore(db: DatabaseSync): HubStore {
@@ -142,7 +140,7 @@ export function hubStore(db: DatabaseSync): HubStore {
     dogEars: new DogEars(db),
     tags: new Tags(db),
     usage: new UsageReadings(db),
-    editors: new Editors(db),
+    parallels: new Parallels(db),
   };
 }
 
@@ -153,9 +151,8 @@ export function hubStore(db: DatabaseSync): HubStore {
  * they get a chat's state when they open it and its changes as events.
  * Streamed text is batched, at most one event per chat every `textBatchMs`.
  *
- * Of the open chats on one project, one edits it; the others can't edit
- * files (ADR-011). A chat's project is the git repository its folder
- * is in, as `repositoryOf` gives its top folder, else the folder itself.
+ * Of the open chats sent one entry in parallel, one edits; the others
+ * can't edit files (ADR-011). Any other chat edits.
  */
 export class AgentHub {
   private readonly adapters = new Map<AgentId, AgentAdapter>();
@@ -177,7 +174,6 @@ export class AgentHub {
     private readonly emit: Emit,
     private readonly textBatchMs = 50,
     private readonly store = hubStore(openDatabase(':memory:')),
-    private readonly repositoryOf: (cwd: string) => Promise<string | null> = async () => null,
   ) {}
 
   addAdapter(adapter: AgentAdapter): void {
@@ -386,8 +382,8 @@ export class AgentHub {
 
   /**
    * The chats open as chapters, in ribbon order. Those that no longer open
-   * are forgotten. Once all are open, each project's editing chat is the
-   * one that was before.
+   * are forgotten. Once all are open, the chats sent in parallel edit as
+   * they did before.
    */
   async openChats(): Promise<OpenChat[]> {
     const chats = await Promise.all(
@@ -402,25 +398,24 @@ export class AgentHub {
     return chats.filter((chat) => chat !== undefined).map((chat) => this.snapshot(chat));
   }
 
-  /** Opens a chat as a chapter; it only reads when another open chat edits its project. */
+  /** Opens a chat as a chapter; it only reads when another open chat it was sent in parallel with edits. */
   async open(agent: AgentId, chatId: ChatId, settings: ChatSettings): Promise<OpenChat> {
     const chat = await this.load(agent, chatId, settings);
     this.settleEditors();
     return this.snapshot(chat);
   }
 
-  /** Opens a chat as a chapter, unless it's open already, leaving who edits its project as it was. */
+  /** Opens a chat as a chapter, unless it's open already, leaving who edits as it was. */
   private async load(agent: AgentId, chatId: ChatId, settings: ChatSettings): Promise<ChatState> {
     let chat = this.chats.get(chatId);
     if (!chat) {
       const adapter = this.adapter(agent);
-      const [history, title, project] = await Promise.all([
+      const [history, title] = await Promise.all([
         adapter.history(chatId, settings.cwd),
         adapter.title(chatId, settings.cwd),
-        this.projectOf(settings.cwd),
       ]);
       // Another window may have opened it meanwhile.
-      chat = this.chats.get(chatId) ?? this.track(chatId, adapter, settings, history.entries, title, project);
+      chat = this.chats.get(chatId) ?? this.track(chatId, adapter, settings, history.entries, title);
       chat.plan = history.plan;
       if (history.cache && !chat.cache) chat.cache = history.cache;
       chat.withdrawn = this.store.withdrawn.list(chatId);
@@ -434,12 +429,7 @@ export class AgentHub {
     return chat;
   }
 
-  /** A folder's project, to compare by: the git repository it's in, else the folder itself. */
-  private async projectOf(cwd: string): Promise<string> {
-    return samePath((await this.repositoryOf(cwd).catch(() => null)) ?? cwd);
-  }
-
-  /** Starts a new chat with its first entry; it only reads when another open chat edits its project. */
+  /** Starts a new chat with its first entry. */
   async start(
     agent: AgentId,
     settings: NewChatSettings,
@@ -468,8 +458,8 @@ export class AgentHub {
    * Sends one entry to a second model too, in a chat of its own: from a
    * chat that has begun, a copy of it, after the entry goes to the chat
    * itself; from a new chapter's settings, a chat begun afresh. The second
-   * works in the same folder, so while the first edits the project, the
-   * second only reads (ADR-011).
+   * works in the same folder, so while the first edits, the second only
+   * reads (ADR-011).
    */
   async parallel(from: ParallelFrom, model: string, text: string, enclosures: Enclosure[] = []): Promise<OpenChat> {
     if (!text.trim() && !enclosures.length) throw new Error('Write something, or attach something, to send');
@@ -479,7 +469,7 @@ export class AgentHub {
       const title = named ? await this.variantTitle(this.adapter(from.agent), named, cwd) : undefined;
       // The second model is the one asked for, not Auto's.
       const { autoModel: _, ...settings } = from.settings;
-      return this.begin(from.agent, { ...settings, cwd, model }, text, title, enclosures);
+      return this.begin(from.agent, { ...settings, cwd, model }, text, title, enclosures, from.alongside);
     }
     const chat = this.chat(from.chatId);
     if (!chat.agent.fork) throw new Error(`${chat.agent.info.name} can't copy a chat to another model`);
@@ -491,6 +481,7 @@ export class AgentHub {
     // The chat goes on at once; its copy follows once it's open.
     this.send(chat.id, text, enclosures);
     const { autoModel: _, ...settings } = chat.settings;
+    this.store.parallels.join(forkId, chat.id);
     const variant = await this.open(chat.agent.info.id, forkId, { ...settings, model });
     // The copy's entries are copies, without the original's file checkpoints.
     this.store.copied.add(
@@ -503,18 +494,19 @@ export class AgentHub {
     return this.snapshot(copy);
   }
 
-  /** Begins a chat with its first entry, where its settings say. */
+  /** Begins a chat with its first entry, where its settings say; sent in parallel with `alongside`, when given. */
   private async begin(
     agent: AgentId,
     resolved: ChatSettings,
     text: string,
     named: string | undefined,
     enclosures: Enclosure[],
+    alongside?: ChatId,
   ): Promise<OpenChat> {
     const adapter = this.adapter(agent);
-    const project = await this.projectOf(resolved.cwd);
     if (!adapter.start) {
-      const chat = this.track(randomUUID(), adapter, resolved, [], named ?? '', project);
+      const chat = this.track(randomUUID(), adapter, resolved, [], named ?? '');
+      if (alongside) this.store.parallels.join(chat.id, alongside);
       this.store.chapters.add({ chatId: chat.id, agent, settings: resolved });
       this.settleEditors();
       chat.live = adapter.run(chat.id, chat.settings, false, this.eventsFor(chat), named);
@@ -529,7 +521,8 @@ export class AgentHub {
       text,
       id,
       (chatId) => {
-        chat = this.track(chatId, adapter, resolved, [], named ?? '', project);
+        chat = this.track(chatId, adapter, resolved, [], named ?? '');
+        if (alongside) this.store.parallels.join(chatId, alongside);
         this.store.chapters.add({ chatId, agent, settings: resolved });
         this.settleEditors();
         this.upsert(chat, userEntry(id, text, enclosures));
@@ -604,8 +597,8 @@ export class AgentHub {
   /**
    * Restores the files to how they were before one of your entries, starting
    * the agent's process when the chat has none. That entry's edits, and those
-   * of every entry after it, are withdrawn. Only the chat that edits its
-   * project can.
+   * of every entry after it, are withdrawn. A chat that only reads
+   * can't.
    */
   async undo(chatId: ChatId, entryId: string): Promise<void> {
     const chat = this.chat(chatId);
@@ -751,16 +744,16 @@ export class AgentHub {
     this.settle(pending, { answers });
   }
 
-  /** Makes the chat the one that edits its project: the chat that edited it only reads from now on. */
+  /** Makes the chat the one that edits of those sent in parallel: the chat that edited only reads from now on. */
   takeOver(chatId: ChatId): void {
     const chat = this.chat(chatId);
-    this.store.editors.set(chat.project, chat.id);
+    this.store.parallels.setEditor(this.store.parallels.groupOf(chat.id), chat.id);
     this.settleEditors();
   }
 
   /**
    * Closes a chat's chapter: it's no longer open after a restart. When it
-   * edited its project, the chat on it opened first after it edits from now on.
+   * edited, the chat sent in parallel with it opened first after it edits from now on.
    */
   close(chatId: ChatId): void {
     this.store.chapters.remove(chatId);
@@ -829,21 +822,27 @@ export class AgentHub {
   }
 
   /**
-   * Gives each project one chat that edits it (ADR-011): the one kept for
-   * it while that's open, else the open chat on it opened first. The others
-   * only read. Each chat that changed hears so.
+   * Gives the open chats sent one entry in parallel one chat that edits
+   * (ADR-011): the one kept for them while that's open, else the one opened
+   * first. The others only read; a chat sent in parallel with none open
+   * edits. Each chat that changed hears so.
    */
   private settleEditors(): void {
     const order = this.store.chapters.list().map((chapter) => chapter.chatId);
     const place = (chat: ChatState) => (order.includes(chat.id) ? order.indexOf(chat.id) : order.length);
-    const projects = new Map<string, ChatState[]>();
-    for (const chat of this.chats.values()) projects.set(chat.project, [...(projects.get(chat.project) ?? []), chat]);
-    for (const [project, chats] of projects) {
-      const kept = this.store.editors.of(project);
+    const groups = new Map<string, ChatState[]>();
+    for (const chat of this.chats.values()) {
+      const group = this.store.parallels.groupOf(chat.id);
+      groups.set(group, [...(groups.get(group) ?? []), chat]);
+    }
+    for (const [group, chats] of groups) {
+      const kept = this.store.parallels.editorOf(group);
       const editor =
         chats.find((chat) => chat.id === kept) ??
         chats.reduce((first, chat) => (place(chat) < place(first) ? chat : first));
-      if (editor.id !== kept) this.store.editors.set(project, editor.id);
+      // Kept only for chats sent in parallel; a chat on its own edits without.
+      const parallel = kept !== undefined || chats.length > 1 || group !== editor.id;
+      if (parallel && editor.id !== kept) this.store.parallels.setEditor(group, editor.id);
       for (const chat of chats) {
         const by = chat === editor ? undefined : editor.id;
         if (chat.editor === by) continue;
@@ -853,7 +852,7 @@ export class AgentHub {
     }
   }
 
-  /** The chat that edits the project of one that only reads; undefined for the chat that edits. */
+  /** The chat that edits in place of one that only reads; undefined for a chat that edits. */
   private readOnlyOf(chat: ChatState): Editor | undefined {
     return chat.editor ? { chatId: chat.editor, title: this.chats.get(chat.editor)?.title ?? '' } : undefined;
   }
@@ -866,7 +865,7 @@ export class AgentHub {
     }
   }
 
-  /** Who edits the project of a chat that only reads, as what it's told says. */
+  /** Who edits in place of a chat that only reads, as what it's told says. */
   private editing(chat: ChatState): string {
     const title = chat.editor && this.chats.get(chat.editor)?.title;
     return `${title ? `"${title}"` : 'Another chat'} is editing this project`;
@@ -878,7 +877,6 @@ export class AgentHub {
     settings: ChatSettings,
     entries: Entry[],
     title: string,
-    project: string,
   ): ChatState {
     const chat: ChatState = {
       id,
@@ -893,7 +891,6 @@ export class AgentHub {
       dogEars: [],
       tags: [],
       copied: [],
-      project,
       processes: 0,
       restart: false,
       helpers: new Map(),

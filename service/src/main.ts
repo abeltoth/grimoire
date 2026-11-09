@@ -134,8 +134,6 @@ const hub = new AgentHub(
   },
   50,
   hubStore(db),
-  // A chat's project is the git repository its folder is in (ADR-011).
-  (cwd) => git.root(cwd),
 );
 const cards = new CardStore(db);
 const claude = new ClaudeAdapter(
