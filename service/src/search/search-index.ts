@@ -14,7 +14,7 @@ import {
   weighTokens,
 } from '@grimoire/contract';
 
-/** A passage to look through: a chat's title, one of your entries, or one of the agent's replies. */
+/** A passage to look through: a chat's title, one of your messages, or one of the agent's replies. */
 export interface Passage {
   kind: PassageKind;
   text: string;

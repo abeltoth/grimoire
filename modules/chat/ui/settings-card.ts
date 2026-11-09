@@ -75,9 +75,9 @@ export class SettingsCard {
   });
   protected readonly agentName = computed(() => this.chats.agentName(this.chat().agent));
   protected readonly models = computed(() => this.chats.models()[this.chat().agent]);
-  /** On Auto, before the first entry: the model and effort are still to be picked. */
+  /** On Auto, before the first message: the model and effort are still to be picked. */
   protected readonly auto = computed(() => !this.begun() && !!this.chat().settings.autoModel);
-  /** On Auto, once begun: the model was picked for the first entry. */
+  /** On Auto, once begun: the model was picked for the first message. */
   protected readonly autoPicked = computed(
     () => this.begun() && !!this.chat().settings.autoModel,
   );

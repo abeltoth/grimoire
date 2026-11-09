@@ -11,7 +11,7 @@ const RECENT_FOLDERS = 3;
 const WEEKDAYS = [1, 2, 3, 4, 5];
 
 /**
- * A schedule written out to save: its name, the entry each run begins
+ * A schedule written out to save: its name, the message each run begins
  * with, its days and time, and the chat's folder, model and effort.
  * Its permission is always Full access, so it says so instead of asking.
  */

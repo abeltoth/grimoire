@@ -50,10 +50,10 @@ describe('second-chat', () => {
       expect(texts('gr-chat-tab.beside b')).toEqual(['Fix flaky login test']);
       expect(texts('gr-chat-tab.beside i')).toEqual(['Claude Code · idle · on the facing page']);
 
-      // Its entry goes to its own chat.
-      const entry = el.querySelector<HTMLTextAreaElement>('#gr-next-entry-beside')!;
-      entry.value = 'Run the tests again';
-      entry.dispatchEvent(new Event('input'));
+      // Its message goes to its own chat.
+      const field = el.querySelector<HTMLTextAreaElement>('#gr-next-message-beside')!;
+      field.value = 'Run the tests again';
+      field.dispatchEvent(new Event('input'));
       await fixture.whenStable();
       beside(el)!.querySelector<HTMLButtonElement>('gr-composer .send')!.click();
       await fixture.whenStable();
@@ -106,9 +106,9 @@ describe('second-chat', () => {
       expect(beside(el)!.querySelector('gr-chat-intro')).not.toBeNull();
       expect(texts('gr-page-header h1')).toEqual(['Context meter']);
 
-      const entry = el.querySelector<HTMLTextAreaElement>('#gr-next-entry-beside')!;
-      entry.value = 'Write the ribbon tests';
-      entry.dispatchEvent(new Event('input'));
+      const field = el.querySelector<HTMLTextAreaElement>('#gr-next-message-beside')!;
+      field.value = 'Write the ribbon tests';
+      field.dispatchEvent(new Event('input'));
       await fixture.whenStable();
       beside(el)!.querySelector<HTMLButtonElement>('gr-composer .send')!.click();
       await fixture.whenStable();
@@ -128,28 +128,28 @@ describe('second-chat', () => {
       expect(beside(el)).not.toBeNull();
     });
 
-    it('lists the agent\'s commands for its entry on the left page', async () => {
+    it('lists the agent\'s commands for its message on the left page', async () => {
       const { bridge, answers } = fakeBridge();
       answers['agents.openChats'] = () => [chat('c1', 'Context meter'), chat('c2', 'Fix flaky login test')];
       answers['layout.get'] = () => ({ current: 'c1', beside: 'c2' });
       answers['agents.commands'] = () => [{ name: 'compact', description: 'Free up context', kind: 'command' }];
       const { fixture, el, texts } = await render(bridge);
-      const entry = el.querySelector<HTMLTextAreaElement>('#gr-next-entry-beside')!;
-      entry.value = '/';
-      entry.dispatchEvent(new Event('input'));
+      const field = el.querySelector<HTMLTextAreaElement>('#gr-next-message-beside')!;
+      field.value = '/';
+      field.dispatchEvent(new Event('input'));
       await fixture.whenStable();
 
       expect(el.querySelector('gr-page:not(.right-page) gr-slash-commands')).not.toBeNull();
       expect(el.querySelector('gr-page.right-page gr-slash-commands')).toBeNull();
-      expect(el.querySelector('#gr-next-entry-beside')).toBe(entry);
+      expect(el.querySelector('#gr-next-message-beside')).toBe(field);
       expect(texts('gr-slash-commands .entry .label')).toEqual(['/compact']);
       expect(texts('gr-composer .slash-hint')).toEqual([
         'Claude Code’s commands and skills are on the facing page ←',
       ]);
       expect(texts('gr-slash-commands .gr-link')[0]).toMatch(/^Back to the chapter/);
 
-      entry.value = '';
-      entry.dispatchEvent(new Event('input'));
+      field.value = '';
+      field.dispatchEvent(new Event('input'));
       await fixture.whenStable();
       expect(el.querySelector('gr-slash-commands')).toBeNull();
       expect(texts('gr-page-header h1')).toEqual(['Context meter']);
@@ -174,14 +174,14 @@ describe('second-chat', () => {
       const parallel = (el: HTMLElement) =>
         el.querySelector<HTMLButtonElement>('gr-composer button[aria-label^="Parallel texts"]');
       const write = async (el: HTMLElement, fixture: { whenStable(): Promise<unknown> }, text: string) => {
-        const entry = el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!;
-        entry.value = text;
-        entry.dispatchEvent(new Event('input'));
+        const field = el.querySelector<HTMLTextAreaElement>('#gr-next-message')!;
+        field.value = text;
+        field.dispatchEvent(new Event('input'));
         await fixture.whenStable();
       };
       const forking = () => [{ id: 'claude-code', name: 'Claude Code', capabilities: ['fork'] }];
 
-      it('sends the entry to a copy of the chat on a second model, beside it', async () => {
+      it('sends the message to a copy of the chat on a second model, beside it', async () => {
         const { bridge, answers, calls } = fakeBridge();
         answers['agents.list'] = forking;
         answers['agents.openChats'] = () => [chat('c1', 'Context meter')];

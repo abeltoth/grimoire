@@ -138,7 +138,7 @@ describe('storage', () => {
     const old = openDatabase(file, 19);
     old.exec(
       `INSERT INTO settings (profile, key, value) VALUES
-         ('personal', 'theme', '{"--gr-size-history-look-up":"20px","--gr-size-fold-mark":"14px","--gr-ink":"#000000"}');`,
+         ('personal', 'theme', '{"--gr-size-history-look-up":"20px","--gr-size-fold-mark":"14px","--gr-entry-max":"30vh","--gr-ink":"#000000"}');`,
     );
     old.close();
 
@@ -146,6 +146,7 @@ describe('storage', () => {
     expect(new SettingsStore(db).get().theme).toEqual({
       '--gr-size-history-search': '20px',
       '--gr-size-expandable-mark': '14px',
+      '--gr-message-field-max': '30vh',
       '--gr-ink': '#000000',
     });
     db.close();

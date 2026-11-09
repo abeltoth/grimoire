@@ -27,7 +27,7 @@ describe('Indexer', () => {
   });
   afterEach(() => index.close());
 
-  it('takes the title, your entries and the text of the replies, not thinking or tools', () => {
+  it('takes the title, your messages and the text of the replies, not thinking or tools', () => {
     expect(
       passagesOf('Title', [you('u1', 'Hello'), you('u2', '  '), reply('a1', 'One', 'Two')]),
     ).toEqual([
@@ -37,7 +37,7 @@ describe('Indexer', () => {
     ]);
   });
 
-  it('takes what each turn spent from your entry that began it', () => {
+  it('takes what each turn spent from your message that began it', () => {
     const use = {
       model: 'm',
       input: 1,
@@ -63,7 +63,7 @@ describe('Indexer', () => {
     ]);
   });
 
-  it("takes the tools the agent called, the skills it ran, and the /names you wrote, each at its entry's time", () => {
+  it("takes the tools the agent called, the skills it ran, and the /names you wrote, each at its message's time", () => {
     expect(
       usesOf([
         { kind: 'user', id: 'u1', text: '/review the diff', at: 10 },

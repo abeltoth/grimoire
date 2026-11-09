@@ -620,23 +620,23 @@ describe('App', () => {
         expect(bridge.window.close).toHaveBeenCalled();
       });
 
-      it('lists the agent\'s commands on its own page, above the entry', async () => {
+      it('lists the agent\'s commands on its own page, above the message field', async () => {
         const { bridge, answers } = fakeBridge();
         answers['agents.openChats'] = () => [chat('c2', 'Fix flaky login test')];
         answers['agents.commands'] = () => [{ name: 'compact', description: 'Free up context', kind: 'command' }];
         const { fixture, el, texts } = await render(bridge, popout('c2'));
-        const entry = el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!;
-        entry.value = '/';
-        entry.dispatchEvent(new Event('input'));
+        const field = el.querySelector<HTMLTextAreaElement>('#gr-next-message')!;
+        field.value = '/';
+        field.dispatchEvent(new Event('input'));
         await fixture.whenStable();
         expect(texts('gr-chat-page gr-slash-commands .entry .label')).toEqual(['/compact']);
         expect(el.querySelector('gr-slash-commands gr-page-footer')).toBeNull();
         expect(el.querySelector('gr-transcript')).toBeNull();
-        expect(el.querySelector('#gr-next-entry')).toBe(entry);
+        expect(el.querySelector('#gr-next-message')).toBe(field);
         expect(texts('gr-composer .slash-hint')).toEqual(['Claude Code’s commands and skills are listed above ↑']);
 
-        entry.value = '';
-        entry.dispatchEvent(new Event('input'));
+        field.value = '';
+        field.dispatchEvent(new Event('input'));
         await fixture.whenStable();
         expect(el.querySelector('gr-slash-commands')).toBeNull();
         expect(el.querySelector('gr-transcript')).not.toBeNull();

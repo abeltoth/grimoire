@@ -5,7 +5,7 @@ export interface Preset {
   name: string;
   agent: AgentId;
   settings: NewChatSettings;
-  /** The first entry a chat begun with it has written in, ready to send or change. */
+  /** The first message a chat begun with it has written in, ready to send or change. */
   prompt?: string;
 }
 
@@ -15,7 +15,7 @@ declare module './commands' {
     'presets.list': { request: Record<string, never>; response: Preset[] };
     /**
      * Saves a preset; one with the same name, whatever its case, is replaced,
-     * keeping its first entry unless one is given ("" for none). Returns them all.
+     * keeping its first message unless one is given ("" for none). Returns them all.
      */
     'presets.save': { request: Preset; response: Preset[] };
     /** Gives a preset another name, which no other preset has. Returns them all. */

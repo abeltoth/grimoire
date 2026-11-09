@@ -252,7 +252,7 @@ describe('kanban', () => {
       button(cardEl(el, 'Context meter'), 'New chapter').click();
       await fixture.whenStable();
       expect(texts('[aria-current="page"] i')).toEqual(['Claude Code · blank page']);
-      expect(el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!.value).toBe(
+      expect(el.querySelector<HTMLTextAreaElement>('#gr-next-message')!.value).toBe(
         'Context meter\n\nFill it in from the usage events.',
       );
       expect(texts('.meta button')).toContain('~/git/grimoire');
@@ -502,7 +502,7 @@ describe('kanban', () => {
 
       button(cardEl(el, 'Context meter'), 'New chapter').click();
       await fixture.whenStable();
-      expect(el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!.value).toBe(
+      expect(el.querySelector<HTMLTextAreaElement>('#gr-next-message')!.value).toBe(
         'GRIM-12: Context meter\n\nFill it in.\n\n- From the usage events',
       );
       await write(fixture, el, 'GRIM-12: Context meter');

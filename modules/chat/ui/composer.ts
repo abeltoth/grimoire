@@ -36,9 +36,9 @@ import { readPicture } from './pictures';
  * The next page, tucked under the transcript: where you write the next
  * entry. Enter sends it; Shift+Enter starts a new line. What you send
  * while a turn runs waits above it until the turn ends. A "/" at the start
- * turns the right page to the agent's commands, which the entry's keys
+ * turns the right page to the agent's commands, which the message field's keys
  * move through and use. Files and pictures come in through Attach, or by
- * dropping or pasting them, and go with the entry. What the agent suggests
+ * dropping or pasting them, and go with the message. What the agent suggests
  * you write next shows in grey on the empty page, and Tab writes it in.
  */
 @Component({
@@ -64,9 +64,9 @@ export class Composer {
   readonly agent = input.required<AgentId>();
   /** The chat's folder, where the agent's commands are searched. */
   readonly cwd = input<string>();
-  /** A blank chat's composer: it takes the first entry. */
+  /** A blank chat's composer: it takes the first message. */
   readonly first = input(false);
-  /** The first entry the chat's preset has written in, until you change it. */
+  /** The first message the chat's preset has written in, until you change it. */
   readonly prompt = input('');
   readonly queued = input<readonly QueuedEntry[]>([]);
   /** How full the context window is: the chat's page allowance. */
@@ -75,14 +75,14 @@ export class Composer {
   readonly cache = input<PromptCache>();
   /** What you wrote in this chat, oldest first, for Up to bring back. */
   readonly sent = input<readonly string[]>([]);
-  /** The entry field's ID, one for each page's entry. */
-  readonly entryId = input('gr-next-entry');
+  /** The message field's ID, one for each page's field. */
+  readonly messageFieldId = input('gr-next-message');
   /** On the right page, so its commands are searched on the left page. */
   readonly beside = input(false);
   /** What the agent suggests you write next, while the chat is idle with nothing queued. */
   readonly suggestion = input<string>();
 
-  /** The model the entry goes to as well, in parallel; none until Parallel is pressed. */
+  /** The model the message goes to as well, in parallel; none until Parallel is pressed. */
   protected readonly parallel = linkedSignal<string, string | null>({
     source: this.chatId,
     computation: () => null,
@@ -95,7 +95,7 @@ export class Composer {
     return (listed?.models ?? []).filter((model) => model.id !== own);
   });
   /**
-   * Whether the entry can go to two models, the second on the right page:
+   * Whether the message can go to two models, the second on the right page:
    * not from the right page or a popout, and from a chat that has
    * begun only when the agent can copy it.
    */
@@ -109,7 +109,7 @@ export class Composer {
     const status = this.chats.all().find((c) => c.id === this.chatId())?.status;
     return status === 'blank' || status === 'idle';
   });
-  /** The second model, while Parallel is on and the entry can go to it. */
+  /** The second model, while Parallel is on and the message can go to it. */
   protected readonly second = computed(() => {
     const picked = this.parallel();
     if (picked === null || !this.canParallel() || !this.parallelNow()) return undefined;
@@ -119,7 +119,7 @@ export class Composer {
 
   /** The time, kept to the minute, for when the cache runs out. */
   private readonly now = signal(Date.now());
-  /** Once the cache has run out: when, and the tokens the next entry re-reads. */
+  /** Once the cache has run out: when, and the tokens the next message re-reads. */
   protected readonly cold = computed(() => {
     const cache = this.cache();
     const now = this.now();
@@ -127,7 +127,7 @@ export class Composer {
     return { ago: ago(now - cache.until), tokens: tokens(cache.tokens) };
   });
 
-  /** Which of your entries Up brought back, counted back from the last, and its text. */
+  /** Which of your messages Up brought back, counted back from the last, and its text. */
   private recalled: { back: number; text: string } | null = null;
 
   /** The share of the allowance used, in percent; missing until the agent reports it. */
@@ -136,11 +136,11 @@ export class Composer {
     return context?.limit ? Math.round((context.used / context.limit) * 100) : undefined;
   });
 
-  private readonly entry = viewChild.required<ElementRef<HTMLTextAreaElement>>('entry');
+  private readonly messageField = viewChild.required<ElementRef<HTMLTextAreaElement>>('messageField');
 
   /**
    * What you're writing; each chat keeps its own until it's sent. A
-   * preset's first entry is written in while there's nothing else, and
+   * preset's first message is written in while there's nothing else, and
    * another preset's takes its place until you change it.
    */
   protected readonly draft = linkedSignal<{ id: string; prompt: string }, string>({
@@ -173,7 +173,7 @@ export class Composer {
     return suggestion;
   });
 
-  /** Whether the right page lists the agent's commands for this entry. */
+  /** Whether the right page lists the agent's commands for this message. */
   protected readonly searchingCommands = computed(
     () => this.commands.search()?.chatId === this.chatId(),
   );
@@ -233,7 +233,7 @@ export class Composer {
     } else if (this.searchingCommands()) this.commands.close();
   }
 
-  protected key(event: KeyboardEvent, entry: HTMLTextAreaElement): void {
+  protected key(event: KeyboardEvent, field: HTMLTextAreaElement): void {
     if (event.isComposing) return;
     const chosen = this.chosen();
     if (this.searchingCommands() && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
@@ -245,94 +245,94 @@ export class Composer {
       !event.altKey &&
       !event.ctrlKey &&
       !event.metaKey &&
-      this.recall(event.key === 'ArrowUp' ? 1 : -1, entry)
+      this.recall(event.key === 'ArrowUp' ? 1 : -1, field)
     ) {
       event.preventDefault();
     } else if (chosen && event.key === 'Tab' && !event.shiftKey) {
       event.preventDefault();
-      this.complete(chosen, entry);
+      this.complete(chosen, field);
     } else if (
       event.key === 'Tab' &&
       !event.shiftKey &&
       !event.altKey &&
       !event.ctrlKey &&
       !event.metaKey &&
-      !entry.value &&
+      !field.value &&
       this.suggested()
     ) {
       // Written in, to change or send; Enter on the empty page still sends nothing.
       event.preventDefault();
-      this.fill(entry, this.suggested()!);
+      this.fill(field, this.suggested()!);
     } else if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       if (chosen) this.use(chosen);
-      else this.send(entry);
+      else this.send(field);
     }
   }
 
   /**
-   * Up in an empty entry brings back your last one, and again the one
-   * before; Down goes the other way, back to an empty entry. Once you change
+   * Up in an empty field brings back your last one, and again the one
+   * before; Down goes the other way, back to an empty field. Once you change
    * what came back, the keys move the caret again. Whether it took the key.
    */
-  private recall(step: 1 | -1, entry: HTMLTextAreaElement): boolean {
+  private recall(step: 1 | -1, field: HTMLTextAreaElement): boolean {
     const sent = this.sent();
-    const value = entry.value;
+    const value = field.value;
     const recalled = value !== '' && value === this.recalled?.text ? this.recalled : null;
     if (value !== '' && !recalled) return false;
-    // In an entry of several lines, only from its first line up or its last line down.
-    const caret = entry.selectionStart ?? 0;
+    // In a message of several lines, only from its first line up or its last line down.
+    const caret = field.selectionStart ?? 0;
     if (recalled && step === 1 && value.lastIndexOf('\n', caret - 1) !== -1) return false;
     if (recalled && step === -1 && value.indexOf('\n', caret) !== -1) return false;
     const back = (recalled?.back ?? 0) + step;
     if (back < 1) {
       if (!recalled) return false;
       this.recalled = null;
-      this.fill(entry, '');
+      this.fill(field, '');
       return true;
     }
     const text = sent[sent.length - back];
-    // Already at your first entry: Up stays on it.
+    // Already at your first message: Up stays on it.
     if (text === undefined) return !!recalled;
     this.recalled = { back, text };
-    this.fill(entry, text);
+    this.fill(field, text);
     return true;
   }
 
-  private fill(entry: HTMLTextAreaElement, text: string): void {
-    entry.value = text;
+  private fill(field: HTMLTextAreaElement, text: string): void {
+    field.value = text;
     this.draft.set(text);
-    entry.setSelectionRange(text.length, text.length);
+    field.setSelectionRange(text.length, text.length);
   }
 
-  /** Has the agent sum the chat up before your next entry. */
+  /** Has the agent sum the chat up before your next message. */
   protected compact(): void {
     void this.chats.send(this.chatId(), '/compact');
   }
 
   /** Writes the command's name in full, ready for what it takes. */
-  private complete(command: AgentCommand, entry: HTMLTextAreaElement): void {
+  private complete(command: AgentCommand, field: HTMLTextAreaElement): void {
     const text = `/${command.name} `;
-    entry.value = text;
+    field.value = text;
     this.draft.set(text);
     this.commands.close();
-    entry.setSelectionRange(text.length, text.length);
+    field.setSelectionRange(text.length, text.length);
   }
 
   private use(command: AgentCommand): void {
-    const entry = this.entry().nativeElement;
-    entry.value = `/${command.name}`;
-    this.send(entry);
-    entry.focus();
+    const field = this.messageField().nativeElement;
+    field.value = `/${command.name}`;
+    this.send(field);
+    field.focus();
   }
 
-  protected send(entry: HTMLTextAreaElement): void {
+  protected send(field: HTMLTextAreaElement): void {
     if (this.searchingCommands()) this.commands.close();
-    const text = entry.value.trim();
+    const text = field.value.trim();
     const attachments = this.attachments();
     if (!text && !attachments.length) return;
     // Cleared on the element too: Enter can come before the last keystroke is rendered.
-    entry.value = '';
+    field.value = '';
     this.draft.set('');
     this.dismissed.set(true);
     this.attachments.set([]);
@@ -383,7 +383,7 @@ export class Composer {
 
   protected unenclose(attachment: Attachment): void {
     this.attachments.update((all) => all.filter((kept) => kept !== attachment));
-    this.entry().nativeElement.focus();
+    this.messageField().nativeElement.focus();
   }
 
   private addPicture(file: Blob, caption: string): void {
@@ -393,7 +393,7 @@ export class Composer {
     });
   }
 
-  /** Adds to what goes with the entry; a file already there isn't added twice. */
+  /** Adds to what goes with the message; a file already there isn't added twice. */
   private enclose(added: readonly Attachment[]): void {
     this.attachments.update((all) => [
       ...all,
@@ -406,16 +406,16 @@ export class Composer {
   }
 
   /** Puts messages back on the page, after what you're writing, to edit or send again. */
-  takeBack(entries: readonly QueuedEntry[]): void {
-    if (!entries.length) return;
+  takeBack(messages: readonly QueuedEntry[]): void {
+    if (!messages.length) return;
     this.draft.update((draft) =>
-      [draft.trim(), ...entries.map((queued) => queued.text)].filter(Boolean).join('\n\n'),
+      [draft.trim(), ...messages.map((queued) => queued.text)].filter(Boolean).join('\n\n'),
     );
-    this.enclose(entries.flatMap((queued) => queued.attachments ?? []));
-    const entry = this.entry().nativeElement;
-    entry.value = this.draft();
-    entry.focus();
-    entry.setSelectionRange(entry.value.length, entry.value.length);
+    this.enclose(messages.flatMap((queued) => queued.attachments ?? []));
+    const field = this.messageField().nativeElement;
+    field.value = this.draft();
+    field.focus();
+    field.setSelectionRange(field.value.length, field.value.length);
   }
 
   protected async edit(queued: QueuedEntry): Promise<void> {

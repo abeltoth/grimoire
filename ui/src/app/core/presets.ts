@@ -79,7 +79,7 @@ export class Presets {
    */
   private spelledOut(agent: AgentId, settings: NewChatSettings): NewChatSettings {
     const cwd = settings.cwd ?? this.chats.folders().home;
-    // On Auto, the model and effort are picked for the first entry.
+    // On Auto, the model and effort are picked for the first message.
     if (settings.autoModel)
       return { ...(cwd ? { cwd } : {}), autoModel: true, mode: settings.mode ?? 'ask' };
     const model = settings.model ?? this.chats.models()[agent]?.default;

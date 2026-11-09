@@ -565,7 +565,7 @@ describe('settings', () => {
     expect(texts('gr-settings-page [role="alert"]')).toEqual(['Login failed: the account is on hold']);
   });
 
-  it('keeps presets in Settings, to rename, remove, and give a first entry new chats begin with', async () => {
+  it('keeps presets in Settings, to rename, remove, and give a first message new chats begin with', async () => {
     const { bridge, answers, calls } = fakeBridge();
     let saved: Preset[] = [
       { name: 'Bug fix', agent: 'claude-code', settings: { mode: 'accept-edits', cwd: 'C:/Users/me/git/breeder' } },
@@ -625,15 +625,15 @@ describe('settings', () => {
     await fixture.whenStable();
     expect(texts('gr-settings-page .preset h3')).toEqual(['Bug fix']);
 
-    // New chats begin with the preset, its first entry written in.
+    // New chats begin with the preset, its first message written in.
     [...el.querySelectorAll<HTMLButtonElement>('#gr-settings-general ~ .form .word')]
       .find((word) => word.textContent!.trim() === 'Bug fix')!
       .click();
     await fixture.whenStable();
     el.querySelector<HTMLButtonElement>('gr-chat-tab.new button')!.click();
     await fixture.whenStable();
-    const entry = el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!;
-    expect(entry.value).toBe('Find the failing test and fix it');
+    const messageField = el.querySelector<HTMLTextAreaElement>('#gr-next-message')!;
+    expect(messageField.value).toBe('Find the failing test and fix it');
     expect(texts('.meta button').at(-1)).toBe('Bug fix');
   });
 

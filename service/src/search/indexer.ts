@@ -6,7 +6,7 @@ import type { Passage, SearchIndex, ToolUse, TurnUse } from './search-index';
 /** What the indexer needs of an agent: its chats, and each one's transcript. */
 export type IndexedAgent = Pick<AgentAdapter, 'info' | 'listChats' | 'history'>;
 
-/** A chat's passages: its title, your entries, and the text of the agent's replies. */
+/** A chat's passages: its title, your messages, and the text of the agent's replies. */
 export function passagesOf(title: string, entries: readonly Entry[]): Passage[] {
   const passages: Passage[] = [{ kind: 'title', text: title }];
   for (const entry of entries) {
@@ -21,7 +21,7 @@ export function passagesOf(title: string, entries: readonly Entry[]): Passage[] 
   return passages.filter((passage) => passage.text.trim());
 }
 
-/** What a chat's turns spent, by model, from your entries that began them. */
+/** What a chat's turns spent, by model, from your messages that began them. */
 export function turnsOf(entries: readonly Entry[]): TurnUse[] {
   return entries.flatMap((entry) =>
     entry.kind === 'user' && entry.tokens
@@ -30,13 +30,13 @@ export function turnsOf(entries: readonly Entry[]): TurnUse[] {
   );
 }
 
-/** A command or skill you wrote, as "/name" at the start of your entry. */
+/** A command or skill you wrote, as "/name" at the start of your message. */
 const TYPED = /^\s*\/([^\s/][^\s]*)/;
 
 /**
  * The tools the agent called in a chat, not its subagents, and the skills
  * it ran; and the commands and skills you wrote as "/name". Each at when
- * its entry was written, or the turn it's in began; without either it's
+ * its message was written, or the turn it's in began; without either it's
  * left out.
  */
 export function usesOf(entries: readonly Entry[]): ToolUse[] {

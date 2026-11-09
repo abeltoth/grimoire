@@ -38,14 +38,14 @@
   </div>
 }
 
-<label class="sr-only" [attr.for]="entryId()">{{
+<label class="sr-only" [attr.for]="messageFieldId()">{{
   first() ? wording.say('First entry', 'First message') : wording.say('Next entry', 'Next message')
 }}</label>
 <div class="writing">
   <textarea
-    #entry
-    [id]="entryId()"
-    class="entry"
+    #messageField
+    [id]="messageFieldId()"
+    class="message-field"
     rows="2"
     [class.slash]="searchingCommands()"
     [placeholder]="
@@ -59,7 +59,7 @@
     [attr.aria-expanded]="searchingCommands() ? true : null"
     [attr.aria-activedescendant]="chosen() ? 'gr-command-' + chosen()!.name : null"
     (input)="write($any($event.target).value)"
-    (keydown)="key($event, entry)"
+    (keydown)="key($event, messageField)"
     (paste)="paste($event)"
   ></textarea>
   @if (searchingCommands()) {
@@ -179,7 +179,7 @@
       <gr-icon name="parallel" />Parallel
     </button>
   }
-  <button type="button" class="send" (click)="send(entry)">
+  <button type="button" class="send" (click)="send(messageField)">
     Send <span class="gr-kbd">⏎</span>
   </button>
 </div>

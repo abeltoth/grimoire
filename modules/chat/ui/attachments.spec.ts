@@ -1,7 +1,7 @@
 import { fakeBridge, picture, render, withFiles, write } from '@ui/testing/app-harness';
 
 describe('attachments', () => {
-  it('attaches files, and pasted or dropped pictures, and sends them with the entry', async () => {
+  it('attaches files, and pasted or dropped pictures, and sends them with the message', async () => {
     const { bridge, calls } = fakeBridge({
       chooseFiles: vi.fn(async () => ['C:/work/grimoire/src/app/ribbon.ts', 'D:/notes.txt']),
       pathOf: vi.fn((file: File) => (file.name === 'README.md' ? 'C:/work/grimoire/README.md' : '')),
@@ -17,10 +17,10 @@ describe('attachments', () => {
       'Ref. 2. Attached file',
     ]);
 
-    const entry = el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!;
-    entry.dispatchEvent(withFiles('paste', [picture('shot.png')]));
+    const field = el.querySelector<HTMLTextAreaElement>('#gr-next-message')!;
+    field.dispatchEvent(withFiles('paste', [picture('shot.png')]));
     await fixture.whenStable();
-    entry.dispatchEvent(withFiles('drop', [new File(['# Grimoire'], 'README.md'), picture('photo.png')]));
+    field.dispatchEvent(withFiles('drop', [new File(['# Grimoire'], 'README.md'), picture('photo.png')]));
     await fixture.whenStable();
     expect(texts('gr-composer .ref code')).toEqual(['src/app/ribbon.ts', 'D:/notes.txt', 'README.md']);
     expect(texts('gr-composer .plate figcaption span')).toEqual([
@@ -52,7 +52,7 @@ describe('attachments', () => {
     expect(el.querySelector('gr-composer gr-attachments')).toBeNull();
   });
 
-  it('shows what went with an entry, on its page and while it waits', async () => {
+  it('shows what went with a message, on its page and while it waits', async () => {
     const { bridge, emit } = fakeBridge();
     const { fixture, el, texts } = await render(bridge);
     await write(fixture, el, 'First');
@@ -85,7 +85,7 @@ describe('attachments', () => {
       .find((b) => b.textContent!.trim() === 'Edit')!
       .click();
     await fixture.whenStable();
-    expect(el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!.value).toBe('And this.');
+    expect(el.querySelector<HTMLTextAreaElement>('#gr-next-message')!.value).toBe('And this.');
     expect(texts('gr-composer .ref code')).toEqual(['notes.txt']);
   });
 });

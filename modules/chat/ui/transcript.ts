@@ -36,7 +36,7 @@ import { Wording } from '@ui/app/core/wording';
 const BOARD = 'kanban';
 
 /**
- * The chat's transcript: your entries, the agent's replies, its tools
+ * The chat's transcript: your messages, the agent's replies, its tools
  * as tool notes, and Stop while a turn runs. It keeps the newest text
  * in view unless you scrolled back. A note for a task handed to a subagent
  * turns the right page to what the subagent did, where there's one; one for
@@ -115,7 +115,7 @@ export class Transcript {
   });
   protected readonly lastKey = computed(() => this.lastRow()?.key);
   protected readonly endsInReply = computed(() => this.lastRow()?.kind === 'reply');
-  /** Your entry that began the running turn, and when you wrote it. */
+  /** Your message that began the running turn, and when you wrote it. */
   protected readonly turn = computed(() => {
     if (!this.running()) return undefined;
     const began = this.chat().entries.filter((entry) => entry.kind === 'user').at(-1);
@@ -147,7 +147,7 @@ export class Transcript {
   private readonly open = signal<ReadonlySet<string>>(new Set());
   /** The note whose details you expanded: one at a time, so opening another closes it. */
   private readonly expandedNote = signal<string | null>(null);
-  /** The entry being undone, until the agent is done. */
+  /** The message being undone, until the agent is done. */
   private readonly undoing = signal<string | null>(null);
   private readonly forking = signal(false);
 

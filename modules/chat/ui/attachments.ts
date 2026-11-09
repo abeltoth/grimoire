@@ -8,7 +8,7 @@ type Shown =
   | { kind: 'ref'; attachment: Attachment; number: number; name: string; file: string };
 
 /**
- * What's sent with an entry: pictures as numbered plates with captions, and
+ * What's sent with a message: pictures as numbered plates with captions, and
  * files as numbered references. On the next page each has a cross that
  * takes it off.
  */

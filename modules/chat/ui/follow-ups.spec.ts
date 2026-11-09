@@ -43,7 +43,7 @@ describe('follow-ups', () => {
       { chatId: 'chat-1', index: 1 },
     ]);
     expect(texts('[aria-current="page"] i')).toEqual(['Claude Code · blank page']);
-    expect(el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!.value).toBe('\nTag and publish 1.2');
+    expect(el.querySelector<HTMLTextAreaElement>('#gr-next-message')!.value).toBe('\nTag and publish 1.2');
     expect(texts('.meta button')).toContain('Sonnet 5.5');
     expect(texts('.meta button')).toContain('Plan only');
     expect(calls.filter((c) => c.command === 'agents.start')).toHaveLength(1);

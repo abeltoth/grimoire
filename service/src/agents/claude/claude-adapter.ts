@@ -42,7 +42,7 @@ import { readOnlyHooks } from './read-only';
 import { withReferences } from './references';
 import { commandFiles, readSettingsFile, settingsFilesIn, toSetup } from './setup';
 import { type AgentToolInput, type PickerSources, RATER_PROMPT, pickFor, readRating } from './subagents';
-import { AUTO_PROMPT, autoPick, entryForRater } from './auto-model';
+import { AUTO_PROMPT, autoPick, messageForRater } from './auto-model';
 import { readAccount, signIn } from './sign-in';
 import { type AddTodo, TodoChat } from './todos';
 import {
@@ -263,12 +263,12 @@ export class ClaudeAdapter implements AgentAdapter {
   }
 
   /**
-   * Auto: Haiku reads a new chat's first entry and says which model and
+   * Auto: Haiku reads a new chat's first message and says which model and
    * effort will do it well; undefined when it can't say in time, or names
    * a model Claude Code doesn't offer.
    */
   async pickModel(text: string): Promise<Pick<ChatSettings, 'model' | 'effort'> | undefined> {
-    const answer = await rate(AUTO_PROMPT, entryForRater(text), AbortSignal.timeout(PICK_TIMEOUT_S * 1000));
+    const answer = await rate(AUTO_PROMPT, messageForRater(text), AbortSignal.timeout(PICK_TIMEOUT_S * 1000));
     const rating = readRating(answer);
     return rating && autoPick(rating, await this.models());
   }
@@ -670,7 +670,7 @@ function subagentHook(sources: () => Promise<PickerSources>): HookCallbackMatche
 
 /**
  * Asks Haiku, as the prompt says, what a task needs: a subagent's, or a new
- * chat's first entry. It runs on a Claude Code process of its own that
+ * chat's first message. It runs on a Claude Code process of its own that
  * loads none of your settings, has no tools and saves nothing.
  */
 async function rate(prompt: string, task: string, signal: AbortSignal): Promise<string> {

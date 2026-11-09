@@ -47,7 +47,7 @@
   white-space: nowrap;
 }
 
-/* The prompt cache ran out: what the next entry costs. */
+/* The prompt cache ran out: what the next message costs. */
 .cold {
   display: flex;
   align-items: baseline;
@@ -88,12 +88,12 @@
 }
 
 /* Ruled lines to write on. */
-.entry {
+.message-field {
   width: 100%;
   /* Grows with what you write, then scrolls. */
   field-sizing: content;
-  min-height: var(--gr-entry-lines);
-  max-height: var(--gr-entry-max);
+  min-height: var(--gr-message-field-min);
+  max-height: var(--gr-message-field-max);
   font: inherit;
   font-size: var(--gr-size-text);
   line-height: var(--gr-rule-line);
@@ -112,7 +112,7 @@
 }
 
 /* A command is written in the pen the right page lists it in. */
-.entry.slash {
+.message-field.slash {
   color: var(--gr-pen);
 }
 
@@ -128,7 +128,7 @@
   pointer-events: none;
 }
 
-.entry::placeholder {
+.message-field::placeholder {
   color: var(--gr-ink-placeholder);
   font-style: italic;
 }
@@ -211,7 +211,7 @@
   cursor: default;
 }
 
-/* Parallel chats: the second model the entry goes to as well. */
+/* Parallel chats: the second model the message goes to as well. */
 .parallel {
   display: flex;
   flex-wrap: wrap;

@@ -21,7 +21,7 @@ describe('chat-page', () => {
       expect.stringMatching(/^Begun at .+, to be written by Claude Code$/),
       'Write your first entry on the page below. Claude Code works in your home folder and asks before it edits a file or runs a command.',
     ]);
-    expect(document.querySelector('#gr-next-entry')!.getAttribute('placeholder')).toBe(
+    expect(document.querySelector('#gr-next-message')!.getAttribute('placeholder')).toBe(
       'Write the first entry…',
     );
     expect(texts('gr-transcript')).toEqual([]);
@@ -125,7 +125,7 @@ describe('chat-page', () => {
     });
   });
 
-  it('undoes an entry\'s edits, and marks them withdrawn', async () => {
+  it('undoes a message\'s edits, and marks them withdrawn', async () => {
     const { bridge, calls, emit, answers } = fakeBridge();
     const edit = (id: string, file: string) => ({
       kind: 'tool' as const,
@@ -179,7 +179,7 @@ describe('chat-page', () => {
     emit('agents.withdrawn', { chatId: 'c1', withdrawn: ['u2'] });
     await fixture.whenStable();
     expect(texts('.note .detail')).toEqual(['+1 −1', 'withdrawn']);
-    // Only the first entry's edit is left to undo.
+    // Only the first message's edit is left to undo.
     expect(undoes().map((b) => b.getAttribute('aria-disabled'))).toEqual([null]);
 
     emit('agents.status', { chatId: 'c1', status: 'thinking' });

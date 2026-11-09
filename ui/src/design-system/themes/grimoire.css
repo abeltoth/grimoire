@@ -738,8 +738,8 @@
   --gr-radius-composer: 3px 3px 0 0;
   --gr-composer-gap: 5px;
   --gr-rule-line: 24px;
-  --gr-entry-lines: 48px;
-  --gr-entry-max: min(calc(var(--gr-rule-line) * 12), 40vh);
+  --gr-message-field-min: 48px;
+  --gr-message-field-max: min(calc(var(--gr-rule-line) * 12), 40vh);
   --gr-composer-controls-gap: 12px;
   --gr-composer-button-gap: 6px;
   --gr-composer-button-pad: 6px 8px;

@@ -67,7 +67,7 @@ export class FakeAdapter implements AgentAdapter {
     return structuredClone(this.subagents.get(toolId) ?? { entries: [] });
   }
 
-  /** Copies the chat up to and with your entry, as the new chat `fork-n`. */
+  /** Copies the chat up to and with your message, as the new chat `fork-n`. */
   async fork(chatId: ChatId, cwd: string, entryId: string, title: string): Promise<ChatId> {
     const entries = this.transcripts.get(chatId) ?? [];
     const at = entries.findIndex((entry) => entry.id === entryId);
@@ -82,7 +82,7 @@ export class FakeAdapter implements AgentAdapter {
     return this.chats.find((chat) => chat.id === chatId)?.title ?? '';
   }
 
-  /** What Auto picks for a new chat, by its first entry's text; nothing for any other. */
+  /** What Auto picks for a new chat, by its first message's text; nothing for any other. */
   readonly picks = new Map<string, Pick<ChatSettings, 'model' | 'effort'>>();
 
   async pickModel(text: string): Promise<Pick<ChatSettings, 'model' | 'effort'> | undefined> {

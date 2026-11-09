@@ -31,7 +31,7 @@ export class PresetList {
     return this.change(this.bridge.invoke('presets.remove', { name }));
   }
 
-  /** Writes in the first entry chats begun with the preset have; "" for none. */
+  /** Writes in the first message chats begun with the preset have; "" for none. */
   setPrompt(preset: Preset, prompt: string): Promise<boolean> {
     return this.change(this.bridge.invoke('presets.save', { ...preset, prompt }));
   }

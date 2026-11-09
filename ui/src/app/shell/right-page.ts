@@ -19,9 +19,9 @@ import { type RightPageEntry, ShellRegistry } from './shell-registry';
  * registered by features; the first one that can be picked shows first.
  * The approvals tab turns it to the waiting approvals for a while,
  * the command palette's tab or shortcut to the command palette, "/" at the start of
- * an entry to the agent's commands, and the other page tabs to their pages.
+ * a message to the agent's commands, and the other page tabs to their pages.
  * The commands searched from the chat on the right page show on the
- * left page instead, so the entry stays in view. A page drawn whole heads
+ * left page instead, so the message field stays in view. A page drawn whole heads
  * itself with the tabs.
  */
 @Component({

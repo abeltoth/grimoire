@@ -38,7 +38,7 @@ export interface AgentAdapter {
   /** A saved chat: its transcript, and the plan as the agent last left it. */
   history(chatId: ChatId, cwd: string): Promise<ChatHistory>;
   /**
-   * Copies a chat, up to the end of the turn your entry `entryId` began,
+   * Copies a chat, up to the end of the turn your message `entryId` began,
    * into a new chat with this title; returns the new chat's ID.
    * Agents that can't fork leave it out.
    */
@@ -141,7 +141,7 @@ export interface LiveChat {
   /** Changes the model or permission; the agent takes it from its next request. */
   configure(change: SettingsChange): Promise<void>;
   /**
-   * Restores the files to how they were before your entry with this ID.
+   * Restores the files to how they were before your message with this ID.
    * Rejects, saying why, when the agent can't. Agents without undo leave it out.
    */
   undo?(entryId: string): Promise<void>;

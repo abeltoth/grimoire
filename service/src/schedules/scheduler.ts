@@ -21,7 +21,7 @@ const RUNS_SHOWN = 5;
 
 type Emit = <K extends EventName>(event: K, payload: EventPayload<K>) => void;
 
-/** Begins a new chat with its first entry, under the title given, as the agent hub does. */
+/** Begins a new chat with its first message, under the title given, as the agent hub does. */
 export type BeginChat = (
   agent: AgentId,
   settings: NewChatSettings,

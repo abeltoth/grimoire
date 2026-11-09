@@ -2,7 +2,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import type { ChatId } from '@grimoire/contract';
 
 /**
- * A list of your entries per chat, which the agent's transcript doesn't
+ * A list of your messages per chat, which the agent's transcript doesn't
  * record: those whose edits were undone ('withdrawn'), and those a fork
  * copied from the chat it was forked from ('copied').
  */

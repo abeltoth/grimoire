@@ -15,7 +15,7 @@ function setUp() {
 }
 
 describe('presets', () => {
-  it('keeps a first entry, unless saved again with another or "" for none', () => {
+  it('keeps a first message, unless saved again with another or "" for none', () => {
     const { presets } = setUp();
     presets.save({
       name: 'Bug fix',
@@ -24,7 +24,7 @@ describe('presets', () => {
       prompt: ' Fix the failing test ',
     });
     expect(presets.list()[0]!.prompt).toBe('Fix the failing test');
-    // Saved again from a chat's settings card, which has no first entry.
+    // Saved again from a chat's settings card, which has no first message.
     presets.save({ name: 'bug fix', agent: 'codex', settings: { mode: 'plan' } });
     expect(presets.list()).toEqual([
       {

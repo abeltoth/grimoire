@@ -9,7 +9,7 @@ import { cadence, dateline, when } from './wording';
 
 /**
  * Scheduled chats: each schedule a dated journal entry, headed with the
- * day it runs next, with the entry its runs begin with and how its last
+ * day it runs next, with the message its runs begin with and how its last
  * runs went. A schedule is written out in place, to add or change it.
  */
 @Component({

@@ -3,7 +3,7 @@ import { DEFAULT_SETTINGS } from '@grimoire/contract';
 import { fakeBridge, render, write } from '@ui/testing/app-harness';
 
 describe('composer', () => {
-  it('starts the chat with the first entry and follows its events', async () => {
+  it('starts the chat with the first message and follows its events', async () => {
     const { bridge, calls, emit } = fakeBridge();
     const { fixture, el, texts } = await render(bridge);
 
@@ -13,7 +13,7 @@ describe('composer', () => {
       settings: {},
       text: 'Fix the flaky login test',
     });
-    expect(el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!.value).toBe('');
+    expect(el.querySelector<HTMLTextAreaElement>('#gr-next-message')!.value).toBe('');
     expect(texts('.you p')).toEqual(['Fix the flaky login test']);
     expect(texts('.meta button')[4]).toBe('C:/work/grimoire');
     expect(texts('.stop')).toEqual(['Stop Esc']);
@@ -62,7 +62,7 @@ describe('composer', () => {
     expect(texts('[role="alert"]')).toEqual(['The agent stopped unexpectedly.']);
   });
 
-  it('sends later entries to the running chat, and Esc stops it', async () => {
+  it('sends later messages to the running chat, and Esc stops it', async () => {
     const { bridge, calls } = fakeBridge();
     const { fixture, el } = await render(bridge);
     await write(fixture, el, 'First');
@@ -106,9 +106,9 @@ describe('composer', () => {
       { chatId: 'chat-1', id: 'q1' },
       { chatId: 'chat-1', id: 'q2' },
     ]);
-    const entry = el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!;
-    expect(entry.value).toBe('Also add a tooltip.');
-    expect(document.activeElement).toBe(entry);
+    const field = el.querySelector<HTMLTextAreaElement>('#gr-next-message')!;
+    expect(field.value).toBe('Also add a tooltip.');
+    expect(document.activeElement).toBe(field);
   });
 
   it('shows how much of the page allowance the chat uses', async () => {
@@ -123,29 +123,29 @@ describe('composer', () => {
     expect(el.querySelector<HTMLElement>('.allowance .used')!.style.width).toBe('62%');
   });
 
-  it('puts the queued entries back on the page when you stop the turn', async () => {
+  it('puts the queued messages back on the page when you stop the turn', async () => {
     const { bridge, emit, answers } = fakeBridge();
     answers['agents.interrupt'] = () => [{ id: 'q1', text: 'Also add a tooltip.' }];
     const { fixture, el } = await render(bridge);
     await write(fixture, el, 'Add the meter');
     emit('agents.status', { chatId: 'chat-1', status: 'writing' });
-    const entry = el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!;
-    entry.value = 'Half a thought';
-    entry.dispatchEvent(new Event('input'));
+    const field = el.querySelector<HTMLTextAreaElement>('#gr-next-message')!;
+    field.value = 'Half a thought';
+    field.dispatchEvent(new Event('input'));
     await fixture.whenStable();
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     await fixture.whenStable();
-    expect(entry.value).toBe('Half a thought\n\nAlso add a tooltip.');
+    expect(field.value).toBe('Half a thought\n\nAlso add a tooltip.');
   });
 
   it('keeps Shift+Enter for a new line', async () => {
     const { bridge, calls } = fakeBridge();
     const { fixture, el } = await render(bridge);
-    const entry = el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!;
-    entry.value = 'Line one';
-    entry.dispatchEvent(new Event('input'));
-    entry.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true }));
+    const field = el.querySelector<HTMLTextAreaElement>('#gr-next-message')!;
+    field.value = 'Line one';
+    field.dispatchEvent(new Event('input'));
+    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true }));
     await fixture.whenStable();
     expect(calls.some((c) => c.command === 'agents.start')).toBe(false);
   });
@@ -156,20 +156,20 @@ describe('composer', () => {
     });
     const { fixture, el, texts } = await render(bridge);
     await write(fixture, el, 'Fix the flaky login test');
-    const entry = () => el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!;
-    entry().value = 'Half a thought';
-    entry().dispatchEvent(new Event('input'));
+    const field = () => el.querySelector<HTMLTextAreaElement>('#gr-next-message')!;
+    field().value = 'Half a thought';
+    field().dispatchEvent(new Event('input'));
     el.querySelector<HTMLButtonElement>('[aria-label="Attach files or a screenshot"]')!.click();
     await fixture.whenStable();
 
     el.querySelector<HTMLButtonElement>('gr-chat-tab.new button')!.click();
     await fixture.whenStable();
-    expect(entry().value).toBe('');
+    expect(field().value).toBe('');
     expect(el.querySelector('gr-composer gr-attachments')).toBeNull();
 
     [...el.querySelectorAll<HTMLButtonElement>('gr-chat-tab.chat button')][0]!.click();
     await fixture.whenStable();
-    expect(entry().value).toBe('Half a thought');
+    expect(field().value).toBe('Half a thought');
     expect(texts('gr-composer .ref code')).toEqual(['notes.txt']);
     expect(calls.filter((c) => c.command === 'agents.send')).toEqual([]);
   });
@@ -193,46 +193,46 @@ describe('composer', () => {
     ]);
   });
 
-  it('brings back your earlier entries with Up, and sends one with Enter', async () => {
+  it('brings back your earlier messages with Up, and sends one with Enter', async () => {
     const { bridge, calls, emit } = fakeBridge();
     const { fixture, el } = await render(bridge);
     await write(fixture, el, 'Hello');
     emit('agents.entry', { chatId: 'chat-1', entry: { kind: 'user', id: 'u2', text: 'Add a meter' } });
     emit('agents.status', { chatId: 'chat-1', status: 'idle' });
     await fixture.whenStable();
-    const entry = el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!;
+    const field = el.querySelector<HTMLTextAreaElement>('#gr-next-message')!;
     const press = async (key: string) => {
-      entry.dispatchEvent(new KeyboardEvent('keydown', { key, cancelable: true }));
+      field.dispatchEvent(new KeyboardEvent('keydown', { key, cancelable: true }));
       await fixture.whenStable();
     };
 
     await press('ArrowUp');
-    expect(entry.value).toBe('Add a meter');
+    expect(field.value).toBe('Add a meter');
     await press('ArrowUp');
-    expect(entry.value).toBe('Hello');
+    expect(field.value).toBe('Hello');
     await press('ArrowUp');
-    expect(entry.value).toBe('Hello');
+    expect(field.value).toBe('Hello');
     await press('ArrowDown');
-    expect(entry.value).toBe('Add a meter');
+    expect(field.value).toBe('Add a meter');
     await press('ArrowDown');
-    expect(entry.value).toBe('');
+    expect(field.value).toBe('');
 
     await press('ArrowUp');
     await press('Enter');
     expect(calls.filter((c) => c.command === 'agents.send').map((c) => c.request)).toEqual([
       { chatId: 'chat-1', text: 'Add a meter' },
     ]);
-    expect(entry.value).toBe('');
+    expect(field.value).toBe('');
 
     // Once you change what came back, Up is the caret's again.
     await press('ArrowUp');
-    entry.value = 'Add a meter, please';
-    entry.dispatchEvent(new Event('input'));
+    field.value = 'Add a meter, please';
+    field.dispatchEvent(new Event('input'));
     await press('ArrowUp');
-    expect(entry.value).toBe('Add a meter, please');
+    expect(field.value).toBe('Add a meter, please');
   });
 
-  it('says what the next entry re-reads once the prompt cache has run out, and offers to compact first', async () => {
+  it('says what the next message re-reads once the prompt cache has run out, and offers to compact first', async () => {
     const { bridge, calls, emit, answers } = fakeBridge();
     answers['agents.list'] = () => [{ id: 'claude-code', name: 'Claude Code', capabilities: ['compact'] }];
     const { fixture, el, texts } = await render(bridge);
@@ -259,7 +259,7 @@ describe('composer', () => {
     expect(el.querySelector('gr-composer .cold')).toBeNull();
   });
 
-  it('turns the right page to the agent\'s commands at a "/" in the entry', async () => {
+  it('turns the right page to the agent\'s commands at a "/" in the message field', async () => {
     const { bridge, calls, answers, emit } = fakeBridge();
     answers['agents.commands'] = () => [
       { name: 'compact', description: 'Free up context', kind: 'command' },
@@ -272,14 +272,14 @@ describe('composer', () => {
     await write(fixture, el, 'First');
     emit('agents.status', { chatId: 'chat-1', status: 'idle' });
     emit('agents.context', { chatId: 'chat-1', context: { used: 62, limit: 100 } });
-    const entry = el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!;
+    const field = el.querySelector<HTMLTextAreaElement>('#gr-next-message')!;
     const type = async (text: string) => {
-      entry.value = text;
-      entry.dispatchEvent(new Event('input'));
+      field.value = text;
+      field.dispatchEvent(new Event('input'));
       await fixture.whenStable();
     };
     const press = async (key: string) => {
-      entry.dispatchEvent(new KeyboardEvent('keydown', { key, cancelable: true }));
+      field.dispatchEvent(new KeyboardEvent('keydown', { key, cancelable: true }));
       await fixture.whenStable();
     };
 
@@ -312,9 +312,9 @@ describe('composer', () => {
     expect(texts('gr-slash-commands .entry b')).toEqual(['/re', 're']);
     await press('ArrowDown');
     expect(texts('gr-slash-commands .entry[aria-selected="true"] .label')).toEqual(['code-review']);
-    expect(entry.getAttribute('aria-activedescendant')).toBe('gr-command-code-review');
+    expect(field.getAttribute('aria-activedescendant')).toBe('gr-command-code-review');
     await press('Tab');
-    expect(entry.value).toBe('/code-review ');
+    expect(field.value).toBe('/code-review ');
     expect(el.querySelector('gr-slash-commands')).toBeNull();
     expect(texts('gr-composer .slash-hint')).toEqual([]);
 
@@ -332,7 +332,7 @@ describe('composer', () => {
     expect(calls.filter((c) => c.command === 'agents.send').map((c) => c.request)).toEqual([
       { chatId: 'chat-1', text: '/compact' },
     ]);
-    expect(entry.value).toBe('');
+    expect(field.value).toBe('');
     expect(el.querySelector('gr-slash-commands')).toBeNull();
     // Asked for each time the right page turns to them; the service keeps them a minute.
     expect(calls.filter((c) => c.command === 'agents.commands')).toHaveLength(3);
@@ -348,14 +348,14 @@ describe('composer', () => {
     ];
     const { fixture, el, texts } = await render(bridge);
     await write(fixture, el, 'First');
-    const entry = el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!;
+    const field = el.querySelector<HTMLTextAreaElement>('#gr-next-message')!;
     const type = async (text: string) => {
-      entry.value = text;
-      entry.dispatchEvent(new Event('input'));
+      field.value = text;
+      field.dispatchEvent(new Event('input'));
       await fixture.whenStable();
     };
     const press = async (key: string) => {
-      entry.dispatchEvent(new KeyboardEvent('keydown', { key, cancelable: true }));
+      field.dispatchEvent(new KeyboardEvent('keydown', { key, cancelable: true }));
       await fixture.whenStable();
     };
     const suggest = async (suggestion: string | null) => {
@@ -366,45 +366,45 @@ describe('composer', () => {
 
     // Only once the turn has ended.
     await suggest('Run the tests');
-    expect(entry.placeholder).toBe('Write the next entry…');
+    expect(field.placeholder).toBe('Write the next entry…');
     emit('agents.status', { chatId: 'chat-1', status: 'idle' });
     await fixture.whenStable();
-    expect(entry.placeholder).toBe('Run the tests');
+    expect(field.placeholder).toBe('Run the tests');
     expect(texts('gr-composer .suggestion-hint')).toEqual(['Tab to write it in']);
 
     await press('Enter');
     expect(sends()).toEqual([]);
     await press('Tab');
-    expect(entry.value).toBe('Run the tests');
-    expect(entry.placeholder).toBe('Write the next entry…');
+    expect(field.value).toBe('Run the tests');
+    expect(field.placeholder).toBe('Write the next entry…');
     expect(texts('gr-composer .suggestion-hint')).toEqual([]);
     await press('Enter');
     expect(sends().map((c) => c.request)).toEqual([{ chatId: 'chat-1', text: 'Run the tests' }]);
 
     // Writing anything puts it away, even once the page is empty again.
     await suggest('Commit it');
-    expect(entry.placeholder).toBe('Commit it');
+    expect(field.placeholder).toBe('Commit it');
     await type('N');
-    expect(entry.placeholder).toBe('Write the next entry…');
+    expect(field.placeholder).toBe('Write the next entry…');
     await type('');
-    expect(entry.placeholder).toBe('Write the next entry…');
+    expect(field.placeholder).toBe('Write the next entry…');
     await press('Tab');
-    expect(entry.value).toBe('');
+    expect(field.value).toBe('');
 
     // While the commands are listed, Tab completes the one picked.
     await suggest('Push it');
     await type('/');
     await press('Tab');
-    expect(entry.value).toBe('/compact ');
+    expect(field.value).toBe('/compact ');
     await type('');
 
     // Gone once the service says so, as when a turn begins.
     await suggest(null);
-    expect(entry.placeholder).toBe('Write the next entry…');
+    expect(field.placeholder).toBe('Write the next entry…');
 
     // Turned off in Settings, it shows no more.
     await suggest('Push it');
-    expect(entry.placeholder).toBe('Push it');
+    expect(field.placeholder).toBe('Push it');
     [...el.querySelectorAll<HTMLButtonElement>('gr-page-tabs .page-tab')]
       .find((tab) => tab.textContent!.trim() === 'Colophon')!
       .click();
@@ -418,7 +418,7 @@ describe('composer', () => {
     ]);
     el.querySelector<HTMLButtonElement>('gr-tab-page .row .gr-link')!.click();
     await fixture.whenStable();
-    const back = el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!;
+    const back = el.querySelector<HTMLTextAreaElement>('#gr-next-message')!;
     expect(back.placeholder).toBe('Write the next entry…');
     expect(texts('gr-composer .suggestion-hint')).toEqual([]);
   });
@@ -430,16 +430,16 @@ describe('composer', () => {
     ];
     const { fixture, el } = await render(bridge);
     await write(fixture, el, 'First');
-    const entry = el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!;
-    entry.value = '/';
-    entry.dispatchEvent(new Event('input'));
+    const field = el.querySelector<HTMLTextAreaElement>('#gr-next-message')!;
+    field.value = '/';
+    field.dispatchEvent(new Event('input'));
     await fixture.whenStable();
     el.querySelector<HTMLButtonElement>('gr-slash-commands .entry')!.click();
     await fixture.whenStable();
     expect(calls.filter((c) => c.command === 'agents.send').map((c) => c.request)).toEqual([
       { chatId: 'chat-1', text: '/compact' },
     ]);
-    expect(document.activeElement).toBe(entry);
+    expect(document.activeElement).toBe(field);
   });
 
   it('says why the agent\'s commands could not be listed', async () => {
@@ -448,9 +448,9 @@ describe('composer', () => {
       throw new Error('Claude Code is not installed');
     };
     const { fixture, el, texts } = await render(bridge);
-    const entry = el.querySelector<HTMLTextAreaElement>('#gr-next-entry')!;
-    entry.value = '/';
-    entry.dispatchEvent(new Event('input'));
+    const field = el.querySelector<HTMLTextAreaElement>('#gr-next-message')!;
+    field.value = '/';
+    field.dispatchEvent(new Event('input'));
     await fixture.whenStable();
     // A blank chat's folder isn't chosen yet: the agent looks in your home folder.
     expect(calls.filter((c) => c.command === 'agents.commands').map((c) => c.request)).toEqual([

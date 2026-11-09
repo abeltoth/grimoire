@@ -1,10 +1,10 @@
 import { type AgentModels, type ChatSettings, fitEffort } from '@grimoire/contract';
 import type { Rating } from './subagents';
 
-/** The longest stretch of a first entry the rater reads. */
-const ENTRY_CHARS = 4_000;
+/** The longest stretch of a first message the rater reads. */
+const MESSAGE_CHARS = 4_000;
 
-/** Tells the rater what it's for; the chat's first entry follows as the message. */
+/** Tells the rater what it's for; the chat's first message follows as the user message. */
 export const AUTO_PROMPT = `You read the first message of a chat with Claude Code, a coding agent, to pick the model and effort that will do the work well at the least cost.
 
 Models, cheapest first:
@@ -18,9 +18,9 @@ When torn between two, pick the stronger.
 
 Answer with only a JSON object, such as {"model": "sonnet", "effort": "medium"}.`;
 
-/** The first entry as the rater reads it, cut short. */
-export function entryForRater(text: string): string {
-  return text.length > ENTRY_CHARS ? `${text.slice(0, ENTRY_CHARS)}…` : text;
+/** The first message as the rater reads it, cut short. */
+export function messageForRater(text: string): string {
+  return text.length > MESSAGE_CHARS ? `${text.slice(0, MESSAGE_CHARS)}…` : text;
 }
 
 /**

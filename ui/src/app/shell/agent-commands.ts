@@ -14,7 +14,7 @@ type Loaded = { commands: AgentCommand[] } | { error: string };
 /**
  * An agent's commands and skills, searched from the start of a message: the
  * entry asks for them as you write "/", the right page lists them, and
- * the entry's keys move through them and use one.
+ * the message field's keys move through them and use one.
  */
 @Injectable({ providedIn: 'root' })
 export class AgentCommands {

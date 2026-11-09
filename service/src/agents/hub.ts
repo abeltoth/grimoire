@@ -74,11 +74,11 @@ interface ChatState {
   /** What the last reply left in the prompt cache. */
   cache?: PromptCache;
   plan: PlanStep[];
-  /** Your entries whose file changes were undone. */
+  /** Your messages whose file changes were undone. */
   withdrawn: string[];
   pins: Mark[];
   tags: string[];
-  /** Your entries copied from the chat this one was forked from. */
+  /** Your messages copied from the chat this one was forked from. */
   copied: string[];
   /** What the agent suggests you send next, until a turn begins or something is queued. */
   suggestion?: string;
@@ -118,9 +118,9 @@ interface PendingApproval {
 export interface HubStore {
   /** The open chats, so they reopen after a restart. */
   chats: OpenChats;
-  /** Your entries whose edits were undone. */
+  /** Your messages whose edits were undone. */
   withdrawn: EntryIds;
-  /** Your entries a fork copied; the agent can't undo them. */
+  /** Your messages a fork copied; the agent can't undo them. */
   copied: EntryIds;
   /** Which chats are pinned or starred. */
   pins: Pins;
@@ -429,7 +429,7 @@ export class AgentHub {
     return chat;
   }
 
-  /** Starts a new chat with its first entry. */
+  /** Starts a new chat with its first message. */
   async start(
     agent: AgentId,
     settings: NewChatSettings,
@@ -444,7 +444,7 @@ export class AgentHub {
 
   /**
    * A new chat's settings on Auto: the model and effort the agent picks for
-   * its first entry, in place of any set; the agent's defaults when it can't say.
+   * its first message, in place of any set; the agent's defaults when it can't say.
    */
   private async autoPicked(agent: AgentId, settings: ChatSettings, text: string): Promise<ChatSettings> {
     const { model: _, effort: __, ...rest } = settings;
@@ -456,7 +456,7 @@ export class AgentHub {
 
   /**
    * Sends one entry to a second model too, in a chat of its own: from a
-   * chat that has begun, a copy of it, after the entry goes to the chat
+   * chat that has begun, a copy of it, after the message goes to the chat
    * itself; from a new chat's settings, a chat begun afresh. The second
    * works in the same folder, so while the first edits, the second only
    * reads (ADR-011).
@@ -494,7 +494,7 @@ export class AgentHub {
     return this.snapshot(copy);
   }
 
-  /** Begins a chat with its first entry, where its settings say; sent in parallel with `alongside`, when given. */
+  /** Begins a chat with its first message, where its settings say; sent in parallel with `alongside`, when given. */
   private async begin(
     agent: AgentId,
     resolved: ChatSettings,
@@ -595,7 +595,7 @@ export class AgentHub {
   }
 
   /**
-   * Restores the files to how they were before one of your entries, starting
+   * Restores the files to how they were before one of your messages, starting
    * the agent's process when the chat has none. That entry's edits, and those
    * of every entry after it, are withdrawn. A chat that only reads
    * can't.
@@ -623,7 +623,7 @@ export class AgentHub {
   }
 
   /**
-   * Forks a chat after the turn one of your entries began into a variant,
+   * Forks a chat after the turn one of your messages began into a variant,
    * such as "Context meter (a)", and opens it.
    */
   async fork(chatId: ChatId, entryId: string): Promise<OpenChat> {
@@ -1103,7 +1103,7 @@ export class AgentHub {
   }
 
   /**
-   * Writes each hook run on your entry that began the turn it ran on: the
+   * Writes each hook run on your message that began the turn it ran on: the
    * one it's already written on, else the last. One that runs between turns
    * goes with the turn before.
    */
@@ -1134,7 +1134,7 @@ export class AgentHub {
     }
   }
 
-  /** Writes how long the turn took on your entry that began it. */
+  /** Writes how long the turn took on your message that began it. */
   private timeTurn(chat: ChatState): void {
     const began = chat.entries.findLast((entry) => entry.kind === 'user');
     if (began?.kind !== 'user' || began.at === undefined || began.took !== undefined) return;

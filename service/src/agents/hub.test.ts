@@ -197,7 +197,7 @@ describe('AgentHub', () => {
     expect(events()).toEqual(['agents.entry', 'agents.status']);
   });
 
-  it('starts a chat on Auto on the model and effort picked for its first entry', async () => {
+  it('starts a chat on Auto on the model and effort picked for its first message', async () => {
     fake.picks.set('Fix the ribbon', { model: 'small', effort: 'low' });
     const chat = await hub.start('fake', { ...settings, autoModel: true, model: 'big', effort: 'max' }, 'Fix the ribbon');
     expect(chat.settings).toEqual({ cwd: '/work', autoModel: true, model: 'small', effort: 'low' });
@@ -255,13 +255,13 @@ describe('AgentHub', () => {
     expect(sent[2]!.payload).toEqual({ chatId: id, status: 'idle' });
   });
 
-  it('writes how long each turn took on your entry that began it', async () => {
+  it('writes how long each turn took on your message that began it', async () => {
     const { id } = await hub.start('fake', settings, 'Hello');
     const run = fake.runOf(id);
     hub.send(id, 'Also this');
     vi.advanceTimersByTime(90_000);
     run.events.turnEnded();
-    // The queued entry begins the next turn, which ends when the process stops.
+    // The queued message begins the next turn, which ends when the process stops.
     vi.advanceTimersByTime(5_000);
     run.events.closed();
 
@@ -270,7 +270,7 @@ describe('AgentHub', () => {
     expect(sent.find((s) => s.event === 'agents.entry' && s.payload.entry.kind === 'user' && s.payload.entry.took)).toBeTruthy();
   });
 
-  it('writes what the running turn has spent on your entry that began it', async () => {
+  it('writes what the running turn has spent on your message that began it', async () => {
     const { id } = await hub.start('fake', settings, 'Hello');
     const run = fake.runOf(id);
     const uses = [{ model: 'claude-opus-5-5', input: 2, cacheWritten: 0, cacheWrittenLong: 10, cacheRead: 0, output: 5 }];
@@ -283,7 +283,7 @@ describe('AgentHub', () => {
     expect(sent.at(-1)).toMatchObject({ event: 'agents.entry', payload: { entry: { id: yours.id, tokens: { uses } } } });
   });
 
-  it('writes the hooks run on each turn on your entry that began it, as they go', async () => {
+  it('writes the hooks run on each turn on your message that began it, as they go', async () => {
     const { id } = await hub.start('fake', settings, 'Hello');
     const run = fake.runOf(id);
     const lint = { id: 'h1', name: 'PostToolUse:Edit', event: 'PostToolUse', tool: 'Edit' };
@@ -463,7 +463,7 @@ describe('AgentHub', () => {
       await hub.open('fake', 'c1', { cwd });
     };
 
-    it('copies a chat onto the second model, in the same folder, where it only reads, and sends the entry to both', async () => {
+    it('copies a chat onto the second model, in the same folder, where it only reads, and sends the message to both', async () => {
       await begun('/work');
       const copy = await hub.parallel({ chatId: 'c1' }, 'small', 'Colour it');
       expect(copy).toMatchObject({
@@ -966,7 +966,7 @@ describe('AgentHub', () => {
     ]);
   });
 
-  it('undoes an entry\'s edits and those after it, and remembers them after a restart', async () => {
+  it('undoes a message\'s edits and those after it, and remembers them after a restart', async () => {
     const store = hubStore(openDatabase(':memory:'));
     hub = new AgentHub((event, payload) => sent.push({ event, payload } as Sent), 50, store);
     hub.addAdapter(fake);
@@ -1005,7 +1005,7 @@ describe('AgentHub', () => {
     expect((await hub.open('fake', id, settings)).withdrawn).toEqual([]);
   });
 
-  it('forks a chat after an entry\'s turn into the next free variant, and opens it', async () => {
+  it('forks a chat after a message\'s turn into the next free variant, and opens it', async () => {
     fake.transcripts.set('c1', [
       { kind: 'user', id: 'u1', text: 'Add a meter' },
       reply('r1', 'Added.'),
@@ -1122,7 +1122,7 @@ describe('AgentHub', () => {
     expect(fake.runOf(id).interrupts).toBe(1);
   });
 
-  it('sends pictures and files with an entry, queued or not', async () => {
+  it('sends pictures and files with a message, queued or not', async () => {
     const picture = { kind: 'picture', mediaType: 'image/png', data: 'AAAA' } as const;
     const file = { kind: 'file', path: '/work/ribbon.ts' } as const;
     const { id, entries } = await hub.start('fake', settings, 'Look', undefined, [picture]);
@@ -1187,7 +1187,7 @@ describe('AgentHub', () => {
     const run = fake.runOf(id);
     run.events.suggestion('Too soon');
     hub.send(id, 'Also this');
-    // The queued entry begins the next turn before the suggestion comes.
+    // The queued message begins the next turn before the suggestion comes.
     run.events.turnEnded();
     run.events.suggestion('Run the tests');
     expect(events()).not.toContain('agents.suggestion');
@@ -1224,7 +1224,7 @@ describe('AgentHub', () => {
       const run = fake.runOf(id);
       run.events.followUps(offered);
       hub.send(id, 'Also this');
-      // The queued entry begins the next turn before they come.
+      // The queued message begins the next turn before they come.
       run.events.turnEnded();
       run.events.followUps(offered);
       run.events.turnEnded();

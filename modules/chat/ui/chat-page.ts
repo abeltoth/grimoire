@@ -59,7 +59,7 @@ export const SECOND_CHAT = 'second-chat';
  *
  * Pop out puts a chat that has begun in a window of its own, a
  * popout; there, Back in the book puts it back. A popout has no right page,
- * so the agent's commands are listed on its own page, above the entry.
+ * so the agent's commands are listed on its own page, above the message field.
  */
 @Component({
   selector: 'gr-chat-page',
@@ -159,7 +159,7 @@ export class ChatPage {
     const { agent, settings } = chat;
     const begun = chat.status !== 'blank';
     const effort = this.chats.effortOf(agent, settings);
-    // Auto picks the effort with the model, at the first entry.
+    // Auto picks the effort with the model, at the first message.
     const effortShown = effort.levels.length > 0 && (begun || !settings.autoModel);
     return [
       { key: 'agent', label: this.chats.agentName(agent) },
@@ -198,7 +198,7 @@ export class ChatPage {
     else this.chats.openSettings(chat.id, setting);
   }
 
-  /** Files can be dropped anywhere on the page; they go with the next entry. */
+  /** Files can be dropped anywhere on the page; they go with the next message. */
   protected dragOver(event: DragEvent): void {
     if (!event.dataTransfer?.types.includes('Files')) return;
     event.preventDefault();

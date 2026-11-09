@@ -52,13 +52,13 @@ export interface Chat {
   cache?: PromptCache;
   /** The agent's plan, kept up to date as it works. */
   plan: readonly PlanStep[];
-  /** Your entries whose file changes were undone. */
+  /** Your messages whose file changes were undone. */
   withdrawn: readonly string[];
   /** Its marks: pinned, starred. */
   pins: readonly Mark[];
   /** Your tags, in the order you added them. */
   tags: readonly string[];
-  /** Your entries copied from the chat this one was forked from; they can't be undone. */
+  /** Your messages copied from the chat this one was forked from; they can't be undone. */
   copied: readonly string[];
   /** What the agent suggests you send next, while it's idle with nothing queued. */
   suggestion?: string;
@@ -73,7 +73,7 @@ export interface Chat {
   error?: string;
   /** When a blank chat was opened, in ms since the epoch. */
   begunAt?: number;
-  /** The first entry a blank chat has written in, from its preset. */
+  /** The first message a blank chat has written in, from its preset. */
   prompt?: string;
 }
 
@@ -86,7 +86,7 @@ export type Setting = 'agent' | 'model' | 'effort' | 'mode' | 'folder' | 'preset
 export interface SettingsPick {
   agent?: AgentId;
   model?: string;
-  /** Auto, on a blank chat: the model and effort are picked for its first entry. */
+  /** Auto, on a blank chat: the model and effort are picked for its first message. */
   autoModel?: boolean;
   effort?: EffortLevel;
   mode?: ApprovalMode;
@@ -224,7 +224,7 @@ export class Chats {
   }
 
   /**
-   * The model as a chat shows it; on Auto, "Auto" until its first entry,
+   * The model as a chat shows it; on Auto, "Auto" until its first message,
    * then with the model Auto picked: "Auto: Sonnet 5.5".
    */
   modelLabel(agent: AgentId, settings: NewChatSettings, begun: boolean): string {
@@ -339,7 +339,7 @@ export class Chats {
 
   /**
    * Opens a blank chat, with the settings given or what new chats
-   * begin with, and a preset's first entry written in, and turns to it.
+   * begin with, and a preset's first message written in, and turns to it.
    * Gives the blank chat's local ID.
    */
   newChat(from?: { agent: AgentId; settings: NewChatSettings; prompt?: string }): string {
@@ -615,14 +615,14 @@ export class Chats {
     }
   }
 
-  /** Restores the files to how they were before one of your entries. */
+  /** Restores the files to how they were before one of your messages. */
   async undo(id: string, entryId: string): Promise<void> {
     this.update(id, ({ error: _, ...c }) => c);
     return this.settle(id, this.bridge.invoke('agents.undo', { chatId: id, entryId }));
   }
 
   /**
-   * Forks the chat after the turn one of your entries began, and turns
+   * Forks the chat after the turn one of your messages began, and turns
    * to the variant; from a popout, it's popped out as one too.
    */
   async fork(id: string, entryId: string): Promise<void> {

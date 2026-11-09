@@ -9,7 +9,7 @@ export interface CommandSearch {
   cwd?: string;
   /** What follows the "/" so far. */
   query: string;
-  /** Writes the command in the entry and sends it. */
+  /** Writes the command in the message field and sends it. */
   use(command: AgentCommand): void;
 }
 

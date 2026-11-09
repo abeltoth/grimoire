@@ -278,3 +278,9 @@ export const EXPAND_TOKENS: readonly (readonly [string, string])[] = [
   ['--gr-size-fold-head', '--gr-size-expandable-head'],
   ['--gr-size-fold-mark', '--gr-size-expandable-mark'],
 ];
+
+/** The message field's tokens, old to new; migration 22 moves a saved theme's changes to them. */
+export const MESSAGE_FIELD_TOKENS: readonly (readonly [string, string])[] = [
+  ['--gr-entry-lines', '--gr-message-field-min'],
+  ['--gr-entry-max', '--gr-message-field-max'],
+];

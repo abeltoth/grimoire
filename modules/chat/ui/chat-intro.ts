@@ -13,7 +13,7 @@ const MANNER: Record<ApprovalMode, string> = {
 
 /**
  * A blank chat's opening page: when it was begun, who will write it,
- * and where and how the agent will work once you write the first entry.
+ * and where and how the agent will work once you write the first message.
  */
 @Component({
   selector: 'gr-chat-intro',

@@ -40,7 +40,7 @@ export class PresetStore {
 
   /**
    * Saves a preset under its name; one with the same name keeps its place
-   * and takes the new name and settings, and its first entry unless one is given.
+   * and takes the new name and settings, and its first message unless one is given.
    */
   save({ name, agent, settings, prompt }: Preset): Preset[] {
     const named = this.named(name);

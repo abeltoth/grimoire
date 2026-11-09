@@ -20,8 +20,8 @@ interface Section {
 }
 
 /**
- * The slash commands, turned to by "/" at the start of an entry: the chat's agent's
- * commands and skills. You keep typing in the entry to narrow them; its keys
+ * The slash commands, turned to by "/" at the start of a message: the chat's agent's
+ * commands and skills. You keep typing in the message field to narrow them; its keys
  * move through them, and a click uses one.
  */
 @Component({

@@ -1,6 +1,6 @@
 import type { AgentId, ChatId } from './agents';
 
-/** Where in a chat a passage is: its title, one of your entries, or one of the agent's replies. */
+/** Where in a chat a passage is: its title, one of your messages, or one of the agent's replies. */
 export type PassageKind = 'title' | 'you' | 'agent';
 
 /** A piece of an excerpt: plain text, or a word you looked for. */
@@ -22,7 +22,7 @@ declare module './commands' {
   interface CommandMap {
     /**
      * The chats with a passage that has every word you looked for, or words
-     * starting with them, best first. Passages are titles, your entries and
+     * starting with them, best first. Passages are titles, your messages and
      * the agents' replies; their thinking and tools aren't looked through.
      */
     'search.chats': { request: { query: string }; response: SearchHit[] };

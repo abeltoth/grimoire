@@ -153,14 +153,14 @@ function handbackOf(block: ToolBlock): string | undefined {
   return block.tool === HANDBACK_TOOL && typeof message === 'string' ? message : undefined;
 }
 
-/** Your entries whose edits were undone, and those a fork copied, which can't be. */
+/** Your messages whose edits were undone, and those a fork copied, which can't be. */
 export interface UndoMarks {
   withdrawn?: ReadonlySet<string>;
   copied?: ReadonlySet<string>;
 }
 
 /**
- * Lays out a transcript: your entries, the agent's replies, and its tools as
+ * Lays out a transcript: your messages, the agent's replies, and its tools as
  * tool notes. The file changes made after a withdrawn entry are marked so.
  */
 export function toRows(
@@ -354,7 +354,7 @@ export function summarize(notes: readonly Note[]): Summary {
   };
 }
 
-/** Undo goes on your entries from which files were changed and not undone yet. */
+/** Undo goes on your messages from which files were changed and not undone yet. */
 function markUndoable(rows: Row[], copied: ReadonlySet<string>): void {
   let changesAfter = false;
   for (let i = rows.length - 1; i >= 0; i--) {

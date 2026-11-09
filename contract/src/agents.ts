@@ -48,7 +48,7 @@ export interface ChatSettings {
   /** The model's effort; what your agent's own settings give when left out. */
   effort?: EffortLevel;
   /**
-   * Auto: the agent picks the model and effort for the chat's first entry,
+   * Auto: the agent picks the model and effort for the chat's first message,
    * whatever is set here. Once the chat has begun, `model` and `effort` say
    * what it picked; picking another model ends Auto.
    */
@@ -236,7 +236,7 @@ export interface HookRun {
   at?: number;
 }
 
-/** Something sent with an entry: a picture, shown as a plate, or a file, as a reference. */
+/** Something sent with a message: a picture, shown as a plate, or a file, as a reference. */
 export type Attachment = PictureAttachment | FileAttachment;
 
 export interface PictureAttachment {
@@ -249,7 +249,7 @@ export interface PictureAttachment {
   caption?: string;
 }
 
-/** A file the agent reads with the entry. */
+/** A file the agent reads with the message. */
 export interface FileAttachment {
   kind: 'file';
   /** Absolute, or relative to the chat's folder. */
@@ -389,7 +389,7 @@ export interface QueuedEntry {
   attachments?: Attachment[];
 }
 
-/** One of an agent's commands or skills, used by writing "/name" at the start of an entry. */
+/** One of an agent's commands or skills, used by writing "/name" at the start of a message. */
 export interface AgentCommand {
   name: string;
   description: string;
@@ -405,7 +405,7 @@ export interface AgentCommand {
 export interface FollowUp {
   /** A few words naming the task. */
   title: string;
-  /** The new chat's first entry, written in for you to send. */
+  /** The new chat's first message, written in for you to send. */
   prompt: string;
 }
 
@@ -442,14 +442,14 @@ export interface OpenChat {
   cache?: PromptCache;
   /** The agent's plan; empty until it makes one. */
   plan: PlanStep[];
-  /** Your entries whose file changes were undone; their edits show as withdrawn. */
+  /** Your messages whose file changes were undone; their edits show as withdrawn. */
   withdrawn: string[];
   /** The chat's marks: pinned, starred. */
   pins: Mark[];
   /** Your tags for it, in the order you added them. */
   tags: string[];
   /**
-   * Your entries copied from the chat this one was forked from. The agent
+   * Your messages copied from the chat this one was forked from. The agent
    * keeps no file checkpoints for them, so they can't be undone.
    */
   copied: string[];
@@ -518,13 +518,13 @@ declare module './commands' {
     /** Changes a chat's model or permission; a running chat takes it from its next request. */
     'agents.configure': { request: { chatId: ChatId; change: SettingsChange }; response: void };
     /**
-     * Restores the files to how they were before one of your entries, while
+     * Restores the files to how they were before one of your messages, while
      * the chat is idle and edits its project. The edits of that entry and
      * those after it are withdrawn.
      */
     'agents.undo': { request: { chatId: ChatId; entryId: string }; response: void };
     /**
-     * Copies a chat, up to the end of the turn one of your entries began,
+     * Copies a chat, up to the end of the turn one of your messages began,
      * into a new chat: a variant, such as "Context meter (a)". It opens as a
      * chat, and the original stays as it was.
      */
@@ -532,7 +532,7 @@ declare module './commands' {
     /**
      * Sends one entry to a second model too, in a chat of its own, in the
      * same folder: while the first edits the project, the second only reads.
-     * From a chat that has begun, the second is a copy of it, and the entry
+     * From a chat that has begun, the second is a copy of it, and the message
      * goes to both. From a new chat's settings, the second starts afresh;
      * start the first with agents.start, before this.
      */
@@ -622,7 +622,7 @@ declare module './events' {
     /** A chat's marks changed: the ones it has now. */
     'agents.pins': { chatId: ChatId; pins: Mark[] };
     'agents.tags': { chatId: ChatId; tags: string[] };
-    /** Edits were undone: your entries whose file changes are now withdrawn. */
+    /** Edits were undone: your messages whose file changes are now withdrawn. */
     'agents.withdrawn': { chatId: ChatId; withdrawn: string[] };
     /** The agent suggested what you might send next; null once it no longer stands. */
     'agents.suggestion': { chatId: ChatId; suggestion: string | null };

@@ -32,8 +32,8 @@ export interface ClaudeMessage {
 }
 
 /**
- * The ID of the last message in the turn your entry `entryId` began: the one
- * just before your next entry. Undefined when that turn is the chat's last.
+ * The ID of the last message in the turn your message `entryId` began: the one
+ * just before your next message. Undefined when that turn is the chat's last.
  */
 export function turnEnd(messages: readonly ClaudeMessage[], entryId: string): string | undefined {
   const at = messages.findIndex((message) => message.uuid === entryId);
@@ -272,7 +272,7 @@ export class ClaudeTranscript {
   private streamingIndex: number | undefined;
   /** The plan's steps by Claude Code's task ID, in the order it made them. */
   private readonly tasks = new Map<string, PlanStep>();
-  /** The saved turn being read: your entry that began it, when you wrote it, and what it spent. */
+  /** The saved turn being read: your message that began it, when you wrote it, and what it spent. */
   private turn: SavedTurn | undefined;
   /** Every saved turn read, in order, for the subagents' tokens. */
   private readonly turns: SavedTurn[] = [];
@@ -297,7 +297,7 @@ export class ClaudeTranscript {
 
   /**
    * @param at When a saved message was written, in ms since the epoch: a
-   *   turn took from your entry until its last message.
+   *   turn took from your message until its last message.
    */
   apply(message: ClaudeMessage, at?: number): void {
     if (message.type === 'system') {
@@ -477,7 +477,7 @@ export class ClaudeTranscript {
     if (texts.length || pictures.length) this.addUserText(uuid, texts.join('\n'), pictures);
   }
 
-  /** Your entry; the @-references on its last lines are files you attached. */
+  /** Your message; the @-references on its last lines are files you attached. */
   private addUserText(uuid: string | undefined, message: string, pictures: PictureAttachment[]): void {
     if (this.live) return;
     const { text, files } = splitReferences(message);

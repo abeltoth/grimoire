@@ -1,6 +1,6 @@
 import type { AgentModels } from '@grimoire/contract';
 import { describe, expect, it } from 'vitest';
-import { autoPick, entryForRater } from './auto-model';
+import { autoPick, messageForRater } from './auto-model';
 
 const models: AgentModels = {
   models: [
@@ -31,9 +31,9 @@ describe('Auto', () => {
     ).toBeUndefined();
   });
 
-  it('gives the rater the first entry, cut short', () => {
-    expect(entryForRater('Fix the ribbon')).toBe('Fix the ribbon');
-    const long = entryForRater('x'.repeat(5_000));
+  it('gives the rater the first message, cut short', () => {
+    expect(messageForRater('Fix the ribbon')).toBe('Fix the ribbon');
+    const long = messageForRater('x'.repeat(5_000));
     expect(long).toHaveLength(4_001);
     expect(long.endsWith('x…')).toBe(true);
   });

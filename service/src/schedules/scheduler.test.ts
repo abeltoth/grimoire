@@ -57,7 +57,7 @@ describe('Scheduler', () => {
     expect(scheduler.save({ ...draft, id: schedule.id, enabled: false })[0]!.nextAt).toBeNull();
   });
 
-  it('turns away a schedule without a name, an entry or a time', () => {
+  it('turns away a schedule without a name, a message or a time', () => {
     expect(() => save({ name: ' ' })).toThrow('A schedule needs a name');
     expect(() => save({ prompt: '' })).toThrow('A schedule needs a first message');
     expect(() => save({ time: '8:00' })).toThrow('"8:00" isn\'t a time such as 08:00');

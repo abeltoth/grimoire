@@ -238,7 +238,7 @@ describe('ClaudeTranscript', () => {
     ]);
   });
 
-  it('finds where the turn one of your entries began ends', () => {
+  it('finds where the turn one of your messages began ends', () => {
     const you = (uuid: string, content: unknown): ClaudeMessage => ({
       type: 'user',
       uuid,

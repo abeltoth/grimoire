@@ -1,5 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
-import { EXPAND_TOKENS, RENAMED_TOKENS, SEARCH_TOKENS } from './renamed-tokens';
+import { EXPAND_TOKENS, MESSAGE_FIELD_TOKENS, RENAMED_TOKENS, SEARCH_TOKENS } from './renamed-tokens';
 
 /** Each migration moves the database up one version. Append new ones; never edit old ones. */
 const MIGRATIONS = [
@@ -220,6 +220,7 @@ const MIGRATIONS = [
    ) WHERE key = 'theme' AND json_type(value) = 'object';`,
   movedTokens(SEARCH_TOKENS),
   movedTokens(EXPAND_TOKENS),
+  movedTokens(MESSAGE_FIELD_TOKENS),
 ];
 
 /** SQL that moves a saved theme's changes from each old token name to its new one. */

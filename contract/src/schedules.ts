@@ -12,7 +12,7 @@ export interface Schedule {
   agent: AgentId;
   /** The chat's settings, but for its permission: always Full access. */
   settings: Omit<NewChatSettings, 'mode'>;
-  /** The first entry each run writes. */
+  /** The first message each run writes. */
   prompt: string;
   /** The days of the week it runs on, 0 for Sunday to 6 for Saturday. */
   days: number[];
