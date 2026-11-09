@@ -70,7 +70,7 @@ declare module './events' {
   interface EventMap {
     /** The schedules, after one was saved, removed or ran. */
     'schedules.changed': { schedules: ScheduleInfo[] };
-    /** A run began a chat, which windows add to the book. */
+    /** A run began a chat, which the main window adds to its open chats. */
     'schedules.began': { run: ScheduleRun; chat: OpenChat };
   }
 }

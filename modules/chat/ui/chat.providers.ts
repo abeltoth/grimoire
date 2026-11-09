@@ -52,7 +52,7 @@ export function provideChat(): EnvironmentProviders {
       whole: true,
     });
 
-    // A chat put beside the one you're on, or found there as the book opens, shows on the right page.
+    // A chat put beside the one you're on, or found there as the main window opens, shows on the right page.
     const rightPage = inject(RightPageState);
     effect(() => {
       if (chats.besideId()) untracked(() => rightPage.showPage(SECOND_CHAT));

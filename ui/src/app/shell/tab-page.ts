@@ -19,7 +19,7 @@ import type { PageTab } from './shell-registry';
 export class TabPage {
   readonly tab = input.required<PageTab>();
   /** The label of the page it turns back to. */
-  readonly backTo = input('facing page');
+  readonly backTo = input.required<string>();
 
   protected readonly rightPage = inject(RightPageState);
   protected readonly wording = inject(Wording);

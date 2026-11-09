@@ -62,7 +62,7 @@ export class App {
   protected readonly wording = inject(Wording);
   protected readonly focus = inject(Focus);
   private readonly rightPage = inject(RightPageState);
-  /** The chat this window holds as a popout; null in the book. */
+  /** The chat this window holds as a popout; null in the main window. */
   protected readonly popout = inject(POPOUT);
   /** The page on the desk without the book's title bar, chat tabs and page tabs: in focus mode, and in a popout. */
   protected readonly bare = computed(() => !!this.popout || this.focus.on());
@@ -97,7 +97,7 @@ export class App {
       onCleanup(remove);
     });
 
-    // A popout's window is named for its chat, so you can tell it from the book.
+    // A popout's window is named for its chat, so you can tell it from the main window.
     effect(() => {
       if (!this.popout) return;
       const title = this.chats.current()?.title || this.wording.untitled();
@@ -106,7 +106,7 @@ export class App {
   }
 
   protected runShortcut(event: KeyboardEvent): void {
-    // The book's commands are the book's.
+    // The main window's shortcuts are its own.
     if (this.popout) return;
     const command = this.registry.commands
       .all()

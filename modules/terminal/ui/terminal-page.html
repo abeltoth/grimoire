@@ -43,7 +43,7 @@
   </div>
 
   @if (shown) {
-    <div class="leaf" role="tabpanel">
+    <div class="sheets" role="tabpanel">
       @for (terminal of terminals.terminals(); track terminal.id) {
         <gr-terminal-sheet
           [terminal]="terminal"

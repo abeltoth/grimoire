@@ -59,7 +59,7 @@
   padding: var(--gr-theme-card-swatch-page-inset) var(--gr-theme-control-gap);
 }
 
-.leaf {
+.page {
   flex: 1;
   padding: var(--gr-theme-row-gap) var(--gr-theme-card-pad);
 }

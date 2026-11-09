@@ -142,13 +142,13 @@ ipcMain.on('grimoire:openExternal', (event, url: unknown) => {
   if (originOf(url).startsWith('https://')) void shell.openExternal(url);
 });
 
-/** The book's window: the one that holds every chat not popped out. */
+/** The main window: the one that holds every chat not popped out. */
 let mainWindow: BrowserWindow | undefined;
 /** The popouts' windows, by the chat each holds. */
 const popoutWindows = new Map<string, BrowserWindow>();
-/** The chats popped out, as the layout keeps them so they open again with the book. */
+/** The chats popped out, as the layout keeps them so they open again with the main window. */
 let popouts: Popout[] = [];
-/** While the book closes or the app quits: the popouts close with it, and open again next time. */
+/** While the main window closes or the app quits: the popouts close with it, and open again next time. */
 let keepPopouts = false;
 
 app.on('before-quit', () => (keepPopouts = true));
@@ -159,7 +159,7 @@ function savePopouts(): void {
     .catch((error: unknown) => console.error(error));
 }
 
-/** Opens the chats that were popped out when the book last closed, each where it was. */
+/** Opens the chats that were popped out when the main window last closed, each where it was. */
 function reopenPopouts(): void {
   getService()
     .then((client) => client.request('layout.get', {}))
@@ -174,7 +174,7 @@ function reopenPopouts(): void {
 
 /**
  * Another profile is in use: the last one's popouts close, kept in its
- * layout as they were, and the book opens again on the new one's
+ * layout as they were, and the main window opens again on the new one's
  * chats, with the popouts it had.
  */
 function openProfile(): void {
@@ -204,11 +204,11 @@ function openPopout(popout: Popout): void {
   win.on('close', () => {
     popoutWindows.delete(popout.chatId);
     if (keepPopouts) {
-      // Closing with the book: it opens again where it is.
+      // Closing with the main window: it opens again where it is.
       const bounds = win.getNormalBounds();
       popouts = popouts.map((kept) => (kept.chatId === popout.chatId ? { ...kept, bounds } : kept));
     } else {
-      // Closed by itself: its chat goes back into the book.
+      // Closed by itself: its chat goes back into the main window.
       popouts = popouts.filter((kept) => kept.chatId !== popout.chatId);
       mainWindow?.webContents.send('grimoire:popoutClosed', popout.chatId);
     }
@@ -216,7 +216,7 @@ function openPopout(popout: Popout): void {
   });
 }
 
-/** Where a new popout goes: one page wide, at the side of the screen the book is on. */
+/** Where a new popout goes: one page wide, at the side of the screen the main window is on. */
 function popoutPlace(): { width: number; height: number; x?: number; y?: number } {
   const area = screen.getDisplayMatching(mainWindow?.getBounds() ?? screen.getPrimaryDisplay().bounds).workArea;
   const width = Math.min(860, area.width);
@@ -233,7 +233,7 @@ function serveUi(request: Request): Promise<Response> {
   return net.fetch(pathToFileURL(file).toString());
 }
 
-/** The book's window, or a popout's: a window on one chat. */
+/** The main window, or a popout's: a window on one chat. */
 function createWindow(popout?: Popout): BrowserWindow {
   const isMac = process.platform === 'darwin';
   const size = popout
@@ -271,7 +271,7 @@ function createWindow(popout?: Popout): BrowserWindow {
   return win;
 }
 
-/** The book's window; its popouts open again with it, and close with it. */
+/** The main window; its popouts open again with it, and close with it. */
 function openMainWindow(): BrowserWindow {
   keepPopouts = false;
   const win = createWindow();

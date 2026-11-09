@@ -104,13 +104,13 @@ interface LastUsed {
 /**
  * The open chats, as the window sees them: a mirror of the agent hub's
  * open chats (ADR-007), kept current by its events. The hub remembers
- * which chats are open, and the layout which one you were on, so the book
+ * which chats are open, and the layout which one you were on, so the main window
  * opens where you left it.
  */
 @Injectable({ providedIn: 'root' })
 export class Chats {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
-  /** The chat this window holds as a popout; null in the book. */
+  /** The chat this window holds as a popout; null in the main window. */
   readonly popout = inject(POPOUT);
   private readonly settings = inject(Settings);
   private readonly presets = inject(PresetList);
@@ -135,7 +135,7 @@ export class Chats {
   readonly beside = computed(() => this.all().find((chat) => chat.id === this.besideId()));
 
   constructor() {
-    // A popout's window closed: its chat comes back into the book.
+    // A popout's window closed: its chat comes back into the main window.
     if (!this.popout) this.bridge.onPopoutClosed((chatId) => void this.comeBack(chatId));
     this.listen('agents.entry', ({ chatId, entry }) =>
       this.update(chatId, (c) => ({ ...c, entries: upsert(c.entries, entry) })),
@@ -387,7 +387,7 @@ export class Chats {
     this.setBeside(undefined);
   }
 
-  /** A blank chat, with the settings given or what new chats begin with, added to the book. */
+  /** A blank chat, with the settings given or what new chats begin with, added to the open chats. */
   private blank(from?: { agent: AgentId; settings: NewChatSettings; prompt?: string }): Chat {
     const start = from ?? this.startOf();
     const blank: Chat = {
@@ -421,7 +421,7 @@ export class Chats {
     this.all.update((all) => [...all, fromOpenChat(chat)]);
   }
 
-  /** Whether a chat is open in the book. */
+  /** Whether a chat is open in the main window. */
   has(id: string): boolean {
     return !!this.find(id);
   }
@@ -440,8 +440,8 @@ export class Chats {
   }
 
   /**
-   * Pops a chat that has begun out of the book, into a window of its
-   * own: a popout. It's out of the book until that window closes.
+   * Pops a chat that has begun out of the main window, into a window of its
+   * own: a popout. It's out of the main window until that window closes.
    */
   popOut(id: string): void {
     const chat = this.find(id);
@@ -450,7 +450,7 @@ export class Chats {
     this.bridge.popOut(id);
   }
 
-  /** Takes a chat out of the book; when it was open, turns to the next one, or a blank page. */
+  /** Takes a chat out of the main window; when it was open, turns to the next one, or a blank page. */
   private takeOut(id: string): void {
     const all = this.all();
     const index = all.findIndex((chat) => chat.id === id);
@@ -465,7 +465,7 @@ export class Chats {
     }
   }
 
-  /** A popout's chat comes back into the book, open, unless it was closed. */
+  /** A popout's chat comes back into the main window, open, unless it was closed. */
   private async comeBack(id: string): Promise<void> {
     if (this.find(id)) return this.turnTo(id);
     const open = await this.bridge.invoke('agents.openChats', {}).catch(() => []);
@@ -760,7 +760,7 @@ export class Chats {
   }
 
   /**
-   * Turns to a chat and remembers it, so the book opens there next time.
+   * Turns to a chat and remembers it, so the main window opens there next time.
    * Turning to the chat on the right page swaps the two pages.
    */
   private turnTo(id: string): void {

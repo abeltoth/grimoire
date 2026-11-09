@@ -33,7 +33,7 @@ interface Section {
 })
 export class SlashCommands {
   /** The label of the page it turns back to. */
-  readonly backTo = input('facing page');
+  readonly backTo = input.required<string>();
   /** With its page footer; not on a page that has one of its own. */
   readonly foot = input(true);
 

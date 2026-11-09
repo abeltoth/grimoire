@@ -1,4 +1,4 @@
-/* The leaf fills the page; its own scrollback scrolls, not the page. */
+/* The sheets fill the page; each one's scrollback scrolls, not the page. */
 :host {
   display: flex;
   flex-direction: column;
@@ -63,8 +63,8 @@ button:focus-visible {
   outline-offset: var(--gr-focus-offset);
 }
 
-/* The leaf, between a double rule and a single one, as a listing is set. */
-.leaf {
+/* The sheets, between a double rule and a single one, as a listing is set. */
+.sheets {
   flex: 1;
   min-height: 0;
   display: flex;

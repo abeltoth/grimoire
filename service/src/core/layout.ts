@@ -5,7 +5,7 @@ import { activeProfile } from '../storage/app-state';
 
 const DEFAULTS: Layout = { current: null, beside: null, lastUsed: null, focus: false, popouts: [] };
 
-/** How you left the book in the profile in use, as `profile` says, kept in SQLite. */
+/** How you left the main window in the profile in use, as `profile` says, kept in SQLite. */
 export class LayoutStore {
   constructor(
     private readonly db: DatabaseSync,

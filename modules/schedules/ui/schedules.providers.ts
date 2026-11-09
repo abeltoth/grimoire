@@ -8,7 +8,7 @@ import { upcoming } from './wording';
 /**
  * The scheduled chats module (ADR-008): its page tab turns the right
  * page to the schedules, and the page footer names the next run. A run's
- * chat joins the book as it begins, whichever page is open.
+ * chat joins the open chats as it begins, whichever page is open.
  */
 export function provideScheduledChats(): EnvironmentProviders {
   return provideShellEntries((shell) => {

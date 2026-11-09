@@ -1,6 +1,6 @@
 import type { AgentId, ChatId, NewChatSettings } from './agents';
 
-/** How you left the book, so it opens the same way (ADR-009: Grimoire's own data). */
+/** How you left the main window, so it opens the same way (ADR-009: Grimoire's own data). */
 export interface Layout {
   /** The chat you were on; null for a blank page. */
   current: ChatId | null;
@@ -14,10 +14,10 @@ export interface Layout {
   popouts: Popout[];
 }
 
-/** A chat popped out of the book into a window of its own. */
+/** A chat popped out of the main window into a window of its own. */
 export interface Popout {
   chatId: ChatId;
-  /** Where its window was when it last closed with the book. */
+  /** Where its window was when it last closed with the main window. */
   bounds?: { x: number; y: number; width: number; height: number };
 }
 

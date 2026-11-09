@@ -67,7 +67,7 @@ const MAX_CHATS = 8;
 })
 export class CommandPalette {
   /** The label of the page it turns back to. */
-  readonly backTo = input('facing page');
+  readonly backTo = input.required<string>();
 
   protected readonly rightPage = inject(RightPageState);
   private readonly registry = inject(ShellRegistry);

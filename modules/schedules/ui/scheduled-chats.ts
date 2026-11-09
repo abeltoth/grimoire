@@ -5,7 +5,7 @@ import { Chats } from '@ui/app/core/chats';
 
 /**
  * The schedules, as the window sees them: a mirror of the service's,
- * kept current by its events. A run's chat joins the book as it begins.
+ * kept current by its events. A run's chat joins the open chats as it begins.
  */
 @Injectable({ providedIn: 'root' })
 export class ScheduledChats {

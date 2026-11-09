@@ -73,9 +73,9 @@ function lookOf(element: Element): Look {
 }
 
 /**
- * One shell's leaf in the Terminal, drawn with xterm.js. It draws what
+ * One shell's sheet in the Terminal, drawn with xterm.js. It draws what
  * the service kept of the shell's screen, then follows its output. xterm.js
- * is loaded only once a leaf is first shown, so it doesn't slow the start.
+ * is loaded only once a sheet is first shown, so it doesn't slow the start.
  */
 @Component({
   selector: 'gr-terminal-sheet',
@@ -87,7 +87,7 @@ function lookOf(element: Element): Look {
 })
 export class TerminalSheet {
   readonly terminal = input.required<TerminalInfo>();
-  /** Only the shown leaf is drawn, sized and focused. */
+  /** Only the shown sheet is drawn, sized and focused. */
   readonly shown = input(false);
   /** The size it fits, in cells. */
   readonly fitted = output<{ cols: number; rows: number }>();
@@ -178,7 +178,7 @@ export class TerminalSheet {
     this.refit(this.shown());
   }
 
-  /** Fits the screen to the leaf on the next frame, while it's shown. */
+  /** Fits the screen to the sheet on the next frame, while it's shown. */
   private refit(focus: boolean): void {
     cancelAnimationFrame(this.fitFrame);
     this.fitFrame = requestAnimationFrame(() => {

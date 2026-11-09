@@ -92,7 +92,7 @@ export class KanbanPage {
   /** The folder whose cards show; all when null. */
   private readonly picked = signal<string | null>(null);
   protected readonly showClosed = signal(false);
-  /** The titles of chats that aren't open in the book: as the agents list them, or as they were while open. */
+  /** The titles of chats that aren't open: as the agents list them, or as they were while open. */
   private readonly titles = signal<ReadonlyMap<string, string>>(new Map());
 
   /** The folders the cards on the board are in, in the order they first appear. */

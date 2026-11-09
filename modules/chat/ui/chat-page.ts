@@ -58,7 +58,7 @@ export const SECOND_CHAT = 'second-chat';
  * pen, tags or pins. Esc is the page's you're working in.
  *
  * Pop out puts a chat that has begun in a window of its own, a
- * popout; there, Back in the book puts it back. A popout has no right page,
+ * popout; there, Back to the main window puts it back. A popout has no right page,
  * so the agent's commands are listed on its own page, above the message field.
  */
 @Component({
@@ -96,7 +96,7 @@ export class ChatPage {
   private readonly commands = inject(AgentCommands);
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
-  /** In a popout's window, popped out of the book. */
+  /** In a popout's window, popped out of the main window. */
   protected readonly popout = !!inject(POPOUT);
 
   /** The chat it shows; the one you're on when unset. */
@@ -137,7 +137,7 @@ export class ChatPage {
     });
   }
 
-  /** Puts a popout back in the book: its window closes, and the book turns to it. */
+  /** Puts a popout back in the main window: its window closes, and the main window turns to it. */
   protected backInMainWindow(): void {
     this.bridge.window.close();
   }

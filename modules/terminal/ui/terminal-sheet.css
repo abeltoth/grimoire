@@ -1,7 +1,7 @@
 @import '@xterm/xterm/css/xterm.css';
 
 /*
- * The leaf's look, from the theme. terminal-sheet.ts reads these and hands
+ * The sheet's look, from the theme. terminal-sheet.ts reads these and hands
  * them to xterm.js, which draws with colours and sizes, not CSS.
  */
 gr-terminal-sheet {

@@ -38,7 +38,7 @@ declare module './commands' {
     'profiles.remove': { request: { id: string }; response: Profiles };
     /**
      * Puts the open chats away and makes the profile the one in use:
-     * Claude Code moves to its Claude folder, and the book opens with its
+     * Claude Code moves to its Claude folder, and the main window opens with its
      * settings, layout, presets, schedules and chats. Refused while a
      * chat is busy, an approval waits, or a sign-in is under way.
      */
