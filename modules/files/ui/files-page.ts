@@ -55,7 +55,7 @@ export class FilesPage {
     // Read again when the folder changes, a file is saved or changes on disk, and on turning back to the folder.
     effect(() => {
       const view = this.view();
-      view.file()?.changedAt;
+      void view.file()?.changedAt;
       untracked(() => void this.readChanges(view.cwd));
     });
   }

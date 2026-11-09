@@ -1,4 +1,4 @@
-import { existsSync, readdirSync } from 'node:fs';
+import { readdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
 import { claudeHome } from '@grimoire/service/agents/claude/config-dir';
@@ -8,13 +8,7 @@ import {
   readSettingsFile,
   settingsFilesIn,
 } from '@grimoire/service/agents/claude/settings-files';
-import type {
-  AgentSetup,
-  SettingsFile,
-  SetupItem,
-  SetupSection,
-  SetupSource,
-} from '@grimoire/contract';
+import type { AgentSetup, SetupItem, SetupSection, SetupSource } from '@grimoire/contract';
 import type { SetupReader } from './setup';
 
 /**

@@ -142,7 +142,8 @@ ipcMain.on('grimoire:window', (event, action: unknown) => {
   const win = BrowserWindow.fromWebContents(event.sender);
   if (!win) return;
   if (action === 'minimize') win.minimize();
-  else if (action === 'toggleMaximize') win.isMaximized() ? win.unmaximize() : win.maximize();
+  else if (action === 'toggleMaximize' && win.isMaximized()) win.unmaximize();
+  else if (action === 'toggleMaximize') win.maximize();
   else if (action === 'close') win.close();
 });
 

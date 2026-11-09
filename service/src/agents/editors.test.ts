@@ -4,7 +4,7 @@ import { openDatabase } from '../storage/database';
 import { hubStore } from './chat-table';
 import { FakeAdapter } from './fake-adapter';
 import { AgentHub } from './hub';
-import { type Sent, PickingAdapter, reply, settings, settle } from './hub-testing';
+import { type Sent, PickingAdapter, reply, settings } from './hub-testing';
 
 let fake: FakeAdapter;
 let hub: AgentHub;

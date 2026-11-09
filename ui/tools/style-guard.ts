@@ -83,3 +83,11 @@ export function usedTokens(source: string): string[] {
     .map((m) => m[1]!)
     .filter((name) => !name.endsWith('-'));
 }
+
+/** Lines of a stylesheet that hold rules, counted as the lint counts code: no blanks or comments. */
+export function codeLines(css: string): number {
+  return css
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n')
+    .filter((line) => line.trim() !== '').length;
+}

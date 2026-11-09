@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  codeLines,
   cssDeclarations,
   definedTokens,
   designSystem,
@@ -9,6 +10,7 @@ import {
   inlineDeclarations,
   literalsIn,
   repoRoot,
+  themeFile,
   uiRoots,
   usedTokens,
 } from './style-guard';
@@ -42,6 +44,19 @@ describe('style guard', () => {
         .map((token) => `${relative(file)}: ${token}`),
     );
     expect(missing).toEqual([]);
+  });
+
+  it('keeps every stylesheet but the token sheet within 400 lines', () => {
+    const long = filesIn(['.css'])
+      .filter((file) => file !== themeFile && codeLines(readFileSync(file, 'utf8')) > 400)
+      .map(relative);
+    expect(long, 'Split the sheet, as the lint asks of code').toEqual([]);
+  });
+});
+
+describe('codeLines', () => {
+  it('counts neither blank lines nor comments', () => {
+    expect(codeLines('/* Paper\n   and ink */\n.a {\n\n  color: red; /* why */\n}\n')).toBe(3);
   });
 });
 

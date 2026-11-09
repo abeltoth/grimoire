@@ -10,4 +10,4 @@
 - Comments explain why, in one sentence, with no history (git log keeps that).
 - ADRs are never edited in place; a new ADR supersedes an old one.
 - Tests never read the real clock.
-- Typecheck, tests and the boundary lint must all pass before a commit.
+- `npm run check` must pass before a commit.

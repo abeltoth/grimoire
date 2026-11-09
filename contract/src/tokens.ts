@@ -1,5 +1,3 @@
-import type { AgentId, ChatId } from './agents';
-
 /** Tokens as the API counts them for an agent's replies. */
 export interface TokenCounts {
   /** Input read fresh, not from the prompt cache. */

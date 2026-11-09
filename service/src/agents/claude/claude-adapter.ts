@@ -1,6 +1,4 @@
 import { randomUUID, type UUID } from 'node:crypto';
-import { homedir } from 'node:os';
-import path from 'node:path';
 import type {
   CanUseTool,
   HookCallbackMatcher,
@@ -26,7 +24,6 @@ import type {
 } from '@grimoire/contract';
 import type { AgentAdapter, ChatEvents, ChatHistory, LiveChat, SignInRun } from '../adapter';
 import { CacheTracker, type ReplyUsage } from './cache';
-import { claudeHome } from './config-dir';
 import { readUserSettings } from './effort';
 import { FollowUpsKept, savedFollowUps } from './follow-ups';
 import { GRIMOIRE_SERVER, grimoireOptions } from './grimoire-tools';

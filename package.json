@@ -15,18 +15,24 @@
     "smoke": "npm run build && electron app --smoke",
     "test": "vitest run && npm test -w @grimoire/ui -- --watch=false",
     "typecheck": "tsc -p contract && tsc -p service && tsc -p app && tsc -p ui/tsconfig.app.json && tsc -p ui/tsconfig.spec.json",
-    "check": "npm run typecheck && npm run format:check && npm test",
+    "check": "npm run typecheck && npm run format:check && npm run lint && npm test",
     "format": "prettier --write contract service app ui/src modules scripts",
     "format:check": "prettier --check contract service app ui/src modules scripts",
+    "lint": "eslint .",
     "service:stop": "node scripts/stop-service.mjs",
     "capture": "npm run build && electron app --capture",
     "capture:design": "electron scripts/capture-design.cjs",
     "jira:check": "node scripts/jira-check.mjs"
   },
   "devDependencies": {
+    "angular-eslint": "^22.6.0",
     "esbuild": "^0.28.2",
+    "eslint": "^10.14.0",
+    "eslint-import-resolver-typescript": "^4.4.5",
+    "eslint-plugin-boundaries": "^7.4.2",
     "prettier": "^3.8.1",
     "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.2",
     "vitest": "^5.0.5"
   }
 }

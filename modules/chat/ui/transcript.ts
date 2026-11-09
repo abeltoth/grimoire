@@ -172,9 +172,9 @@ export class Transcript {
     });
     afterRenderEffect(() => {
       this.rows();
-      this.chat().error;
-      this.chat().approvals;
-      this.chat().followUps;
+      void this.chat().error;
+      void this.chat().approvals;
+      void this.chat().followUps;
       this.open();
       this.expandedNote();
       if (this.following) this.element.scrollTop = this.element.scrollHeight;
