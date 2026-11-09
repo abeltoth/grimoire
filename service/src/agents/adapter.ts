@@ -21,10 +21,8 @@ import type {
   SubagentState,
   HookRun,
   PlanStep,
-  PlanUsage,
   SettingsChange,
   TokenUse,
-  UsageBreakdown,
 } from '@grimoire/contract';
 
 /** A chat as the agent lists it; its pins and tags are Grimoire's (ADR-009). */
@@ -61,13 +59,6 @@ export interface AgentAdapter {
   pickModel?(text: string): Promise<Pick<ChatSettings, 'model' | 'effort'> | undefined>;
   /** The commands and skills you can use in a folder. Agents without them leave it out. */
   commands?(cwd: string): Promise<AgentCommand[]>;
-  /** The subscription's limits and how much of them is used. Agents without a plan leave it out. */
-  usage?(): Promise<PlanUsage>;
-  /**
-   * What the agent's own scan says took the plan's usage; null when it has
-   * none. Agents that can't say leave it out.
-   */
-  usageBreakdown?(): Promise<UsageBreakdown | null>;
   /** Who the agent is signed in as; null while it's signed out. Agents that can't switch accounts leave it out. */
   account?(): Promise<AgentAccount | null>;
   /**

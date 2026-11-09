@@ -35,12 +35,9 @@ import type {
   OpenChat,
   ParallelFrom,
   PlanStep,
-  PlanUsage,
   QueuedEntry,
   RecentFolders,
   SettingsChange,
-  UsageBreakdown,
-  UsageReading,
   UserEntry,
 } from '@grimoire/contract';
 import type { DatabaseSync } from 'node:sqlite';
@@ -50,7 +47,6 @@ import { Pins } from '../storage/pins';
 import { Parallels } from '../storage/parallels';
 import { EntryIds } from '../storage/entry-ids';
 import { Tags } from '../storage/tags';
-import { UsageReadings, sameAccount } from '../storage/usage-readings';
 import type { AgentAdapter, ChatEvents, LiveChat, SignInRun, Verdict } from './adapter';
 import { samePath } from './files';
 import { MemoryFiles } from './memory-files';
@@ -126,8 +122,6 @@ export interface HubStore {
   pins: Pins;
   /** Your tags for chats. */
   tags: Tags;
-  /** Each reading of the agents' plan limits. */
-  usage: UsageReadings;
   /** The chats sent one entry in parallel, and the one that edits each group. */
   parallels: Parallels;
 }
@@ -139,7 +133,6 @@ export function hubStore(db: DatabaseSync): HubStore {
     copied: new EntryIds(db, 'copied'),
     pins: new Pins(db),
     tags: new Tags(db),
-    usage: new UsageReadings(db),
     parallels: new Parallels(db),
   };
 }
@@ -263,15 +256,6 @@ export class AgentHub {
     return this.setupFiles.save(agent, cwd ?? homedir(), file, text, changedAt);
   }
 
-  /** The agent's plan limits, read now and kept; null when it has no plan. */
-  async usage(agent: AgentId): Promise<PlanUsage | null> {
-    const adapter = this.adapter(agent);
-    if (!adapter.usage) return null;
-    const usage = await adapter.usage();
-    this.store.usage.record(agent, usage);
-    return usage;
-  }
-
   /** Who the agent is signed in as, read now, and any sign-in under way. */
   async account(agent: AgentId): Promise<AgentSignIn> {
     return this.signInState(agent, true);
@@ -281,8 +265,7 @@ export class AgentHub {
    * Signs the agent in to another account, in the browser, for every chat;
    * a sign-in already under way is cancelled. Open chats move to the new
    * account: an idle chat's process stops, and its next message starts it
-   * again, continuing the chat; a running turn ends first. Then the plan's
-   * limits are read again, as they're the new account's.
+   * again, continuing the chat; a running turn ends first.
    */
   async signIn(agent: AgentId, email: string): Promise<AgentSignIn> {
     const adapter = this.adapter(agent);
@@ -312,7 +295,6 @@ export class AgentHub {
     }
     if (this.signIns.get(agent) === signingIn) this.signIns.delete(agent);
     this.moveToNewAccount(adapter);
-    if (adapter.usage) this.usage(agent).catch(() => {});
     return this.announceSignIn(agent, true);
   }
 
@@ -327,33 +309,6 @@ export class AgentHub {
   /** Stops a sign-in under way; the agent stays signed in as before. */
   cancelSignIn(agent: AgentId): void {
     this.signIns.get(agent)?.run.cancel();
-  }
-
-  /** Each reading of the agent's plan limits kept since a time, oldest first: those of the account signed in now. */
-  usageHistory(agent: AgentId, since: number): UsageReading[] {
-    return sameAccount(this.store.usage.since(agent, since));
-  }
-
-  /** What the agent's own scan says took the plan's usage; null when it can't say. */
-  async usageBreakdown(agent: AgentId): Promise<UsageBreakdown | null> {
-    const adapter = this.adapter(agent);
-    return adapter.usageBreakdown ? adapter.usageBreakdown() : null;
-  }
-
-  /**
-   * Reads every agent's plan limits now and then every `ms`, so their
-   * history is kept even while no one looks. Returns a function that stops it.
-   */
-  readUsageEvery(ms: number): () => void {
-    const read = () => {
-      for (const adapter of this.adapters.values()) {
-        if (adapter.usage) this.usage(adapter.info.id).catch(() => {});
-      }
-    };
-    read();
-    const timer = setInterval(read, ms);
-    timer.unref();
-    return () => clearInterval(timer);
   }
 
   /** The folders chats with any agent ran in, most recent first. */
@@ -798,16 +753,12 @@ export class AgentHub {
     this.memoryWatcher.dispose();
   }
 
-  /**
-   * Every window hears who each agent is signed in as now, read again, and
-   * the plan's limits are read for that account, as after a profile switch.
-   */
+  /** Every window hears who each agent is signed in as now, read again, as after a profile switch. */
   async announceAccounts(): Promise<void> {
     await Promise.all(
       [...this.adapters.values()].map(async (adapter) => {
         if (!adapter.account) return;
         await this.announceSignIn(adapter.info.id, true);
-        if (adapter.usage) this.usage(adapter.info.id).catch(() => {});
       }),
     );
   }

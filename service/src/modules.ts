@@ -6,5 +6,6 @@ import { kanban } from '../../modules/kanban/service';
 import { schedules } from '../../modules/schedules/service';
 import { search } from '../../modules/search/service';
 import { terminal } from '../../modules/terminal/service';
+import { usage } from '../../modules/usage/service';
 
-export const MODULES: readonly ServiceModule[] = [files, git, kanban, schedules, search, terminal];
+export const MODULES: readonly ServiceModule[] = [files, git, kanban, schedules, search, terminal, usage];

@@ -81,6 +81,8 @@ const CORE_MIGRATIONS = [
      account TEXT NOT NULL,
      PRIMARY KEY (agent, at, span, model)
    );`,
+  // The usage module keeps the plan's readings.
+  `DROP TABLE usage_readings;`,
 ];
 
 /**

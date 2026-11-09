@@ -1,7 +1,8 @@
 import type { UsageReading } from '@grimoire/contract';
 import { describe, expect, it } from 'vitest';
-import { openDatabase } from './database';
-import { UsageReadings, sameAccount } from './usage-readings';
+import { migrate, openDatabase } from '@grimoire/service/storage/database';
+import { MIGRATIONS } from './migrations';
+import { UsageReadings, sameAccount } from './readings';
 
 const HOUR = 60 * 60_000;
 /** Thursday 15:00 and Saturday 00:00, a week on: two accounts' weeks. */
@@ -15,7 +16,9 @@ const read = (at: number, used: number, resetsAt: number, account?: string): Usa
 
 describe('UsageReadings', () => {
   it('keeps the account each reading is of', () => {
-    const readings = new UsageReadings(openDatabase(':memory:'));
+    const db = openDatabase(':memory:');
+    migrate(db, 'usage', MIGRATIONS);
+    const readings = new UsageReadings(db);
     readings.record('claude-code', {
       plan: 'max',
       windows: [{ span: 'week', used: 40, resetsAt: THURSDAY }],

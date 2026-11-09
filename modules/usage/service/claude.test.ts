@@ -1,6 +1,6 @@
 import type { SDKControlGetUsageResponse } from '@anthropic-ai/claude-agent-sdk';
 import { describe, expect, it } from 'vitest';
-import { toPlanUsage, toUsageBreakdown } from './usage';
+import { toPlanUsage, toUsageBreakdown } from './claude';
 
 const response = (rateLimits: SDKControlGetUsageResponse['rate_limits']) =>
   ({

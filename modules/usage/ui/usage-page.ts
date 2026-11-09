@@ -328,7 +328,7 @@ export class UsagePage {
     try {
       const agents = this.chats.agents();
       const answers = await Promise.all(
-        agents.map((agent) => this.bridge.invoke('agents.usageBreakdown', { agent: agent.id })),
+        agents.map((agent) => this.bridge.invoke('usage.breakdown', { agent: agent.id })),
       );
       this.breakdowns.set(
         agents.flatMap((agent, i) => {
@@ -431,11 +431,11 @@ export class UsagePage {
       const since = Date.now() - 7 * DAY;
       const answers = await Promise.all(
         agents.map(async (agent) => {
-          const usage = await this.bridge.invoke('agents.usage', { agent: agent.id });
+          const usage = await this.bridge.invoke('usage.plan', { agent: agent.id });
           if (!usage) return null;
           // Read after the limits, so the history has this reading too.
           const history =
-            (await this.bridge.invoke('agents.usageHistory', { agent: agent.id, since })) ?? [];
+            (await this.bridge.invoke('usage.history', { agent: agent.id, since })) ?? [];
           return { usage, history };
         }),
       );

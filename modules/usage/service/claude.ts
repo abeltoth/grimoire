@@ -6,6 +6,8 @@ import type {
   UsageSpan,
   UsageWindow,
 } from '@grimoire/contract';
+import { probe } from '@grimoire/service/agents/claude/probe';
+import type { UsageSource } from './sources';
 
 type Limit = { utilization: number | null; resets_at: string | null } | null | undefined;
 
@@ -94,3 +96,24 @@ function toSpan(span: Span): UsageSpan {
     sources: sources.sort((a, b) => b.share - a.share),
   };
 }
+
+/** Claude Code's plan, as /usage shows it, read from a process that never gets a message. */
+export const claudeUsage: UsageSource = {
+  plan: () =>
+    probe(async (process) => {
+      // Experimental in the SDK: its name and answer may change in any release.
+      const [usage, account] = await Promise.all([
+        process.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET({ skipBehaviors: true }),
+        // Whose limits they are, so each account's history is kept apart.
+        process.accountInfo().catch(() => undefined),
+      ]);
+      const plan = toPlanUsage(usage, Date.now());
+      return account?.email ? { ...plan, account: account.email } : plan;
+    }),
+  breakdown: () =>
+    probe(async (process) => {
+      // Experimental in the SDK: its name and answer may change in any release.
+      const usage = await process.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET({ skipBehaviors: false });
+      return toUsageBreakdown(usage, Date.now());
+    }),
+};

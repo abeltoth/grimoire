@@ -11,9 +11,6 @@ export function registerAgentCommands(registry: CommandRegistry, hub: AgentHub):
   );
   registry.register('agents.models', ({ agent }) => hub.models(agent));
   registry.register('agents.commands', ({ agent, cwd }) => hub.commands(agent, cwd));
-  registry.register('agents.usage', ({ agent }) => hub.usage(agent));
-  registry.register('agents.usageHistory', ({ agent, since }) => hub.usageHistory(agent, since));
-  registry.register('agents.usageBreakdown', ({ agent }) => hub.usageBreakdown(agent));
   registry.register('agents.account', ({ agent }) => hub.account(agent));
   registry.register('agents.signIn', ({ agent, email }) => hub.signIn(agent, email));
   registry.register('agents.signInCode', ({ agent, code }) => hub.signInCode(agent, code));

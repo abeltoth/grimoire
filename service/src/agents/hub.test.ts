@@ -115,39 +115,6 @@ class SigningAdapter extends FakeAdapter {
 const settle = () => vi.advanceTimersByTimeAsync(0);
 
 describe('AgentHub', () => {
-  it('reads the plan limits now and every so often, and keeps each reading', async () => {
-    const store = hubStore(openDatabase(':memory:'));
-    hub = new AgentHub(() => {}, 50, store);
-    let used = 10;
-    const planned = Object.assign(new FakeAdapter(), {
-      usage: async () => ({
-        plan: 'max',
-        windows: [{ span: 'session' as const, used: used++, resetsAt: 5000 }],
-        account: 'me@example.com',
-        at: Date.now(),
-      }),
-    });
-    hub.addAdapter(planned);
-    expect(await hub.usage('fake')).toMatchObject({ plan: 'max', windows: [{ used: 10 }] });
-
-    await vi.advanceTimersByTimeAsync(1000);
-    const stop = hub.readUsageEvery(60_000);
-    await vi.advanceTimersByTimeAsync(60_000);
-    stop();
-    await vi.advanceTimersByTimeAsync(60_000);
-    expect(store.usage.since('fake', 0).map(({ span, used }) => ({ span, used }))).toEqual([
-      { span: 'session', used: 10 },
-      { span: 'session', used: 11 },
-      { span: 'session', used: 12 },
-    ]);
-    const [, second] = store.usage.since('fake', 0);
-    expect(hub.usageHistory('fake', second!.at).map(({ used }) => used)).toEqual([11, 12]);
-  });
-
-  it('has no plan limits for an agent without a plan', async () => {
-    expect(await hub.usage('fake')).toBeNull();
-  });
-
   it('asks the agent what it loads in a folder, your home folder when none is given', async () => {
     const asked: string[] = [];
     const told = Object.assign(new FakeAdapter(), {

@@ -23,7 +23,7 @@ describe('usage', () => {
     const tonight = new Date(now);
     tonight.setHours(23, 0, 0, 0);
     let used = 37;
-    answers['agents.usage'] = () => ({
+    answers['usage.plan'] = () => ({
       plan: 'max',
       windows: [
         { span: 'session', used: used++, resetsAt: tonight.getTime() },
@@ -54,7 +54,7 @@ describe('usage', () => {
     el.querySelector<HTMLButtonElement>('gr-usage-page .sub .gr-link')!.click();
     await fixture.whenStable();
     expect(texts('gr-usage-page .plan b')[0]).toBe('38%');
-    expect(calls.filter((call) => call.command === 'agents.usage')).toHaveLength(2);
+    expect(calls.filter((call) => call.command === 'usage.plan')).toHaveLength(2);
   });
 
   it("draws the week's limit as steps and each session's peak in the Usage page, with a row a day", async () => {
@@ -64,7 +64,7 @@ describe('usage', () => {
     const nextWeek = now + 4 * 24 * 60 * 60_000;
     const firstSession = minutes(100);
     const secondSession = now + 270 * 60_000;
-    answers['agents.usage'] = () => ({
+    answers['usage.plan'] = () => ({
       plan: 'max',
       windows: [
         { span: 'session', used: 40, resetsAt: secondSession },
@@ -72,7 +72,7 @@ describe('usage', () => {
       ],
       at: now,
     });
-    answers['agents.usageHistory'] = (): UsageReading[] => [
+    answers['usage.history'] = (): UsageReading[] => [
       { at: minutes(4 * 24 * 60), span: 'week', used: 90, resetsAt: lastWeek },
       { at: minutes(300), span: 'session', used: 10, resetsAt: firstSession },
       { at: minutes(300), span: 'week', used: 15, resetsAt: nextWeek },
@@ -88,7 +88,7 @@ describe('usage', () => {
       .click();
     await fixture.whenStable();
 
-    const since = (calls.find((c) => c.command === 'agents.usageHistory')!.request as { since: number }).since;
+    const since = (calls.find((c) => c.command === 'usage.history')!.request as { since: number }).since;
     expect(now - since).toBeGreaterThan(7 * 24 * 60 * 60_000 - 60_000);
     expect(texts('gr-usage-page .plan figcaption')).toEqual([
       'The week\u2019s limit over the last 7 days',
@@ -133,8 +133,8 @@ describe('usage', () => {
 
   it('draws the tokens and the share served from the cache by day and by hour in the Usage page', async () => {
     const { bridge, answers } = fakeBridge();
-    answers['agents.usage'] = () => ({ plan: 'max', windows: [], at: 0 });
-    answers['agents.usageBreakdown'] = () => null;
+    answers['usage.plan'] = () => ({ plan: 'max', windows: [], at: 0 });
+    answers['usage.breakdown'] = () => null;
     const today = new Date(now);
     today.setHours(0, 0, 0, 0);
     const day = (back: number) => {
@@ -211,7 +211,7 @@ describe('usage', () => {
 
   it("shows an organization's monthly allowance in the Usage page, with no session or week limits", async () => {
     const { bridge, answers } = fakeBridge();
-    answers['agents.usage'] = () => ({
+    answers['usage.plan'] = () => ({
       plan: 'enterprise',
       windows: [],
       credits: {
@@ -242,7 +242,7 @@ describe('usage', () => {
 
   it('shows usage credits with no limit as money spent, without a meter', async () => {
     const { bridge, answers } = fakeBridge();
-    answers['agents.usage'] = () => ({
+    answers['usage.plan'] = () => ({
       plan: 'team',
       windows: [],
       credits: { spent: 900, limit: null, currency: 'EUR', used: null, resetsAt: 0 },
@@ -261,7 +261,7 @@ describe('usage', () => {
 
   it('says so in the Usage page when the agent has no plan limits', async () => {
     const { bridge, answers } = fakeBridge();
-    answers['agents.usage'] = () => ({ plan: null, windows: [], at: 0 });
+    answers['usage.plan'] = () => ({ plan: null, windows: [], at: 0 });
     const { fixture, el, texts } = await render(bridge);
     [...el.querySelectorAll<HTMLButtonElement>('gr-page-tabs .page-tab')]
       .find((tab) => tab.textContent!.trim() === 'Ledger')!
@@ -274,7 +274,7 @@ describe('usage', () => {
 
   it("shows where the tokens went in the Usage page, as Claude Code says and by Grimoire's count", async () => {
     const { bridge, answers, calls } = fakeBridge();
-    answers['agents.usage'] = () => ({ plan: 'max', windows: [], at: 0 });
+    answers['usage.plan'] = () => ({ plan: 'max', windows: [], at: 0 });
     const span = (requests: number): UsageSpan => ({
       requests,
       chats: 4,
@@ -285,7 +285,7 @@ describe('usage', () => {
       advice: [{ key: 'long_context', share: 80, title: 'Start fresh when you switch tasks', detail: 'run /clear' }],
       sources: [{ kind: 'mcp', name: 'docs', share: 9 }],
     });
-    answers['agents.usageBreakdown'] = (): UsageBreakdown => ({ day: span(10), week: span(70), at: 0 });
+    answers['usage.breakdown'] = (): UsageBreakdown => ({ day: span(10), week: span(70), at: 0 });
     const total = (weight: number) => ({
       input: weight,
       cacheWritten: 0,
@@ -384,7 +384,7 @@ describe('usage', () => {
     expect(texts('gr-usage-page .how p')[0]).toBe('10 requests in 4 chats');
     expect(asked()).toHaveLength(2);
     expect(asked()[1]! - asked()[0]!).toBeGreaterThan(6 * 24 * 60 * 60_000 - 60_000);
-    expect(calls.filter((c) => c.command === 'agents.usageBreakdown')).toHaveLength(1);
+    expect(calls.filter((c) => c.command === 'usage.breakdown')).toHaveLength(1);
 
     // A chat that weighed much opens from the list.
     await pick('Chat');
@@ -401,8 +401,8 @@ describe('usage', () => {
 
   it("says so in the Usage page when there's nothing to say of the tokens", async () => {
     const { bridge, answers } = fakeBridge();
-    answers['agents.usage'] = () => ({ plan: 'max', windows: [], at: 0 });
-    answers['agents.usageBreakdown'] = () => null;
+    answers['usage.plan'] = () => ({ plan: 'max', windows: [], at: 0 });
+    answers['usage.breakdown'] = () => null;
     answers['search.tokens'] = () => {
       throw new Error('The search stopped');
     };

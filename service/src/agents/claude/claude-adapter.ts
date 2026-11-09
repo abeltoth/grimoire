@@ -24,8 +24,6 @@ import type {
   ChatSettings,
   Attachment,
   SubagentRun,
-  PlanUsage,
-  UsageBreakdown,
 } from '@grimoire/contract';
 import type { AgentAdapter, ChatEvents, ChatHistory, LiveChat, SavedChat, SignInRun } from '../adapter';
 import { CacheTracker, type ReplyUsage } from './cache';
@@ -37,6 +35,7 @@ import { mcpOff, mcpSettings } from './mcp';
 import { memorySettings, readMemories } from './memories';
 import { MessageQueue } from './message-queue';
 import { toAgentModels } from './models';
+import { claudeEnv as env, sdk } from './probe';
 import { ASK_TOOL, alwaysAllowOf, toClaudeAnswers, toQuestions } from './permissions';
 import { readOnlyHooks } from './read-only';
 import { withReferences } from './references';
@@ -55,14 +54,6 @@ import {
   turnEnd,
   wholeRun,
 } from './transcript';
-import { toPlanUsage, toUsageBreakdown } from './usage';
-
-// Loaded on first use: it's large, and the service starts without it.
-const sdk = () => import('@anthropic-ai/claude-agent-sdk');
-
-// Claude Code keeps its plan with its task tools only when asked to; the Plan shows it.
-// Read at each start, as switching profiles changes which Claude folder it uses.
-const env = () => ({ ...process.env, CLAUDE_CODE_ENABLE_TODO_TOOLS: '1' });
 
 // Claude Code leaves the thinking out unless asked for its summary, which the page shows.
 const CLI_ARGS = { 'thinking-display': 'summarized' };
@@ -290,10 +281,6 @@ export class ClaudeAdapter implements AgentAdapter {
     return list;
   }
 
-  usage(): Promise<PlanUsage> {
-    return readUsage();
-  }
-
   /** Who Claude Code is signed in as, as `claude auth status` says. */
   account(): Promise<AgentAccount | null> {
     return readAccount();
@@ -325,11 +312,6 @@ export class ClaudeAdapter implements AgentAdapter {
     this.modelList = undefined;
     this.commandLists.clear();
     this.dispose();
-  }
-
-  /** What Claude Code's own scan of its transcripts says took the plan's usage, as /usage shows it. */
-  usageBreakdown(): Promise<UsageBreakdown | null> {
-    return readBreakdown();
   }
 
   /** The memories Claude Code keeps on its own for a folder, where its settings say. */
@@ -718,43 +700,6 @@ async function listModels(): Promise<ModelInfo[]> {
   const probe = query({ prompt: input, options: { permissionMode: MODES.ask } });
   try {
     return await probe.supportedModels();
-  } finally {
-    input.end();
-    probe.close();
-  }
-}
-
-/** Asks a Claude Code process that never gets a message what /usage shows of the plan's limits. */
-async function readUsage(): Promise<PlanUsage> {
-  const { query } = await sdk();
-  const input = new MessageQueue<SDKUserMessage>();
-  const probe = query({ prompt: input, options: { permissionMode: MODES.ask } });
-  try {
-    // Experimental in the SDK: its name and answer may change in any release.
-    const [usage, account] = await Promise.all([
-      probe.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET({ skipBehaviors: true }),
-      // Whose limits they are, so each account's history is kept apart.
-      probe.accountInfo().catch(() => undefined),
-    ]);
-    const plan = toPlanUsage(usage, Date.now());
-    return account?.email ? { ...plan, account: account.email } : plan;
-  } finally {
-    input.end();
-    probe.close();
-  }
-}
-
-/** Asks a Claude Code process that never gets a message what /usage shows of where the plan's usage went. */
-async function readBreakdown(): Promise<UsageBreakdown | null> {
-  const { query } = await sdk();
-  const input = new MessageQueue<SDKUserMessage>();
-  const probe = query({ prompt: input, options: { permissionMode: MODES.ask } });
-  try {
-    // Experimental in the SDK: its name and answer may change in any release.
-    const usage = await probe.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET({
-      skipBehaviors: false,
-    });
-    return toUsageBreakdown(usage, Date.now());
   } finally {
     input.end();
     probe.close();

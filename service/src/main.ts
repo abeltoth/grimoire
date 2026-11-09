@@ -108,8 +108,6 @@ const claude = new ClaudeAdapter(
 hub.addAdapter(claude);
 claude.warm();
 registerAgentCommands(registry, hub);
-// The plan's limits are read every quarter of an hour, for the Usage page's history.
-hub.readUsageEvery(15 * 60_000);
 
 registerProfiles(
   registry,

@@ -60,35 +60,3 @@ export function addTokens(counts: readonly TokenCounts[]): TokenCounts {
   }
   return total;
 }
-
-/** What Claude Code's own scan of its transcripts says took a share of your plan's usage. */
-export interface UsageBreakdown {
-  /** The last 24 hours. */
-  day: UsageSpan;
-  /** The last 7 days. */
-  week: UsageSpan;
-  /** When it was read, in ms since the epoch. */
-  at: number;
-}
-
-export interface UsageSpan {
-  /** Requests to the API found in the span. */
-  requests: number;
-  chats: number;
-  /**
-   * Ways of working and the share of usage each took, 0-100, most first.
-   * They overlap, so the shares don't add up to 100.
-   */
-  behaviours: { key: string; share: number; requests: number }[];
-  /** What it advises, the largest share first. */
-  advice: { key: string; share: number; title: string; detail?: string }[];
-  /** The subagents, skills, plugins and MCP servers that took a share, most first. */
-  sources: { kind: 'agent' | 'skill' | 'plugin' | 'mcp'; name: string; share: number }[];
-}
-
-declare module './commands' {
-  interface CommandMap {
-    /** What the agent's own scan says took your plan's usage; null where it has none. */
-    'agents.usageBreakdown': { request: { agent: AgentId }; response: UsageBreakdown | null };
-  }
-}
