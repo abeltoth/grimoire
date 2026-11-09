@@ -31,8 +31,8 @@ const SMALLEST = 0.7;
   host: {
     role: 'navigation',
     '[attr.aria-label]': "wording.say('Thumb index', 'Pages')",
-    '[style.--thumbs-space]': 'space()',
-    '[style.--thumbs-type]': 'type()',
+    '[style.--page-tabs-space]': 'space()',
+    '[style.--page-tabs-type]': 'type()',
   },
 })
 export class PageTabs {
