@@ -8,5 +8,16 @@ import { schedules } from '../../modules/schedules/service';
 import { search } from '../../modules/search/service';
 import { terminal } from '../../modules/terminal/service';
 import { usage } from '../../modules/usage/service';
+import { workflowSetup } from '../../modules/workflow-setup/service';
 
-export const MODULES: readonly ServiceModule[] = [files, git, kanban, memories, schedules, search, terminal, usage];
+export const MODULES: readonly ServiceModule[] = [
+  files,
+  git,
+  kanban,
+  memories,
+  schedules,
+  search,
+  terminal,
+  usage,
+  workflowSetup,
+];

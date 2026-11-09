@@ -141,14 +141,14 @@ export class WorkflowSetupPage {
     void this.loadFolders();
 
     // A file of the setup shown changed, or a new one appeared: read it again.
-    const off = this.bridge.on('agents.setupChanged', ({ cwd }) => this.setupChanged(cwd));
+    const off = this.bridge.on('setup.changed', ({ cwd }) => this.setupChanged(cwd));
     inject(DestroyRef).onDestroy(off);
   }
 
   private async loadFolders(): Promise<void> {
     const done = this.pending.add();
     try {
-      this.worked.set((await this.bridge.invoke('agents.setupFolders', {})) ?? []);
+      this.worked.set((await this.bridge.invoke('setup.folders', {})) ?? []);
     } catch {
       // Offer none; another folder can still be picked.
     } finally {
@@ -169,7 +169,7 @@ export class WorkflowSetupPage {
       const agents = this.chats.agents();
       const answers = await Promise.all(
         agents.map((agent) =>
-          this.bridge.invoke('agents.setup', { agent: agent.id, ...(cwd ? { cwd } : {}) }),
+          this.bridge.invoke('setup.get', { agent: agent.id, ...(cwd ? { cwd } : {}) }),
         ),
       );
       if (ask !== this.asked) return;
@@ -197,7 +197,7 @@ export class WorkflowSetupPage {
     const done = this.pending.add();
     this.trouble.set(null);
     try {
-      const file = await this.bridge.invoke('agents.openSetupFile', {
+      const file = await this.bridge.invoke('setup.openFile', {
         agent: agent.id,
         ...(cwd ? { cwd } : {}),
         path: item.path,
@@ -213,7 +213,7 @@ export class WorkflowSetupPage {
   /** Writes the open file of the setup over the file as it was opened. */
   protected readonly writeFile = (file: SetupFile, text: string): Promise<SetupFile> => {
     const edit = this.editing()!;
-    return this.bridge.invoke('agents.saveSetupFile', {
+    return this.bridge.invoke('setup.saveFile', {
       agent: edit.agent,
       ...(edit.cwd ? { cwd: edit.cwd } : {}),
       path: file.path,
@@ -258,7 +258,7 @@ export class WorkflowSetupPage {
   private async reopen(edit: Editing): Promise<void> {
     const done = this.pending.add();
     try {
-      const file = await this.bridge.invoke('agents.openSetupFile', {
+      const file = await this.bridge.invoke('setup.openFile', {
         agent: edit.agent,
         ...(edit.cwd ? { cwd: edit.cwd } : {}),
         path: edit.file.path,

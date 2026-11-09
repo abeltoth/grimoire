@@ -15,6 +15,7 @@ export const memories: ServiceModule = {
     registry.register('memories.delete', ({ agent, cwd, path, changedAt }) =>
       memories.delete(agent, cwd, path, changedAt),
     );
-    return { stop: () => memories.dispose() };
+    // Another profile's memories are watched once they're read.
+    return { profileSwitched: () => memories.dispose(), stop: () => memories.dispose() };
   },
 };

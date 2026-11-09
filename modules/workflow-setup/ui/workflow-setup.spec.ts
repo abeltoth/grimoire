@@ -9,7 +9,7 @@ describe('workflow-setup', () => {
   it("shows on the Workflow setup page what Claude Code loads in the chat's folder, and where each piece comes from", async () => {
     const { bridge, answers, calls } = fakeBridge();
     const empty = { memory: [], skills: [], agents: [], commands: [], hooks: [], mcpServers: [], plugins: [], permissions: [] };
-    answers['agents.setup'] = (request: CommandRequest<'agents.setup'>): AgentSetup => ({
+    answers['setup.get'] = (request: CommandRequest<'setup.get'>): AgentSetup => ({
       cwd: request.cwd ?? 'C:/Users/me',
       sections: {
         ...empty,
@@ -83,7 +83,7 @@ describe('workflow-setup', () => {
       '~/.claude/settings.json | Yours |  | ',
       '~/git/new/.claude/settings.json | Project | None yet | ',
     ]);
-    expect(calls.filter((c) => c.command === 'agents.setup').map((c) => c.request)).toEqual([
+    expect(calls.filter((c) => c.command === 'setup.get').map((c) => c.request)).toEqual([
       { agent: 'claude-code' },
     ]);
 
@@ -93,7 +93,7 @@ describe('workflow-setup', () => {
       .click();
     await new Promise((resolve) => setTimeout(resolve));
     await fixture.whenStable();
-    expect(calls.filter((c) => c.command === 'agents.setup').at(-1)!.request).toEqual({
+    expect(calls.filter((c) => c.command === 'setup.get').at(-1)!.request).toEqual({
       agent: 'claude-code',
       cwd: 'C:/Users/me/git/new',
     });
@@ -105,21 +105,21 @@ describe('workflow-setup', () => {
     const empty = { memory: [], skills: [], agents: [], commands: [], hooks: [], mcpServers: [], plugins: [], permissions: [] };
     const memory = 'C:/Users/me/.claude/CLAUDE.md';
     const managed = 'C:/Program Files/ClaudeCode/managed-settings.json';
-    answers['agents.setup'] = (): AgentSetup => ({
+    answers['setup.get'] = (): AgentSetup => ({
       cwd: 'C:/Users/me',
       sections: { ...empty, memory: [{ name: '~/.claude/CLAUDE.md', source: 'user', path: memory, tokens: 310 }] },
       settingsFiles: [{ source: 'managed', path: managed, exists: true }],
       at: Date.now(),
     });
     let kept = '# Mine';
-    answers['agents.openSetupFile'] = (request: CommandRequest<'agents.openSetupFile'>): SetupFile => ({
+    answers['setup.openFile'] = (request: CommandRequest<'setup.openFile'>): SetupFile => ({
       path: request.path,
       text: request.path === memory ? kept : '{ "permissions": {} }',
       exists: true,
       changedAt: 100,
       editable: request.path === memory,
     });
-    answers['agents.saveSetupFile'] = (request: CommandRequest<'agents.saveSetupFile'>): SetupFile => {
+    answers['setup.saveFile'] = (request: CommandRequest<'setup.saveFile'>): SetupFile => {
       if (request.text.includes('oops')) throw new Error('It changed on disk since you opened it.');
       kept = request.text;
       return { path: request.path, text: kept, exists: true, changedAt: 200, editable: true };
@@ -146,7 +146,7 @@ describe('workflow-setup', () => {
 
     el.querySelector<HTMLButtonElement>('gr-workflow-setup-page [data-section="memory"] button.name')!.click();
     await fixture.whenStable();
-    expect(calls).toContainEqual({ command: 'agents.openSetupFile', request: { agent: 'claude-code', path: memory } });
+    expect(calls).toContainEqual({ command: 'setup.openFile', request: { agent: 'claude-code', path: memory } });
     expect(editor()!.value).toBe('# Mine');
     expect(editor()!.readOnly).toBe(false);
     expect(texts('gr-workflow-setup-page gr-file-editor .sub')[0]).toMatch(/^~\/.claude\/CLAUDE.md\s*·\s*Yours\s*·\s*Back to the list$/);
@@ -175,7 +175,7 @@ describe('workflow-setup', () => {
 
     await press({ key: 's', ctrlKey: true });
     expect(calls).toContainEqual({
-      command: 'agents.saveSetupFile',
+      command: 'setup.saveFile',
       request: { agent: 'claude-code', path: memory, text: '# Mine\nUse tabs.', changedAt: 100 },
     });
     expect(texts('gr-workflow-setup-page .note')).toEqual(['Saved. Chats begun from now on load it.']);
@@ -190,7 +190,7 @@ describe('workflow-setup', () => {
     expect(editor()!.value).toBe('# Mine\nUse tabs.');
 
     // Back to the list, read again after the save.
-    const reads = () => calls.filter((c) => c.command === 'agents.setup').length;
+    const reads = () => calls.filter((c) => c.command === 'setup.get').length;
     const before = reads();
     await press({ key: 'Escape' });
     expect(editor()).toBeNull();
@@ -210,7 +210,7 @@ describe('workflow-setup', () => {
     const empty = { memory: [], skills: [], agents: [], commands: [], hooks: [], mcpServers: [], plugins: [], permissions: [] };
     const memory = 'C:/Users/me/.claude/CLAUDE.md';
     let skills = 1;
-    answers['agents.setup'] = (): AgentSetup => ({
+    answers['setup.get'] = (): AgentSetup => ({
       cwd: 'C:/Users/me',
       sections: {
         ...empty,
@@ -221,7 +221,7 @@ describe('workflow-setup', () => {
       at: Date.now(),
     });
     let onDisk = '# Mine';
-    answers['agents.openSetupFile'] = (request: CommandRequest<'agents.openSetupFile'>): SetupFile => ({
+    answers['setup.openFile'] = (request: CommandRequest<'setup.openFile'>): SetupFile => ({
       path: request.path,
       text: onDisk,
       exists: true,
@@ -242,10 +242,10 @@ describe('workflow-setup', () => {
 
     // A change in another folder isn't this page's.
     skills = 2;
-    emit('agents.setupChanged', { agent: 'claude-code', cwd: 'D:/elsewhere' });
+    emit('setup.changed', { agent: 'claude-code', cwd: 'D:/elsewhere' });
     await settle();
     expect(skillCount()).toBe('1');
-    emit('agents.setupChanged', { agent: 'claude-code', cwd: 'C:/Users/me' });
+    emit('setup.changed', { agent: 'claude-code', cwd: 'C:/Users/me' });
     await settle();
     expect(skillCount()).toBe('2');
 
@@ -255,14 +255,14 @@ describe('workflow-setup', () => {
     const editor = () => el.querySelector<HTMLTextAreaElement>('gr-workflow-setup-page textarea')!;
     onDisk = '# Changed elsewhere';
     skills = 3;
-    emit('agents.setupChanged', { agent: 'claude-code', cwd: 'C:/Users/me' });
+    emit('setup.changed', { agent: 'claude-code', cwd: 'C:/Users/me' });
     await settle();
     expect(editor().value).toBe('# Changed elsewhere');
 
     editor().value = '# Mine again';
     editor().dispatchEvent(new Event('input'));
     onDisk = '# Changed once more';
-    emit('agents.setupChanged', { agent: 'claude-code', cwd: 'C:/Users/me' });
+    emit('setup.changed', { agent: 'claude-code', cwd: 'C:/Users/me' });
     await settle();
     expect(editor().value).toBe('# Mine again');
 
@@ -274,19 +274,19 @@ describe('workflow-setup', () => {
     editor().dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
     await settle();
     expect(skillCount()).toBe('3');
-    expect(calls.filter((c) => c.command === 'agents.setup')).toHaveLength(3);
+    expect(calls.filter((c) => c.command === 'setup.get')).toHaveLength(3);
   });
 
   it('offers the Workflow setup page of the other folders your chats ran in', async () => {
     const { bridge, answers, calls } = fakeBridge();
     const empty = { memory: [], skills: [], agents: [], commands: [], hooks: [], mcpServers: [], plugins: [], permissions: [] };
-    answers['agents.setup'] = (request: CommandRequest<'agents.setup'>): AgentSetup => ({
+    answers['setup.get'] = (request: CommandRequest<'setup.get'>): AgentSetup => ({
       cwd: request.cwd ?? 'C:/Users/me',
       sections: empty,
       settingsFiles: [],
       at: Date.now(),
     });
-    answers['agents.setupFolders'] = () => ['C:/Users/me/git/grimoire', 'C:/Users/me', 'C:/Users/me/git/breeder'];
+    answers['setup.folders'] = () => ['C:/Users/me/git/grimoire', 'C:/Users/me', 'C:/Users/me/git/breeder'];
     const { fixture, el, texts } = await render(bridge);
     [...el.querySelectorAll<HTMLButtonElement>('gr-page-tabs .page-tab')]
       .find((tab) => tab.textContent!.trim() === 'Front matter')!
@@ -302,7 +302,7 @@ describe('workflow-setup', () => {
       .click();
     await new Promise((resolve) => setTimeout(resolve));
     await fixture.whenStable();
-    expect(calls.filter((c) => c.command === 'agents.setup').at(-1)!.request).toEqual({
+    expect(calls.filter((c) => c.command === 'setup.get').at(-1)!.request).toEqual({
       agent: 'claude-code',
       cwd: 'C:/Users/me/git/breeder',
     });

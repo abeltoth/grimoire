@@ -1,16 +1,12 @@
 import { randomUUID } from 'node:crypto';
-import { existsSync } from 'node:fs';
-import { homedir, tmpdir } from 'node:os';
-import path from 'node:path';
+import { homedir } from 'node:os';
 import type {
   AgentAccount,
   AgentCommand,
   AgentId,
   AgentInfo,
   AgentModels,
-  AgentSetup,
   AgentSignIn,
-  SetupFile,
   Answer,
   Approval,
   ApprovalDecision,
@@ -47,9 +43,6 @@ import { Parallels } from '../storage/parallels';
 import { EntryIds } from '../storage/entry-ids';
 import { Tags } from '../storage/tags';
 import type { AgentAdapter, ChatEvents, LiveChat, SignInRun, Verdict } from './adapter';
-import { samePath } from './files';
-import { SetupFiles } from './setup-files';
-import { SetupWatcher } from './setup-watcher';
 
 export type Emit = <K extends EventName>(event: K, payload: EventPayload<K>) => void;
 
@@ -151,10 +144,6 @@ export class AgentHub {
   /** Who each agent was last read to be signed in as. */
   private readonly accounts = new Map<AgentId, AgentAccount | null>();
   private readonly signIns = new Map<AgentId, SigningIn>();
-  private readonly setupFiles = new SetupFiles((agent, cwd) => this.setup(agent, cwd));
-  private readonly setupWatcher = new SetupWatcher((agent, cwd) =>
-    this.emit('agents.setupChanged', { agent, cwd }),
-  );
 
   constructor(
     private readonly emit: Emit,
@@ -188,32 +177,6 @@ export class AgentHub {
   /** The agent's commands and skills in a folder; none when it has no such thing. */
   async commands(agent: AgentId, cwd?: string): Promise<AgentCommand[]> {
     return (await this.adapter(agent).commands?.(cwd ?? homedir())) ?? [];
-  }
-
-  /** What the agent loads in a folder, your home folder when there's none; null when it can't say. */
-  async setup(agent: AgentId, cwd?: string): Promise<AgentSetup | null> {
-    const setup = (await this.adapter(agent).setup?.(cwd ?? homedir())) ?? null;
-    if (setup) {
-      this.setupFiles.remember(agent, setup);
-      this.setupWatcher.watch(agent, setup);
-    }
-    return setup;
-  }
-
-  /** One of the files the agent's setup in the folder lists. */
-  openSetupFile(agent: AgentId, cwd: string | undefined, file: string): Promise<SetupFile> {
-    return this.setupFiles.open(agent, cwd ?? homedir(), file);
-  }
-
-  /** Writes one of the files the agent's setup in the folder lists, unless it changed since it was opened. */
-  saveSetupFile(
-    agent: AgentId,
-    cwd: string | undefined,
-    file: string,
-    text: string,
-    changedAt: number,
-  ): Promise<SetupFile> {
-    return this.setupFiles.save(agent, cwd ?? homedir(), file, text, changedAt);
   }
 
   /** Who the agent is signed in as, read now, and any sign-in under way. */
@@ -281,18 +244,6 @@ export class AgentHub {
       .sort((a, b) => b.updatedAt - a.updatedAt)
       .flatMap((chat) => (chat.cwd ? [chat.cwd] : []));
     return { home: homedir(), recent: [...new Set(recent)] };
-  }
-
-  /**
-   * The folders chats ran in that are still there, most recent first,
-   * leaving out those in the temp folder, such as a test run's.
-   */
-  async setupFolders(temp = tmpdir()): Promise<string[]> {
-    const inTemp = samePath(temp) + path.sep;
-    const { recent } = await this.folders();
-    return recent.filter(
-      (cwd) => existsSync(cwd) && !(samePath(cwd) + path.sep).startsWith(inTemp),
-    );
   }
 
   /**
@@ -703,13 +654,11 @@ export class AgentHub {
   /**
    * Stops every open chat's process and forgets the chats, but keeps their
    * chats, as when another profile is put in use: they reopen when it's
-   * back. Who the agents were signed in as, and the setups and memories
-   * watched, are forgotten too.
+   * back. Who the agents were signed in as is forgotten too.
    */
   putAway(): void {
     for (const id of [...this.chats.keys()]) this.release(id);
     this.accounts.clear();
-    this.setupWatcher.dispose();
   }
 
   /** Every window hears who each agent is signed in as now, read again, as after a profile switch. */

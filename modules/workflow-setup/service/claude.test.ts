@@ -9,8 +9,8 @@ import {
   permissionsOf,
   sourceOf,
   toSetup,
-} from './setup';
-import type { ReadSettings } from './settings-files';
+} from './claude';
+import type { ReadSettings } from '@grimoire/service/agents/claude/settings-files';
 
 const home = path.join(path.sep, 'home', 'me');
 const cwd = path.join(home, 'git', 'grimoire');

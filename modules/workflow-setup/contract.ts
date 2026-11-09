@@ -1,4 +1,4 @@
-import type { AgentId } from './agents';
+import type { AgentId, SetupFile } from '@grimoire/contract';
 
 /** Where a piece of an agent's setup comes from. */
 export type SetupSource =
@@ -60,25 +60,14 @@ export interface AgentSetup {
   at: number;
 }
 
-/** A file of an agent's setup, opened to read or change. */
-export interface SetupFile {
-  path: string;
-  text: string;
-  exists: boolean;
-  /** When it last changed, in ms since the epoch; 0 while it doesn't exist. */
-  changedAt: number;
-  /** Whether it may be changed here: not the managed settings, nor a plugin's own files. */
-  editable: boolean;
-}
-
-declare module './commands' {
+declare module '@grimoire/contract' {
   interface CommandMap {
     /** What the agent loads in a folder, your home folder when there's none; null for agents that can't say. */
-    'agents.setup': { request: { agent: AgentId; cwd?: string }; response: AgentSetup | null };
+    'setup.get': { request: { agent: AgentId; cwd?: string }; response: AgentSetup | null };
     /** The folders your chats ran in that are still there, most recent first, leaving out those in the temp folder: where else a setup can be read. */
-    'agents.setupFolders': { request: Record<string, never>; response: string[] };
+    'setup.folders': { request: Record<string, never>; response: string[] };
     /** One of the files the agent's setup in the folder lists; empty while it doesn't exist. */
-    'agents.openSetupFile': {
+    'setup.openFile': {
       request: { agent: AgentId; cwd?: string; path: string };
       response: SetupFile;
     };
@@ -87,16 +76,16 @@ declare module './commands' {
      * as it hasn't changed since it was opened at `changedAt`; settings files
      * must hold valid JSON. Answers with the file as written.
      */
-    'agents.saveSetupFile': {
+    'setup.saveFile': {
       request: { agent: AgentId; cwd?: string; path: string; text: string; changedAt: number };
       response: SetupFile;
     };
   }
 }
 
-declare module './events' {
+declare module '@grimoire/contract' {
   interface EventMap {
     /** A file of the agent's setup in the folder changed, or a new one appeared: read it again. */
-    'agents.setupChanged': { agent: AgentId; cwd: string };
+    'setup.changed': { agent: AgentId; cwd: string };
   }
 }

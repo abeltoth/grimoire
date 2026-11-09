@@ -6,7 +6,7 @@ export * from './layout';
 export * from './presets';
 export * from './profiles';
 export * from './settings';
-export * from './setup';
+export * from './setup-file';
 export * from './bridge';
 export * from './protocol';
 
@@ -19,3 +19,4 @@ export * from '../../modules/schedules/contract';
 export * from '../../modules/search/contract';
 export * from '../../modules/terminal/contract';
 export * from '../../modules/usage/contract';
+export * from '../../modules/workflow-setup/contract';

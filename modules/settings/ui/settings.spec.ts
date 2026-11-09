@@ -299,7 +299,7 @@ describe('settings', () => {
   it('turns MCP servers off in every chat in Settings', async () => {
     const { bridge, answers, calls } = fakeBridge();
     const empty = { memory: [], skills: [], agents: [], commands: [], hooks: [], mcpServers: [], plugins: [], permissions: [] };
-    answers['agents.setup'] = (request: CommandRequest<'agents.setup'>): AgentSetup => ({
+    answers['setup.get'] = (request: CommandRequest<'setup.get'>): AgentSetup => ({
       cwd: request.cwd ?? 'C:/Users/me',
       sections: {
         ...empty,

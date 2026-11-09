@@ -12,15 +12,15 @@ export const claudeEnv = () => ({ ...process.env, CLAUDE_CODE_ENABLE_TODO_TOOLS:
  * Asks a Claude Code process that never gets a message, then stops it; in
  * a folder, it runs there with the environment a chat's process gets.
  */
-export async function probe<T>(ask: (process: Query) => Promise<T>, cwd?: string): Promise<T> {
+export async function probe<T>(ask: (claude: Query) => Promise<T>, cwd?: string): Promise<T> {
   const { query } = await sdk();
   const input = new MessageQueue<SDKUserMessage>();
   const options = cwd ? { cwd, permissionMode: 'default' as const, env: claudeEnv() } : { permissionMode: 'default' as const };
-  const process = query({ prompt: input, options });
+  const claude = query({ prompt: input, options });
   try {
-    return await ask(process);
+    return await ask(claude);
   } finally {
     input.end();
-    process.close();
+    claude.close();
   }
 }

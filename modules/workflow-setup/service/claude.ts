@@ -1,6 +1,13 @@
 import { existsSync, readdirSync } from 'node:fs';
+import { homedir } from 'node:os';
 import path from 'node:path';
-import type { ReadSettings } from './settings-files';
+import { claudeHome } from '@grimoire/service/agents/claude/config-dir';
+import { probe } from '@grimoire/service/agents/claude/probe';
+import {
+  type ReadSettings,
+  readSettingsFile,
+  settingsFilesIn,
+} from '@grimoire/service/agents/claude/settings-files';
 import type {
   AgentSetup,
   SettingsFile,
@@ -8,6 +15,7 @@ import type {
   SetupSection,
   SetupSource,
 } from '@grimoire/contract';
+import type { SetupReader } from './setup';
 
 /**
  * What a Claude Code process that never gets a message tells of its setup,
@@ -326,3 +334,56 @@ export function toSetup(input: {
     at: input.at,
   };
 }
+
+/** How long to wait for MCP servers to connect before listing what they bring. */
+const MCP_SETTLE_MS = 5_000;
+
+/**
+ * What Claude Code loads in a folder: its memory, skills, subagents,
+ * commands, hooks, MCP servers, plugins and permissions. A process in the
+ * folder that never gets a message is asked, a moment given for its MCP
+ * servers to connect, and the hooks and permission rules are read from the
+ * settings files it reads.
+ */
+export const claudeSetup: SetupReader = {
+  read: (cwd) =>
+    probe(async (claude) => {
+      const since = Date.now();
+      let mcpServers = await claude.mcpServerStatus();
+      while (mcpServers.some((server) => server.status === 'pending') && Date.now() - since < MCP_SETTLE_MS) {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        mcpServers = await claude.mcpServerStatus();
+      }
+      const usage = await claude.getContextUsage({ detail: 'full' });
+      const agents = await claude.supportedAgents();
+      const commands = await claude.supportedCommands();
+      const { skills } = await claude.reloadSkills();
+      const { plugins } = await claude.reloadPlugins();
+      const home = homedir();
+      const claudeFolder = claudeHome();
+      const settings = settingsFilesIn(cwd, claudeFolder, process.platform).map((file) =>
+        readSettingsFile(file),
+      );
+      const pluginHooks = plugins
+        .filter((plugin) => plugin.path !== 'builtin')
+        .map((plugin) =>
+          readSettingsFile(
+            { source: 'plugin', path: path.join(plugin.path, 'hooks', 'hooks.json') },
+            plugin.name,
+          ),
+        )
+        .filter((file) => file.exists);
+      return toSetup({
+        cwd,
+        home,
+        answers: { usage, mcpServers, agents, commands, skills, plugins },
+        settings,
+        pluginHooks,
+        commandFiles: commandFiles([
+          path.join(cwd, '.claude', 'commands'),
+          path.join(claudeFolder, 'commands'),
+        ]),
+        at: Date.now(),
+      });
+    }, cwd),
+};

@@ -100,20 +100,20 @@ function toSpan(span: Span): UsageSpan {
 /** Claude Code's plan, as /usage shows it, read from a process that never gets a message. */
 export const claudeUsage: UsageSource = {
   plan: () =>
-    probe(async (process) => {
+    probe(async (claude) => {
       // Experimental in the SDK: its name and answer may change in any release.
       const [usage, account] = await Promise.all([
-        process.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET({ skipBehaviors: true }),
+        claude.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET({ skipBehaviors: true }),
         // Whose limits they are, so each account's history is kept apart.
-        process.accountInfo().catch(() => undefined),
+        claude.accountInfo().catch(() => undefined),
       ]);
       const plan = toPlanUsage(usage, Date.now());
       return account?.email ? { ...plan, account: account.email } : plan;
     }),
   breakdown: () =>
-    probe(async (process) => {
+    probe(async (claude) => {
       // Experimental in the SDK: its name and answer may change in any release.
-      const usage = await process.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET({ skipBehaviors: false });
+      const usage = await claude.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET({ skipBehaviors: false });
       return toUsageBreakdown(usage, Date.now());
     }),
 };

@@ -22,7 +22,7 @@ export class McpServers {
   private readonly asked = new Map<string, { agent: AgentId; cwd: string | undefined }>();
 
   constructor() {
-    this.bridge.on('agents.setupChanged', ({ agent, cwd }) => {
+    this.bridge.on('setup.changed', ({ agent, cwd }) => {
       const key = keyOf(agent, cwd);
       if (this.asked.has(key)) void this.read(agent, cwd);
     });
@@ -43,7 +43,7 @@ export class McpServers {
   private async read(agent: AgentId, cwd: string | undefined): Promise<void> {
     const done = this.pending.add();
     try {
-      const setup = await this.bridge.invoke('agents.setup', { agent, ...(cwd ? { cwd } : {}) });
+      const setup = await this.bridge.invoke('setup.get', { agent, ...(cwd ? { cwd } : {}) });
       const servers = setup?.sections.mcpServers ?? [];
       this.lists.update((lists) => new Map(lists).set(keyOf(agent, cwd), servers));
     } catch {

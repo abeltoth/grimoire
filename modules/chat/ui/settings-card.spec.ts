@@ -166,7 +166,7 @@ describe('settings-card', () => {
   it("turns MCP servers off for one chat on its settings card, and not for the next", async () => {
     const { bridge, answers, calls, emit } = fakeBridge();
     const empty = { memory: [], skills: [], agents: [], commands: [], hooks: [], mcpServers: [], plugins: [], permissions: [] };
-    answers['agents.setup'] = (request: CommandRequest<'agents.setup'>): AgentSetup => ({
+    answers['setup.get'] = (request: CommandRequest<'setup.get'>): AgentSetup => ({
       cwd: request.cwd ?? 'C:/Users/me',
       sections: {
         ...empty,

@@ -47,7 +47,7 @@ export class Memories {
     return this.files.delete(agent, cwd ?? homedir(), file, changedAt);
   }
 
-  /** Stops watching. */
+  /** Stops watching; reading them again watches them again. */
   dispose(): void {
     this.watcher.dispose();
   }

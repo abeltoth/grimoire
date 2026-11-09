@@ -115,24 +115,6 @@ class SigningAdapter extends FakeAdapter {
 const settle = () => vi.advanceTimersByTimeAsync(0);
 
 describe('AgentHub', () => {
-  it('asks the agent what it loads in a folder, your home folder when none is given', async () => {
-    const asked: string[] = [];
-    const told = Object.assign(new FakeAdapter(), {
-      setup: async (cwd: string) => {
-        asked.push(cwd);
-        return { cwd, sections: {} as AgentSetup['sections'], settingsFiles: [], at: 1 };
-      },
-    });
-    hub.addAdapter(told);
-    expect(await hub.setup('fake', 'C:/work')).toMatchObject({ cwd: 'C:/work' });
-    await hub.setup('fake');
-    expect(asked).toEqual(['C:/work', homedir()]);
-  });
-
-  it("has no setup to show for an agent that can't say", async () => {
-    expect(await hub.setup('fake', 'C:/work')).toBeNull();
-  });
-
   it('starts a chat with your first message', async () => {
     const chat = await hub.start('fake', settings, 'Hello');
 
@@ -863,26 +845,6 @@ describe('AgentHub', () => {
     third.events.turnEnded();
     hub.mcpChanged();
     expect(third.closed).toBe(true);
-  });
-
-  it('lists the folders a setup can be read in: those still there, outside the temp folder', async () => {
-    const temp = mkdtempSync(path.join(tmpdir(), 'grimoire-temp-'));
-    const work = mkdtempSync(path.join(tmpdir(), 'grimoire-work-'));
-    const run = path.join(temp, 'test-run');
-    fake.chats = [
-      { id: 'a', agent: 'fake', title: '', cwd: work, updatedAt: 1 },
-      { id: 'b', agent: 'fake', title: '', cwd: path.join(work, 'gone'), updatedAt: 2 },
-      { id: 'c', agent: 'fake', title: '', cwd: temp, updatedAt: 3 },
-      { id: 'd', agent: 'fake', title: '', cwd: homedir(), updatedAt: 4 },
-    ];
-    try {
-      mkdirSync(run);
-      fake.chats.push({ id: 'e', agent: 'fake', title: '', cwd: run, updatedAt: 5 });
-      expect(await hub.setupFolders(temp)).toEqual([homedir(), work]);
-    } finally {
-      rmSync(temp, { recursive: true, force: true });
-      rmSync(work, { recursive: true, force: true });
-    }
   });
 
   it('lists the folders chats ran in, most recent first', async () => {
