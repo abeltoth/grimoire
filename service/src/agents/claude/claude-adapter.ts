@@ -110,17 +110,22 @@ export class ClaudeAdapter implements AgentAdapter {
    * `mcpOffEverywhere` names the MCP servers turned off in every chat,
    * `suggestions` says whether Claude Code suggests your next message, and
    * `followUps` whether the agent may offer separate tasks, as they are
-   * when a process starts. `addTodo` puts a task the agent adds on the
-   * Kanban board.
+   * when a process starts.
    */
   constructor(
     private readonly mcpOffEverywhere: () => readonly string[] = () => [],
     private readonly suggestions: () => boolean = () => true,
     private readonly followUps: () => boolean = () => true,
-    private readonly addTodo: AddTodo = () => {
-      throw new Error('There is no Kanban board here');
-    },
   ) {}
+
+  private addTodo: AddTodo = () => {
+    throw new Error('There is no Kanban board here');
+  };
+
+  /** Puts each task the agent adds on the Kanban board with `add`, from processes started before as well. */
+  addTodosWith(add: AddTodo): void {
+    this.addTodo = add;
+  }
 
   readonly info: AgentInfo = {
     id: 'claude-code',
@@ -389,7 +394,7 @@ export class ClaudeAdapter implements AgentAdapter {
           ...(resume ? { resume: chatId } : { sessionId: chatId, ...(title ? { title } : {}) }),
           ...grimoireOptions(made, {
             ...(offered ? { followUps } : {}),
-            todos: { chat: todoChat, add: this.addTodo },
+            todos: { chat: todoChat, add: (draft, madeIn) => this.addTodo(draft, madeIn) },
           }),
           canUseTool: approvalsTo(async () => events),
           hooks: chatHooks(() => picking.promise, async () => events),
@@ -461,7 +466,7 @@ export class ClaudeAdapter implements AgentAdapter {
             // Its tools' calls go to the chat that claims it: its separate tasks once its turn ends.
             ...grimoireOptions(made, {
               ...(offered ? { followUps } : {}),
-              todos: { chat: todoChat, add: this.addTodo },
+              todos: { chat: todoChat, add: (draft, madeIn) => this.addTodo(draft, madeIn) },
             }),
             canUseTool: approvalsTo(() => claimedBy.promise),
             hooks: chatHooks(() => picking.promise, () => claimedBy.promise),

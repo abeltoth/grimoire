@@ -22,7 +22,7 @@ export const builds = [
   // The search worker (ADR-010), a process of its own that the service starts beside it.
   {
     ...common,
-    entryPoints: [at('service/src/search/worker-main.ts')],
+    entryPoints: [at('modules/search/service/worker-main.ts')],
     outfile: at('service/dist/search-worker.mjs'),
     format: 'esm',
     external: ['@anthropic-ai/claude-agent-sdk'],

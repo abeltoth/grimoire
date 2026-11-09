@@ -153,7 +153,7 @@ describe('usage', () => {
     });
     const hour = new Date(now);
     hour.setMinutes(0, 0, 0);
-    answers['tokens.totals'] = ({ since }: CommandRequest<'tokens.totals'>): TokenTotals => ({
+    answers['search.tokens'] = ({ since }: CommandRequest<'search.tokens'>): TokenTotals => ({
       since,
       total: counts(1_300, 9_000, 100),
       days: [
@@ -294,7 +294,7 @@ describe('usage', () => {
       output: 0,
       weight,
     });
-    answers['tokens.totals'] = ({ since }: CommandRequest<'tokens.totals'>): TokenTotals => ({
+    answers['search.tokens'] = ({ since }: CommandRequest<'search.tokens'>): TokenTotals => ({
       since,
       total: total(4_000),
       days: [{ day: '2026-11-05', ...total(4_000) }],
@@ -375,8 +375,8 @@ describe('usage', () => {
     // The last 24 hours: Claude Code's scan already has them; Grimoire counts again.
     const asked = () =>
       calls
-        .filter((c) => c.command === 'tokens.totals')
-        .map((c) => (c.request as CommandRequest<'tokens.totals'>).since);
+        .filter((c) => c.command === 'search.tokens')
+        .map((c) => (c.request as CommandRequest<'search.tokens'>).since);
     [...el.querySelectorAll<HTMLButtonElement>('gr-usage-page .spans button')]
       .find((button) => button.textContent!.trim() === 'Last 24 hours')!
       .click();
@@ -403,7 +403,7 @@ describe('usage', () => {
     const { bridge, answers } = fakeBridge();
     answers['agents.usage'] = () => ({ plan: 'max', windows: [], at: 0 });
     answers['agents.usageBreakdown'] = () => null;
-    answers['tokens.totals'] = () => {
+    answers['search.tokens'] = () => {
       throw new Error('The search stopped');
     };
     const { fixture, el, texts } = await render(bridge);

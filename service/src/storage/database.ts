@@ -1,89 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
-import { EXPAND_TOKENS, MESSAGE_FIELD_TOKENS, RENAMED_TOKENS, SEARCH_TOKENS } from './renamed-tokens';
 
-/** Each migration moves the database up one version. Append new ones; never edit old ones. */
-const MIGRATIONS = [
-  `CREATE TABLE chapters (
-     chat_id TEXT PRIMARY KEY,
-     agent TEXT NOT NULL,
-     settings TEXT NOT NULL,
-     position INTEGER NOT NULL
-   );
-   CREATE TABLE layout (
-     key TEXT PRIMARY KEY,
-     value TEXT NOT NULL
-   );`,
-  `CREATE TABLE withdrawn (
-     chat_id TEXT NOT NULL,
-     entry_id TEXT NOT NULL,
-     PRIMARY KEY (chat_id, entry_id)
-   );`,
-  `CREATE TABLE dog_ears (
-     chat_id TEXT NOT NULL,
-     dog_ear TEXT NOT NULL,
-     PRIMARY KEY (chat_id, dog_ear)
-   );`,
-  `CREATE TABLE copied (
-     chat_id TEXT NOT NULL,
-     entry_id TEXT NOT NULL,
-     PRIMARY KEY (chat_id, entry_id)
-   );`,
-  `CREATE TABLE tags (
-     chat_id TEXT NOT NULL,
-     tag TEXT NOT NULL,
-     position INTEGER NOT NULL,
-     PRIMARY KEY (chat_id, tag)
-   );`,
-  `CREATE TABLE presets (
-     name TEXT PRIMARY KEY COLLATE NOCASE,
-     agent TEXT NOT NULL,
-     settings TEXT NOT NULL,
-     position INTEGER NOT NULL
-   );`,
-  `CREATE TABLE usage_readings (
-     agent TEXT NOT NULL,
-     at INTEGER NOT NULL,
-     span TEXT NOT NULL,
-     model TEXT NOT NULL,
-     used REAL,
-     resets_at INTEGER,
-     PRIMARY KEY (agent, at, span, model)
-   );`,
-  `CREATE TABLE worktrees (
-     path TEXT PRIMARY KEY,
-     repo TEXT NOT NULL,
-     branch TEXT NOT NULL,
-     created_at INTEGER NOT NULL
-   );`,
-  `CREATE TABLE schedules (
-     id TEXT PRIMARY KEY,
-     name TEXT NOT NULL,
-     agent TEXT NOT NULL,
-     settings TEXT NOT NULL,
-     prompt TEXT NOT NULL,
-     days TEXT NOT NULL,
-     time TEXT NOT NULL,
-     enabled INTEGER NOT NULL,
-     handled_until INTEGER NOT NULL,
-     position INTEGER NOT NULL
-   );
-   CREATE TABLE schedule_runs (
-     schedule_id TEXT NOT NULL,
-     due_at INTEGER NOT NULL,
-     outcome TEXT NOT NULL,
-     ran_at INTEGER,
-     chat_id TEXT,
-     cwd TEXT,
-     error TEXT,
-     PRIMARY KEY (schedule_id, due_at)
-   );`,
-  `CREATE TABLE settings (
-     key TEXT PRIMARY KEY,
-     value TEXT NOT NULL
-   );`,
-  `ALTER TABLE presets ADD COLUMN prompt TEXT;`,
-  `ALTER TABLE usage_readings ADD COLUMN account TEXT NOT NULL DEFAULT '';`,
-  // Profiles: what was kept before them becomes Personal's.
+/** The core's tables: profiles, settings, layout, presets, and the open chats with what the hub keeps of them. */
+const CORE_MIGRATIONS = [
   `CREATE TABLE profiles (
      id TEXT PRIMARY KEY,
      name TEXT NOT NULL COLLATE NOCASE,
@@ -96,25 +14,19 @@ const MIGRATIONS = [
      value TEXT NOT NULL
    );
    INSERT INTO app_state (key, value) VALUES ('activeProfile', 'personal');
-   CREATE TABLE profile_settings (
+   CREATE TABLE settings (
      profile TEXT NOT NULL,
      key TEXT NOT NULL,
      value TEXT NOT NULL,
      PRIMARY KEY (profile, key)
    );
-   INSERT INTO profile_settings (profile, key, value) SELECT 'personal', key, value FROM settings;
-   DROP TABLE settings;
-   ALTER TABLE profile_settings RENAME TO settings;
-   CREATE TABLE profile_layout (
+   CREATE TABLE layout (
      profile TEXT NOT NULL,
      key TEXT NOT NULL,
      value TEXT NOT NULL,
      PRIMARY KEY (profile, key)
    );
-   INSERT INTO profile_layout (profile, key, value) SELECT 'personal', key, value FROM layout;
-   DROP TABLE layout;
-   ALTER TABLE profile_layout RENAME TO layout;
-   CREATE TABLE profile_presets (
+   CREATE TABLE presets (
      profile TEXT NOT NULL,
      name TEXT NOT NULL COLLATE NOCASE,
      agent TEXT NOT NULL,
@@ -123,82 +35,23 @@ const MIGRATIONS = [
      prompt TEXT,
      PRIMARY KEY (profile, name)
    );
-   INSERT INTO profile_presets (profile, name, agent, settings, position, prompt)
-     SELECT 'personal', name, agent, settings, position, prompt FROM presets;
-   DROP TABLE presets;
-   ALTER TABLE profile_presets RENAME TO presets;
-   ALTER TABLE chapters ADD COLUMN profile TEXT NOT NULL DEFAULT 'personal';
-   ALTER TABLE schedules ADD COLUMN profile TEXT NOT NULL DEFAULT 'personal';`,
-  // The Kanban board: each profile's cards, and the chats each began.
-  `CREATE TABLE cards (
-     id TEXT PRIMARY KEY,
-     profile TEXT NOT NULL,
-     kind TEXT NOT NULL,
-     title TEXT NOT NULL,
-     notes TEXT NOT NULL,
-     cwd TEXT NOT NULL,
-     column_id TEXT NOT NULL,
-     position INTEGER NOT NULL,
-     created_at INTEGER NOT NULL,
-     closed_at INTEGER
-   );
-   CREATE TABLE card_chats (
-     card_id TEXT NOT NULL,
-     chat_id TEXT NOT NULL,
+   CREATE TABLE open_chats (
+     chat_id TEXT PRIMARY KEY,
      agent TEXT NOT NULL,
-     cwd TEXT NOT NULL,
-     at INTEGER NOT NULL,
-     PRIMARY KEY (card_id, chat_id)
-   );`,
-  // A card an agent added to the board: the chat it was added in.
-  `ALTER TABLE cards ADD COLUMN made_in_chat TEXT;
-   ALTER TABLE cards ADD COLUMN made_in_agent TEXT;
-   ALTER TABLE cards ADD COLUMN made_in_cwd TEXT;`,
-  // Jira issues on the board: each profile's, as last synced, and how its last sync went.
-  `CREATE TABLE jira_cards (
-     id TEXT PRIMARY KEY,
+     settings TEXT NOT NULL,
      profile TEXT NOT NULL,
-     issue_key TEXT NOT NULL,
-     summary TEXT NOT NULL,
-     description TEXT NOT NULL,
-     url TEXT NOT NULL,
-     issue_type TEXT NOT NULL,
-     priority TEXT NOT NULL,
-     status TEXT NOT NULL,
-     column_id TEXT NOT NULL,
-     position INTEGER NOT NULL,
-     created_at INTEGER NOT NULL,
-     closed_at INTEGER,
-     UNIQUE (profile, issue_key)
+     position INTEGER NOT NULL
    );
-   CREATE TABLE jira_syncs (
-     profile TEXT PRIMARY KEY,
-     status TEXT NOT NULL,
-     error TEXT,
-     synced_at INTEGER
-   );`,
-  // Worktrees per chat gave way to one chat editing each project (ADR-011): the chats,
-  // and what refers to them, work in the repository's folder each worktree was made from.
-  // The worktrees and their branches stay on disk, for you to prune.
-  `UPDATE chapters SET settings = json_set(settings, '$.cwd', ${outOfWorktree("json_extract(settings, '$.cwd')")})
-     WHERE json_extract(settings, '$.cwd') IS NOT NULL;
-   UPDATE chapters SET settings = json_remove(settings, '$.worktree');
-   UPDATE card_chats SET cwd = ${outOfWorktree('cwd')};
-   UPDATE cards SET made_in_cwd = ${outOfWorktree('made_in_cwd')} WHERE made_in_cwd IS NOT NULL;
-   UPDATE schedule_runs SET cwd = ${outOfWorktree('cwd')} WHERE cwd IS NOT NULL;
-   UPDATE presets SET settings = json_remove(settings, '$.worktree');
-   UPDATE schedules SET settings = json_remove(settings, '$.worktree');
-   UPDATE layout SET value = json_remove(value, '$.settings.worktree')
-     WHERE key = 'lastUsed' AND json_type(value, '$.settings') = 'object';
-   DROP TABLE worktrees;
-   CREATE TABLE editors (
-     profile TEXT NOT NULL,
-     project TEXT NOT NULL,
+   CREATE TABLE withdrawn (
      chat_id TEXT NOT NULL,
-     PRIMARY KEY (profile, project)
-   );`,
-  // Only chats sent one entry in parallel share who edits (ADR-011); other chats on a project all edit.
-  `DROP TABLE editors;
+     entry_id TEXT NOT NULL,
+     PRIMARY KEY (chat_id, entry_id)
+   );
+   CREATE TABLE copied (
+     chat_id TEXT NOT NULL,
+     entry_id TEXT NOT NULL,
+     PRIMARY KEY (chat_id, entry_id)
+   );
    CREATE TABLE parallels (
      chat_id TEXT PRIMARY KEY,
      group_id TEXT NOT NULL
@@ -206,63 +59,85 @@ const MIGRATIONS = [
    CREATE TABLE parallel_editors (
      group_id TEXT PRIMARY KEY,
      chat_id TEXT NOT NULL
+   );
+   CREATE TABLE pins (
+     chat_id TEXT NOT NULL,
+     pin TEXT NOT NULL,
+     PRIMARY KEY (chat_id, pin)
+   );
+   CREATE TABLE tags (
+     chat_id TEXT NOT NULL,
+     tag TEXT NOT NULL,
+     position INTEGER NOT NULL,
+     PRIMARY KEY (chat_id, tag)
+   );
+   CREATE TABLE usage_readings (
+     agent TEXT NOT NULL,
+     at INTEGER NOT NULL,
+     span TEXT NOT NULL,
+     model TEXT NOT NULL,
+     used REAL,
+     resets_at INTEGER,
+     account TEXT NOT NULL,
+     PRIMARY KEY (agent, at, span, model)
    );`,
-  // Stored names follow the code's plain names; a saved theme keeps its changes under the new token names.
-  `ALTER TABLE chapters RENAME TO open_chats;
-   ALTER TABLE dog_ears RENAME TO pins;
-   ALTER TABLE pins RENAME COLUMN dog_ear TO pin;
-   UPDATE layout SET key = 'popouts' WHERE key = 'loose';
-   UPDATE settings SET key = 'newChat' WHERE key = 'newChapter';
-   UPDATE settings SET value = (
-     SELECT json_group_object(COALESCE(renamed.value, token.key), token.value)
-     FROM json_each(settings.value) token
-     LEFT JOIN json_each('${JSON.stringify(Object.fromEntries(RENAMED_TOKENS))}') renamed ON renamed.key = token.key
-   ) WHERE key = 'theme' AND json_type(value) = 'object';`,
-  movedTokens(SEARCH_TOKENS),
-  movedTokens(EXPAND_TOKENS),
-  movedTokens(MESSAGE_FIELD_TOKENS),
 ];
 
-/** SQL that moves a saved theme's changes from each old token name to its new one. */
-function movedTokens(renamed: readonly (readonly [string, string])[]): string {
-  return `UPDATE settings SET value = (
-     SELECT json_group_object(COALESCE(renamed.value, token.key), token.value)
-     FROM json_each(settings.value) token
-     LEFT JOIN json_each('${JSON.stringify(Object.fromEntries(renamed))}') renamed ON renamed.key = token.key
-   ) WHERE key = 'theme' AND json_type(value) = 'object';`;
-}
-
 /**
- * A folder, in SQL, moved out of a worktree Grimoire made for a chat into
- * the same folder of the repository it was made from; any other stays.
+ * Grimoire's own data (ADR-009) in one SQLite file, with the core's tables
+ * migrated; each module migrates its own with migrate(). ':memory:' keeps
+ * it for this run only.
  */
-function outOfWorktree(folder: string): string {
-  return `COALESCE((SELECT w.repo || substr(${folder}, length(w.path) + 1) FROM worktrees w
-     WHERE lower(${folder}) = lower(w.path)
-       OR substr(lower(${folder}), 1, length(w.path) + 1) IN (lower(w.path) || '\\', lower(w.path) || '/')), ${folder})`;
-}
-
-/**
- * Grimoire's own data (ADR-009) in one SQLite file, migrated to the latest
- * version, or to `latest` for a test of what an older one becomes.
- * ':memory:' keeps it for this run only.
- */
-export function openDatabase(file: string, latest = MIGRATIONS.length): DatabaseSync {
+export function openDatabase(file: string): DatabaseSync {
   const db = new DatabaseSync(file);
   db.exec('PRAGMA journal_mode = WAL');
-  const { user_version: version } = db.prepare('PRAGMA user_version').get() as {
-    user_version: number;
-  };
-  MIGRATIONS.slice(version, latest).forEach((sql, i) => {
+  emptyIfVersionedWhole(db);
+  migrate(db, 'core', CORE_MIGRATIONS);
+  return db;
+}
+
+/**
+ * Moves an owner's tables (the core's or a module's) up to the latest of
+ * its migrations, or to `latest` for a test of what an older version
+ * becomes. Each migration moves them up one version: append new ones;
+ * never edit old ones.
+ */
+export function migrate(
+  db: DatabaseSync,
+  owner: string,
+  migrations: readonly string[],
+  latest = migrations.length,
+): void {
+  db.exec('CREATE TABLE IF NOT EXISTS schema_versions (owner TEXT PRIMARY KEY, version INTEGER NOT NULL)');
+  const row = db.prepare('SELECT version FROM schema_versions WHERE owner = ?').get(owner) as
+    | { version: number }
+    | undefined;
+  const version = row?.version ?? 0;
+  migrations.slice(version, latest).forEach((sql, i) => {
     db.exec('BEGIN');
     try {
       db.exec(sql);
-      db.exec(`PRAGMA user_version = ${version + i + 1}`);
+      db.prepare(
+        `INSERT INTO schema_versions (owner, version) VALUES (?, ?)
+         ON CONFLICT (owner) DO UPDATE SET version = excluded.version`,
+      ).run(owner, version + i + 1);
       db.exec('COMMIT');
     } catch (error) {
       db.exec('ROLLBACK');
       throw error;
     }
   });
-  return db;
+}
+
+/** A database versioned as one whole, by PRAGMA user_version, has a layout no owner knows, so it starts again empty. */
+function emptyIfVersionedWhole(db: DatabaseSync): void {
+  const { user_version: version } = db.prepare('PRAGMA user_version').get() as { user_version: number };
+  if (version === 0) return;
+  const tables = db
+    .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")
+    .all() as { name: string }[];
+  db.exec('BEGIN');
+  for (const { name } of tables) db.exec(`DROP TABLE "${name}"`);
+  db.exec('PRAGMA user_version = 0');
+  db.exec('COMMIT');
 }

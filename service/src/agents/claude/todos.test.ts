@@ -1,7 +1,5 @@
 import path from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { CardStore } from '../../kanban/store';
-import { openDatabase } from '../../storage/database';
 import { GRIMOIRE_SERVER, type ServerMaker, grimoireOptions } from './grimoire-tools';
 import { ADD_TODO_PROMPT, ADD_TODO_TOOL, ADD_TODO_TOOL_NAME, type AddTodo, TodoChat } from './todos';
 
@@ -27,11 +25,15 @@ function maker() {
 const cwd = path.resolve('/git/grimoire');
 const chat = { chatId: 'chat-1', agent: 'claude-code', cwd };
 
-let cards: CardStore;
+/** The cards the tool added, each with the chat it was added in; like a board, `add` turns away one without a title. */
+let added: Parameters<AddTodo>[];
 let add: AddTodo;
 beforeEach(() => {
-  cards = new CardStore(openDatabase(':memory:'), undefined, () => 1_000);
-  add = (draft, madeIn) => cards.save(draft, madeIn);
+  added = [];
+  add = (draft, madeIn) => {
+    if (!draft.title) throw new Error('A card needs a title');
+    added.push([draft, madeIn]);
+  };
 });
 
 /** The add_todo tool, in a chat that has begun unless `begun` is false. */
@@ -68,23 +70,11 @@ describe('the add_todo tool', () => {
     expect(options.systemPrompt).toBe(ADD_TODO_PROMPT);
   });
 
-  it('adds a card at the foot of To do in the chat’s folder, tidied, made in the chat, and says so', async () => {
-    cards.save({ title: 'Write ribbon tests', notes: '', cwd });
+  it('adds a card in the chat’s folder, tidied, made in the chat, and says so', async () => {
     await expect(addTodo().handler({ title: ' Context meter ', notes: ' From the usage events.\n' })).resolves.toEqual(
       said('Added "Context meter" to To do on the user\'s Kanban board.'),
     );
-    expect(cards.list()).toEqual([
-      expect.objectContaining({ title: 'Write ribbon tests', column: 'todo' }),
-      expect.objectContaining({
-        title: 'Context meter',
-        notes: 'From the usage events.',
-        cwd,
-        column: 'todo',
-        chats: [],
-        madeIn: chat,
-      }),
-    ]);
-    expect(cards.list()[0]!.madeIn).toBeUndefined();
+    expect(added).toEqual([[{ title: 'Context meter', notes: 'From the usage events.', cwd }, chat]]);
   });
 
   it('puts the card in the folder named, one not absolute taken from the chat’s', async () => {
@@ -92,7 +82,7 @@ describe('the add_todo tool', () => {
     await addTodo().handler({ title: 'A', folder: elsewhere });
     await addTodo().handler({ title: 'B', folder: '../breeder' });
     await addTodo().handler({ title: 'C', folder: '  ' });
-    expect(cards.list().map((card) => card.cwd)).toEqual([elsewhere, elsewhere, cwd]);
+    expect(added.map(([draft]) => draft.cwd)).toEqual([elsewhere, elsewhere, cwd]);
   });
 
   it('tells the agent when the card was turned away, or its chat isn’t known yet', async () => {
@@ -100,6 +90,6 @@ describe('the add_todo tool', () => {
     await expect(addTodo(false).handler({ title: 'Context meter' })).resolves.toEqual(
       said('There is no chat to add the task in yet.', true),
     );
-    expect(cards.list()).toEqual([]);
+    expect(added).toEqual([]);
   });
 });

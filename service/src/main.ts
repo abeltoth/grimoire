@@ -10,18 +10,15 @@
 import { randomBytes } from 'node:crypto';
 import { appendFileSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import {
   type EventPayload,
-  PERSONAL_PROFILE,
   PROTOCOL_VERSION,
   SERVICE_INFO_FILE,
   type ServiceInfo,
 } from '@grimoire/contract';
 import { ClaudeAdapter } from './agents/claude/claude-adapter';
 import { useClaudeFolder } from './agents/claude/config-dir';
-import { openConnectors } from './agents/claude/connectors';
 import { registerAgentCommands } from './agents/commands';
 import { AgentHub, hubStore } from './agents/hub';
 import { LayoutStore, registerLayout } from './core/layout';
@@ -30,24 +27,12 @@ import { ProfileStore, registerProfiles } from './core/profiles';
 import { SettingsStore, registerSettings } from './core/settings';
 import { registerPing } from './core/ping';
 import { endpointFor } from './endpoint';
-import { registerGit } from './git/commands';
-import { Git } from './git/git';
-import { registerFiles } from './files/commands';
-import { Files } from './files/files';
-import { registerJira, registerKanban } from './kanban/commands';
-import { JiraMoves } from './kanban/jira-moves';
-import { JiraSyncer } from './kanban/jira-sync';
-import { CardStore } from './kanban/store';
+import { ServiceEvents } from './events';
+import { Modules } from './module';
+import { MODULES } from './modules';
 import { CommandRegistry } from './registry';
 import { AlreadyRunningError, startServer, type ServiceServer } from './server';
-import { registerSchedules } from './schedules/commands';
-import { Scheduler } from './schedules/scheduler';
-import { ScheduleStore } from './schedules/store';
-import { registerSearch } from './search/commands';
-import { SearchWorker, forkWorker } from './search/search-worker';
 import { openDatabase } from './storage/database';
-import { registerTerminals } from './terminal/commands';
-import { Terminals } from './terminal/terminals';
 
 const { values } = parseArgs({
   options: {
@@ -78,16 +63,21 @@ const registry = new CommandRegistry();
 registerPing(registry, { buildId, startedAt: Date.now() });
 
 let server: ServiceServer | undefined;
+const events = new ServiceEvents();
+const broadcast = events.emit;
+const modules = new Modules(MODULES);
 
 const db = openDatabase(values.ephemeral ? ':memory:' : path.join(dataDir, 'grimoire.db'));
 // Each profile but Personal has a Claude folder of its own beside Grimoire's data.
-const profiles = new ProfileStore(db, (id) => path.join(dataDir, 'profiles', id, 'claude'));
+const profiles = new ProfileStore(
+  db,
+  (id) => path.join(dataDir, 'profiles', id, 'claude'),
+  (id) => modules.profileRemoved(id),
+);
 // Claude Code uses the profile's folder from the start, before anything reads it or starts it.
 useClaudeFolder(profiles.active().claudeFolder);
 registerLayout(registry, new LayoutStore(db));
 const settingsStore = new SettingsStore(db);
-const broadcast: Parameters<typeof registerSettings>[2] = (event, payload) =>
-  server?.broadcast(event, payload);
 registerPresets(registry, new PresetStore(db), settingsStore, broadcast);
 let { mcpOff, suggestions, followUps } = settingsStore.get();
 registerSettings(registry, settingsStore, (event, payload) => {
@@ -108,63 +98,18 @@ registerSettings(registry, settingsStore, (event, payload) => {
   claude.dispose();
   claude.warm();
 });
-const git = new Git();
-registerGit(registry, git);
-const files = new Files(git, (event, payload) => server?.broadcast(event, payload));
-registerFiles(registry, files);
 
-// The search worker, bundled beside the service, keeps an index per profile beside Grimoire's data.
-const searchIndex = (profile: string) =>
-  path.join(dataDir, profile === PERSONAL_PROFILE ? 'search.db' : `search-${profile}.db`);
-const search = new SearchWorker(
-  () =>
-    forkWorker(
-      fileURLToPath(new URL('./search-worker.mjs', import.meta.url)),
-      values.ephemeral ? ':memory:' : searchIndex(profiles.active().id),
-    ),
-  log,
-);
-registerSearch(registry, search);
-
-const hub = new AgentHub(
-  (event, payload) => {
-    server?.broadcast(event, payload);
-    // A turn or a new title changes what a search finds.
-    if (event === 'agents.turnEnded' || event === 'agents.title') search.markStale();
-  },
-  50,
-  hubStore(db),
-);
-const cards = new CardStore(db);
+const hub = new AgentHub(broadcast, 50, hubStore(db));
 const claude = new ClaudeAdapter(
   () => settingsStore.get().mcpOff,
   () => settingsStore.get().suggestions,
   () => settingsStore.get().followUps,
-  // A task the agent adds goes on the board in use, which every window is told of.
-  (draft, madeIn) => broadcast('kanban.changed', { cards: cards.save(draft, madeIn) }),
 );
 hub.addAdapter(claude);
 claude.warm();
 registerAgentCommands(registry, hub);
 // The plan's limits are read every quarter of an hour, for the Usage page's history.
 hub.readUsageEvery(15 * 60_000);
-
-const terminals = new Terminals((event, payload) => server?.broadcast(event, payload));
-registerTerminals(registry, terminals);
-
-const scheduler = new Scheduler(
-  new ScheduleStore(db),
-  (agent, settings, text, title) => hub.start(agent, settings, text, title),
-  (event, payload) => server?.broadcast(event, payload),
-);
-registerSchedules(registry, scheduler);
-
-registerKanban(registry, cards, broadcast);
-// Your Jira issues come through your claude.ai Atlassian connector, on a Claude Code process of their own;
-// moving one in Jira, on another, the one that may change Jira.
-const jira = new JiraSyncer(cards, () => settingsStore.get().jiraQuery, openConnectors, broadcast, log);
-const jiraMoves = new JiraMoves(cards, openConnectors, broadcast, log);
-registerJira(registry, jira, jiraMoves);
 
 registerProfiles(
   registry,
@@ -177,29 +122,36 @@ registerProfiles(
     restart: () => {
       // The spare starts with the new profile's MCP servers off, suggestions and separate tasks; its settings don't restart it.
       ({ mcpOff, suggestions, followUps } = settingsStore.get());
-      search.restart();
       claude.warm();
     },
     announce: () => {
       broadcast('settings.changed', { settings: settingsStore.get() });
-      broadcast('schedules.changed', { schedules: scheduler.list() });
-      broadcast('kanban.changed', { cards: cards.list() });
-      broadcast('kanban.jira', { jira: jira.state() });
       void hub.announceAccounts();
+      modules.profileSwitched();
     },
   },
   broadcast,
 );
+
+modules.start({
+  registry,
+  db,
+  events,
+  log,
+  dataDir,
+  ephemeral: values.ephemeral,
+  settings: settingsStore,
+  profiles,
+  hub,
+  claude,
+});
 
 const token = randomBytes(32).toString('hex');
 const endpoint = endpointFor(dataDir);
 
 async function stop(): Promise<void> {
   hub.closeAll();
-  jiraMoves.close();
-  terminals.closeAll();
-  files.dispose();
-  search.close();
+  modules.stop();
   await server?.close();
   db.close();
   removeInfoFileIfOurs();
@@ -217,15 +169,13 @@ try {
   throw error;
 }
 
+events.toWindows(server.broadcast);
+
 const info: ServiceInfo = { endpoint, token, pid: process.pid, buildId, protocolVersion: PROTOCOL_VERSION };
 writeFileSync(`${infoFile}.tmp`, JSON.stringify(info), { mode: 0o600 });
 renameSync(`${infoFile}.tmp`, infoFile);
 log(`Listening on ${endpoint}, build ${buildId}`);
-// Checked twice a minute, which also notices a time that passed while the computer slept.
-scheduler.checkEvery(30_000);
-// The board's Jira issues are synced every hour, as well as when the board opens.
-jira.syncEvery(60 * 60_000);
-search.warm();
+modules.ready();
 
 process.on('SIGTERM', () => void stop());
 process.on('SIGINT', () => void stop());

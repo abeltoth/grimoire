@@ -5,9 +5,7 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ClaudeAdapter } from '../agents/claude/claude-adapter';
 import { useClaudeFolder } from '../agents/claude/config-dir';
-import { CardStore } from '../kanban/store';
 import { CommandRegistry } from '../registry';
-import { ScheduleStore } from '../schedules/store';
 import { OpenChats } from '../storage/open-chats';
 import { openDatabase } from '../storage/database';
 import { LayoutStore } from './layout';
@@ -92,26 +90,23 @@ describe('ProfileStore', () => {
     expect(() => profiles.setActive('gone')).toThrow('There\'s no profile "gone"');
   });
 
-  it('deletes a profile and what it kept, but not Personal, the one in use, or its folder', () => {
-    const { db, profiles } = setUp();
+  it('deletes a profile and what it and the modules kept, but not Personal, the one in use, or its folder', () => {
+    const db = openDatabase(':memory:');
+    const removing = vi.fn();
+    const profiles = new ProfileStore(db, folderOf, removing);
     profiles.create('Work');
     profiles.setActive('work');
     expect(() => profiles.remove('work')).toThrow('"Work" is in use');
     new SettingsStore(db).set({ wording: 'plain' });
     new PresetStore(db).save({ name: 'Bug fix', agent: 'codex', settings: {} });
-    const schedules = new ScheduleStore(db);
-    const morning = { name: 'Morning', agent: 'codex', settings: {}, prompt: 'Hi', days: [1] };
-    const { id } = schedules.save({ ...morning, time: '08:00', enabled: true }, 0);
-    schedules.addRun({ scheduleId: id, dueAt: 1, outcome: 'missed' });
-    const cards = new CardStore(db);
-    const [card] = cards.save({ title: 'Tests', notes: '', cwd: '/git' });
-    cards.link(card!.id, { chatId: 'chat-1', agent: 'codex', cwd: '/git' });
 
     profiles.setActive('personal');
     expect(() => profiles.remove('personal')).toThrow('"Personal"');
     expect(profiles.remove('work').profiles.map((profile) => profile.id)).toEqual(['personal']);
     expect(existsSync(folderOf('work'))).toBe(true);
-    for (const table of ['settings', 'presets', 'schedules', 'schedule_runs', 'cards', 'card_chats']) {
+    expect(removing).toHaveBeenCalledWith('work');
+    expect(removing).toHaveBeenCalledTimes(1);
+    for (const table of ['settings', 'presets']) {
       expect(db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get()).toEqual({ n: 0 });
     }
   });

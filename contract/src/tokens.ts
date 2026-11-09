@@ -61,37 +61,6 @@ export function addTokens(counts: readonly TokenCounts[]): TokenCounts {
   return total;
 }
 
-/** Tokens over a span, weighed. */
-export interface TokenTotal extends TokenCounts {
-  weight: number;
-}
-
-/** Where the tokens went since a time, by Grimoire's count from the agents' transcripts. */
-export interface TokenTotals {
-  since: number;
-  total: TokenTotal;
-  /** Each day with turns, oldest first, as YYYY-MM-DD in local time. */
-  days: (TokenTotal & { day: string })[];
-  /** Each hour with turns, oldest first, as the start of the local hour in ms since the epoch. */
-  hours: (TokenTotal & { hour: number })[];
-  /** Most weight first. */
-  models: (TokenTotal & { model: string; subagent: boolean })[];
-  /** Most weight first. */
-  folders: (TokenTotal & { cwd: string })[];
-  /** The chats that weighed most, most first. */
-  chats: (TokenTotal & { id: ChatId; agent: AgentId; title: string; cwd?: string })[];
-  /** The tools the agents called most in the chats, not their subagents, most first. */
-  tools: Used[];
-  /** The skills the agents ran most, and the commands and skills you wrote most as /name, most first. */
-  skills: Used[];
-}
-
-/** Something used, and how many times. */
-export interface Used {
-  name: string;
-  uses: number;
-}
-
 /** What Claude Code's own scan of its transcripts says took a share of your plan's usage. */
 export interface UsageBreakdown {
   /** The last 24 hours. */
@@ -119,8 +88,6 @@ export interface UsageSpan {
 
 declare module './commands' {
   interface CommandMap {
-    /** Where the tokens went since a time, by Grimoire's count from the agents' transcripts. */
-    'tokens.totals': { request: { since: number }; response: TokenTotals };
     /** What the agent's own scan says took your plan's usage; null where it has none. */
     'agents.usageBreakdown': { request: { agent: AgentId }; response: UsageBreakdown | null };
   }

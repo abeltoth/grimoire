@@ -316,7 +316,7 @@ export class UsagePage {
     const span = this.span();
     this.totalsFailed.set(null);
     try {
-      const totals = await this.bridge.invoke('tokens.totals', { since: Date.now() - SPANS[span].ms });
+      const totals = await this.bridge.invoke('search.tokens', { since: Date.now() - SPANS[span].ms });
       if (span === this.span()) this.totals.set(totals);
     } catch (error) {
       this.totalsFailed.set(error instanceof Error ? error.message : String(error));

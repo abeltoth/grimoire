@@ -1,6 +1,14 @@
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import path from 'node:path';
 import type { SetupFile } from '@grimoire/contract';
+
+/** A folder written from your home folder, such as "~/git/grimoire", in full. */
+export function expand(cwd: string): string {
+  return cwd === '~' || cwd.startsWith('~/') || cwd.startsWith('~\\')
+    ? path.join(homedir(), cwd.slice(1))
+    : cwd;
+}
 
 /** A path to compare by: absolute, and in one case on Windows. */
 export function samePath(file: string): string {

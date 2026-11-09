@@ -37,9 +37,11 @@ const fromRow = (row: ProfileRow): Profile => ({
  * says, made as the profile is.
  */
 export class ProfileStore {
+  /** `removing` deletes what the modules kept of a profile, inside its deletion's transaction. */
   constructor(
     private readonly db: DatabaseSync,
     private readonly folderOf: (id: string) => string,
+    private readonly removing: (id: string) => void = () => {},
   ) {}
 
   list(): Profiles {
@@ -105,17 +107,7 @@ export class ProfileStore {
       for (const table of OWN_TABLES) {
         this.db.prepare(`DELETE FROM ${table} WHERE profile = ?`).run(id);
       }
-      this.db
-        .prepare(
-          `DELETE FROM schedule_runs
-           WHERE schedule_id IN (SELECT id FROM schedules WHERE profile = ?)`,
-        )
-        .run(id);
-      this.db.prepare('DELETE FROM schedules WHERE profile = ?').run(id);
-      this.db
-        .prepare('DELETE FROM card_chats WHERE card_id IN (SELECT id FROM cards WHERE profile = ?)')
-        .run(id);
-      this.db.prepare('DELETE FROM cards WHERE profile = ?').run(id);
+      this.removing(id);
       this.db.prepare('DELETE FROM profiles WHERE id = ?').run(id);
       this.db.exec('COMMIT');
     } catch (error) {
@@ -184,9 +176,9 @@ export interface Switching {
   reset(): void;
   /** Points Claude Code at a Claude folder; null for its usual place. */
   useClaudeFolder(folder: string | null): void;
-  /** Starts again what runs in the background, now in the new profile: the search and the spare. */
+  /** Starts again what the core runs in the background, now in the new profile: the spare. */
   restart(): void;
-  /** Tells every window what the new profile has: its settings, schedules, Kanban board and sign-in. */
+  /** Tells every window what the new profile has: its settings and sign-in, and each module's state. */
   announce(): void;
 }
 

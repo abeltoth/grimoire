@@ -21,6 +21,11 @@ export class CommandRegistry {
     this.handlers.set(command, handler as (request: unknown) => unknown);
   }
 
+  /** Runs a command from inside the service, as one module asks another. */
+  call<K extends CommandName>(command: K, request: CommandRequest<K>): Promise<CommandResponse<K>> {
+    return this.dispatch(command, request) as Promise<CommandResponse<K>>;
+  }
+
   async dispatch(command: string, request: unknown): Promise<unknown> {
     const handler = this.handlers.get(command);
     if (!handler) throw new UnknownCommandError(command);
