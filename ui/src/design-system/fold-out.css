@@ -65,12 +65,16 @@
   text-align: center;
 }
 
-/* The command, set above its output. */
+/* The command, set above its output in a well of its own, tall enough to read it by. */
 .command {
-  margin-bottom: var(--gr-fold-break-gap);
-  padding-bottom: var(--gr-fold-break-gap);
-  border-bottom: 1px dashed var(--gr-hairline);
-  color: var(--gr-ink-soft);
+  max-height: var(--gr-fold-command-max);
+  overflow: auto;
+  padding: var(--gr-fold-body-pad);
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-code);
+  line-height: var(--gr-leading-code);
+  border-bottom: 1px solid var(--gr-hairline);
+  outline: none;
 }
 
 /* Where another stacked edit begins. */

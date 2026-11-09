@@ -141,8 +141,10 @@ export class Transcript {
     const head = tokens.costly ? 'One of the costliest turns in this chapter: ' : 'This turn: ';
     return `${head}${tokenCount(tokens.weight)} tokens, weighed as the API prices them\n${usesInWords(tokens.uses)}`;
   }
-  /** The thinking you're reading and the notes you folded out. */
+  /** The thinking you're reading, and the runs of notes and hooks you folded out. */
   private readonly open = signal<ReadonlySet<string>>(new Set());
+  /** The note whose details you folded out: one at a time, so opening another closes it. */
+  private readonly foldedOut = signal<string | null>(null);
   /** The entry being undone, until the agent is done. */
   private readonly undoing = signal<string | null>(null);
   private readonly forking = signal(false);
@@ -163,6 +165,7 @@ export class Transcript {
       this.chapter().approvals;
       this.chapter().followUps;
       this.open();
+      this.foldedOut();
       if (this.following) this.element.scrollTop = this.element.scrollHeight;
     });
   }
@@ -231,7 +234,11 @@ export class Transcript {
   protected press(note: Note): void {
     if (this.showsHelper(note)) this.helpers.show(this.chapter().id, note.helper!);
     else if (this.showsBoard(note)) this.facing.openThumb(BOARD);
-    else if (note.fold) this.toggle(note.key);
+    else if (note.fold) this.foldedOut.update((key) => (key === note.key ? null : note.key));
+  }
+
+  protected isFoldedOut(note: Note): boolean {
+    return this.foldedOut() === note.key;
   }
 
   protected isOpen(key: string): boolean {

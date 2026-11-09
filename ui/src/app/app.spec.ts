@@ -620,17 +620,22 @@ describe('App', () => {
 
     const notes = el.querySelectorAll<HTMLButtonElement>('.run .note');
     notes[0]!.click();
-    notes[1]!.click();
     await fixture.whenStable();
     expect(notes[0]!.getAttribute('aria-expanded')).toBe('true');
     expect(texts('gr-corrections .head b')).toEqual(['src/meter.ts']);
     expect(texts('gr-corrections .head .detail')[0]).toBe('corrections, as marked by Claude Code');
+
+    // Opening another note closes the one you had open.
+    notes[1]!.click();
+    await fixture.whenStable();
+    expect(notes[0]!.getAttribute('aria-expanded')).toBe('false');
+    expect(el.querySelector('gr-corrections')).toBeNull();
     expect(texts('gr-output .head > *')).toEqual(['npm test', 'output']);
     expect(texts('gr-output .line')).toEqual(['12 passed', '1 failed']);
 
-    notes[0]!.click();
+    notes[1]!.click();
     await fixture.whenStable();
-    expect(el.querySelector('gr-corrections')).toBeNull();
+    expect(el.querySelector('gr-output')).toBeNull();
   });
 
   it('turns the facing page to what a helper did, from its note, and keeps it current as it works', async () => {

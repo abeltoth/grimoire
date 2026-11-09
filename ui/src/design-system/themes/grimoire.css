@@ -853,6 +853,7 @@
   --gr-size-fold-file: 12px;
   --gr-fold-body-pad: 4px 0;
   --gr-fold-body-max: 98px;
+  --gr-fold-command-max: 40vh;
   --gr-fold-line-number: 36px;
   --gr-size-fold-mark: 13px;
   --gr-fold-mark-pad: 14px;

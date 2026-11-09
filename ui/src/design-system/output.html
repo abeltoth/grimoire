@@ -2,18 +2,18 @@
   <b>{{ title() }}</b>
   <span class="detail">output</span>
 </div>
+@if (commandLines().length) {
+  <div class="command" tabindex="0" aria-label="Command">
+    @for (line of commandLines(); track $index) {
+      <div class="line">
+        <span class="number">{{ $first ? '$' : '' }}</span>
+        <span class="code">{{ line }}</span>
+        <span class="mark"></span>
+      </div>
+    }
+  </div>
+}
 <div class="body" tabindex="0">
-  @if (commandLines().length) {
-    <div class="command">
-      @for (line of commandLines(); track $index) {
-        <div class="line">
-          <span class="number">{{ $first ? '$' : '' }}</span>
-          <span class="code">{{ line }}</span>
-          <span class="mark"></span>
-        </div>
-      }
-    </div>
-  }
   @for (line of lines(); track $index) {
     <div class="line">
       <span class="number"></span>
