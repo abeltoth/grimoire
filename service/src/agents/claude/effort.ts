@@ -8,7 +8,8 @@ export interface EffortSettings {
   modelSettings?: Record<string, { effortLevel?: unknown } | undefined>;
 }
 
-const isLevel = (value: unknown): value is EffortLevel => EFFORT_LEVELS.includes(value as EffortLevel);
+const isLevel = (value: unknown): value is EffortLevel =>
+  EFFORT_LEVELS.includes(value as EffortLevel);
 
 /** The name Claude Code keys a model's settings by: without "[1m]" or a date at its end. */
 export function canonicalModel(model: string): string {

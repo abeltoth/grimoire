@@ -23,11 +23,18 @@ export function readOnlyHooks(events: () => Promise<ChatEvents>): HookCallbackMa
     matcher: EDITING_TOOLS.join('|'),
     hooks: [
       async (hook) => {
-        if (hook.hook_event_name !== 'PreToolUse' || !EDITING_TOOLS.includes(hook.tool_name)) return {};
+        if (hook.hook_event_name !== 'PreToolUse' || !EDITING_TOOLS.includes(hook.tool_name))
+          return {};
         if (isPlanFile(hook.tool_input)) return {};
         const why = (await events()).readOnly();
         return why
-          ? { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: why } }
+          ? {
+              hookSpecificOutput: {
+                hookEventName: 'PreToolUse',
+                permissionDecision: 'deny',
+                permissionDecisionReason: why,
+              },
+            }
           : {};
       },
     ],

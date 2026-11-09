@@ -30,6 +30,10 @@ export class ApprovalStub {
   /** What the approval card asks, in one line. */
   protected readonly text = computed(() => {
     const ask = askOf(this.approval(), this.cwd());
-    return ask.kind === 'command' ? ask.command : ask.kind === 'file' ? ask.file : this.approval().tool;
+    return ask.kind === 'command'
+      ? ask.command
+      : ask.kind === 'file'
+        ? ask.file
+        : this.approval().tool;
   });
 }

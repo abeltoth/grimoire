@@ -1,8 +1,4 @@
-import type {
-  GitBranches,
-  GitStatus,
-  PullRequest,
-} from '@grimoire/contract';
+import type { GitBranches, GitStatus, PullRequest } from '@grimoire/contract';
 import { fakeBridge, render } from '@ui/testing/app-harness';
 
 describe('git', () => {
@@ -22,8 +18,22 @@ describe('git', () => {
     answers['git.branches'] = (): GitBranches => ({
       trunk: 'master',
       branches: [
-        { name: 'master', current: false, ahead: 0, behind: 0, subject: 'Merge the outline', at: now },
-        { name: 'feature/context-meter', current: true, ahead: 3, behind: 1, subject: 'Draw the meter', at: now },
+        {
+          name: 'master',
+          current: false,
+          ahead: 0,
+          behind: 0,
+          subject: 'Merge the outline',
+          at: now,
+        },
+        {
+          name: 'feature/context-meter',
+          current: true,
+          ahead: 3,
+          behind: 1,
+          subject: 'Draw the meter',
+          at: now,
+        },
         {
           name: 'feature/storage-migrations',
           current: false,
@@ -56,7 +66,9 @@ describe('git', () => {
       '2 files not committed · 2 ahead of origin/feature/context-meter',
     );
     expect(texts('gr-header-badges button')).toEqual(['PR #12: in review', 'CI: 1 check failing']);
-    expect(el.querySelector('gr-header-badges .alert')!.textContent!.trim()).toBe('CI: 1 check failing');
+    expect(el.querySelector('gr-header-badges .alert')!.textContent!.trim()).toBe(
+      'CI: 1 check failing',
+    );
     expect(calls.find((c) => c.command === 'git.status')!.request).toEqual({ cwd: 'C:/Users/me' });
 
     branch.click();
@@ -97,7 +109,9 @@ describe('git', () => {
       'used = 0;',
       'used = input(0);',
     ]);
-    expect(texts('gr-git-page gr-diff-view .head .detail')[0]).toBe('corrections, not committed yet');
+    expect(texts('gr-git-page gr-diff-view .head .detail')[0]).toBe(
+      'corrections, not committed yet',
+    );
 
     // Collapsed again.
     el.querySelector<HTMLButtonElement>('gr-git-page .change')!.click();

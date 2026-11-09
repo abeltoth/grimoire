@@ -22,7 +22,8 @@ export class PinsAndTags {
     this.chats.onBegun((blankId, chat) => {
       const tags = this.tags(blankId);
       put(this.tagged, blankId, []);
-      if (tags.length) this.tag(chat.id, tags).catch((error: unknown) => this.chats.fail(chat.id, error));
+      if (tags.length)
+        this.tag(chat.id, tags).catch((error: unknown) => this.chats.fail(chat.id, error));
     });
     void this.load();
   }
@@ -71,7 +72,11 @@ export class PinsAndTags {
 }
 
 /** Sets a chat's list in one of the maps; an empty one leaves it out. */
-function put<T>(map: WritableSignal<ReadonlyMap<ChatId, readonly T[]>>, chatId: ChatId, list: readonly T[]): void {
+function put<T>(
+  map: WritableSignal<ReadonlyMap<ChatId, readonly T[]>>,
+  chatId: ChatId,
+  list: readonly T[],
+): void {
   map.update((all) => {
     const next = new Map(all);
     if (list.length) next.set(chatId, list);

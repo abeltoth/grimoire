@@ -39,7 +39,10 @@ app.whenReady().then(async () => {
     })()`);
     await delay(500);
     const image = await win.webContents.capturePage(rect);
-    const name = `${String(index + 1).padStart(2, '0')}-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}.png`;
+    const name = `${String(index + 1).padStart(2, '0')}-${title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')}.png`;
     writeFileSync(path.join(outDir, name), image.toPNG());
     console.log(`${name} ${image.getSize().width}×${image.getSize().height}`);
   }

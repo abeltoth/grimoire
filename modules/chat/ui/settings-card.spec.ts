@@ -1,14 +1,9 @@
-import type {
-  AgentSetup,
-  CommandRequest,
-  OpenChat,
-  Preset,
-} from '@grimoire/contract';
+import type { AgentSetup, CommandRequest, OpenChat, Preset } from '@grimoire/contract';
 import { DEFAULT_SETTINGS } from '@grimoire/contract';
 import { fakeBridge, pick, render, write } from '@ui/testing/app-harness';
 
 describe('settings-card', () => {
-  it('changes a blank chat\'s settings on its settings card', async () => {
+  it("changes a blank chat's settings on its settings card", async () => {
     const { bridge, calls } = fakeBridge();
     const { fixture, el, texts } = await render(bridge);
     const model = el.querySelector<HTMLButtonElement>('.meta [data-setting="model"]')!;
@@ -36,7 +31,12 @@ describe('settings-card', () => {
     await fixture.whenStable();
     // Sonnet takes no Extra high, and your settings give it no effort.
     expect(texts('gr-settings-card [data-setting="effort"] h3')).toEqual(['Effort for Sonnet 5.5']);
-    expect(texts('gr-settings-card [data-setting="effort"] .choice')).toEqual(['Low', 'Medium', 'High', 'Max']);
+    expect(texts('gr-settings-card [data-setting="effort"] .choice')).toEqual([
+      'Low',
+      'Medium',
+      'High',
+      'Max',
+    ]);
     expect(texts('.meta button')[2]).toBe('Default effort');
     pick(el, 'Max');
     pick(el, 'Full access');
@@ -96,8 +96,12 @@ describe('settings-card', () => {
 
     pick(el, 'Auto');
     await fixture.whenStable();
-    expect(texts('gr-settings-card [data-setting="model"] [aria-checked="true"]')).toEqual(['Auto']);
-    expect(texts('gr-settings-card [data-setting="effort"] .none')).toEqual(['Auto picks the effort too']);
+    expect(texts('gr-settings-card [data-setting="model"] [aria-checked="true"]')).toEqual([
+      'Auto',
+    ]);
+    expect(texts('gr-settings-card [data-setting="effort"] .none')).toEqual([
+      'Auto picks the effort too',
+    ]);
     // Auto picks the effort with the model, so the head shows no effort yet.
     expect(texts('.meta button')).toEqual(['Claude Code', 'Auto', 'Ask first', '~', 'No preset']);
     expect(calls.filter((c) => c.command === 'layout.set').at(-1)?.request).toMatchObject({
@@ -107,7 +111,8 @@ describe('settings-card', () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     await fixture.whenStable();
     await write(fixture, el, 'Rename the ribbon');
-    const started = calls.find((c) => c.command === 'agents.start')!.request as CommandRequest<'agents.start'>;
+    const started = calls.find((c) => c.command === 'agents.start')!
+      .request as CommandRequest<'agents.start'>;
     expect(started.settings).toMatchObject({ autoModel: true });
     expect(started.settings.model).toBeUndefined();
     expect(texts('.meta button').slice(1, 3)).toEqual(['Auto: Sonnet 5.5', 'Medium effort']);
@@ -115,7 +120,11 @@ describe('settings-card', () => {
     // Once begun, Auto can't be picked again; another model ends it.
     model().click();
     await fixture.whenStable();
-    expect(texts('gr-settings-card [data-setting="model"] .choice')).toEqual(['Opus 5.5', 'Sonnet 5.5', 'Haiku 5.5']);
+    expect(texts('gr-settings-card [data-setting="model"] .choice')).toEqual([
+      'Opus 5.5',
+      'Sonnet 5.5',
+      'Haiku 5.5',
+    ]);
     expect(texts('gr-settings-card [data-setting="model"] .none')).toEqual([
       'Auto picked Sonnet 5.5 for your first entry',
     ]);
@@ -137,9 +146,10 @@ describe('settings-card', () => {
     expect(texts('gr-settings-card .card-head span')).toEqual([
       'Its agent and folder stay as it began. Pick to change the rest.',
     ]);
-    expect(
-      texts('gr-settings-card [data-setting="folder"] .choice[aria-disabled]'),
-    ).toEqual(['~/git/grimoire', '~']);
+    expect(texts('gr-settings-card [data-setting="folder"] .choice[aria-disabled]')).toEqual([
+      '~/git/grimoire',
+      '~',
+    ]);
     expect(texts('gr-settings-card .action')).toEqual(['Save these settings as a preset…']);
 
     pick(el, 'Plan only');
@@ -161,9 +171,18 @@ describe('settings-card', () => {
     expect(el.querySelector('gr-settings-card')).toBeNull();
   });
 
-  it("turns MCP servers off for one chat on its settings card, and not for the next", async () => {
+  it('turns MCP servers off for one chat on its settings card, and not for the next', async () => {
     const { bridge, answers, calls, emit } = fakeBridge();
-    const empty = { memory: [], skills: [], agents: [], commands: [], hooks: [], mcpServers: [], plugins: [], permissions: [] };
+    const empty = {
+      memory: [],
+      skills: [],
+      agents: [],
+      commands: [],
+      hooks: [],
+      mcpServers: [],
+      plugins: [],
+      permissions: [],
+    };
     answers['setup.get'] = (request: CommandRequest<'setup.get'>): AgentSetup => ({
       cwd: request.cwd ?? 'C:/Users/me',
       sections: {
@@ -184,7 +203,10 @@ describe('settings-card', () => {
 
     const column = 'gr-settings-card [data-setting="mcp"]';
     // What each costs; one off in every chat stays off here.
-    expect(texts(`${column} .choice`)).toEqual(['github 4,200 tokens', 'slack off in every chapter']);
+    expect(texts(`${column} .choice`)).toEqual([
+      'github 4,200 tokens',
+      'slack off in every chapter',
+    ]);
     expect(texts(`${column} .choice[aria-checked="true"]`)).toEqual(['github 4,200 tokens']);
     expect(texts(`${column} .choice[aria-disabled]`)).toEqual(['slack off in every chapter']);
     expect(texts(`${column} .none`)).toEqual(['A change counts from its next turn']);
@@ -195,7 +217,10 @@ describe('settings-card', () => {
     expect(calls.filter((c) => c.command === 'agents.configure').map((c) => c.request)).toEqual([
       { chatId: 'chat-1', change: { mcpOff: ['github'] } },
     ]);
-    emit('agents.settings', { chatId: 'chat-1', settings: { cwd: 'C:/work/grimoire', mcpOff: ['github'] } });
+    emit('agents.settings', {
+      chatId: 'chat-1',
+      settings: { cwd: 'C:/work/grimoire', mcpOff: ['github'] },
+    });
     await fixture.whenStable();
     expect(texts(`${column} .choice[aria-checked="true"]`)).toEqual([]);
     // A new chat takes the settings used last, but not the servers turned off for this one.
@@ -204,7 +229,7 @@ describe('settings-card', () => {
     });
   });
 
-  it('saves a chat\'s settings as a preset, and puts chats on it', async () => {
+  it("saves a chat's settings as a preset, and puts chats on it", async () => {
     const { bridge, calls, answers } = fakeBridge();
     let saved: Preset[] = [];
     answers['presets.list'] = () => saved;
@@ -234,7 +259,9 @@ describe('settings-card', () => {
       agent: 'claude-code',
       settings: { cwd: 'C:/Users/me', model: 'opus', effort: 'xhigh', mode: 'ask' },
     });
-    expect(texts(`${presetColumn} [aria-checked="true"]`)).toEqual(['Plan a feature Claude Code · Ask first']);
+    expect(texts(`${presetColumn} [aria-checked="true"]`)).toEqual([
+      'Plan a feature Claude Code · Ask first',
+    ]);
     expect(head()[5]).toBe('Plan a feature');
     expect(document.activeElement).toBe(el.querySelector(`${presetColumn} .action`));
 

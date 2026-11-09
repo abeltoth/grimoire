@@ -80,7 +80,9 @@
       <p class="none">{{ agentName() }} hasn't listed its models</p>
     }
     @if (autoPicked()) {
-      <p class="none">Auto picked {{ modelName() }} for your first {{ wording.say('entry', 'message') }}</p>
+      <p class="none">
+        Auto picked {{ modelName() }} for your first {{ wording.say('entry', 'message') }}
+      </p>
     }
   </div>
 
@@ -134,7 +136,9 @@
           (click)="begun() || pick({ cwd })"
         >
           <gr-icon name="check" />
-          <span><code>{{ chats.folderName(cwd) }}</code></span>
+          <span
+            ><code>{{ chats.folderName(cwd) }}</code></span
+          >
         </button>
       }
     </div>
@@ -162,7 +166,9 @@
         (click)="pick({ mode: m.mode })"
       >
         <gr-icon name="check" />
-        <span>{{ m.label }} <small>{{ m.detail }}</small></span>
+        <span
+          >{{ m.label }} <small>{{ m.detail }}</small></span
+        >
       </button>
     }
   </div>
@@ -189,7 +195,9 @@
         (click)="usePreset(saved)"
       >
         <gr-icon name="check" />
-        <span>{{ saved.name }} <small>{{ presets.describe(saved) }}</small></span>
+        <span
+          >{{ saved.name }} <small>{{ presets.describe(saved) }}</small></span
+        >
       </button>
     } @empty {
       <p class="none">No saved presets yet</p>

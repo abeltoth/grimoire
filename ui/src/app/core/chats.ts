@@ -200,7 +200,9 @@ export class Chats {
 
   /** Whether the agent does this, such as renaming its chats. */
   can(agent: AgentId | undefined, capability: AgentCapability): boolean {
-    return !!this.agents().find((info) => info.id === agent)?.capabilities.includes(capability);
+    return !!this.agents()
+      .find((info) => info.id === agent)
+      ?.capabilities.includes(capability);
   }
 
   agentName(agent: AgentId): string {
@@ -310,7 +312,12 @@ export class Chats {
   /** Gives a blank chat these settings, as a preset holds them. */
   setUp(id: string, agent: AgentId, settings: NewChatSettings, prompt?: string): void {
     if (this.find(id)?.status !== 'blank') return;
-    this.update(id, ({ prompt: _, ...c }) => ({ ...c, agent, settings, ...(prompt ? { prompt } : {}) }));
+    this.update(id, ({ prompt: _, ...c }) => ({
+      ...c,
+      agent,
+      settings,
+      ...(prompt ? { prompt } : {}),
+    }));
     this.remember({ agent, settings });
   }
 
@@ -468,7 +475,11 @@ export class Chats {
    * Sends a message, with any pictures and files; a blank chat's first
    * one starts the chat. Gives the chat's ID, unless it couldn't be sent.
    */
-  async send(id: string, text: string, attachments: readonly Attachment[] = []): Promise<string | undefined> {
+  async send(
+    id: string,
+    text: string,
+    attachments: readonly Attachment[] = [],
+  ): Promise<string | undefined> {
     // What you send while a blank chat starts goes to it once it has.
     const starting = this.starting.get(id);
     if (starting) {
@@ -728,7 +739,8 @@ export class Chats {
   private turnTo(id: string): void {
     if (this.settingsCard()?.id !== id) this.closeSettings();
     const was = this.currentId();
-    if (id === this.besideId()) this.setBeside(was && was !== id && this.find(was) ? was : undefined);
+    if (id === this.besideId())
+      this.setBeside(was && was !== id && this.find(was) ? was : undefined);
     this.currentId.set(id);
     if (this.popout) return;
     const chat = this.find(id);

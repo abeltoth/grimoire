@@ -25,7 +25,8 @@ export class ChatRuns {
 
   /** Sends a message, or queues it while a turn runs. */
   send(chat: ChatState, text: string, attachments: Attachment[] = []): void {
-    if (!text.trim() && !attachments.length) throw new Error('Write something, or attach something, to send');
+    if (!text.trim() && !attachments.length)
+      throw new Error('Write something, or attach something, to send');
     if (chat.status === 'idle') return this.sendTo(chat, text, true, attachments);
     chat.queued.push({ id: randomUUID(), text, ...(attachments.length ? { attachments } : {}) });
     this.updates.dropSuggestion(chat);

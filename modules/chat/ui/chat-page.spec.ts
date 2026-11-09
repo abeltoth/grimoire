@@ -59,10 +59,15 @@ describe('chat-page', () => {
 
     it('says so in its page header, and is made the editing chat when you ask', async () => {
       const { bridge, calls, emit, answers } = fakeBridge();
-      answers['agents.openChats'] = () => [opened('c1', 'Context meter'), opened('c2', 'Explain it', reading)];
+      answers['agents.openChats'] = () => [
+        opened('c1', 'Context meter'),
+        opened('c2', 'Explain it', reading),
+      ];
       answers['layout.get'] = () => ({ current: 'c2' });
       const { fixture, el, texts } = await render(bridge);
-      expect(texts('gr-page-header .read-only p')).toEqual(['Read-only — “Context meter” is editing']);
+      expect(texts('gr-page-header .read-only p')).toEqual([
+        'Read-only — “Context meter” is editing',
+      ]);
       expect(texts('gr-page-header .read-only button')).toEqual(['Make this the editing chapter']);
       expect(texts('.meta [data-setting="mode"]')).toEqual(['Accept edits']);
 
@@ -77,18 +82,29 @@ describe('chat-page', () => {
       // Another chat took over, one not named yet.
       emit('agents.readOnly', { chatId: 'c2', readOnly: { chatId: 'c3', title: '' } });
       await fixture.whenStable();
-      expect(texts('gr-page-header .read-only p')).toEqual(['Read-only — “Untitled chapter” is editing']);
+      expect(texts('gr-page-header .read-only p')).toEqual([
+        'Read-only — “Untitled chapter” is editing',
+      ]);
     });
 
     it('changes its permission as any chat does', async () => {
       const { bridge, calls, answers } = fakeBridge();
-      answers['agents.openChats'] = () => [opened('c1', 'Context meter'), opened('c2', 'Explain it', reading)];
+      answers['agents.openChats'] = () => [
+        opened('c1', 'Context meter'),
+        opened('c2', 'Explain it', reading),
+      ];
       answers['layout.get'] = () => ({ current: 'c2' });
       const { fixture, el } = await render(bridge);
       el.querySelector<HTMLButtonElement>('.meta [data-setting="mode"]')!.click();
       await fixture.whenStable();
       const modes = [...el.querySelectorAll('gr-settings-card [data-setting="mode"] .choice')];
-      expect(modes.map((m) => [m.textContent!.trim().split(/\s+/).slice(0, 2).join(' '), m.getAttribute('aria-checked'), m.getAttribute('aria-disabled')])).toEqual([
+      expect(
+        modes.map((m) => [
+          m.textContent!.trim().split(/\s+/).slice(0, 2).join(' '),
+          m.getAttribute('aria-checked'),
+          m.getAttribute('aria-disabled'),
+        ]),
+      ).toEqual([
         ['Ask first', 'false', null],
         ['Accept edits', 'true', null],
         ['Plan only', 'false', null],
@@ -104,7 +120,12 @@ describe('chat-page', () => {
 
     it('approves its plan as any approval, without making it the editing chat', async () => {
       const { bridge, calls, answers } = fakeBridge();
-      const plan = { id: 'p1', chatId: 'c2', tool: 'ExitPlanMode', input: { plan: 'Add the meter' } };
+      const plan = {
+        id: 'p1',
+        chatId: 'c2',
+        tool: 'ExitPlanMode',
+        input: { plan: 'Add the meter' },
+      };
       answers['agents.openChats'] = () => [
         opened('c1', 'Context meter'),
         opened('c2', 'Explain it', { ...reading, status: 'waiting', approvals: [plan] }),
@@ -123,7 +144,7 @@ describe('chat-page', () => {
     });
   });
 
-  it('undoes a message\'s edits, and marks them withdrawn', async () => {
+  it("undoes a message's edits, and marks them withdrawn", async () => {
     const { bridge, calls, emit, answers } = fakeBridge();
     const edit = (id: string, file: string) => ({
       kind: 'tool' as const,
@@ -141,13 +162,23 @@ describe('chat-page', () => {
         status: 'idle',
         entries: [
           { kind: 'user', id: 'u1', text: 'Add a meter' },
-          { kind: 'agent', id: 'a1', blocks: [edit('t1', 'meter.ts'), { kind: 'text', text: 'Added.' }] },
+          {
+            kind: 'agent',
+            id: 'a1',
+            blocks: [edit('t1', 'meter.ts'), { kind: 'text', text: 'Added.' }],
+          },
           { kind: 'user', id: 'u2', text: 'Colour it' },
           {
             kind: 'agent',
             id: 'a2',
             blocks: [
-              { kind: 'tool', id: 't2', tool: 'Read', input: { file_path: 'C:/work/grimoire/meter.css' }, result: { text: 'x', isError: false } },
+              {
+                kind: 'tool',
+                id: 't2',
+                tool: 'Read',
+                input: { file_path: 'C:/work/grimoire/meter.css' },
+                result: { text: 'x', isError: false },
+              },
               edit('t3', 'meter.css'),
               { kind: 'text', text: 'Coloured.' },
             ],
@@ -162,7 +193,10 @@ describe('chat-page', () => {
     ];
     answers['layout.get'] = () => ({ current: 'c1' });
     const { fixture, el, texts } = await render(bridge);
-    const undoes = () => [...el.querySelectorAll<HTMLButtonElement>('.you .by button')].filter((b) => b.textContent!.trim() === 'Undo');
+    const undoes = () =>
+      [...el.querySelectorAll<HTMLButtonElement>('.you .by button')].filter(
+        (b) => b.textContent!.trim() === 'Undo',
+      );
     expect(undoes().map((b) => b.getAttribute('aria-disabled'))).toEqual([null, null]);
     expect(texts('.you')).toHaveLength(2);
 
@@ -191,7 +225,11 @@ describe('chat-page', () => {
       input: { file_path: 'C:/work/grimoire/a.ts', content: 'a' },
       result: { text: 'ok', isError: false },
     });
-    const reply = (id: string, text: string) => ({ kind: 'agent' as const, id, blocks: [{ kind: 'text' as const, text }] });
+    const reply = (id: string, text: string) => ({
+      kind: 'agent' as const,
+      id,
+      blocks: [{ kind: 'text' as const, text }],
+    });
     answers['agents.openChats'] = (): OpenChat[] => [
       {
         id: 'c1',
@@ -203,7 +241,11 @@ describe('chat-page', () => {
           { kind: 'user', id: 'u1', text: 'Copied, with an edit' },
           { kind: 'agent', id: 'a1', blocks: [edit('t1'), { kind: 'text', text: 'Wrote it.' }] },
           { kind: 'user', id: 'u2', text: 'Mine, with an edit' },
-          { kind: 'agent', id: 'a2', blocks: [edit('t2'), { kind: 'text', text: 'Wrote it again.' }] },
+          {
+            kind: 'agent',
+            id: 'a2',
+            blocks: [edit('t2'), { kind: 'text', text: 'Wrote it again.' }],
+          },
           { kind: 'user', id: 'u3', text: 'Mine, only talk' },
           reply('a3', 'Just talk.'),
         ],
@@ -242,7 +284,9 @@ describe('chat-page', () => {
     answers['agents.fork'] = () => chat('c2', 'Context meter (a)');
     const { fixture, el, texts } = await render(bridge);
     const forkButton = () =>
-      [...el.querySelectorAll<HTMLButtonElement>('.you .by button')].find((b) => b.textContent!.trim() === 'Fork')!;
+      [...el.querySelectorAll<HTMLButtonElement>('.you .by button')].find(
+        (b) => b.textContent!.trim() === 'Fork',
+      )!;
 
     forkButton().click();
     await fixture.whenStable();
@@ -255,7 +299,9 @@ describe('chat-page', () => {
 
   it('renames a chat in place with the pen beside its title', async () => {
     const { bridge, calls, answers } = fakeBridge();
-    answers['agents.list'] = () => [{ id: 'claude-code', name: 'Claude Code', capabilities: ['rename'] }];
+    answers['agents.list'] = () => [
+      { id: 'claude-code', name: 'Claude Code', capabilities: ['rename'] },
+    ];
     const { fixture, el, texts } = await render(bridge);
     await fixture.whenStable();
     const pen = () => el.querySelector<HTMLButtonElement>('[aria-label="Rename chapter"]');
@@ -273,7 +319,9 @@ describe('chat-page', () => {
     await rename('Login bug', 'Enter');
     expect(texts('gr-page-header h1')).toEqual(['Login bug']);
     await write(fixture, el, 'First');
-    expect(calls.find((c) => c.command === 'agents.start')!.request).toMatchObject({ title: 'Login bug' });
+    expect(calls.find((c) => c.command === 'agents.start')!.request).toMatchObject({
+      title: 'Login bug',
+    });
 
     await rename('  Flaky login test ', 'Enter');
     expect(calls.filter((c) => c.command === 'agents.rename').map((c) => c.request)).toEqual([
@@ -289,7 +337,7 @@ describe('chat-page', () => {
     expect(calls.filter((c) => c.command === 'agents.interrupt')).toEqual([]);
   });
 
-  it('leaves the pen out for agents that can\'t rename their chats', async () => {
+  it("leaves the pen out for agents that can't rename their chats", async () => {
     const { bridge } = fakeBridge();
     const { el } = await render(bridge);
     expect(el.querySelector('[aria-label="Rename chapter"]')).toBeNull();

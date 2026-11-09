@@ -18,7 +18,9 @@
       @if (profiles.refused(); as reason) {
         <p class="refused" role="alert">
           {{ reason }}
-          <button type="button" class="gr-link" (click)="profiles.refused.set(null)">Dismiss</button>
+          <button type="button" class="gr-link" (click)="profiles.refused.set(null)">
+            Dismiss
+          </button>
         </p>
       }
       @if (open()) {

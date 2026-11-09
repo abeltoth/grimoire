@@ -81,6 +81,9 @@ declare module '@grimoire/contract' {
      * that's new. Undefined when it hasn't changed, or outside a repository.
      * The path is from the repository's top folder.
      */
-    'git.committed': { request: { cwd: string; path: string }; response: string | null | undefined };
+    'git.committed': {
+      request: { cwd: string; path: string };
+      response: string | null | undefined;
+    };
   }
 }

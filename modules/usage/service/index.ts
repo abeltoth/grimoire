@@ -9,7 +9,9 @@ export const usage: ServiceModule = {
   id: 'usage',
   migrations: MIGRATIONS,
   start({ registry, db, events, hub }) {
-    const usage = new Usage(new UsageReadings(db), USAGE_SOURCES, () => hub.agents().map((agent) => agent.id));
+    const usage = new Usage(new UsageReadings(db), USAGE_SOURCES, () =>
+      hub.agents().map((agent) => agent.id),
+    );
     registry.register('usage.plan', ({ agent }) => usage.plan(agent));
     registry.register('usage.history', ({ agent, since }) => usage.history(agent, since));
     registry.register('usage.breakdown', ({ agent }) => usage.breakdown(agent));

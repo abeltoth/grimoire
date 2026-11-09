@@ -33,7 +33,9 @@ export async function ensureService(options: LaunchOptions): Promise<ServiceClie
   if (running) {
     const { welcome } = running;
     if (welcome.buildId === buildId && welcome.protocolVersion === PROTOCOL_VERSION) return running;
-    options.log(`Replacing service build ${welcome.buildId} (pid ${welcome.pid}) with build ${buildId}`);
+    options.log(
+      `Replacing service build ${welcome.buildId} (pid ${welcome.pid}) with build ${buildId}`,
+    );
     await stop(running);
   }
   spawnService(options, buildId);

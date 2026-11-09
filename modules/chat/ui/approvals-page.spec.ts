@@ -26,7 +26,8 @@ describe('approvals-page', () => {
     const chatTab = [...el.querySelectorAll<HTMLButtonElement>('gr-chat-tab button')].find((b) =>
       b.textContent!.includes('Awaiting your seal'),
     )!;
-    const focusedApprovalCard = () => document.activeElement?.closest('gr-approval-card')?.querySelector('.well')?.textContent;
+    const focusedApprovalCard = () =>
+      document.activeElement?.closest('gr-approval-card')?.querySelector('.well')?.textContent;
 
     chatTab.click();
     await fixture.whenStable();
@@ -37,7 +38,9 @@ describe('approvals-page', () => {
       'Context meter',
       'Fix flaky login test',
     ]);
-    expect(texts('gr-approvals-page gr-approval-card .meta span')[0]).toBe('Runs in ~/git/grimoire');
+    expect(texts('gr-approvals-page gr-approval-card .meta span')[0]).toBe(
+      'Runs in ~/git/grimoire',
+    );
     // In its chat, the approval card is a stub pointing to the right page.
     expect(texts('gr-chat-page gr-approval-stub code')).toEqual(['git push']);
     expect(focusedApprovalCard()).toBe('$git push');
@@ -75,7 +78,7 @@ describe('approvals-page', () => {
     expect(texts('gr-right-page .tabs [aria-pressed="true"]')).toEqual(['Outline']);
   });
 
-  it('opens an approval card\'s chat from the right page', async () => {
+  it("opens an approval card's chat from the right page", async () => {
     const { bridge, answers } = fakeBridge();
     answers['agents.openChats'] = () => [
       {

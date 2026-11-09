@@ -27,7 +27,10 @@ describe('Memories', () => {
       },
     };
     memories = new Memories(new Map([['fake', source]]), () => {});
-    expect(await memories.list('fake', 'C:/work')).toMatchObject({ cwd: 'C:/work', folder: 'C:/mem' });
+    expect(await memories.list('fake', 'C:/work')).toMatchObject({
+      cwd: 'C:/work',
+      folder: 'C:/mem',
+    });
     expect(await memories.list('fake')).toMatchObject({ cwd: homedir() });
     expect(asked).toEqual(['C:/work', homedir()]);
   });

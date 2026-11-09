@@ -10,4 +10,6 @@ export interface UsageSource {
 }
 
 /** Each agent's, by its ID; an agent without one has no plan to read. */
-export const USAGE_SOURCES: ReadonlyMap<AgentId, UsageSource> = new Map([['claude-code', claudeUsage]]);
+export const USAGE_SOURCES: ReadonlyMap<AgentId, UsageSource> = new Map([
+  ['claude-code', claudeUsage],
+]);

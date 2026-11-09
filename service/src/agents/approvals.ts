@@ -83,6 +83,7 @@ export class Approvals {
     pending.resolve(verdict);
     this.emit('agents.approvalSettled', { chatId: approval.chatId, approvalId: approval.id });
     const chat = this.table.chats.get(approval.chatId);
-    if (chat && chat.status === 'waiting' && !this.has(chat)) this.updates.setStatus(chat, 'thinking');
+    if (chat && chat.status === 'waiting' && !this.has(chat))
+      this.updates.setStatus(chat, 'thinking');
   }
 }

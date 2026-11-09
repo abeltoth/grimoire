@@ -14,7 +14,12 @@ export function provideScheduledChats(): EnvironmentProviders {
   return provideShellEntries((shell) => {
     const scheduled = inject(ScheduledChats);
     const rightPage = inject(RightPageState);
-    shell.pageTabs.add({ id: 'scheduled-chats', label: 'Scheduled chats', order: 40, component: SchedulesPage });
+    shell.pageTabs.add({
+      id: 'scheduled-chats',
+      label: 'Scheduled chats',
+      order: 40,
+      component: SchedulesPage,
+    });
 
     effect((onCleanup) => {
       const next = scheduled.next();

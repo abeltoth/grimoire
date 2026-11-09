@@ -117,11 +117,9 @@ export const FOLLOW_UPS_TOOL = 'mcp__grimoire__suggest_follow_ups';
  * as "resumedAgentId".
  */
 export function subagentAgentId(result: string): string | undefined {
-  return (
-    /^agentId: ([\w-]+)/m.exec(result) ??
+  return (/^agentId: ([\w-]+)/m.exec(result) ??
     /message from "([\w-]+)"/.exec(result) ??
-    /"resumedAgentId":\s*"([\w-]+)"/.exec(result)
-  )?.[1];
+    /"resumedAgentId":\s*"([\w-]+)"/.exec(result))?.[1];
 }
 
 /** A tool call that handed a subagent a task, or sent one a message: what it gave, and its result. */
@@ -137,7 +135,10 @@ export interface SubagentCall {
  * or whom it sent a message, and its result once it has one. Undefined when
  * it isn't among them.
  */
-export function subagentCallIn(messages: readonly ClaudeMessage[], toolId: string): SubagentCall | undefined {
+export function subagentCallIn(
+  messages: readonly ClaudeMessage[],
+  toolId: string,
+): SubagentCall | undefined {
   let call: SubagentCall | undefined;
   for (const message of messages) {
     const content = (message.message as ApiMessage | undefined)?.content;
@@ -150,7 +151,11 @@ export function subagentCallIn(messages: readonly ClaudeMessage[], toolId: strin
           ...(typeof prompt === 'string' ? { prompt } : {}),
           ...(block.name === SEND_TOOL && typeof to === 'string' ? { sentTo: to } : {}),
         };
-      } else if (message.type === 'user' && block.type === 'tool_result' && block.tool_use_id === toolId) {
+      } else if (
+        message.type === 'user' &&
+        block.type === 'tool_result' &&
+        block.tool_use_id === toolId
+      ) {
         call = { ...call, result: toolResult(block) };
       }
     }
@@ -176,9 +181,14 @@ export function runBeganWith(messages: readonly ClaudeMessage[], prompt: string)
  * Where a saved subagent is with its task: done once it handed its report
  * back, else as the result of the tool call that started it says.
  */
-export function savedSubagentState(entries: readonly Entry[], result: ToolResult | undefined): SubagentState {
+export function savedSubagentState(
+  entries: readonly Entry[],
+  result: ToolResult | undefined,
+): SubagentState {
   const handedBack = entries.some(
-    (entry) => entry.kind === 'agent' && entry.blocks.some((b) => b.kind === 'tool' && b.tool === HANDBACK_TOOL),
+    (entry) =>
+      entry.kind === 'agent' &&
+      entry.blocks.some((b) => b.kind === 'tool' && b.tool === HANDBACK_TOOL),
   );
   if (handedBack) return 'done';
   if (!result) return 'stopped';
@@ -203,12 +213,17 @@ export function wholeRun(messages: readonly ClaudeMessage[]): Entry[] {
     run.applyRun(message);
   }
   for (const entry of run.entries)
-    if (entry.kind === 'user' && sent.has(entry.id)) entry.text = entry.text.replace(SENT_WHILE_WORKING, '');
+    if (entry.kind === 'user' && sent.has(entry.id))
+      entry.text = entry.text.replace(SENT_WHILE_WORKING, '');
   return run.entries;
 }
 
 /** How a task Claude Code ran ended, as a subagent's state. */
-const TASK_END: Record<string, SubagentState> = { completed: 'done', failed: 'failed', stopped: 'stopped' };
+const TASK_END: Record<string, SubagentState> = {
+  completed: 'done',
+  failed: 'failed',
+  stopped: 'stopped',
+};
 
 /** Claude Code's word on a task it runs, such as a subagent: that it began, or how it ended. */
 interface TaskMessage {
@@ -236,7 +251,13 @@ interface HookMessage {
 }
 
 /** The events a hook runs on for a tool, which its name follows with the tool's. */
-const TOOL_EVENTS = new Set(['PreToolUse', 'PostToolUse', 'PostToolUseFailure', 'PermissionRequest', 'PermissionDenied']);
+const TOOL_EVENTS = new Set([
+  'PreToolUse',
+  'PostToolUse',
+  'PostToolUseFailure',
+  'PermissionRequest',
+  'PermissionDenied',
+]);
 
 /** The exit code by which a hook's command stops what it ran on. */
 const BLOCKING_EXIT = 2;
@@ -307,7 +328,8 @@ export class ClaudeTranscript {
       this.count(message.message as ApiMessage, !!message.parent_tool_use_id, this.turn);
     else if (message.type === 'result' && this.live) this.endTurn();
     // Messages inside a subagent's run belong to its tool call's subagent, not the chat.
-    if (message.parent_tool_use_id) return this.subagentRun(message.parent_tool_use_id).take(message);
+    if (message.parent_tool_use_id)
+      return this.subagentRun(message.parent_tool_use_id).take(message);
     this.take(message, at);
   }
 
@@ -332,14 +354,16 @@ export class ClaudeTranscript {
   /** The live turn ended: the next starts afresh, but for the hooks still running. */
   private endTurn(): void {
     this.spent = new Map();
-    for (const [id, { run }] of this.hookRuns) if (run.outcome !== 'running') this.hookRuns.delete(id);
+    for (const [id, { run }] of this.hookRuns)
+      if (run.outcome !== 'running') this.hookRuns.delete(id);
   }
 
   /** A hook began, printed something, or ended; the turn's hooks are passed on as they stand. */
   private applyHook(message: HookMessage): void {
     const id = message.hook_id;
     const kind = message.subtype;
-    if (!id || (kind !== 'hook_started' && kind !== 'hook_progress' && kind !== 'hook_response')) return;
+    if (!id || (kind !== 'hook_started' && kind !== 'hook_progress' && kind !== 'hook_response'))
+      return;
     const now = Date.now();
     let timed = this.hookRuns.get(id);
     if (!timed) {
@@ -394,13 +418,18 @@ export class ClaudeTranscript {
   }
 
   /** Counts a reply's tokens toward the live turn, or the saved one. */
-  private count(message: ApiMessage | undefined, subagent: boolean, turn: SavedTurn | undefined): void {
+  private count(
+    message: ApiMessage | undefined,
+    subagent: boolean,
+    turn: SavedTurn | undefined,
+  ): void {
     const use = message?.id ? tokenUse(message, subagent) : undefined;
     if (!use) return;
     if (this.live) {
       const known = this.spent.get(message!.id!);
       this.spent.set(message!.id!, use);
-      if (!known || JSON.stringify(known) !== JSON.stringify(use)) this.listener?.tokens?.(byModel(this.spent));
+      if (!known || JSON.stringify(known) !== JSON.stringify(use))
+        this.listener?.tokens?.(byModel(this.spent));
     } else if (turn) {
       turn.spent.set(message!.id!, use);
       turn.entry.tokens = { at: turn.began, uses: byModel(turn.spent) };
@@ -478,7 +507,11 @@ export class ClaudeTranscript {
   }
 
   /** Your message; the @-references on its last lines are files you attached. */
-  private addUserText(uuid: string | undefined, message: string, pictures: PictureAttachment[]): void {
+  private addUserText(
+    uuid: string | undefined,
+    message: string,
+    pictures: PictureAttachment[],
+  ): void {
     if (this.live) return;
     const { text, files } = splitReferences(message);
     const attachments: Attachment[] = [...pictures, ...files];
@@ -513,7 +546,11 @@ export class ClaudeTranscript {
         const subject = text('subject');
         if (!id || !subject) return false;
         const activeText = text('activeForm');
-        this.tasks.set(id, { text: subject, status: 'pending', ...(activeText ? { activeText } : {}) });
+        this.tasks.set(id, {
+          text: subject,
+          status: 'pending',
+          ...(activeText ? { activeText } : {}),
+        });
         return true;
       }
       case 'TaskUpdate': {
@@ -529,7 +566,9 @@ export class ClaudeTranscript {
         return true;
       }
       case 'TodoWrite': {
-        const todos = Array.isArray(input['todos']) ? (input['todos'] as Record<string, unknown>[]) : [];
+        const todos = Array.isArray(input['todos'])
+          ? (input['todos'] as Record<string, unknown>[])
+          : [];
         this.tasks.clear();
         todos.forEach((todo, i) => {
           if (typeof todo['content'] !== 'string') return;
@@ -582,7 +621,8 @@ interface SavedTurn {
 function hookRun(id: string, message: HookMessage): HookRun {
   const event = message.hook_event ?? '';
   const name = message.hook_name ?? event;
-  const tool = TOOL_EVENTS.has(event) && name.startsWith(`${event}:`) ? name.slice(event.length + 1) : '';
+  const tool =
+    TOOL_EVENTS.has(event) && name.startsWith(`${event}:`) ? name.slice(event.length + 1) : '';
   return { id, name, event, ...(tool ? { tool } : {}), outcome: 'running' };
 }
 

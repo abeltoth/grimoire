@@ -54,7 +54,13 @@ describe('toPlanUsage', () => {
         ...response({
           five_hour: null,
           seven_day: null,
-          extra_usage: { is_enabled: true, monthly_limit: 60000, used_credits: 12345, utilization: null, currency: 'usd' },
+          extra_usage: {
+            is_enabled: true,
+            monthly_limit: 60000,
+            used_credits: 12345,
+            utilization: null,
+            currency: 'usd',
+          },
         }),
         subscription_type: 'enterprise',
       },
@@ -63,13 +69,24 @@ describe('toPlanUsage', () => {
     expect(usage).toEqual({
       plan: 'enterprise',
       windows: [],
-      credits: { spent: 12345, limit: 60000, currency: 'USD', used: 20.575, resetsAt: firstOfDecember },
+      credits: {
+        spent: 12345,
+        limit: 60000,
+        currency: 'USD',
+        used: 20.575,
+        resetsAt: firstOfDecember,
+      },
       at,
     });
   });
 
   it('has no share of an unlimited allowance, and leaves out credits that are turned off', () => {
-    const unlimited = { is_enabled: true, monthly_limit: null, used_credits: 900, utilization: null };
+    const unlimited = {
+      is_enabled: true,
+      monthly_limit: null,
+      used_credits: 900,
+      utilization: null,
+    };
     expect(toPlanUsage(response({ extra_usage: unlimited }), at).credits).toEqual({
       spent: 900,
       limit: null,
@@ -92,7 +109,12 @@ describe('toUsageBreakdown', () => {
     ],
     recommendations: [
       { key: 'cron', pct: 82, title: 'Stop sessions you no longer need' },
-      { key: 'long_context', pct: 80, title: 'Start fresh when you switch tasks', detail: 'Run /clear.' },
+      {
+        key: 'long_context',
+        pct: 80,
+        title: 'Start fresh when you switch tasks',
+        detail: 'Run /clear.',
+      },
     ],
     fix: { keys: ['cron'], messages: ['/effort low'] },
     agents: [{ name: 'Explore', pct: 5 }],
@@ -115,7 +137,12 @@ describe('toUsageBreakdown', () => {
       ],
       advice: [
         { key: 'cron', share: 82, title: 'Stop sessions you no longer need' },
-        { key: 'long_context', share: 80, title: 'Start fresh when you switch tasks', detail: 'Run /clear.' },
+        {
+          key: 'long_context',
+          share: 80,
+          title: 'Start fresh when you switch tasks',
+          detail: 'Run /clear.',
+        },
       ],
       sources: [
         { kind: 'mcp', name: 'docs', share: 9 },

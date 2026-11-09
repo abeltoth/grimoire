@@ -14,9 +14,10 @@ export class Pins {
 
   /** Every chat's marks, by chat. */
   all(): Map<ChatId, Mark[]> {
-    const rows = this.db
-      .prepare('SELECT chat_id, pin FROM pins ORDER BY pin')
-      .all() as { chat_id: ChatId; pin: Mark }[];
+    const rows = this.db.prepare('SELECT chat_id, pin FROM pins ORDER BY pin').all() as {
+      chat_id: ChatId;
+      pin: Mark;
+    }[];
     const all = new Map<ChatId, Mark[]>();
     for (const row of rows) all.set(row.chat_id, [...(all.get(row.chat_id) ?? []), row.pin]);
     return all;

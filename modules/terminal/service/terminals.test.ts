@@ -64,7 +64,9 @@ function setUp() {
 }
 
 const outputs = (sent: Sent[]) =>
-  sent.filter((s) => s.event === 'terminal.output').map((s) => s.payload as EventPayload<'terminal.output'>);
+  sent
+    .filter((s) => s.event === 'terminal.output')
+    .map((s) => s.payload as EventPayload<'terminal.output'>);
 
 describe('Terminals', () => {
   it('starts a shell in the folder at the size asked, and lists it', () => {
@@ -186,7 +188,8 @@ describe('a real shell', () => {
     );
     terminals.open({ cwd: folder, cols: 200, rows: 10 });
     const deadline = Date.now() + 15_000;
-    while (!sent.some((s) => s.event === 'terminal.exited') && Date.now() < deadline) await delay(50);
+    while (!sent.some((s) => s.event === 'terminal.exited') && Date.now() < deadline)
+      await delay(50);
     terminals.closeAll();
 
     const text = outputs(sent)

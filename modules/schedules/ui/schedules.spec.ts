@@ -1,7 +1,4 @@
-import type {
-  ScheduleInfo,
-  ScheduleRun,
-} from '@grimoire/contract';
+import type { ScheduleInfo, ScheduleRun } from '@grimoire/contract';
 import { DEFAULT_SETTINGS } from '@grimoire/contract';
 import { clock, dateline, upcoming, when } from './wording';
 import { fakeBridge, render } from '@ui/testing/app-harness';
@@ -31,7 +28,13 @@ describe('schedules', () => {
     answers['schedules.list'] = () => [schedule];
     answers['schedules.save'] = () => [schedule];
     answers['schedules.run'] = (): ScheduleRun => {
-      const run: ScheduleRun = { scheduleId: 's1', dueAt: Date.now(), outcome: 'began', chatId: 'run-1', cwd: 'C:/Users/me/git/grimoire' };
+      const run: ScheduleRun = {
+        scheduleId: 's1',
+        dueAt: Date.now(),
+        outcome: 'began',
+        chatId: 'run-1',
+        cwd: 'C:/Users/me/git/grimoire',
+      };
       emit('schedules.began', {
         run,
         chat: {
@@ -70,12 +73,16 @@ describe('schedules', () => {
     ]);
     emit('settings.changed', { settings: { ...DEFAULT_SETTINGS, wording: 'plain' } });
     await fixture.whenStable();
-    expect(texts('gr-schedules-page .runs li')[0]).toBe(`${when(dueAt)} Skipped: another profile was in use`);
+    expect(texts('gr-schedules-page .runs li')[0]).toBe(
+      `${when(dueAt)} Skipped: another profile was in use`,
+    );
     emit('settings.changed', { settings: DEFAULT_SETTINGS });
     await fixture.whenStable();
 
     // Run now begins its chat, which joins the book and is turned to.
-    [...el.querySelectorAll<HTMLButtonElement>('gr-schedules-page .actions button')].find((b) => b.textContent!.includes('Run now'))!.click();
+    [...el.querySelectorAll<HTMLButtonElement>('gr-schedules-page .actions button')]
+      .find((b) => b.textContent!.includes('Run now'))!
+      .click();
     await fixture.whenStable();
     expect(texts('.spine gr-chat-tab b')).toContain('Morning repo summary · today');
     expect(texts('gr-page-header h1')).toEqual(['Morning repo summary · today']);
@@ -93,7 +100,9 @@ describe('schedules', () => {
     field('gr-schedule-prompt', 'Check for outdated dependencies.');
     field('gr-schedule-time', '09:00');
     const word = (text: string) =>
-      [...el.querySelectorAll<HTMLButtonElement>('gr-schedule-form .word')].find((b) => b.textContent!.trim() === text)!;
+      [...el.querySelectorAll<HTMLButtonElement>('gr-schedule-form .word')].find(
+        (b) => b.textContent!.trim() === text,
+      )!;
     for (const day of ['Tue', 'Wed', 'Thu', 'Fri']) word(day).click();
     word('Sonnet 5.5').click();
     await fixture.whenStable();

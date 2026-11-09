@@ -148,13 +148,20 @@ describe('ClaudeTranscript', () => {
 
   it('names the skill a Skill call runs', () => {
     const transcript = new ClaudeTranscript(false);
-    const call = { type: 'tool_use', id: 'toolu_9', name: 'Skill', input: { skill: 'dataviz', args: 'a chart' } };
+    const call = {
+      type: 'tool_use',
+      id: 'toolu_9',
+      name: 'Skill',
+      input: { skill: 'dataviz', args: 'a chart' },
+    };
     transcript.apply(assistant('msg_9', call));
     expect(transcript.entries).toEqual([
       {
         kind: 'agent',
         id: 'msg_9',
-        blocks: [{ kind: 'tool', id: 'toolu_9', tool: 'Skill', input: call.input, skill: 'dataviz' }],
+        blocks: [
+          { kind: 'tool', id: 'toolu_9', tool: 'Skill', input: call.input, skill: 'dataviz' },
+        ],
       },
     ]);
   });
@@ -176,7 +183,7 @@ describe('ClaudeTranscript', () => {
     ]);
   });
 
-  it('keeps the plan from Claude Code\'s task tools, once they succeed', () => {
+  it("keeps the plan from Claude Code's task tools, once they succeed", () => {
     const plans: string[][] = [];
     const transcript = new ClaudeTranscript(false, {
       entry: () => {},
@@ -191,10 +198,17 @@ describe('ClaudeTranscript', () => {
       transcript.apply({
         type: 'user',
         parent_tool_use_id: null,
-        message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: id, content: result, is_error: isError }] },
+        message: {
+          role: 'user',
+          content: [{ type: 'tool_result', tool_use_id: id, content: result, is_error: isError }],
+        },
       });
     };
-    call('TaskCreate', { subject: 'Read the composer', activeForm: 'Reading the composer' }, 'Task #1 created successfully: Read the composer');
+    call(
+      'TaskCreate',
+      { subject: 'Read the composer', activeForm: 'Reading the composer' },
+      'Task #1 created successfully: Read the composer',
+    );
     call('TaskCreate', { subject: 'Run the tests' }, 'Task #2 created successfully: Run the tests');
     call('TaskCreate', { subject: 'Refused' }, 'Error', true);
     call('TaskUpdate', { taskId: '1', status: 'in_progress' }, 'Updated task #1 status');
@@ -204,11 +218,21 @@ describe('ClaudeTranscript', () => {
 
     expect(plans.at(-1)).toEqual(['Read the composer: done', 'Run the composer tests: pending']);
     expect(plans).toHaveLength(5);
-    expect(transcript.plan[0]).toEqual({ text: 'Read the composer', status: 'done', activeText: 'Reading the composer' });
+    expect(transcript.plan[0]).toEqual({
+      text: 'Read the composer',
+      status: 'done',
+      activeText: 'Reading the composer',
+    });
 
     call('TaskUpdate', { taskId: '1', status: 'deleted' }, 'Updated task #1 deleted');
-    call('TodoWrite', { todos: [{ content: 'Only step', status: 'in_progress', activeForm: 'Doing it' }] }, 'ok');
-    expect(transcript.plan).toEqual([{ text: 'Only step', status: 'active', activeText: 'Doing it' }]);
+    call(
+      'TodoWrite',
+      { todos: [{ content: 'Only step', status: 'in_progress', activeForm: 'Doing it' }] },
+      'ok',
+    );
+    expect(transcript.plan).toEqual([
+      { text: 'Only step', status: 'active', activeText: 'Doing it' },
+    ]);
   });
 
   it('reads your pictures and attached files back off a saved message', () => {
@@ -275,7 +299,10 @@ describe('ClaudeTranscript', () => {
     transcript.apply(
       inside({
         ...toolResult,
-        message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'toolu_s1', content: 'hi' }] },
+        message: {
+          role: 'user',
+          content: [{ type: 'tool_result', tool_use_id: 'toolu_s1', content: 'hi' }],
+        },
       }),
     );
     transcript.apply(inside(assistant('msg_sub2', { type: 'text', text: 'Done' })));
@@ -299,8 +326,13 @@ describe('ClaudeTranscript', () => {
 
   it('reads a saved subagent’s run on its own', () => {
     const run = new ClaudeTranscript(false);
-    run.applyRun({ ...assistant('msg_sub', { type: 'text', text: 'Done' }), parent_tool_use_id: 'toolu_1' });
-    expect(run.entries).toMatchObject([{ kind: 'agent', id: 'msg_sub', blocks: [{ text: 'Done' }] }]);
+    run.applyRun({
+      ...assistant('msg_sub', { type: 'text', text: 'Done' }),
+      parent_tool_use_id: 'toolu_1',
+    });
+    expect(run.entries).toMatchObject([
+      { kind: 'agent', id: 'msg_sub', blocks: [{ text: 'Done' }] },
+    ]);
   });
 
   it('notes the model that wrote each reply, but not on Claude Code’s own notes', () => {
@@ -312,7 +344,10 @@ describe('ClaudeTranscript', () => {
     });
     transcript.apply(by('msg_1', 'claude-sonnet-4-5'));
     transcript.apply(by('msg_2', '<synthetic>'));
-    expect(transcript.entries).toMatchObject([{ id: 'msg_1', model: 'claude-sonnet-4-5' }, { id: 'msg_2' }]);
+    expect(transcript.entries).toMatchObject([
+      { id: 'msg_1', model: 'claude-sonnet-4-5' },
+      { id: 'msg_2' },
+    ]);
     expect(transcript.entries[1]).not.toHaveProperty('model');
   });
 
@@ -328,7 +363,12 @@ describe('ClaudeTranscript', () => {
     transcript.apply({
       type: 'assistant',
       parent_tool_use_id: 'toolu_1',
-      message: { id: 'msg_sub', model: 'claude-haiku-4-5', role: 'assistant', content: [{ type: 'text', text: 'Done' }] },
+      message: {
+        id: 'msg_sub',
+        model: 'claude-haiku-4-5',
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Done' }],
+      },
     });
     expect(helped.at(-1)).toMatchObject({ id: 'msg_sub', model: 'claude-haiku-4-5' });
   });
@@ -343,19 +383,53 @@ describe('ClaudeTranscript', () => {
       subagentState: (toolId, state) => states.push([toolId, state]),
     });
     const system = (fields: object): ClaudeMessage => ({ type: 'system', ...fields });
-    transcript.apply(system({ subtype: 'task_started', task_id: 'a1', tool_use_id: 'toolu_1', description: 'Look' }));
+    transcript.apply(
+      system({
+        subtype: 'task_started',
+        task_id: 'a1',
+        tool_use_id: 'toolu_1',
+        description: 'Look',
+      }),
+    );
     // A background subagent's tool call has its result at once; it's still at work.
     transcript.apply({
       type: 'user',
       parent_tool_use_id: null,
       message: {
         role: 'user',
-        content: [{ type: 'tool_result', tool_use_id: 'toolu_1', content: 'Async agent launched successfully.' }],
+        content: [
+          {
+            type: 'tool_result',
+            tool_use_id: 'toolu_1',
+            content: 'Async agent launched successfully.',
+          },
+        ],
       },
     });
-    transcript.apply(system({ subtype: 'task_notification', task_id: 'a1', tool_use_id: 'toolu_1', status: 'completed' }));
-    transcript.apply(system({ subtype: 'task_notification', task_id: 'a2', tool_use_id: 'toolu_2', status: 'failed' }));
-    transcript.apply(system({ subtype: 'task_notification', task_id: 'a3', tool_use_id: 'toolu_3', status: 'stopped' }));
+    transcript.apply(
+      system({
+        subtype: 'task_notification',
+        task_id: 'a1',
+        tool_use_id: 'toolu_1',
+        status: 'completed',
+      }),
+    );
+    transcript.apply(
+      system({
+        subtype: 'task_notification',
+        task_id: 'a2',
+        tool_use_id: 'toolu_2',
+        status: 'failed',
+      }),
+    );
+    transcript.apply(
+      system({
+        subtype: 'task_notification',
+        task_id: 'a3',
+        tool_use_id: 'toolu_3',
+        status: 'stopped',
+      }),
+    );
     transcript.apply(system({ subtype: 'task_notification', task_id: 'a4', status: 'completed' }));
     transcript.apply(system({ subtype: 'init' }));
 
@@ -374,16 +448,31 @@ describe('ClaudeTranscript', () => {
       parent_tool_use_id: null,
       message: {
         role: 'user',
-        content: [{ type: 'tool_result', tool_use_id: toolId, content: [{ type: 'text', text }], is_error: isError }],
+        content: [
+          {
+            type: 'tool_result',
+            tool_use_id: toolId,
+            content: [{ type: 'text', text }],
+            is_error: isError,
+          },
+        ],
       },
     });
     const call = (toolId: string, prompt: string): ClaudeMessage =>
-      assistant(`msg_${toolId}`, { type: 'tool_use', id: toolId, name: 'Agent', input: { description: 'Look', prompt } });
+      assistant(`msg_${toolId}`, {
+        type: 'tool_use',
+        id: toolId,
+        name: 'Agent',
+        input: { description: 'Look', prompt },
+      });
 
     it('is named by the result of the tool call that started it, in either of its forms', () => {
       const messages = [
         result('toolu_1', 'Read sdk.d.ts\nagentId: string;'),
-        result('toolu_2', 'All done.\nagentId: ae05a781070d8c49e (internal ID - do not mention to user.)'),
+        result(
+          'toolu_2',
+          'All done.\nagentId: ae05a781070d8c49e (internal ID - do not mention to user.)',
+        ),
         result(
           'toolu_3',
           'Its report was delivered to you as a message from "a572d1044a9eb0bac"; reply to it with SendMessage.',
@@ -400,20 +489,33 @@ describe('ClaudeTranscript', () => {
     });
 
     it('is found by the task it began with when the result names none', () => {
-      const messages = [call('toolu_1', 'Find the meter.'), result('toolu_1', 'It is in meter.ts.')];
+      const messages = [
+        call('toolu_1', 'Find the meter.'),
+        result('toolu_1', 'It is in meter.ts.'),
+      ];
       const found = subagentCallIn(messages, 'toolu_1');
-      expect(found).toEqual({ prompt: 'Find the meter.', result: { text: 'It is in meter.ts.', isError: false } });
+      expect(found).toEqual({
+        prompt: 'Find the meter.',
+        result: { text: 'It is in meter.ts.', isError: false },
+      });
       expect(subagentAgentId(found!.result!.text)).toBeUndefined();
 
       const run = (first: unknown): ClaudeMessage[] => [
         { type: 'user', parent_tool_use_id: null, message: first },
         assistant('msg_sub', { type: 'text', text: 'Looking' }),
       ];
-      expect(runBeganWith(run({ role: 'user', content: 'Find the meter.\n' }), found!.prompt!)).toBe(true);
       expect(
-        runBeganWith(run({ role: 'user', content: [{ type: 'text', text: 'Find the meter.' }] }), 'Find the meter.'),
+        runBeganWith(run({ role: 'user', content: 'Find the meter.\n' }), found!.prompt!),
       ).toBe(true);
-      expect(runBeganWith(run({ role: 'user', content: 'Find the clock.' }), 'Find the meter.')).toBe(false);
+      expect(
+        runBeganWith(
+          run({ role: 'user', content: [{ type: 'text', text: 'Find the meter.' }] }),
+          'Find the meter.',
+        ),
+      ).toBe(true);
+      expect(
+        runBeganWith(run({ role: 'user', content: 'Find the clock.' }), 'Find the meter.'),
+      ).toBe(false);
       expect(runBeganWith([], 'Find the meter.')).toBe(false);
     });
 
@@ -439,7 +541,12 @@ describe('ClaudeTranscript', () => {
 
     it('reads a resumed run whole: its task, what it did, and what it was sent, but not Claude Code’s notes', () => {
       const entries = wholeRun([
-        { type: 'user', uuid: 'u1', parent_tool_use_id: null, message: { role: 'user', content: 'Plan it.' } },
+        {
+          type: 'user',
+          uuid: 'u1',
+          parent_tool_use_id: null,
+          message: { role: 'user', content: 'Plan it.' },
+        },
         {
           type: 'user',
           uuid: 'u2',
@@ -454,7 +561,10 @@ describe('ClaudeTranscript', () => {
           parent_tool_use_id: null,
           is_meta: true,
           origin: { kind: 'coordinator' },
-          message: { role: 'user', content: 'The coordinator sent a message while you were working:\nMore detail.' },
+          message: {
+            role: 'user',
+            content: 'The coordinator sent a message while you were working:\nMore detail.',
+          },
         },
         assistant('msg_2', { type: 'text', text: 'Here is more.' }),
       ]);
@@ -470,7 +580,9 @@ describe('ClaudeTranscript', () => {
       const handback: Entry = {
         kind: 'agent',
         id: 'msg_end',
-        blocks: [{ kind: 'tool', id: 'toolu_h', tool: 'SubagentHandback', input: { message: 'Report' } }],
+        blocks: [
+          { kind: 'tool', id: 'toolu_h', tool: 'SubagentHandback', input: { message: 'Report' } },
+        ],
       };
       expect(savedSubagentState([handback], undefined)).toBe('done');
       expect(savedSubagentState([], { text: 'All done.', isError: false })).toBe('done');
@@ -483,14 +595,28 @@ describe('ClaudeTranscript', () => {
     const usage = (input: number, written: number, long: number, read: number, output: number) => ({
       input_tokens: input,
       cache_creation_input_tokens: written,
-      cache_creation: { ephemeral_1h_input_tokens: long, ephemeral_5m_input_tokens: written - long },
+      cache_creation: {
+        ephemeral_1h_input_tokens: long,
+        ephemeral_5m_input_tokens: written - long,
+      },
       cache_read_input_tokens: read,
       output_tokens: output,
     });
-    const reply = (id: string, model: string, used: object, parent: string | null = null): ClaudeMessage => ({
+    const reply = (
+      id: string,
+      model: string,
+      used: object,
+      parent: string | null = null,
+    ): ClaudeMessage => ({
       type: 'assistant',
       parent_tool_use_id: parent,
-      message: { id, model, role: 'assistant', content: [{ type: 'text', text: 'ok' }], usage: used },
+      message: {
+        id,
+        model,
+        role: 'assistant',
+        content: [{ type: 'text', text: 'ok' }],
+        usage: used,
+      },
     });
     const you = (uuid: string, text: string): ClaudeMessage => ({
       type: 'user',
@@ -522,7 +648,14 @@ describe('ClaudeTranscript', () => {
         {
           at: 1_000,
           uses: [
-            { model: 'claude-opus-5-5', input: 5, cacheWritten: 0, cacheWrittenLong: 120, cacheRead: 100, output: 40 },
+            {
+              model: 'claude-opus-5-5',
+              input: 5,
+              cacheWritten: 0,
+              cacheWrittenLong: 120,
+              cacheRead: 100,
+              output: 40,
+            },
             {
               model: 'claude-sonnet-5-5',
               subagent: true,
@@ -536,7 +669,16 @@ describe('ClaudeTranscript', () => {
         },
         {
           at: 10_000,
-          uses: [{ model: 'claude-opus-5-5', input: 1, cacheWritten: 0, cacheWrittenLong: 0, cacheRead: 120, output: 5 }],
+          uses: [
+            {
+              model: 'claude-opus-5-5',
+              input: 1,
+              cacheWritten: 0,
+              cacheWrittenLong: 0,
+              cacheRead: 120,
+              output: 5,
+            },
+          ],
         },
       ]);
     });
@@ -558,12 +700,45 @@ describe('ClaudeTranscript', () => {
 
       // The repeated block isn't reported again.
       expect(reported).toEqual([
-        [{ model: 'claude-opus-5-5', input: 2, cacheWritten: 0, cacheWrittenLong: 10, cacheRead: 0, output: 5 }],
         [
-          { model: 'claude-opus-5-5', input: 2, cacheWritten: 0, cacheWrittenLong: 10, cacheRead: 0, output: 5 },
-          { model: 'claude-haiku-4-5', subagent: true, input: 3, cacheWritten: 0, cacheWrittenLong: 0, cacheRead: 0, output: 1 },
+          {
+            model: 'claude-opus-5-5',
+            input: 2,
+            cacheWritten: 0,
+            cacheWrittenLong: 10,
+            cacheRead: 0,
+            output: 5,
+          },
         ],
-        [{ model: 'claude-opus-5-5', input: 1, cacheWritten: 0, cacheWrittenLong: 0, cacheRead: 10, output: 2 }],
+        [
+          {
+            model: 'claude-opus-5-5',
+            input: 2,
+            cacheWritten: 0,
+            cacheWrittenLong: 10,
+            cacheRead: 0,
+            output: 5,
+          },
+          {
+            model: 'claude-haiku-4-5',
+            subagent: true,
+            input: 3,
+            cacheWritten: 0,
+            cacheWrittenLong: 0,
+            cacheRead: 0,
+            output: 1,
+          },
+        ],
+        [
+          {
+            model: 'claude-opus-5-5',
+            input: 1,
+            cacheWritten: 0,
+            cacheWrittenLong: 0,
+            cacheRead: 10,
+            output: 2,
+          },
+        ],
       ]);
       // Still left out of the chat's own entries.
       expect(transcript.entries.map((entry) => entry.id)).toEqual(['msg_1', 'msg_2']);
@@ -574,16 +749,23 @@ describe('ClaudeTranscript', () => {
     beforeEach(() => vi.useFakeTimers());
     afterEach(() => vi.useRealTimers());
 
-    const hook = (subtype: string, id: string, name: string, fields: object = {}): ClaudeMessage => ({
-      type: 'system',
-      subtype,
-      hook_id: id,
-      hook_name: name,
-      hook_event: name.split(':')[0],
-      ...fields,
-    } as ClaudeMessage);
+    const hook = (subtype: string, id: string, name: string, fields: object = {}): ClaudeMessage =>
+      ({
+        type: 'system',
+        subtype,
+        hook_id: id,
+        hook_name: name,
+        hook_event: name.split(':')[0],
+        ...fields,
+      }) as ClaudeMessage;
     const response = (id: string, name: string, fields: object = {}) =>
-      hook('hook_response', id, name, { output: '', stdout: '', stderr: '', outcome: 'success', ...fields });
+      hook('hook_response', id, name, {
+        output: '',
+        stdout: '',
+        stderr: '',
+        outcome: 'success',
+        ...fields,
+      });
     const following = () => {
       const reported: HookRun[][] = [];
       const transcript = new ClaudeTranscript(true, {
@@ -600,9 +782,21 @@ describe('ClaudeTranscript', () => {
       const { transcript, reported } = following();
       transcript.apply(hook('hook_started', 'h1', 'PostToolUse:Edit'));
       vi.advanceTimersByTime(150);
-      transcript.apply(hook('hook_progress', 'h1', 'PostToolUse:Edit', { stdout: 'Lint', stderr: '', output: 'Lint' }));
+      transcript.apply(
+        hook('hook_progress', 'h1', 'PostToolUse:Edit', {
+          stdout: 'Lint',
+          stderr: '',
+          output: 'Lint',
+        }),
+      );
       vi.advanceTimersByTime(250);
-      transcript.apply(response('h1', 'PostToolUse:Edit', { output: 'Lint ok\n', stdout: 'Lint ok\n', exit_code: 0 }));
+      transcript.apply(
+        response('h1', 'PostToolUse:Edit', {
+          output: 'Lint ok\n',
+          stdout: 'Lint ok\n',
+          exit_code: 0,
+        }),
+      );
       transcript.apply(hook('hook_started', 'h2', 'Stop'));
       transcript.apply(response('h2', 'Stop', { exit_code: 0 }));
 
@@ -626,11 +820,23 @@ describe('ClaudeTranscript', () => {
 
     it('tells a hook that blocked, by its exit code or its JSON, from one that failed or was cancelled', () => {
       const { transcript, reported } = following();
-      transcript.apply(response('h1', 'PreToolUse:PowerShell', { stderr: 'No rm -rf', exit_code: 2, outcome: 'error' }));
-      transcript.apply(response('h2', 'Stop', { stdout: '{"decision": "block", "reason": "Tests fail"}' }));
+      transcript.apply(
+        response('h1', 'PreToolUse:PowerShell', {
+          stderr: 'No rm -rf',
+          exit_code: 2,
+          outcome: 'error',
+        }),
+      );
+      transcript.apply(
+        response('h2', 'Stop', { stdout: '{"decision": "block", "reason": "Tests fail"}' }),
+      );
       transcript.apply(response('h3', 'UserPromptSubmit', { stdout: ' {"continue": false}\n' }));
-      transcript.apply(response('h4', 'PostToolUse:Write', { stderr: 'boom', exit_code: 1, outcome: 'error' }));
-      transcript.apply(response('h5', 'PostToolUse:Read', { output: 'Hook cancelled', outcome: 'cancelled' }));
+      transcript.apply(
+        response('h4', 'PostToolUse:Write', { stderr: 'boom', exit_code: 1, outcome: 'error' }),
+      );
+      transcript.apply(
+        response('h5', 'PostToolUse:Read', { output: 'Hook cancelled', outcome: 'cancelled' }),
+      );
       transcript.apply(response('h6', 'PostToolUse:Read', { stdout: '{"decision": "approve"}' }));
 
       expect(reported.at(-1)!.map((run) => [run.id, run.outcome, run.output])).toEqual([
@@ -643,7 +849,14 @@ describe('ClaudeTranscript', () => {
       ]);
       // Only hooks it saw begin are timed; a tool's name is read off only a tool's events.
       expect(reported.at(-1)!.every((run) => run.took === undefined)).toBe(true);
-      expect(reported.at(-1)!.map((run) => run.tool)).toEqual(['PowerShell', undefined, undefined, 'Write', 'Read', 'Read']);
+      expect(reported.at(-1)!.map((run) => run.tool)).toEqual([
+        'PowerShell',
+        undefined,
+        undefined,
+        'Write',
+        'Read',
+        'Read',
+      ]);
     });
 
     it('starts afresh after the turn, but for a hook still running', () => {
@@ -663,8 +876,17 @@ describe('ClaudeTranscript', () => {
     it("hears only Claude Code's word on its hooks: Grimoire's own callback says none", () => {
       const { transcript, reported } = following();
       // What a turn that asks a subagent says, with Grimoire's PreToolUse callback on Agent picking its model.
-      transcript.apply({ type: 'system', subtype: 'task_started', task_id: 'a1', tool_use_id: 'toolu_1' } as ClaudeMessage);
-      transcript.apply({ type: 'system', subtype: 'hook_callback', callback_id: 'c1' } as ClaudeMessage);
+      transcript.apply({
+        type: 'system',
+        subtype: 'task_started',
+        task_id: 'a1',
+        tool_use_id: 'toolu_1',
+      } as ClaudeMessage);
+      transcript.apply({
+        type: 'system',
+        subtype: 'hook_callback',
+        callback_id: 'c1',
+      } as ClaudeMessage);
       transcript.apply({ type: 'system', subtype: 'init' } as ClaudeMessage);
       expect(reported).toEqual([]);
     });

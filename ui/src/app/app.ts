@@ -110,7 +110,9 @@ export class App {
     if (this.popout) return;
     const command = this.registry.commands
       .all()
-      .find(({ run, shortcut }) => run && shortcut && matchesShortcut(event, shortcut, this.platform));
+      .find(
+        ({ run, shortcut }) => run && shortcut && matchesShortcut(event, shortcut, this.platform),
+      );
     if (!command) return;
     event.preventDefault();
     command.run!();

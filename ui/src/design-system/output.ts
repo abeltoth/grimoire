@@ -17,8 +17,13 @@ export class Output {
   /** The command in full, set above its output, when the title doesn't show it all. */
   readonly command = input('');
 
-  protected readonly commandLines = computed(() => (this.command() ? this.command().split(/\r?\n/) : []));
+  protected readonly commandLines = computed(() =>
+    this.command() ? this.command().split(/\r?\n/) : [],
+  );
   protected readonly lines = computed(() =>
-    this.text().replace(ESCAPES, '').replace(/\r?\n$/, '').split(/\r?\n/),
+    this.text()
+      .replace(ESCAPES, '')
+      .replace(/\r?\n$/, '')
+      .split(/\r?\n/),
   );
 }

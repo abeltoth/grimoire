@@ -1,9 +1,4 @@
-import type {
-  AgentMemories,
-  CommandRequest,
-  Memory,
-  SetupFile,
-} from '@grimoire/contract';
+import type { AgentMemories, CommandRequest, Memory, SetupFile } from '@grimoire/contract';
 import { fakeBridge, render } from '@ui/testing/app-harness';
 
 describe('memories', () => {
@@ -35,7 +30,10 @@ describe('memories', () => {
         'scope-discipline links to [[concise-answers]], which doesn’t exist.',
         'The index leaves out commit-style.',
       ],
-      elsewhere: [{ cwd: 'C:/Users/me/git/breeder', count: 3 }, { cwd: null, count: 1 }],
+      elsewhere: [
+        { cwd: 'C:/Users/me/git/breeder', count: 3 },
+        { cwd: null, count: 1 },
+      ],
       at: Date.now(),
     });
     const { fixture, el, texts } = await render(bridge);
@@ -55,17 +53,20 @@ describe('memories', () => {
     ]);
     expect(texts('gr-memories-page .column h3')).toEqual(['Feedback', 'Projects', 'References']);
     const column = (title: string) =>
-      [...el.querySelectorAll('gr-memories-page .column')]
-        .find((c) => c.querySelector('h3')!.textContent!.trim() === title)!;
-    expect([...column('Projects').querySelectorAll('.name')].map((n) => n.textContent!.trim())).toEqual([
-      'angular-conventions',
-      'design-tokens',
-    ]);
-    const card = (name: string) => el.querySelector<HTMLElement>(`gr-memories-page [data-memory="${name}"]`)!;
-    expect([...card('scope-discipline').querySelectorAll('.flag')].map((f) => f.textContent!.trim())).toEqual([
-      '[[concise-answers]] missing',
-    ]);
-    expect(card('commit-style').querySelector('.flag')!.textContent!.trim()).toBe('not in the index');
+      [...el.querySelectorAll('gr-memories-page .column')].find(
+        (c) => c.querySelector('h3')!.textContent!.trim() === title,
+      )!;
+    expect(
+      [...column('Projects').querySelectorAll('.name')].map((n) => n.textContent!.trim()),
+    ).toEqual(['angular-conventions', 'design-tokens']);
+    const card = (name: string) =>
+      el.querySelector<HTMLElement>(`gr-memories-page [data-memory="${name}"]`)!;
+    expect(
+      [...card('scope-discipline').querySelectorAll('.flag')].map((f) => f.textContent!.trim()),
+    ).toEqual(['[[concise-answers]] missing']);
+    expect(card('commit-style').querySelector('.flag')!.textContent!.trim()).toBe(
+      'not in the index',
+    );
     // A thread for each link that names a memory.
     expect(el.querySelectorAll('gr-memories-page path.thread')).toHaveLength(2);
 
@@ -163,7 +164,13 @@ describe('memories', () => {
     });
     answers['memories.save'] = (request: CommandRequest<'memories.save'>): SetupFile => {
       texts_[request.path] = request.text;
-      return { path: request.path, text: request.text, exists: true, changedAt: 200, editable: true };
+      return {
+        path: request.path,
+        text: request.text,
+        exists: true,
+        changedAt: 200,
+        editable: true,
+      };
     };
     answers['memories.delete'] = (request: CommandRequest<'memories.delete'>) => {
       memories = memories.filter((one) => one.path !== request.path);
@@ -174,8 +181,8 @@ describe('memories', () => {
       .click();
     await fixture.whenStable();
     const link = (text: string) =>
-      [...el.querySelectorAll<HTMLButtonElement>('gr-memories-page .gr-link')].find(
-        (b) => b.textContent!.trim().startsWith(text),
+      [...el.querySelectorAll<HTMLButtonElement>('gr-memories-page .gr-link')].find((b) =>
+        b.textContent!.trim().startsWith(text),
       )!;
     const editor = () => el.querySelector<HTMLTextAreaElement>('gr-memories-page textarea');
     const settle = async () => {
@@ -189,7 +196,9 @@ describe('memories', () => {
     };
     const path = (name: string) => `${folder}/${name}.md`;
 
-    el.querySelector<HTMLButtonElement>('gr-memories-page [data-memory="design-tokens"] .name button')!.click();
+    el.querySelector<HTMLButtonElement>(
+      'gr-memories-page [data-memory="design-tokens"] .name button',
+    )!.click();
     await settle();
     expect(calls).toContainEqual({
       command: 'memories.open',
@@ -221,22 +230,32 @@ describe('memories', () => {
     expect(texts('gr-memories-page .note')).toEqual(['Saved.']);
 
     // A link turns to that memory; not while there are changes to save.
-    [...el.querySelectorAll<HTMLButtonElement>('gr-memories-page .links .to')].find((b) => b.textContent!.trim() === 'angular-conventions')!.click();
+    [...el.querySelectorAll<HTMLButtonElement>('gr-memories-page .links .to')]
+      .find((b) => b.textContent!.trim() === 'angular-conventions')!
+      .click();
     await settle();
     expect(editor()!.value).toBe('Text of angular-conventions.md');
-    expect(texts('gr-memories-page .links')[0]).toMatch(/Links to\s*none\s*·\s*Linked from\s*design-tokens$/);
+    expect(texts('gr-memories-page .links')[0]).toMatch(
+      /Links to\s*none\s*·\s*Linked from\s*design-tokens$/,
+    );
     await type('Changed.');
-    [...el.querySelectorAll<HTMLButtonElement>('gr-memories-page .links .to')].find((b) => b.textContent!.trim() === 'design-tokens')!.click();
+    [...el.querySelectorAll<HTMLButtonElement>('gr-memories-page .links .to')]
+      .find((b) => b.textContent!.trim() === 'design-tokens')!
+      .click();
     await settle();
     expect(editor()!.value).toBe('Changed.');
-    expect(texts('gr-memories-page .note.alert')).toEqual(['Save your changes, or discard them, first.']);
+    expect(texts('gr-memories-page .note.alert')).toEqual([
+      'Save your changes, or discard them, first.',
+    ]);
     link('Discard changes').click();
     await fixture.whenStable();
 
     // Deleting asks first, and can be kept.
     link('Delete').click();
     await fixture.whenStable();
-    expect(texts('gr-memories-page .ask')).toEqual(['Delete it? Its file goes, and its line in the index.']);
+    expect(texts('gr-memories-page .ask')).toEqual([
+      'Delete it? Its file goes, and its line in the index.',
+    ]);
     link('Keep it').click();
     await fixture.whenStable();
     expect(el.querySelector('gr-memories-page .ask')).toBeNull();
@@ -248,13 +267,17 @@ describe('memories', () => {
     await settle();
     expect(calls).toContainEqual({
       command: 'memories.delete',
-      request: { agent: 'claude-code', cwd: 'C:/Users/me', path: path('angular-conventions'), changedAt: 100 },
+      request: {
+        agent: 'claude-code',
+        cwd: 'C:/Users/me',
+        path: path('angular-conventions'),
+        changedAt: 100,
+      },
     });
     expect(editor()).toBeNull();
-    expect([...el.querySelectorAll('gr-memories-page .card .name')].map((n) => n.textContent!.trim())).toEqual([
-      'design-tokens',
-      'testing-strategy',
-    ]);
+    expect(
+      [...el.querySelectorAll('gr-memories-page .card .name')].map((n) => n.textContent!.trim()),
+    ).toEqual(['design-tokens', 'testing-strategy']);
   });
 
   it('keeps an open memory with changes from being left by turning the right page away', async () => {
@@ -302,9 +325,13 @@ describe('memories', () => {
     el.querySelector<HTMLButtonElement>('gr-tab-page .row .gr-link')!.click();
     await fixture.whenStable();
     expect(el.querySelector('gr-memories-page textarea')).not.toBeNull();
-    expect(texts('gr-memories-page .note.alert')).toEqual(['Save your changes, or discard them, first.']);
+    expect(texts('gr-memories-page .note.alert')).toEqual([
+      'Save your changes, or discard them, first.',
+    ]);
 
-    editor.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    editor.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+    );
     await fixture.whenStable();
     expect(el.querySelector('gr-memories-page textarea')).not.toBeNull();
   });
@@ -348,7 +375,8 @@ describe('memories', () => {
       await new Promise((resolve) => setTimeout(resolve));
       await fixture.whenStable();
     };
-    const names = () => [...el.querySelectorAll('gr-memories-page .card .name')].map((n) => n.textContent!.trim());
+    const names = () =>
+      [...el.querySelectorAll('gr-memories-page .card .name')].map((n) => n.textContent!.trim());
     const reads = () => calls.filter((c) => c.command === 'memories.list').length;
     expect(names()).toEqual(['tone']);
 
@@ -363,7 +391,9 @@ describe('memories', () => {
     expect(names()).toEqual(['tone', 'commits']);
 
     // The open memory is opened again as it is on disk, while you haven't changed it.
-    el.querySelector<HTMLButtonElement>('gr-memories-page [data-memory="tone"] .name button')!.click();
+    el.querySelector<HTMLButtonElement>(
+      'gr-memories-page [data-memory="tone"] .name button',
+    )!.click();
     await settle();
     const editor = () => el.querySelector<HTMLTextAreaElement>('gr-memories-page textarea')!;
     text = 'Shorter answers.';

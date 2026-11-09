@@ -37,7 +37,13 @@ import { claudeEnv as env, sdk } from './probe';
 import { ASK_TOOL, alwaysAllowOf, toClaudeAnswers, toQuestions } from './permissions';
 import { readOnlyHooks } from './read-only';
 import { withReferences } from './references';
-import { type AgentToolInput, type PickerSources, RATER_PROMPT, pickFor, readRating } from './subagents';
+import {
+  type AgentToolInput,
+  type PickerSources,
+  RATER_PROMPT,
+  pickFor,
+  readRating,
+} from './subagents';
 import { AUTO_PROMPT, autoPick, messageForRater } from './auto-model';
 import { readAccount, signIn } from './sign-in';
 import { type AddTodo, TodoChat } from './todos';
@@ -144,7 +150,11 @@ export class ClaudeAdapter implements AgentAdapter {
     for (const message of messages) {
       const at = timeOf(message);
       transcript.apply(message, at);
-      if (message.type === 'assistant' && message.parent_tool_use_id === null && Number.isFinite(at))
+      if (
+        message.type === 'assistant' &&
+        message.parent_tool_use_id === null &&
+        Number.isFinite(at)
+      )
         cache.reply((message.message as { usage?: ReplyUsage }).usage, at);
     }
     // Subagents' runs are saved apart; what they spent counts toward the turns they ran in.
@@ -189,7 +199,8 @@ export class ClaudeAdapter implements AgentAdapter {
         }
       }
     }
-    if (!agentId) return { entries: [], ...(call ? { state: savedSubagentState([], call.result) } : {}) };
+    if (!agentId)
+      return { entries: [], ...(call ? { state: savedSubagentState([], call.result) } : {}) };
     // A message resumed the subagent's run: all of it shows, where it is with what it was sent last.
     if (call?.sentTo) {
       const entries = wholeRun(await runOf(agentId));
@@ -229,7 +240,9 @@ export class ClaudeAdapter implements AgentAdapter {
   /** The title you or Claude Code gave the chat, without falling back on its first prompt; undefined until it has one. */
   private async generatedTitle(chatId: ChatId, cwd: string): Promise<string | undefined> {
     const { getSessionInfo } = await sdk();
-    return (await getSessionInfo(chatId, await this.savedIn(chatId, cwd)))?.customTitle || undefined;
+    return (
+      (await getSessionInfo(chatId, await this.savedIn(chatId, cwd)))?.customTitle || undefined
+    );
   }
 
   /**
@@ -261,7 +274,11 @@ export class ClaudeAdapter implements AgentAdapter {
    * a model Claude Code doesn't offer.
    */
   async pickModel(text: string): Promise<Pick<ChatSettings, 'model' | 'effort'> | undefined> {
-    const answer = await rate(AUTO_PROMPT, messageForRater(text), AbortSignal.timeout(PICK_TIMEOUT_S * 1000));
+    const answer = await rate(
+      AUTO_PROMPT,
+      messageForRater(text),
+      AbortSignal.timeout(PICK_TIMEOUT_S * 1000),
+    );
     const rating = readRating(answer);
     return rating && autoPick(rating, await this.models());
   }
@@ -350,7 +367,10 @@ export class ClaudeAdapter implements AgentAdapter {
             todos: { chat: todoChat, add: (draft, madeIn) => this.addTodo(draft, madeIn) },
           }),
           canUseTool: approvalsTo(async () => events),
-          hooks: chatHooks(() => picking.promise, async () => events),
+          hooks: chatHooks(
+            () => picking.promise,
+            async () => events,
+          ),
         },
       }),
     );
@@ -373,7 +393,10 @@ export class ClaudeAdapter implements AgentAdapter {
   ): Promise<LiveChat> {
     let spare = this.takeSpare();
     if (spare && !sameNames(spare.mcpOff, this.mcpOff(settings))) {
-      void spare.process.then((process) => process.close(), () => {});
+      void spare.process.then(
+        (process) => process.close(),
+        () => {},
+      );
       spare = undefined;
     }
     try {
@@ -422,7 +445,10 @@ export class ClaudeAdapter implements AgentAdapter {
               todos: { chat: todoChat, add: (draft, madeIn) => this.addTodo(draft, madeIn) },
             }),
             canUseTool: approvalsTo(() => claimedBy.promise),
-            hooks: chatHooks(() => picking.promise, () => claimedBy.promise),
+            hooks: chatHooks(
+              () => picking.promise,
+              () => claimedBy.promise,
+            ),
           },
         }),
       ),
@@ -437,7 +463,10 @@ export class ClaudeAdapter implements AgentAdapter {
 
   dispose(): void {
     const spare = this.takeSpare();
-    void spare?.process.then((process) => process.close(), () => {});
+    void spare?.process.then(
+      (process) => process.close(),
+      () => {},
+    );
   }
 
   /**
@@ -482,7 +511,8 @@ export class ClaudeAdapter implements AgentAdapter {
     } catch (error) {
       // Only the model or effort was refused, and the chat runs on the defaults: it carries the claim.
       const claim = (error as { claim?: { sessionId: string } }).claim;
-      const refused = error instanceof Error && /^(option|settings)_not_applied/.test(error.message);
+      const refused =
+        error instanceof Error && /^(option|settings)_not_applied/.test(error.message);
       if (!(refused && claim)) {
         process.close();
         throw error;
@@ -492,7 +522,15 @@ export class ClaudeAdapter implements AgentAdapter {
     const events = bind(chatId);
     spare.todoChat.set({ chatId, agent: this.info.id, cwd: settings.cwd });
     spare.claimedBy.resolve(events);
-    return this.drive(chatId, settings, Promise.resolve(query), input, events, spare.picking, spare.followUps);
+    return this.drive(
+      chatId,
+      settings,
+      Promise.resolve(query),
+      input,
+      events,
+      spare.picking,
+      spare.followUps,
+    );
   }
 
   /** Follows a live query: its messages become the chat's events. */
@@ -524,11 +562,14 @@ export class ClaudeAdapter implements AgentAdapter {
       if (named || naming) return;
       naming = true;
       this.generatedTitle(chatId, settings.cwd)
-        .then((title) => {
-          if (!title) return;
-          named = true;
-          events.title(title);
-        }, () => {})
+        .then(
+          (title) => {
+            if (!title) return;
+            named = true;
+            events.title(title);
+          },
+          () => {},
+        )
         .finally(() => (naming = false));
     };
     void (async () => {
@@ -578,7 +619,8 @@ export class ClaudeAdapter implements AgentAdapter {
       },
       undo: async (entryId) => {
         const result = await (await started).rewindFiles(entryId);
-        if (!result.canRewind) throw new Error(result.error ?? "Claude Code can't undo this message");
+        if (!result.canRewind)
+          throw new Error(result.error ?? "Claude Code can't undo this message");
       },
       close: () => {
         input.end();
@@ -598,7 +640,10 @@ function timeOf(message: object): number {
  * subagent's model and effort picked for its task, as `sources` says, and
  * no edits while the chat only reads, as `events` say.
  */
-function chatHooks(sources: () => Promise<PickerSources>, events: () => Promise<ChatEvents>): Options['hooks'] {
+function chatHooks(
+  sources: () => Promise<PickerSources>,
+  events: () => Promise<ChatEvents>,
+): Options['hooks'] {
   return { PreToolUse: [subagentHook(sources), readOnlyHooks(events)] };
 }
 

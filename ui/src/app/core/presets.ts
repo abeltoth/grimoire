@@ -43,7 +43,8 @@ export class Presets {
     const settings = this.spelledOut(chat.agent, chat.settings);
     return this.all().find(
       (preset) =>
-        preset.agent === chat.agent && same(this.spelledOut(preset.agent, preset.settings), settings),
+        preset.agent === chat.agent &&
+        same(this.spelledOut(preset.agent, preset.settings), settings),
     );
   }
 
@@ -83,7 +84,10 @@ export class Presets {
     if (settings.autoModel)
       return { ...(cwd ? { cwd } : {}), autoModel: true, mode: settings.mode ?? 'ask' };
     const model = settings.model ?? this.chats.models()[agent]?.default;
-    const { level: effort } = this.chats.effortOf(agent, { ...settings, ...(model ? { model } : {}) });
+    const { level: effort } = this.chats.effortOf(agent, {
+      ...settings,
+      ...(model ? { model } : {}),
+    });
     return {
       ...(cwd ? { cwd } : {}),
       ...(model ? { model } : {}),

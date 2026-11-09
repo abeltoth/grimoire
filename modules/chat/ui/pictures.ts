@@ -6,7 +6,9 @@ const MAX_SIDE = 1568;
 /** A picture, base64-encoded, redrawn smaller first when it's too big to send. */
 export async function readPicture(file: Blob): Promise<{ mediaType: string; data: string }> {
   const fitting =
-    file.size > MAX_PICTURE_BYTES && typeof createImageBitmap === 'function' ? await shrink(file) : file;
+    file.size > MAX_PICTURE_BYTES && typeof createImageBitmap === 'function'
+      ? await shrink(file)
+      : file;
   const url = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as string);

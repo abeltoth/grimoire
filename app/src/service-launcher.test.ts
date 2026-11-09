@@ -51,23 +51,27 @@ afterAll(async () => {
 });
 
 describe('ensureService', () => {
-  it('starts a service, reuses it, and replaces it after a rebuild', { timeout: 30_000 }, async () => {
-    const first = await ensureService(options);
-    clients.push(first);
-    expect(await first.request('core.ping', {})).toMatchObject({ pid: first.welcome.pid });
+  it(
+    'starts a service, reuses it, and replaces it after a rebuild',
+    { timeout: 30_000 },
+    async () => {
+      const first = await ensureService(options);
+      clients.push(first);
+      expect(await first.request('core.ping', {})).toMatchObject({ pid: first.welcome.pid });
 
-    // The app quits: the service keeps running and the next launch reuses it.
-    first.close();
-    const second = await ensureService(options);
-    clients.push(second);
-    expect(second.welcome.pid).toBe(first.welcome.pid);
+      // The app quits: the service keeps running and the next launch reuses it.
+      first.close();
+      const second = await ensureService(options);
+      clients.push(second);
+      expect(second.welcome.pid).toBe(first.welcome.pid);
 
-    // A rebuild changes the build ID: the old service stops and a new one starts.
-    const later = new Date(Date.now() + 5_000);
-    utimesSync(serviceEntry, later, later);
-    const third = await ensureService(options);
-    clients.push(third);
-    expect(third.welcome.pid).not.toBe(first.welcome.pid);
-    expect(await waitUntilGone(first.welcome.pid)).toBe(true);
-  });
+      // A rebuild changes the build ID: the old service stops and a new one starts.
+      const later = new Date(Date.now() + 5_000);
+      utimesSync(serviceEntry, later, later);
+      const third = await ensureService(options);
+      clients.push(third);
+      expect(third.welcome.pid).not.toBe(first.welcome.pid);
+      expect(await waitUntilGone(first.welcome.pid)).toBe(true);
+    },
+  );
 });

@@ -15,7 +15,9 @@
     "smoke": "npm run build && electron app --smoke",
     "test": "vitest run && npm test -w @grimoire/ui -- --watch=false",
     "typecheck": "tsc -p contract && tsc -p service && tsc -p app && tsc -p ui/tsconfig.app.json && tsc -p ui/tsconfig.spec.json",
-    "check": "npm run typecheck && npm test",
+    "check": "npm run typecheck && npm run format:check && npm test",
+    "format": "prettier --write contract service app ui/src modules scripts",
+    "format:check": "prettier --check contract service app ui/src modules scripts",
     "service:stop": "node scripts/stop-service.mjs",
     "capture": "npm run build && electron app --capture",
     "capture:design": "electron scripts/capture-design.cjs",
@@ -23,6 +25,7 @@
   },
   "devDependencies": {
     "esbuild": "^0.28.2",
+    "prettier": "^3.8.1",
     "typescript": "~6.0.3",
     "vitest": "^5.0.5"
   }

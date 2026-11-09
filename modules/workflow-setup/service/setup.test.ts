@@ -36,7 +36,10 @@ describe('setupFolders', () => {
     const run = path.join(temp, 'test-run');
     try {
       mkdirSync(run);
-      expect(setupFolders([run, homedir(), temp, path.join(work, 'gone'), work], temp)).toEqual([homedir(), work]);
+      expect(setupFolders([run, homedir(), temp, path.join(work, 'gone'), work], temp)).toEqual([
+        homedir(),
+        work,
+      ]);
     } finally {
       rmSync(temp, { recursive: true, force: true });
       rmSync(work, { recursive: true, force: true });

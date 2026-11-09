@@ -1,0 +1,2 @@
+# The theme editor reads these sheets one token per line, so their lines must not wrap.
+ui/src/design-system/themes/*.css

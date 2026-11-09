@@ -6,8 +6,8 @@
   display: flex;
   flex-direction: column;
   /* The scrollbar sits in the inner margin, so the text lines up with the page header. */
-  padding: 0 calc(var(--page-inset-end) - var(--gr-scrollbar-width))
-    var(--gr-transcript-pad-bottom) var(--page-inset-start);
+  padding: 0 calc(var(--page-inset-end) - var(--gr-scrollbar-width)) var(--gr-transcript-pad-bottom)
+    var(--page-inset-start);
   scrollbar-gutter: stable;
   mask-image: linear-gradient(transparent, black var(--gr-transcript-fade));
 }

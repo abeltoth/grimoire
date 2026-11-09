@@ -63,7 +63,9 @@ export class JiraCards {
 
   /** Whether the card is one of the profile's Jira cards. */
   has(profile: string, id: string): boolean {
-    return !!this.db.prepare('SELECT 1 FROM jira_cards WHERE id = ? AND profile = ?').get(id, profile);
+    return !!this.db
+      .prepare('SELECT 1 FROM jira_cards WHERE id = ? AND profile = ?')
+      .get(id, profile);
   }
 
   /** The issue's key, when the card is one of the profile's Jira cards. */
@@ -133,7 +135,9 @@ export class JiraCards {
          priority = excluded.priority, status = excluded.status, column_id = excluded.column_id,
          position = excluded.position`,
     );
-    const place = this.db.prepare('UPDATE jira_cards SET position = ? WHERE profile = ? AND issue_key = ?');
+    const place = this.db.prepare(
+      'UPDATE jira_cards SET position = ? WHERE profile = ? AND issue_key = ?',
+    );
     const keys = issues.map((issue) => issue.key);
     this.db.exec('BEGIN');
     try {
@@ -186,8 +190,7 @@ export class JiraCards {
   /** How a profile's last sync went; `none` before its first. */
   state(profile: string): Omit<JiraSync, 'syncing'> {
     const row = this.db.prepare('SELECT * FROM jira_syncs WHERE profile = ?').get(profile) as
-      | SyncRow
-      | undefined;
+      SyncRow | undefined;
     if (!row) return { status: 'none' };
     return {
       status: row.status,

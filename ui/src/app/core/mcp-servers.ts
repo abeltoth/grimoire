@@ -48,7 +48,9 @@ export class McpServers {
       this.lists.update((lists) => new Map(lists).set(keyOf(agent, cwd), servers));
     } catch {
       // None to list: the ones already turned off still show.
-      this.lists.update((lists) => new Map(lists).set(keyOf(agent, cwd), lists.get(keyOf(agent, cwd)) ?? []));
+      this.lists.update((lists) =>
+        new Map(lists).set(keyOf(agent, cwd), lists.get(keyOf(agent, cwd)) ?? []),
+      );
     } finally {
       done();
     }

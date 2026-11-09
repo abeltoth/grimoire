@@ -38,7 +38,12 @@ export function nextDue({ days, time }: When, after: number): number | null {
  * The times the schedule was due after `after` and up to `until`, oldest
  * first, going back no further than `lookBack` before `until`.
  */
-export function dueTimes({ days, time }: When, after: number, until: number, lookBack: number): number[] {
+export function dueTimes(
+  { days, time }: When,
+  after: number,
+  until: number,
+  lookBack: number,
+): number[] {
   if (!days.length || !isTime(time)) return [];
   const from = Math.max(after, until - lookBack);
   const due: number[] = [];

@@ -58,7 +58,9 @@ export class ApprovalsPage {
   protected readonly first = computed(() => {
     const asked = this.rightPage.firstApproval();
     const approvalCards = this.approvalCards();
-    return approvalCards.some((approvalCard) => approvalCard.approval.id === asked) ? asked : approvalCards[0]?.approval.id;
+    return approvalCards.some((approvalCard) => approvalCard.approval.id === asked)
+      ? asked
+      : approvalCards[0]?.approval.id;
   });
 
   constructor() {
@@ -84,7 +86,9 @@ export class ApprovalsPage {
 
   protected move(event: Event, step: number): void {
     const approvalCards = [...this.host.querySelectorAll('gr-approval-card')];
-    const at = approvalCards.findIndex((approvalCard) => approvalCard.contains(document.activeElement));
+    const at = approvalCards.findIndex((approvalCard) =>
+      approvalCard.contains(document.activeElement),
+    );
     const next = approvalCards[Math.min(Math.max(at + step, 0), approvalCards.length - 1)];
     if (!next) return;
     event.preventDefault();

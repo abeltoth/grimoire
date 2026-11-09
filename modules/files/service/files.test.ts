@@ -74,7 +74,11 @@ describe('Files', () => {
     const plain = new Files(reposThrough(new CommandRegistry()), () => {});
     const top = await plain.list(repo, '');
     expect(top.root).toBe(path.resolve(repo));
-    expect(top.entries.find((entry) => entry.name === 'dist')).toEqual({ name: 'dist', path: 'dist', kind: 'folder' });
+    expect(top.entries.find((entry) => entry.name === 'dist')).toEqual({
+      name: 'dist',
+      path: 'dist',
+      kind: 'folder',
+    });
     plain.dispose();
   });
 

@@ -147,7 +147,10 @@ declare module '@grimoire/contract' {
      * The changes of status Jira allows a Jira card's issue now, asked of
      * Jira; only those into `column` when it's given.
      */
-    'kanban.transitions': { request: { id: string; column?: CardColumn }; response: JiraTransition[] };
+    'kanban.transitions': {
+      request: { id: string; column?: CardColumn };
+      response: JiraTransition[];
+    };
     /**
      * Changes a Jira card's issue's status in Jira, by one of the changes
      * kanban.transitions listed, then reads the issue again for its card.

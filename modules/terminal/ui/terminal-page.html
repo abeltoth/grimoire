@@ -35,8 +35,8 @@
     </button>
     @if (shown) {
       <p class="about">
-        <span class="sc">{{ shown.shell }}</span>, {{ wording.say('begun', 'started') }} at
-        {{ time(shown.openedAt) }} in
+        <span class="sc">{{ shown.shell }}</span
+        >, {{ wording.say('begun', 'started') }} at {{ time(shown.openedAt) }} in
         <code>{{ chats.folderName(shown.cwd) }}</code>
       </p>
     }

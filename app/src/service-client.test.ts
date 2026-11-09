@@ -10,18 +10,24 @@ import { ServiceClient, ServiceError } from './service-client';
 const servers: net.Server[] = [];
 const dirs: string[] = [];
 afterEach(async () => {
-  await Promise.all(servers.splice(0).map((server) => new Promise((resolve) => server.close(resolve))));
+  await Promise.all(
+    servers.splice(0).map((server) => new Promise((resolve) => server.close(resolve))),
+  );
   dirs.splice(0).forEach((dir) => rmSync(dir, { recursive: true, force: true }));
 });
 
 function endpoint(): string {
   const dir = mkdtempSync(path.join(os.tmpdir(), 'grimoire-client-'));
   dirs.push(dir);
-  return process.platform === 'win32' ? `\\\\.\\pipe\\${path.basename(dir)}` : path.join(dir, 's.sock');
+  return process.platform === 'win32'
+    ? `\\\\.\\pipe\\${path.basename(dir)}`
+    : path.join(dir, 's.sock');
 }
 
 /** A stand-in service that answers each message with `reply`. */
-async function fakeService(reply: (message: ClientMessage, send: (m: ServiceMessage) => void, socket: net.Socket) => void) {
+async function fakeService(
+  reply: (message: ClientMessage, send: (m: ServiceMessage) => void, socket: net.Socket) => void,
+) {
   const at = endpoint();
   const server = net.createServer((socket) => {
     const decoder = new LineDecoder();
@@ -38,7 +44,12 @@ async function fakeService(reply: (message: ClientMessage, send: (m: ServiceMess
   return at;
 }
 
-const welcome: ServiceMessage = { kind: 'welcome', buildId: 'b1', pid: 42, protocolVersion: PROTOCOL_VERSION };
+const welcome: ServiceMessage = {
+  kind: 'welcome',
+  buildId: 'b1',
+  pid: 42,
+  protocolVersion: PROTOCOL_VERSION,
+};
 
 describe('ServiceClient', () => {
   it('sends the token, then resolves requests by id', async () => {
@@ -62,7 +73,12 @@ describe('ServiceClient', () => {
     const at = await fakeService((message, send) => {
       if (message.kind === 'hello') send(welcome);
       if (message.kind === 'request') {
-        send({ kind: 'response', id: message.id, ok: false, error: { code: 'unknown-command', message: 'nope' } });
+        send({
+          kind: 'response',
+          id: message.id,
+          ok: false,
+          error: { code: 'unknown-command', message: 'nope' },
+        });
       }
     });
     const client = await ServiceClient.connect({ endpoint: at, token: 't' });

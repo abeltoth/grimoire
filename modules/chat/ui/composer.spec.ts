@@ -51,7 +51,9 @@ describe('composer', () => {
     expect(el.querySelector('.reply gr-markdown p .quill')).not.toBeNull();
     expect(texts('gr-page-header h1')).toEqual(['Fix flaky login test']);
     // A title too long for its line is cut short; pointing at it shows it all.
-    expect(el.querySelector('gr-page-header h1')!.getAttribute('title')).toBe('Fix flaky login test');
+    expect(el.querySelector('gr-page-header h1')!.getAttribute('title')).toBe(
+      'Fix flaky login test',
+    );
     expect(texts('[aria-current="page"] b')).toEqual(['Fix flaky login test']);
     expect(texts('[aria-current="page"] i')).toEqual(['Claude Code · writing']);
 
@@ -178,7 +180,8 @@ describe('composer', () => {
     const { bridge, calls, answers } = fakeBridge();
     let started!: (chat: OpenChat) => void;
     const start = answers['agents.start']!;
-    answers['agents.start'] = (request: never) => new Promise<OpenChat>((resolve) => (started = () => resolve(start(request) as OpenChat)));
+    answers['agents.start'] = (request: never) =>
+      new Promise<OpenChat>((resolve) => (started = () => resolve(start(request) as OpenChat)));
     const { fixture, el } = await render(bridge);
     await write(fixture, el, 'Hello');
     await write(fixture, el, 'And the docs');
@@ -197,7 +200,10 @@ describe('composer', () => {
     const { bridge, calls, emit } = fakeBridge();
     const { fixture, el } = await render(bridge);
     await write(fixture, el, 'Hello');
-    emit('agents.entry', { chatId: 'chat-1', entry: { kind: 'user', id: 'u2', text: 'Add a meter' } });
+    emit('agents.entry', {
+      chatId: 'chat-1',
+      entry: { kind: 'user', id: 'u2', text: 'Add a meter' },
+    });
     emit('agents.status', { chatId: 'chat-1', status: 'idle' });
     await fixture.whenStable();
     const field = el.querySelector<HTMLTextAreaElement>('#gr-next-message')!;
@@ -234,10 +240,15 @@ describe('composer', () => {
 
   it('says what the next message re-reads once the prompt cache has run out, and offers to compact first', async () => {
     const { bridge, calls, emit, answers } = fakeBridge();
-    answers['agents.list'] = () => [{ id: 'claude-code', name: 'Claude Code', capabilities: ['compact'] }];
+    answers['agents.list'] = () => [
+      { id: 'claude-code', name: 'Claude Code', capabilities: ['compact'] },
+    ];
     const { fixture, el, texts } = await render(bridge);
     await write(fixture, el, 'Hello');
-    emit('agents.cache', { chatId: 'chat-1', cache: { tokens: 283_412, until: Date.now() - 3 * 3_600_000 } });
+    emit('agents.cache', {
+      chatId: 'chat-1',
+      cache: { tokens: 283_412, until: Date.now() - 3 * 3_600_000 },
+    });
     // Not while a turn runs: it's reading them already.
     await fixture.whenStable();
     expect(el.querySelector('gr-composer .cold')).toBeNull();
@@ -254,7 +265,10 @@ describe('composer', () => {
     ]);
 
     // A turn leaves a fresh cache.
-    emit('agents.cache', { chatId: 'chat-1', cache: { tokens: 12_000, until: Date.now() + 3_600_000 } });
+    emit('agents.cache', {
+      chatId: 'chat-1',
+      cache: { tokens: 12_000, until: Date.now() + 3_600_000 },
+    });
     await fixture.whenStable();
     expect(el.querySelector('gr-composer .cold')).toBeNull();
   });
@@ -287,7 +301,10 @@ describe('composer', () => {
     expect(calls.filter((c) => c.command === 'agents.commands').map((c) => c.request)).toEqual([
       { agent: 'claude-code', cwd: 'C:/work/grimoire' },
     ]);
-    expect(texts('gr-slash-commands h3')).toEqual(['Claude Code’s commands', 'Claude Code’s skills']);
+    expect(texts('gr-slash-commands h3')).toEqual([
+      'Claude Code’s commands',
+      'Claude Code’s skills',
+    ]);
     expect(texts('gr-slash-commands .entry .label')).toEqual([
       '/compact',
       '/init',
@@ -302,7 +319,9 @@ describe('composer', () => {
       'skill',
       'skill',
     ]);
-    expect(texts('gr-slash-commands .count')).toEqual(['Claude Code’s commands and skills · 5 entries']);
+    expect(texts('gr-slash-commands .count')).toEqual([
+      'Claude Code’s commands and skills · 5 entries',
+    ]);
     expect(texts('gr-composer .slash-hint')).toEqual([
       'Claude Code’s commands and skills are on the facing page →',
     ]);
@@ -342,7 +361,8 @@ describe('composer', () => {
     const { bridge, calls, answers, emit } = fakeBridge();
     let kept: GrimoireSettings = { ...DEFAULT_SETTINGS };
     answers['settings.get'] = () => kept;
-    answers['settings.set'] = (change: Partial<GrimoireSettings>) => (kept = { ...kept, ...change });
+    answers['settings.set'] = (change: Partial<GrimoireSettings>) =>
+      (kept = { ...kept, ...change });
     answers['agents.commands'] = () => [
       { name: 'compact', description: 'Free up context', kind: 'command' },
     ];
@@ -442,7 +462,7 @@ describe('composer', () => {
     expect(document.activeElement).toBe(field);
   });
 
-  it('says why the agent\'s commands could not be listed', async () => {
+  it("says why the agent's commands could not be listed", async () => {
     const { bridge, calls, answers } = fakeBridge();
     answers['agents.commands'] = () => {
       throw new Error('Claude Code is not installed');

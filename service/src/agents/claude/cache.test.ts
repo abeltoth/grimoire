@@ -29,8 +29,12 @@ describe('contextTokens', () => {
 
 describe('cacheLife', () => {
   it('reads an hour or five minutes from what was written to the cache', () => {
-    expect(cacheLife({ cache_creation: { ephemeral_1h_input_tokens: 5, ephemeral_5m_input_tokens: 0 } })).toBe(3_600_000);
-    expect(cacheLife({ cache_creation: { ephemeral_1h_input_tokens: 0, ephemeral_5m_input_tokens: 9 } })).toBe(300_000);
+    expect(
+      cacheLife({ cache_creation: { ephemeral_1h_input_tokens: 5, ephemeral_5m_input_tokens: 0 } }),
+    ).toBe(3_600_000);
+    expect(
+      cacheLife({ cache_creation: { ephemeral_1h_input_tokens: 0, ephemeral_5m_input_tokens: 9 } }),
+    ).toBe(300_000);
     expect(cacheLife({ cache_read_input_tokens: 100 })).toBeUndefined();
   });
 });

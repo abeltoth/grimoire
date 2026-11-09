@@ -49,7 +49,12 @@ export function fakeBridge(overrides: Partial<GrimoireBridge> = {}) {
     'history.pinsAndTags': () => ({ pins: {}, tags: {} }),
     'agents.models': () => ({
       models: [
-        { id: 'opus', name: 'Opus 5.5', efforts: ['low', 'medium', 'high', 'xhigh', 'max'], effort: 'xhigh' },
+        {
+          id: 'opus',
+          name: 'Opus 5.5',
+          efforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+          effort: 'xhigh',
+        },
         { id: 'sonnet', name: 'Sonnet 5.5', efforts: ['low', 'medium', 'high', 'max'] },
         { id: 'haiku', name: 'Haiku 5.5' },
       ],
@@ -96,9 +101,16 @@ export function fakeBridge(overrides: Partial<GrimoireBridge> = {}) {
   return { bridge, calls, emit, answers, closePopout };
 }
 
-export async function render(bridge: GrimoireBridge, providers: (Provider | EnvironmentProviders)[] = []) {
+export async function render(
+  bridge: GrimoireBridge,
+  providers: (Provider | EnvironmentProviders)[] = [],
+) {
   TestBed.configureTestingModule({
-    providers: [...appConfig.providers, { provide: GRIMOIRE_BRIDGE, useValue: bridge }, ...providers],
+    providers: [
+      ...appConfig.providers,
+      { provide: GRIMOIRE_BRIDGE, useValue: bridge },
+      ...providers,
+    ],
   });
   const fixture = TestBed.createComponent(App);
   await fixture.whenStable();
@@ -116,7 +128,11 @@ export function pick(el: HTMLElement, text: string) {
   choice.click();
 }
 
-export async function write(fixture: { whenStable(): Promise<unknown> }, el: HTMLElement, text: string) {
+export async function write(
+  fixture: { whenStable(): Promise<unknown> },
+  el: HTMLElement,
+  text: string,
+) {
   const field = el.querySelector<HTMLTextAreaElement>('#gr-next-message')!;
   field.value = text;
   field.dispatchEvent(new Event('input'));

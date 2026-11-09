@@ -11,7 +11,12 @@ import { fakeBridge, render, write } from '@ui/testing/app-harness';
 
 describe('kanban', () => {
   describe('the Kanban board', () => {
-    const card = (id: string, title: string, column: CardColumn, change: Partial<Card> = {}): Card => ({
+    const card = (
+      id: string,
+      title: string,
+      column: CardColumn,
+      change: Partial<Card> = {},
+    ): Card => ({
       id,
       kind: 'task',
       title,
@@ -60,20 +65,29 @@ describe('kanban', () => {
           }),
         );
       fake.answers['kanban.link'] = ({ id, ...chat }: CommandRequest<'kanban.link'>) => {
-        cards = cards.map((c) => (c.id === id ? { ...c, chats: [...c.chats, { ...chat, at: 0 }] } : c));
+        cards = cards.map((c) =>
+          c.id === id ? { ...c, chats: [...c.chats, { ...chat, at: 0 }] } : c,
+        );
         const linked = cards.find((c) => c.id === id)!;
-        return changed(linked.kind === 'task' && linked.column === 'todo' ? place(id, 'doing') : cards);
+        return changed(
+          linked.kind === 'task' && linked.column === 'todo' ? place(id, 'doing') : cards,
+        );
       };
       /** Jira: the transitions it allows, what it says as it refuses one, and a change answered once `wait` is. */
       const jira = { transitions: TRANSITIONS, refuse: '', wait: Promise.resolve() };
       fake.answers['kanban.transitions'] = ({ column }: CommandRequest<'kanban.transitions'>) =>
         jira.transitions.filter((t) => !column || t.column === column);
-      fake.answers['kanban.transition'] = async ({ id, transition }: CommandRequest<'kanban.transition'>) => {
+      fake.answers['kanban.transition'] = async ({
+        id,
+        transition,
+      }: CommandRequest<'kanban.transition'>) => {
         await jira.wait;
         if (jira.refuse) throw new Error(jira.refuse);
         return changed(
           cards.map((c) =>
-            c.id === id ? { ...c, column: transition.column, jira: { ...c.jira!, status: transition.status } } : c,
+            c.id === id
+              ? { ...c, column: transition.column, jira: { ...c.jira!, status: transition.status } }
+              : c,
           ),
         );
       };
@@ -89,7 +103,13 @@ describe('kanban', () => {
     ];
 
     /** An issue from Jira, as the service lists it. */
-    const issue = (id: string, key: string, title: string, column: CardColumn, change: Partial<Card> = {}): Card =>
+    const issue = (
+      id: string,
+      key: string,
+      title: string,
+      column: CardColumn,
+      change: Partial<Card> = {},
+    ): Card =>
       card(id, title, column, {
         kind: 'jira',
         cwd: '',
@@ -164,7 +184,9 @@ describe('kanban', () => {
 
       button(cardEl(el, 'Add dark theme tokens'), 'Change').click();
       await fixture.whenStable();
-      expect(el.querySelector<HTMLInputElement>('gr-card-form .name')!.value).toBe('Add dark theme tokens');
+      expect(el.querySelector<HTMLInputElement>('gr-card-form .name')!.value).toBe(
+        'Add dark theme tokens',
+      );
       field(el, 'gr-card-form .name', 'Add night theme tokens');
       button(el.querySelector('gr-card-form')!, '~/git/grimoire').click();
       el.querySelector<HTMLButtonElement>('gr-card-form .send')!.click();
@@ -179,13 +201,22 @@ describe('kanban', () => {
     });
 
     it('moves cards with Move to, keeping the one moved in reach of the keyboard, and by dragging them', async () => {
-      const { bridge, calls } = withBoard([card('a', 'A', 'todo'), card('b', 'B', 'todo'), card('c', 'C', 'doing')]);
+      const { bridge, calls } = withBoard([
+        card('a', 'A', 'todo'),
+        card('b', 'B', 'todo'),
+        card('c', 'C', 'doing'),
+      ]);
       const { fixture, el, texts } = await render(bridge);
       await openBoard(fixture, el);
 
       button(cardEl(el, 'A'), 'Move to…').click();
       await fixture.whenStable();
-      expect(texts('[data-card="a"] .moves button')).toEqual(['In progress', 'Done', 'Down', 'Cancel']);
+      expect(texts('[data-card="a"] .moves button')).toEqual([
+        'In progress',
+        'Done',
+        'Down',
+        'Cancel',
+      ]);
       expect(document.activeElement!.textContent!.trim()).toBe('In progress');
       button(cardEl(el, 'A'), 'Done').click();
       await fixture.whenStable();
@@ -260,11 +291,14 @@ describe('kanban', () => {
       button(cardEl(el, 'Context meter'), 'New chapter').click();
       await fixture.whenStable();
       expect(el.querySelectorAll('gr-chat-tab.chat')).toHaveLength(chats);
-      expect(calls.filter((c) => c.command === 'agents.start' || c.command === 'kanban.link')).toEqual([]);
+      expect(
+        calls.filter((c) => c.command === 'agents.start' || c.command === 'kanban.link'),
+      ).toEqual([]);
       expect(board(texts).todo).toEqual(['Context meter']);
 
       await write(fixture, el, 'Context meter\n\nFill it in from the usage events.');
-      const start = calls.find((c) => c.command === 'agents.start')!.request as CommandRequest<'agents.start'>;
+      const start = calls.find((c) => c.command === 'agents.start')!
+        .request as CommandRequest<'agents.start'>;
       expect(start.settings.cwd).toBe('C:/Users/me/git/grimoire');
       expect(calls.filter((c) => c.command === 'kanban.link').map((c) => c.request)).toEqual([
         { id: 'a', chatId: 'chat-1', agent: 'claude-code', cwd: 'C:/Users/me/git/grimoire' },
@@ -300,7 +334,10 @@ describe('kanban', () => {
     });
 
     it('closes a card, keeping it under the board, and opens it again', async () => {
-      const { bridge, calls } = withBoard([card('a', 'A', 'todo'), card('b', 'Set up the Angular project', 'done')]);
+      const { bridge, calls } = withBoard([
+        card('a', 'A', 'todo'),
+        card('b', 'Set up the Angular project', 'done'),
+      ]);
       const { fixture, el, texts } = await render(bridge);
       await openBoard(fixture, el);
       expect(el.querySelector('gr-kanban-page .closed')).toBeNull();
@@ -333,7 +370,11 @@ describe('kanban', () => {
       ]);
       const { fixture, el, texts } = await render(bridge);
       await openBoard(fixture, el);
-      expect(texts('gr-kanban-page .folders button')).toEqual(['All', '~/git/grimoire', '~/git/breeder']);
+      expect(texts('gr-kanban-page .folders button')).toEqual([
+        'All',
+        '~/git/grimoire',
+        '~/git/breeder',
+      ]);
       expect(texts('gr-kanban-page .folders [aria-checked="true"]')).toEqual(['All']);
 
       button(el.querySelector('gr-kanban-page .folders')!, '~/git/breeder').click();
@@ -362,7 +403,10 @@ describe('kanban', () => {
         copied: [],
       });
       const cwd = 'C:/Users/me/git/grimoire';
-      answers['layout.get'] = () => ({ current: null, lastUsed: { agent: 'claude-code', settings: { cwd } } });
+      answers['layout.get'] = () => ({
+        current: null,
+        lastUsed: { agent: 'claude-code', settings: { cwd } },
+      });
       const { fixture, el, texts } = await render(bridge);
       await write(fixture, el, 'Put the context meter on the board');
       emit('agents.title', { chatId: 'chat-1', title: 'Track the meter' });
@@ -377,13 +421,20 @@ describe('kanban', () => {
               id: 't1',
               tool: 'mcp__grimoire__add_todo',
               input: { title: 'Context meter', notes: 'Fill it in from the usage events.' },
-              result: { text: 'Added "Context meter" to To do on the user\'s Kanban board.', isError: false },
+              result: {
+                text: 'Added "Context meter" to To do on the user\'s Kanban board.',
+                isError: false,
+              },
             },
             { kind: 'text', text: 'It’s on the board.' },
           ],
         },
       });
-      cards = [card('a', 'Context meter', 'todo', { madeIn: { chatId: 'chat-1', agent: 'claude-code', cwd } })];
+      cards = [
+        card('a', 'Context meter', 'todo', {
+          madeIn: { chatId: 'chat-1', agent: 'claude-code', cwd },
+        }),
+      ];
       emit('kanban.changed', { cards });
       await fixture.whenStable();
 
@@ -445,7 +496,12 @@ describe('kanban', () => {
         'Open in Jira',
         'Close',
       ]);
-      expect(texts('[data-card="a"] .actions button')).toEqual(['New chapter', 'Move to…', 'Change', 'Close']);
+      expect(texts('[data-card="a"] .actions button')).toEqual([
+        'New chapter',
+        'Move to…',
+        'Change',
+        'Close',
+      ]);
 
       // It keeps Jira's order in its column.
       button(jira, 'Move to…').click();
@@ -458,14 +514,20 @@ describe('kanban', () => {
       drag('drop', cardEl(el, 'Mine'));
       await fixture.whenStable();
       expect(board(texts).doing).toEqual(['Mine', 'Context meter']);
-      expect(calls.filter((c) => c.command === 'kanban.move' || c.command === 'kanban.transitions')).toEqual([]);
+      expect(
+        calls.filter((c) => c.command === 'kanban.move' || c.command === 'kanban.transitions'),
+      ).toEqual([]);
 
       button(jira, 'Open in Jira').click();
       expect(bridge.openExternal).toHaveBeenCalledWith('https://acme.atlassian.net/browse/GRIM-12');
 
       // Where they stand shows above the board, with a refresh.
       const time = new Date(synced).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-      expect(texts('gr-kanban-page .jira-sync > *')).toEqual(['Jira', `synced at ${time}`, 'Refresh']);
+      expect(texts('gr-kanban-page .jira-sync > *')).toEqual([
+        'Jira',
+        `synced at ${time}`,
+        'Refresh',
+      ]);
       button(el.querySelector('gr-kanban-page .jira-sync')!, 'Refresh').click();
       await fixture.whenStable();
       expect(calls.filter((c) => c.command === 'kanban.syncJira').at(-1)!.request).toEqual({});
@@ -475,14 +537,18 @@ describe('kanban', () => {
       await fixture.whenStable();
       el.querySelector<HTMLButtonElement>('gr-kanban-page .closed > button')!.click();
       await fixture.whenStable();
-      expect(texts('gr-kanban-page .closed li')).toEqual(['Context meter In Review · GRIM-12 Reopen']);
+      expect(texts('gr-kanban-page .closed li')).toEqual([
+        'Context meter In Review · GRIM-12 Reopen',
+      ]);
     });
 
     it('opens a chat from a Jira card with its key, summary and description written in, where the board shows', async () => {
       const { bridge, calls, answers } = withBoard([
         card('a', 'A', 'todo'),
         card('b', 'B', 'todo', { cwd: 'C:/Users/me/git/breeder' }),
-        issue('j1', 'GRIM-12', 'Context meter', 'todo', { notes: 'Fill it in.\n\n- From the usage events' }),
+        issue('j1', 'GRIM-12', 'Context meter', 'todo', {
+          notes: 'Fill it in.\n\n- From the usage events',
+        }),
       ]);
       answers['layout.get'] = () => ({
         current: null,
@@ -491,7 +557,11 @@ describe('kanban', () => {
       const { fixture, el, texts } = await render(bridge);
       await openBoard(fixture, el);
       // It belongs to no folder: it shows whichever is picked.
-      expect(texts('gr-kanban-page .folders button')).toEqual(['All', '~/git/grimoire', '~/git/breeder']);
+      expect(texts('gr-kanban-page .folders button')).toEqual([
+        'All',
+        '~/git/grimoire',
+        '~/git/breeder',
+      ]);
       button(el.querySelector('gr-kanban-page .folders')!, '~/git/breeder').click();
       await fixture.whenStable();
       expect(board(texts).todo).toEqual(['B', 'Context meter']);
@@ -502,7 +572,8 @@ describe('kanban', () => {
         'GRIM-12: Context meter\n\nFill it in.\n\n- From the usage events',
       );
       await write(fixture, el, 'GRIM-12: Context meter');
-      const start = calls.find((c) => c.command === 'agents.start')!.request as CommandRequest<'agents.start'>;
+      const start = calls.find((c) => c.command === 'agents.start')!
+        .request as CommandRequest<'agents.start'>;
       expect(start.settings.cwd).toBe('C:/Users/me/git/breeder');
       expect(calls.filter((c) => c.command === 'kanban.link').map((c) => c.request)).toEqual([
         { id: 'j1', chatId: 'chat-1', agent: 'claude-code', cwd: 'C:/Users/me/git/breeder' },
@@ -529,13 +600,17 @@ describe('kanban', () => {
       drag('drop', cardEl(el, 'Night theme'));
       await fixture.whenStable();
       // It's there at once, at the column's foot, while Jira moves it.
-      expect(board(texts)).toEqual({ todo: ['Mine'], doing: [], done: ['Night theme', 'Context meter'] });
+      expect(board(texts)).toEqual({
+        todo: ['Mine'],
+        doing: [],
+        done: ['Night theme', 'Context meter'],
+      });
       expect(texts('[data-card="j1"] .status-name')).toEqual(['Done']);
       expect(texts('[data-card="j1"] .actions')).toEqual(['Moving in Jira…']);
       expect(cardEl(el, 'Context meter').getAttribute('draggable')).toBe('false');
-      expect(calls.filter((c) => c.command === 'kanban.transitions').map((c) => c.request)).toEqual([
-        { id: 'j1', column: 'done' },
-      ]);
+      expect(calls.filter((c) => c.command === 'kanban.transitions').map((c) => c.request)).toEqual(
+        [{ id: 'j1', column: 'done' }],
+      );
       expect(calls.filter((c) => c.command === 'kanban.transition').map((c) => c.request)).toEqual([
         { id: 'j1', transition: TRANSITIONS[2] },
       ]);
@@ -560,7 +635,12 @@ describe('kanban', () => {
       button(cardEl(el, 'Context meter'), 'In progress').click();
       await fixture.whenStable();
       expect(board(texts)).toEqual({ todo: [], doing: ['Context meter'], done: [] });
-      expect(texts('[data-card="j1"] .moves > *')).toEqual(['Move to', 'In Progress', 'In Review', 'Cancel']);
+      expect(texts('[data-card="j1"] .moves > *')).toEqual([
+        'Move to',
+        'In Progress',
+        'In Review',
+        'Cancel',
+      ]);
       expect(document.activeElement!.textContent!.trim()).toBe('In Progress');
       button(cardEl(el, 'Context meter'), 'Cancel').click();
       await fixture.whenStable();
@@ -590,7 +670,9 @@ describe('kanban', () => {
       drag('drop', el.querySelector('[aria-labelledby="gr-kanban-done"] h3')!);
       await fixture.whenStable();
       expect(board(texts)).toEqual({ todo: ['Context meter'], doing: [], done: [] });
-      expect(texts('[data-card="j1"] .jira-note')).toEqual(['Jira doesn’t allow moving from To Do to Done']);
+      expect(texts('[data-card="j1"] .jira-note')).toEqual([
+        'Jira doesn’t allow moving from To Do to Done',
+      ]);
       expect(calls.filter((c) => c.command === 'kanban.transition')).toEqual([]);
     });
 
@@ -600,7 +682,9 @@ describe('kanban', () => {
       await openBoard(fixture, el);
       button(cardEl(el, 'Context meter'), 'Change status…').click();
       await fixture.whenStable();
-      expect(calls.filter((c) => c.command === 'kanban.transitions').map((c) => c.request)).toEqual([{ id: 'j1' }]);
+      expect(calls.filter((c) => c.command === 'kanban.transitions').map((c) => c.request)).toEqual(
+        [{ id: 'j1' }],
+      );
       expect(texts('[data-card="j1"] .moves > *')).toEqual([
         'Change status to',
         'In Progress',
@@ -665,7 +749,11 @@ describe('kanban', () => {
       ]);
       emit('kanban.jira', { jira: { status: 'failed', error: 'HTTP 503', syncing: false } });
       await fixture.whenStable();
-      expect(texts('gr-kanban-page .jira-sync > *')).toEqual(['Jira', 'couldn’t sync: HTTP 503', 'Refresh']);
+      expect(texts('gr-kanban-page .jira-sync > *')).toEqual([
+        'Jira',
+        'couldn’t sync: HTTP 503',
+        'Refresh',
+      ]);
       emit('kanban.jira', { jira: { status: 'failed', error: 'HTTP 503', syncing: true } });
       await fixture.whenStable();
       expect(texts('gr-kanban-page .jira-sync > *')).toEqual(['Jira', 'syncing…', 'Refresh']);

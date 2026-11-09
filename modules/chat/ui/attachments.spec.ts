@@ -4,7 +4,9 @@ describe('attachments', () => {
   it('attaches files, and pasted or dropped pictures, and sends them with the message', async () => {
     const { bridge, calls } = fakeBridge({
       chooseFiles: vi.fn(async () => ['C:/work/grimoire/src/app/ribbon.ts', 'D:/notes.txt']),
-      pathOf: vi.fn((file: File) => (file.name === 'README.md' ? 'C:/work/grimoire/README.md' : '')),
+      pathOf: vi.fn((file: File) =>
+        file.name === 'README.md' ? 'C:/work/grimoire/README.md' : '',
+      ),
     });
     const { fixture, el, texts } = await render(bridge);
     await write(fixture, el, 'First');
@@ -20,9 +22,15 @@ describe('attachments', () => {
     const field = el.querySelector<HTMLTextAreaElement>('#gr-next-message')!;
     field.dispatchEvent(withFiles('paste', [picture('shot.png')]));
     await fixture.whenStable();
-    field.dispatchEvent(withFiles('drop', [new File(['# Grimoire'], 'README.md'), picture('photo.png')]));
+    field.dispatchEvent(
+      withFiles('drop', [new File(['# Grimoire'], 'README.md'), picture('photo.png')]),
+    );
     await fixture.whenStable();
-    expect(texts('gr-composer .ref code')).toEqual(['src/app/ribbon.ts', 'D:/notes.txt', 'README.md']);
+    expect(texts('gr-composer .ref code')).toEqual([
+      'src/app/ribbon.ts',
+      'D:/notes.txt',
+      'README.md',
+    ]);
     expect(texts('gr-composer .plate figcaption span')).toEqual([
       expect.stringMatching(/^Plate I\. Screenshot, pasted at .+$/),
       expect.stringMatching(/^Plate II\. Picture, dropped at .+$/),
@@ -71,7 +79,11 @@ describe('attachments', () => {
     emit('agents.queued', {
       chatId: 'chat-1',
       queued: [
-        { id: 'q1', text: 'And this.', attachments: [{ kind: 'file', path: 'C:/work/grimoire/notes.txt' }] },
+        {
+          id: 'q1',
+          text: 'And this.',
+          attachments: [{ kind: 'file', path: 'C:/work/grimoire/notes.txt' }],
+        },
       ],
     });
     await fixture.whenStable();

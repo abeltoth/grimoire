@@ -16,10 +16,14 @@ const DEV_URL = `http://localhost:${PORT}`;
 // The VS Code editor's files, which the UI serves as /vs.
 await import(pathToFileURL(path.join(root, 'ui/tools/copy-monaco.mjs')).href);
 
-const ng = spawn(process.execPath, [path.join(root, 'node_modules/@angular/cli/bin/ng.js'), 'serve', '--port', String(PORT)], {
-  cwd: path.join(root, 'ui'),
-  stdio: 'inherit',
-});
+const ng = spawn(
+  process.execPath,
+  [path.join(root, 'node_modules/@angular/cli/bin/ng.js'), 'serve', '--port', String(PORT)],
+  {
+    cwd: path.join(root, 'ui'),
+    stdio: 'inherit',
+  },
+);
 
 let electron;
 let restarting = false;
@@ -63,7 +67,9 @@ const restartOnRebuild = {
   },
 };
 
-const contexts = await Promise.all(builds.map((options) => esbuild.context({ ...options, plugins: [restartOnRebuild] })));
+const contexts = await Promise.all(
+  builds.map((options) => esbuild.context({ ...options, plugins: [restartOnRebuild] })),
+);
 await Promise.all(contexts.map((context) => context.rebuild()));
 await Promise.all(contexts.map((context) => context.watch()));
 

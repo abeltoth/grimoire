@@ -50,7 +50,9 @@ describe('statusDetail', () => {
 describe('badgesOf', () => {
   it('badges the review, and the checks once there are any', () => {
     expect(badgesOf(pr()).map((badge) => badge.label)).toEqual(['PR #7: in review']);
-    expect(badgesOf(pr({ review: 'approved', checks: { passed: 2, failed: 0, pending: 0 } }))).toEqual([
+    expect(
+      badgesOf(pr({ review: 'approved', checks: { passed: 2, failed: 0, pending: 0 } })),
+    ).toEqual([
       { id: 'git.pullRequest', label: 'PR #7: approved', detail: 'Seven' },
       { id: 'git.checks', label: 'CI: passing', tone: 'quiet', detail: '2 passed' },
     ]);

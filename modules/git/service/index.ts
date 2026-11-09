@@ -12,7 +12,9 @@ export const git: ServiceModule = {
     registry.register('git.pullRequest', ({ cwd }) => git.pullRequest(cwd));
     registry.register('git.root', ({ cwd }) => git.root(cwd));
     registry.register('git.files', ({ root }) => git.files(root));
-    registry.register('git.ignored', async ({ root, paths }) => [...(await git.ignored(root, paths))]);
+    registry.register('git.ignored', async ({ root, paths }) => [
+      ...(await git.ignored(root, paths)),
+    ]);
     registry.register('git.committed', ({ cwd, path }) => git.committed(cwd, path));
   },
 };

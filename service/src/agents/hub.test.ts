@@ -43,7 +43,10 @@ describe('AgentHub', () => {
     fake.subagents.set('toolu_9', { entries: [reply('h9', 'Done earlier')], state: 'done' });
     await hub.open('fake', 'c1', settings);
 
-    expect(await hub.subagent('c1', 'toolu_9')).toMatchObject({ entries: [{ id: 'h9' }], state: 'done' });
+    expect(await hub.subagent('c1', 'toolu_9')).toMatchObject({
+      entries: [{ id: 'h9' }],
+      state: 'done',
+    });
     expect(await hub.subagent('c1', 'toolu_0')).toEqual({ entries: [] });
     await expect(hub.subagent('closed', 'toolu_9')).rejects.toThrow('This chat is not open');
   });
@@ -53,7 +56,10 @@ describe('AgentHub', () => {
     fake.subagents.set('toolu_s', { entries: [reply('h1', 'Resumed')], state: 'done' });
     fake.runOf(id).events.subagentState('toolu_s', 'working');
 
-    expect(await hub.subagent(id, 'toolu_s')).toMatchObject({ entries: [{ id: 'h1' }], state: 'working' });
+    expect(await hub.subagent(id, 'toolu_s')).toMatchObject({
+      entries: [{ id: 'h1' }],
+      state: 'working',
+    });
   });
 
   it('opens a saved chat once, and continues it when you send', async () => {
@@ -119,7 +125,7 @@ describe('AgentHub', () => {
     expect(chats.list().map((c) => c.chatId)).toEqual([started.id, 'saved']);
   });
 
-  it('changes a chat\'s model and permission, live and for after a restart', async () => {
+  it("changes a chat's model and permission, live and for after a restart", async () => {
     const store = hubStore(openDatabase(':memory:'));
     const { chats } = store;
     hub = new AgentHub((event, payload) => sent.push({ event, payload } as Sent), 50, store);
@@ -130,7 +136,10 @@ describe('AgentHub', () => {
     await hub.configure(id, { model: 'small', mode: 'plan' });
     expect(fake.runOf(id).configured).toEqual([{ model: 'small', mode: 'plan' }]);
     expect(sent).toEqual([
-      { event: 'agents.settings', payload: { chatId: id, settings: { ...settings, model: 'small', mode: 'plan' } } },
+      {
+        event: 'agents.settings',
+        payload: { chatId: id, settings: { ...settings, model: 'small', mode: 'plan' } },
+      },
     ]);
     expect(chats.list()[0]?.settings).toEqual({ ...settings, model: 'small', mode: 'plan' });
   });
@@ -148,13 +157,20 @@ describe('AgentHub', () => {
     expect(working.configured).toEqual([]);
     expect(working.closed).toBe(false);
     expect(sent).toEqual([
-      { event: 'agents.settings', payload: { chatId: id, settings: { ...settings, mcpOff: ['github'] } } },
+      {
+        event: 'agents.settings',
+        payload: { chatId: id, settings: { ...settings, mcpOff: ['github'] } },
+      },
     ]);
     expect(store.chats.list()[0]?.settings).toEqual({ ...settings, mcpOff: ['github'] });
     working.events.turnEnded();
     expect(working.closed).toBe(true);
     hub.send(id, 'Again');
-    expect(fake.runOf(id)).toMatchObject({ resume: true, settings: { mcpOff: ['github'] }, sent: ['Again'] });
+    expect(fake.runOf(id)).toMatchObject({
+      resume: true,
+      settings: { mcpOff: ['github'] },
+      sent: ['Again'],
+    });
 
     // The same servers again leave the process be; none off drops the setting.
     const again = fake.runOf(id);
@@ -190,7 +206,7 @@ describe('AgentHub', () => {
     expect((await hub.models('fake')).default).toBe('big');
   });
 
-  it('passes on the agent\'s plan, and reopens a chat with it', async () => {
+  it("passes on the agent's plan, and reopens a chat with it", async () => {
     const { id } = await hub.start('fake', settings, 'Hello');
     const plan = [{ text: 'Read the code', status: 'active' as const }];
     fake.runOf(id).events.plan(plan);
@@ -203,7 +219,7 @@ describe('AgentHub', () => {
     ]);
   });
 
-  it('undoes a message\'s edits and those after it, and remembers them after a restart', async () => {
+  it("undoes a message's edits and those after it, and remembers them after a restart", async () => {
     const store = hubStore(openDatabase(':memory:'));
     hub = new AgentHub((event, payload) => sent.push({ event, payload } as Sent), 50, store);
     hub.addAdapter(fake);
@@ -220,21 +236,29 @@ describe('AgentHub', () => {
     await hub.undo(id, run.sentIds[1]!);
     expect(run.undone).toEqual([run.sentIds[1]]);
     const later = run.sentIds.slice(1);
-    expect(sent).toEqual([{ event: 'agents.withdrawn', payload: { chatId: id, withdrawn: later } }]);
+    expect(sent).toEqual([
+      { event: 'agents.withdrawn', payload: { chatId: id, withdrawn: later } },
+    ]);
     expect((await hub.open('fake', id, settings)).withdrawn).toEqual(later);
     await expect(hub.undo(id, run.sentIds[2]!)).rejects.toThrow('already undone');
 
     // After a restart the chat has no process: undo starts one, resumed.
     const restarted = new AgentHub(() => {}, 50, store);
     restarted.addAdapter(fake);
-    fake.transcripts.set(id, run.sentIds.map((entryId, i) => ({ kind: 'user', id: entryId, text: `${i}` })));
+    fake.transcripts.set(
+      id,
+      run.sentIds.map((entryId, i) => ({ kind: 'user', id: entryId, text: `${i}` })),
+    );
     expect((await restarted.open('fake', id, settings)).withdrawn).toEqual(later);
     await restarted.undo(id, run.sentIds[0]!);
     expect(fake.runOf(id)).toMatchObject({ resume: true, undone: [run.sentIds[0]] });
-    expect((await restarted.open('fake', id, settings)).withdrawn).toEqual([...later, run.sentIds[0]]);
+    expect((await restarted.open('fake', id, settings)).withdrawn).toEqual([
+      ...later,
+      run.sentIds[0],
+    ]);
   });
 
-  it('withdraws nothing when the agent can\'t undo', async () => {
+  it("withdraws nothing when the agent can't undo", async () => {
     const { id } = await hub.start('fake', settings, 'First');
     fake.runOf(id).events.turnEnded();
     fake.undoError = 'No checkpoint for this entry';
@@ -250,7 +274,9 @@ describe('AgentHub', () => {
 
     await hub.rename(id, ' Flaky login test ');
     expect(fake.renamed.get(id)).toBe('Flaky login test');
-    expect(sent).toEqual([{ event: 'agents.title', payload: { chatId: id, title: 'Flaky login test' } }]);
+    expect(sent).toEqual([
+      { event: 'agents.title', payload: { chatId: id, title: 'Flaky login test' } },
+    ]);
     expect((await hub.open('fake', id, settings)).title).toBe('Flaky login test');
     await expect(hub.rename(id, '  ')).rejects.toThrow('A chat needs a title');
     await expect(hub.rename('missing', 'x')).rejects.toThrow('This chat is not open');
@@ -259,10 +285,12 @@ describe('AgentHub', () => {
   it('opens a saved chat with what its last reply left in the prompt cache', async () => {
     fake.transcripts.set('c1', []);
     fake.caches.set('c1', { tokens: 283_000, until: 1_000 });
-    expect((await hub.open('fake', 'c1', settings)).cache).toEqual({ tokens: 283_000, until: 1_000 });
+    expect((await hub.open('fake', 'c1', settings)).cache).toEqual({
+      tokens: 283_000,
+      until: 1_000,
+    });
   });
 });
-
 
 describe('putting the chats away for another profile', () => {
   it('is refused, naming them, while a turn runs or an approval waits', async () => {
@@ -275,10 +303,9 @@ describe('putting the chats away for another profile', () => {
     expect(hub.busy()).toBe('Wait for "Fix the ribbon" to finish, or stop it, first');
     fake.runOf(working.id).events.turnEnded();
 
-    void fake.runOf(idle.id).events.approval(
-      { id: 'a1', tool: 'Write', input: {} },
-      new AbortController().signal,
-    );
+    void fake
+      .runOf(idle.id)
+      .events.approval({ id: 'a1', tool: 'Write', input: {} }, new AbortController().signal);
     const asking = await hub.start('fake', settings, 'Asking');
     expect(hub.busy()).toBe(
       'Wait for an untitled chat, an untitled chat to finish, or stop them, first',

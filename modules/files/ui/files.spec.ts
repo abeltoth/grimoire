@@ -36,7 +36,12 @@ describe('files', () => {
         };
       };
       type Model = ReturnType<typeof modelOf>;
-      const box = (host: HTMLElement, model: Model, side: string, commands: Map<number, () => void>) => {
+      const box = (
+        host: HTMLElement,
+        model: Model,
+        side: string,
+        commands: Map<number, () => void>,
+      ) => {
         const area = document.createElement('textarea');
         area.className = `fake-editor ${side}`;
         area.dataset['language'] = model.language;
@@ -118,7 +123,12 @@ describe('files', () => {
           changedAt: 1,
           committed: 'export const ribbon = 1;\n',
         },
-        'ui/src/seal.ts': { path: 'ui/src/seal.ts', text: 'export const seal = 1;\n', changedAt: 1, committed: null },
+        'ui/src/seal.ts': {
+          path: 'ui/src/seal.ts',
+          text: 'export const seal = 1;\n',
+          changedAt: 1,
+          committed: null,
+        },
         'logo.png': { path: 'logo.png', text: '', changedAt: 1, unshown: 'binary' },
       };
       answers['files.list'] = (request: CommandRequest<'files.list'>) => ({
@@ -173,7 +183,8 @@ describe('files', () => {
         [...page().querySelectorAll<HTMLButtonElement>(selector)].find(
           (b) => b.textContent!.replace(/\s+/g, ' ').trim() === text,
         )!;
-      const editor = (side = 'file') => page().querySelector<HTMLTextAreaElement>(`.fake-editor.${side}`);
+      const editor = (side = 'file') =>
+        page().querySelector<HTMLTextAreaElement>(`.fake-editor.${side}`);
       const type = async (text: string) => {
         const area = editor()!;
         area.value = text;
@@ -195,7 +206,12 @@ describe('files', () => {
         'old.txt deleted',
       ]);
       expect(texts('gr-files-page .list button.file')).toHaveLength(2);
-      expect(texts('gr-files-page .tree .entry')).toEqual(['dist/', 'ui/', 'logo.png', 'README.md']);
+      expect(texts('gr-files-page .tree .entry')).toEqual([
+        'dist/',
+        'ui/',
+        'logo.png',
+        'README.md',
+      ]);
       expect(texts('gr-files-page .entry.ignored')).toEqual(['dist/']);
 
       button('.entry', 'ui/').click();
@@ -203,7 +219,13 @@ describe('files', () => {
       button('.entry', 'src/').click();
       await fixture.whenStable();
       expect(texts('gr-files-page .tree .entry')).toEqual([
-        'dist/', 'ui/', 'src/', 'ribbon.ts', 'seal.ts', 'logo.png', 'README.md',
+        'dist/',
+        'ui/',
+        'src/',
+        'ribbon.ts',
+        'seal.ts',
+        'logo.png',
+        'README.md',
       ]);
       expect(calls.filter((c) => c.command === 'files.list').map((c) => c.request)).toEqual([
         { cwd: 'C:/Users/me', path: '' },
@@ -214,7 +236,12 @@ describe('files', () => {
       // Collapsed, and expanded again without reading it twice.
       button('.entry', 'ui/').click();
       await fixture.whenStable();
-      expect(texts('gr-files-page .tree .entry')).toEqual(['dist/', 'ui/', 'logo.png', 'README.md']);
+      expect(texts('gr-files-page .tree .entry')).toEqual([
+        'dist/',
+        'ui/',
+        'logo.png',
+        'README.md',
+      ]);
       button('.entry', 'ui/').click();
       await fixture.whenStable();
       expect(calls.filter((c) => c.command === 'files.list')).toHaveLength(3);
@@ -259,7 +286,9 @@ describe('files', () => {
       const { fixture, texts, made, button, editor } = await openFiles(bridge);
       button('.list .file', 'ui/src/ribbon.ts modified').click();
       await fixture.whenStable();
-      expect(texts('gr-files-page .show [aria-checked="true"]')).toEqual(['Its changes since the last commit']);
+      expect(texts('gr-files-page .show [aria-checked="true"]')).toEqual([
+        'Its changes since the last commit',
+      ]);
       expect(editor('committed')!.value).toBe('export const ribbon = 1;\n');
       expect(editor()!.value).toBe('export const ribbon = 2;\n');
       expect(editor()!.dataset['language']).toBe('typescript');
@@ -276,7 +305,9 @@ describe('files', () => {
       const { fixture, texts, button, editor } = await openFiles(bridge);
       button('.list .file', 'ui/src/seal.ts new').click();
       await fixture.whenStable();
-      expect(texts('gr-files-page .show [aria-checked="true"]')).toEqual(['All new since the last commit']);
+      expect(texts('gr-files-page .show [aria-checked="true"]')).toEqual([
+        'All new since the last commit',
+      ]);
       expect(editor('committed')!.value).toBe('');
     });
 
@@ -309,7 +340,9 @@ describe('files', () => {
 
       button('.gr-link', 'Back to the files').click();
       await fixture.whenStable();
-      expect(texts('gr-files-page .note.alert')).toEqual(['Save your changes, or discard them, first.']);
+      expect(texts('gr-files-page .note.alert')).toEqual([
+        'Save your changes, or discard them, first.',
+      ]);
       expect(el.querySelector('gr-code-editor')).not.toBeNull();
 
       button('.gr-link', 'Discard changes').click();
@@ -318,7 +351,10 @@ describe('files', () => {
       await fixture.whenStable();
       expect(el.querySelector('gr-code-editor')).toBeNull();
       expect(texts('gr-files-page h3')).toEqual(['Not committed yet', 'All its files']);
-      expect(calls).toContainEqual({ command: 'files.close', request: { cwd: 'C:/Users/me', path: 'README.md' } });
+      expect(calls).toContainEqual({
+        command: 'files.close',
+        request: { cwd: 'C:/Users/me', path: 'README.md' },
+      });
     });
 
     it('keeps the open file and its changes while the right page shows another', async () => {
@@ -328,7 +364,9 @@ describe('files', () => {
       await fixture.whenStable();
       await type('# Mine\n');
       const tab = (label: string) =>
-        [...el.querySelectorAll<HTMLButtonElement>('.tabs button')].find((t) => t.textContent!.trim() === label)!;
+        [...el.querySelectorAll<HTMLButtonElement>('.tabs button')].find(
+          (t) => t.textContent!.trim() === label,
+        )!;
       tab('Outline').click();
       await fixture.whenStable();
       expect(el.querySelector('gr-files-page')).toBeNull();
@@ -383,14 +421,16 @@ describe('files', () => {
         const monaco = fakeMonaco();
         const rendered = await render(bridge, [{ provide: MONACO, useValue: monaco.load }]);
         const openIn = (where = '') =>
-          [...rendered.el.querySelectorAll<HTMLButtonElement>(`${where} gr-diff-view .gr-link`)].find(
-            (b) => b.textContent!.trim() === 'Open in Files',
-          );
+          [
+            ...rendered.el.querySelectorAll<HTMLButtonElement>(`${where} gr-diff-view .gr-link`),
+          ].find((b) => b.textContent!.trim() === 'Open in Files');
         const expandable = async (name: string) => {
           rendered.el.querySelector<HTMLButtonElement>('.note.summary')?.click();
           await rendered.fixture.whenStable();
           [...rendered.el.querySelectorAll<HTMLButtonElement>('.note')]
-            .find((note) => note.textContent!.includes(name) && !note.classList.contains('summary'))!
+            .find(
+              (note) => note.textContent!.includes(name) && !note.classList.contains('summary'),
+            )!
             .click();
           await rendered.fixture.whenStable();
         };
@@ -401,7 +441,10 @@ describe('files', () => {
         const { bridge, emit, calls } = repository();
         const { fixture, el, texts, made, openIn, expandable } = await withEditor(bridge);
         await write(fixture, el, 'Fix the ribbon');
-        emit('agents.entry', { chatId: 'chat-1', entry: { kind: 'agent', id: 'a1', blocks: [chatTabEdit] } });
+        emit('agents.entry', {
+          chatId: 'chat-1',
+          entry: { kind: 'agent', id: 'a1', blocks: [chatTabEdit] },
+        });
         await fixture.whenStable();
         await expandable('ribbon.ts');
 
@@ -412,10 +455,12 @@ describe('files', () => {
           { cwd: 'C:/work/grimoire', path: 'C:/work/grimoire/ui/src/ribbon.ts' },
         ]);
         expect(texts('gr-files-page .sub .path')).toEqual(['ui/src/ribbon.ts']);
-        expect(texts('gr-files-page .show [aria-checked="true"]')).toEqual(['Its changes since the last commit']);
-        expect(el.querySelector<HTMLTextAreaElement>('gr-files-page .fake-editor.committed')!.value).toBe(
-          'export const ribbon = 1;\n',
-        );
+        expect(texts('gr-files-page .show [aria-checked="true"]')).toEqual([
+          'Its changes since the last commit',
+        ]);
+        expect(
+          el.querySelector<HTMLTextAreaElement>('gr-files-page .fake-editor.committed')!.value,
+        ).toBe('export const ribbon = 1;\n');
         // It starts at the first change.
         expect(made.revealed).toBe(1);
       });
@@ -448,7 +493,11 @@ describe('files', () => {
             id: 'ap1',
             chatId: 'chat-1',
             tool: 'Edit',
-            input: { file_path: 'C:/Users/me/.claude/CLAUDE.md', old_string: '# Mine', new_string: '# Ours' },
+            input: {
+              file_path: 'C:/Users/me/.claude/CLAUDE.md',
+              old_string: '# Mine',
+              new_string: '# Ours',
+            },
             alwaysAllow: { scope: 'chat' },
           },
         });
@@ -458,7 +507,9 @@ describe('files', () => {
         await fixture.whenStable();
         expect(texts('.tabs [aria-pressed="true"]')).toEqual(['Files']);
         expect(texts('gr-files-page .sub .path')).toEqual(['~/.claude/CLAUDE.md']);
-        expect(el.querySelector<HTMLTextAreaElement>('gr-files-page .fake-editor')!.value).toBe('# Mine\n');
+        expect(el.querySelector<HTMLTextAreaElement>('gr-files-page .fake-editor')!.value).toBe(
+          '# Mine\n',
+        );
         // Not in a repository: nothing to show beside it.
         expect(el.querySelector('gr-files-page .show')).toBeNull();
       });
@@ -480,13 +531,18 @@ describe('files', () => {
         editor.dispatchEvent(new Event('input'));
         await fixture.whenStable();
 
-        emit('agents.entry', { chatId: 'chat-1', entry: { kind: 'agent', id: 'a1', blocks: [chatTabEdit] } });
+        emit('agents.entry', {
+          chatId: 'chat-1',
+          entry: { kind: 'agent', id: 'a1', blocks: [chatTabEdit] },
+        });
         await fixture.whenStable();
         await expandable('ribbon.ts');
         openIn()!.click();
         await fixture.whenStable();
         expect(texts('gr-files-page .sub .path')).toEqual(['README.md']);
-        expect(texts('gr-files-page .note.alert')).toEqual(['Save your changes, or discard them, first.']);
+        expect(texts('gr-files-page .note.alert')).toEqual([
+          'Save your changes, or discard them, first.',
+        ]);
         expect(calls.filter((c) => c.command === 'files.open')).toHaveLength(1);
       });
 
@@ -494,7 +550,10 @@ describe('files', () => {
         const { bridge, emit } = repository();
         const { fixture, el, openIn, expandable } = await withEditor(bridge);
         await write(fixture, el, 'Fix the ribbon');
-        emit('agents.entry', { chatId: 'chat-1', entry: { kind: 'agent', id: 'a1', blocks: [chatTabEdit] } });
+        emit('agents.entry', {
+          chatId: 'chat-1',
+          entry: { kind: 'agent', id: 'a1', blocks: [chatTabEdit] },
+        });
         await fixture.whenStable();
         await expandable('ribbon.ts');
         expect(openIn()).toBeDefined();

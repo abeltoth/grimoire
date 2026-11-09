@@ -10,7 +10,10 @@ export type Platform = 'mac' | 'windows' | 'linux';
  */
 export interface GrimoireBridge {
   readonly platform: Platform;
-  invoke<K extends CommandName>(command: K, request: CommandRequest<K>): Promise<CommandResponse<K>>;
+  invoke<K extends CommandName>(
+    command: K,
+    request: CommandRequest<K>,
+  ): Promise<CommandResponse<K>>;
   /** Returns a function that stops listening. */
   on<K extends EventName>(event: K, listener: (payload: EventPayload<K>) => void): () => void;
   /** Asks for a folder with the system's folder picker; null when you cancel. */

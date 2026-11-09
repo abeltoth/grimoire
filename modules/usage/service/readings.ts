@@ -70,14 +70,14 @@ export function sameAccount(readings: readonly UsageReading[]): UsageReading[] {
   const latest = readings[readings.length - 1];
   if (!latest) return [];
   const account = latest.account;
-  const latestWeek = [...readings].reverse().find((r) => week(r) && (!account || r.account === account));
+  const latestWeek = [...readings]
+    .reverse()
+    .find((r) => week(r) && (!account || r.account === account));
   const phase = latestWeek ? weekPhase(latestWeek.resetsAt!) : null;
   // A reading's moment says which week it belongs with: those read together share it.
   const phases = new Map<number, number>();
   for (const r of readings) if (week(r)) phases.set(r.at, weekPhase(r.resetsAt!));
   return readings.filter((r) =>
-    account && r.account
-      ? r.account === account
-      : phase !== null && phases.get(r.at) === phase,
+    account && r.account ? r.account === account : phase !== null && phases.get(r.at) === phase,
   );
 }

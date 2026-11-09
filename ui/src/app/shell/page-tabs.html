@@ -4,7 +4,9 @@
     class="page-tab"
     [attr.title]="wording.label(tab)"
     [attr.aria-current]="rightPage.pageTab() === tab.id ? 'page' : null"
-    (click)="rightPage.pageTab() === tab.id ? rightPage.closePageTab() : rightPage.openPageTab(tab.id)"
+    (click)="
+      rightPage.pageTab() === tab.id ? rightPage.closePageTab() : rightPage.openPageTab(tab.id)
+    "
   >
     <span>{{ wording.label(tab) }}</span>
   </button>

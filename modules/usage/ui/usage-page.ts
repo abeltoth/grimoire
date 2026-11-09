@@ -1,5 +1,13 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, PendingTasks, computed, effect, inject, signal, untracked } from '@angular/core';
+import {
+  Component,
+  PendingTasks,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+} from '@angular/core';
 import type {
   AgentInfo,
   PlanUsage,
@@ -84,7 +92,12 @@ const VIEWS: Record<View, string> = {
 /** What Grimoire's count can be grouped by. */
 type Group = 'day' | 'model' | 'folder' | 'chat';
 
-const GROUPS: Record<Group, string> = { day: 'Day', model: 'Model', folder: 'Folder', chat: 'Chat' };
+const GROUPS: Record<Group, string> = {
+  day: 'Day',
+  model: 'Model',
+  folder: 'Folder',
+  chat: 'Chat',
+};
 
 const SHOWN = 5;
 
@@ -161,7 +174,8 @@ const SOURCES: Record<UsageSpan['sources'][number]['kind'], string> = {
   mcp: 'MCP server',
 };
 
-const time = (at: number) => new Date(at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+const time = (at: number) =>
+  new Date(at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
 /** An amount in the currency's minor units, such as 12345 cents, written as money: "$123.45". */
 export function money(minor: number, currency: string): string {
@@ -232,14 +246,15 @@ export class UsagePage {
     const now = Date.now();
     const from = startOf(totals.since, unit).getTime();
     let to = from;
-    for (const at = new Date(from); at.getTime() <= now; ) {
+    for (const at = new Date(from); at.getTime() <= now;) {
       const start = at.getTime();
       const total = unit === 'day' ? byDay.get(dayKey(at)) : byHour.get(start);
       if (unit === 'day') at.setDate(at.getDate() + 1);
       else at.setHours(at.getHours() + 1);
       to = at.getTime();
       const middle = (start + to) / 2;
-      const label = unit === 'day' ? dayTick(start) : new Date(start).getHours() % 6 ? '' : hourName(start);
+      const label =
+        unit === 'day' ? dayTick(start) : new Date(start).getHours() % 6 ? '' : hourName(start);
       columns.push({
         label,
         name: unit === 'day' ? this.dayName(dayKey(new Date(start))) : this.hourSpan(start, to),
@@ -316,7 +331,9 @@ export class UsagePage {
     const span = this.span();
     this.totalsFailed.set(null);
     try {
-      const totals = await this.bridge.invoke('search.tokens', { since: Date.now() - SPANS[span].ms });
+      const totals = await this.bridge.invoke('search.tokens', {
+        since: Date.now() - SPANS[span].ms,
+      });
       if (span === this.span()) this.totals.set(totals);
     } catch (error) {
       this.totalsFailed.set(error instanceof Error ? error.message : String(error));
@@ -466,12 +483,17 @@ export class UsagePage {
     const toHour = (at: number) => Math.round(at / HOUR) * HOUR;
 
     const weeks = new Map<string, { window: UsageReading; points: LinePoint[] }>();
-    const byModel = (a: UsageReading, b: UsageReading) => Number(!!a.model) - Number(!!b.model) || a.at - b.at;
+    const byModel = (a: UsageReading, b: UsageReading) =>
+      Number(!!a.model) - Number(!!b.model) || a.at - b.at;
     for (const r of shown.filter((r) => r.span === 'week').sort(byModel)) {
       const key = r.model ?? '';
       const limit = weeks.get(key) ?? { window: r, points: [] };
       weeks.set(key, limit);
-      limit.points.push({ at: r.at, value: r.used!, ...(r.resetsAt === null ? {} : { run: toHour(r.resetsAt) }) });
+      limit.points.push({
+        at: r.at,
+        value: r.used!,
+        ...(r.resetsAt === null ? {} : { run: toHour(r.resetsAt) }),
+      });
     }
     // Past three the colours would repeat: the rest stay in the list above.
     const week = [...weeks.values()].slice(0, WEEK_COLORS.length).map((limit, i) => ({
@@ -518,7 +540,10 @@ export class UsagePage {
       const end = new Date(start);
       end.setDate(end.getDate() + 1);
       const inDay = (r: UsageReading) => r.at >= start && r.at < end.getTime();
-      const busiest = Math.max(-1, ...shown.filter((r) => r.span === 'session' && inDay(r)).map((r) => r.used!));
+      const busiest = Math.max(
+        -1,
+        ...shown.filter((r) => r.span === 'session' && inDay(r)).map((r) => r.used!),
+      );
       const last = allModels.filter(inDay).at(-1);
       // A day nothing was read, such as one the app was closed, has no row.
       if (busiest >= 0 || last) {

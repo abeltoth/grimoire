@@ -84,14 +84,24 @@
 
 .tail::before {
   background:
-    linear-gradient(90deg, var(--gr-chat-tab-highlight), transparent 45%, var(--gr-chat-tab-lowlight)),
+    linear-gradient(
+      90deg,
+      var(--gr-chat-tab-highlight),
+      transparent 45%,
+      var(--gr-chat-tab-lowlight)
+    ),
     var(--chat-tab);
   box-shadow: var(--gr-shadow-chat-tab-drop);
 }
 
 /* The open chat's chat tab catches the light. */
 :host(.sheen) .tail::after {
-  background: linear-gradient(100deg, transparent 36%, var(--gr-chat-tab-sheen) 50%, transparent 64%);
+  background: linear-gradient(
+    100deg,
+    transparent 36%,
+    var(--gr-chat-tab-sheen) 50%,
+    transparent 64%
+  );
   background-size: 300% 100%;
   animation: gr-sheen var(--gr-dur-sheen) linear infinite;
 }

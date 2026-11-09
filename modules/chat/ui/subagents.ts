@@ -92,7 +92,9 @@ export class Subagents {
     if (!this.running() || !approvals.length) return false;
     const calls = new Set(
       this.entries().flatMap((entry) =>
-        entry.kind === 'agent' ? entry.blocks.flatMap((b) => (b.kind === 'tool' ? [b.id] : [])) : [],
+        entry.kind === 'agent'
+          ? entry.blocks.flatMap((b) => (b.kind === 'tool' ? [b.id] : []))
+          : [],
       ),
     );
     return approvals.some((approval) => calls.has(approval.id));

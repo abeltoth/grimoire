@@ -106,7 +106,8 @@ export class Scheduler {
       // Seen to first, so a run that fails to begin isn't tried again and again.
       this.store.setHandledUntil(schedule.id, last);
       changed = true;
-      for (const dueAt of due) this.store.addRun({ scheduleId: schedule.id, dueAt, outcome: 'missed' });
+      for (const dueAt of due)
+        this.store.addRun({ scheduleId: schedule.id, dueAt, outcome: 'missed' });
       if (now - last > CATCH_UP_MS) {
         this.store.addRun({ scheduleId: schedule.id, dueAt: last, outcome: 'missed' });
       } else if (!this.store.inUse(schedule.id)) {

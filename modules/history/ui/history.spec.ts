@@ -1,19 +1,43 @@
-import type {
-  CommandRequest,
-  OpenChat,
-} from '@grimoire/contract';
+import type { CommandRequest, OpenChat } from '@grimoire/contract';
 import { fakeBridge, render } from '@ui/testing/app-harness';
 
 describe('history', () => {
   it('lists every chat in the History, in parts by project, narrowed and tagged there', async () => {
     const { bridge, calls, answers, emit } = fakeBridge();
     answers['agents.chats'] = () => [
-      { id: 'c1', agent: 'claude-code', title: 'Context meter', cwd: 'C:/Users/me/git/grimoire', updatedAt: 9 },
-      { id: 'c2', agent: 'claude-code', title: 'Fix flaky login test', cwd: 'C:/Users/me/git/breeder', updatedAt: 8 },
-      { id: 'c3', agent: 'claude-code', title: 'Refactor storage migrations', cwd: 'C:/Users/me/git/grimoire/.claude/worktrees/storage', updatedAt: 7 },
-      { id: 'c4', agent: 'claude-code', title: 'Morning repo summary', cwd: 'C:/Users/me/git/grimoire', updatedAt: 1 },
+      {
+        id: 'c1',
+        agent: 'claude-code',
+        title: 'Context meter',
+        cwd: 'C:/Users/me/git/grimoire',
+        updatedAt: 9,
+      },
+      {
+        id: 'c2',
+        agent: 'claude-code',
+        title: 'Fix flaky login test',
+        cwd: 'C:/Users/me/git/breeder',
+        updatedAt: 8,
+      },
+      {
+        id: 'c3',
+        agent: 'claude-code',
+        title: 'Refactor storage migrations',
+        cwd: 'C:/Users/me/git/grimoire/.claude/worktrees/storage',
+        updatedAt: 7,
+      },
+      {
+        id: 'c4',
+        agent: 'claude-code',
+        title: 'Morning repo summary',
+        cwd: 'C:/Users/me/git/grimoire',
+        updatedAt: 1,
+      },
     ];
-    answers['history.pinsAndTags'] = () => ({ pins: { c4: ['pin'] }, tags: { c1: ['ui', 'bug'], c2: ['bug'] } });
+    answers['history.pinsAndTags'] = () => ({
+      pins: { c4: ['pin'] },
+      tags: { c1: ['ui', 'bug'], c2: ['bug'] },
+    });
     answers['agents.open'] = (request: CommandRequest<'agents.open'>): OpenChat => ({
       id: request.chatId,
       agent: request.agent,
@@ -36,7 +60,10 @@ describe('history', () => {
 
     expect(texts('gr-tab-page .title')).toEqual(['Table of contents']);
     expect(texts('gr-history-page h3')).toEqual(['Part I', 'Part II']);
-    expect(texts('gr-history-page h2')).toEqual(['grimoire ~/git/grimoire', 'breeder ~/git/breeder']);
+    expect(texts('gr-history-page h2')).toEqual([
+      'grimoire ~/git/grimoire',
+      'breeder ~/git/breeder',
+    ]);
     // A pinned chat comes first in its part; a worktree's chat is in its repository's.
     expect(texts('gr-history-page li .chat')).toEqual([
       'Morning repo summary',
@@ -48,7 +75,9 @@ describe('history', () => {
     expect(texts('gr-history-page .pick')).toEqual(['bug', 'ui']);
 
     const pick = (tag: string) =>
-      [...el.querySelectorAll<HTMLButtonElement>('gr-history-page .pick')].find((b) => b.textContent!.trim() === tag)!;
+      [...el.querySelectorAll<HTMLButtonElement>('gr-history-page .pick')].find(
+        (b) => b.textContent!.trim() === tag,
+      )!;
     pick('bug').click();
     await fixture.whenStable();
     expect(pick('bug').getAttribute('aria-pressed')).toBe('true');
@@ -61,7 +90,8 @@ describe('history', () => {
     expect(texts('gr-history-page li .chat')).toHaveLength(4);
 
     // A tag is written in place on the chat, and kept by the service.
-    const row = (id: string) => el.querySelector<HTMLElement>(`gr-history-page li[data-chat="${id}"]`)!;
+    const row = (id: string) =>
+      el.querySelector<HTMLElement>(`gr-history-page li[data-chat="${id}"]`)!;
     row('c3').querySelector<HTMLButtonElement>('.add')!.click();
     await fixture.whenStable();
     const field = row('c3').querySelector<HTMLInputElement>('.field')!;
@@ -101,9 +131,27 @@ describe('history', () => {
   it('searches the chats in the History for words, each with its passage', async () => {
     const { bridge, calls, answers } = fakeBridge();
     answers['agents.chats'] = () => [
-      { id: 'c1', agent: 'claude-code', title: 'Context meter', cwd: 'C:/Users/me/git/grimoire', updatedAt: 9 },
-      { id: 'c2', agent: 'claude-code', title: 'Fix flaky login test', cwd: 'C:/Users/me/git/breeder', updatedAt: 8 },
-      { id: 'c3', agent: 'claude-code', title: 'Refactor storage migrations', cwd: 'C:/Users/me/git/grimoire', updatedAt: 7 },
+      {
+        id: 'c1',
+        agent: 'claude-code',
+        title: 'Context meter',
+        cwd: 'C:/Users/me/git/grimoire',
+        updatedAt: 9,
+      },
+      {
+        id: 'c2',
+        agent: 'claude-code',
+        title: 'Fix flaky login test',
+        cwd: 'C:/Users/me/git/breeder',
+        updatedAt: 8,
+      },
+      {
+        id: 'c3',
+        agent: 'claude-code',
+        title: 'Refactor storage migrations',
+        cwd: 'C:/Users/me/git/grimoire',
+        updatedAt: 7,
+      },
     ];
     answers['search.chats'] = ({ query }: CommandRequest<'search.chats'>) => {
       if (query === 'boom') throw new Error('the worker stopped');
@@ -113,11 +161,20 @@ describe('history', () => {
           chatId: 'c2',
           agent: 'claude-code',
           kind: 'agent',
-          excerpt: [{ text: '…the login test waited on a ' }, { text: 'timer', match: true }, { text: '; it now…' }],
+          excerpt: [
+            { text: '…the login test waited on a ' },
+            { text: 'timer', match: true },
+            { text: '; it now…' },
+          ],
         },
         { chatId: 'c1', agent: 'claude-code', kind: 'title', excerpt: [{ text: 'Context meter' }] },
         // A chat the history doesn't list yet is left out.
-        { chatId: 'new', agent: 'claude-code', kind: 'you', excerpt: [{ text: 'timer', match: true }] },
+        {
+          chatId: 'new',
+          agent: 'claude-code',
+          kind: 'you',
+          excerpt: [{ text: 'timer', match: true }],
+        },
       ];
     };
     answers['agents.open'] = (request: CommandRequest<'agents.open'>): OpenChat => ({
@@ -147,10 +204,14 @@ describe('history', () => {
     };
 
     await search('timer');
-    expect(calls.filter((c) => c.command === 'search.chats').map((c) => c.request)).toEqual([{ query: 'timer' }]);
+    expect(calls.filter((c) => c.command === 'search.chats').map((c) => c.request)).toEqual([
+      { query: 'timer' },
+    ]);
     expect(texts('gr-history-page li .chat')).toEqual(['Context meter', 'Fix flaky login test']);
     // A passage is shown with who wrote it; a title that has the words shows as it is.
-    expect(texts('gr-history-page .excerpt')).toEqual(['Claude Code …the login test waited on a timer; it now…']);
+    expect(texts('gr-history-page .excerpt')).toEqual([
+      'Claude Code …the login test waited on a timer; it now…',
+    ]);
     expect(texts('gr-history-page .excerpt b')).toEqual(['timer']);
     expect(texts('gr-history-page .count')).toEqual(['2 chapters']);
 
@@ -186,7 +247,9 @@ describe('history', () => {
       .find((t) => t.textContent!.trim() === 'Table of contents')!
       .click();
     await fixture.whenStable();
-    expect(texts('gr-history-page .none')).toEqual(['No chapters yet. Each chat you begin is written in here.']);
+    expect(texts('gr-history-page .none')).toEqual([
+      'No chapters yet. Each chat you begin is written in here.',
+    ]);
     expect(el.querySelector('gr-history-page .narrow')).toBeNull();
   });
 });

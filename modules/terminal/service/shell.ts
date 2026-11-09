@@ -27,10 +27,15 @@ export interface Shell {
 export type SpawnPty = (shell: Shell, options: { cwd: string; cols: number; rows: number }) => Pty;
 
 /** Your shell: PowerShell on Windows, the newer one when it's installed; your login shell elsewhere. */
-export function defaultShell(platform: NodeJS.Platform = process.platform, env = process.env): Shell {
+export function defaultShell(
+  platform: NodeJS.Platform = process.platform,
+  env = process.env,
+): Shell {
   if (platform === 'win32') {
     const dirs = (env['Path'] ?? env['PATH'] ?? '').split(path.win32.delimiter).filter(Boolean);
-    const pwsh = dirs.map((dir) => path.win32.join(dir, 'pwsh.exe')).find((file) => existsSync(file));
+    const pwsh = dirs
+      .map((dir) => path.win32.join(dir, 'pwsh.exe'))
+      .find((file) => existsSync(file));
     return pwsh
       ? { file: pwsh, args: ['-NoLogo'], name: 'pwsh' }
       : { file: 'powershell.exe', args: ['-NoLogo'], name: 'powershell' };
@@ -42,7 +47,10 @@ export function defaultShell(platform: NodeJS.Platform = process.platform, env =
 }
 
 /** The environment a shell starts with: the service's own, without what only Electron's Node needs. */
-export function shellEnv(env = process.env, platform: NodeJS.Platform = process.platform): Record<string, string> {
+export function shellEnv(
+  env = process.env,
+  platform: NodeJS.Platform = process.platform,
+): Record<string, string> {
   const result: Record<string, string> = {};
   for (const [key, value] of Object.entries(env)) if (value !== undefined) result[key] = value;
   // The service runs as Node on Electron's binary; anything Electron-based the

@@ -18,7 +18,15 @@ import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { Chats } from '@ui/app/core/chats';
 import { Wording } from '@ui/app/core/wording';
 import { Icon } from '@ui/design-system/icon';
-import { type ListedChat, dated, numeral, partTitle, partsOf, tagsOf, withTags } from './chat-groups';
+import {
+  type ListedChat,
+  dated,
+  numeral,
+  partTitle,
+  partsOf,
+  tagsOf,
+  withTags,
+} from './chat-groups';
 import { PinsAndTags } from './pins-and-tags';
 
 /** How long the search field waits for you to stop writing before it searches. */
@@ -53,13 +61,11 @@ export class HistoryPage {
   private readonly saved = signal<readonly ChatSummary[] | undefined>(undefined);
   /** Those chats with their pins and tags. */
   private readonly listed = computed(() =>
-    this.saved()?.map(
-      (chat): ListedChat => ({
-        ...chat,
-        pins: this.pinsAndTags.pins(chat.id),
-        tags: this.pinsAndTags.tags(chat.id),
-      }),
-    ),
+    this.saved()?.map((chat): ListedChat => ({
+      ...chat,
+      pins: this.pinsAndTags.pins(chat.id),
+      tags: this.pinsAndTags.tags(chat.id),
+    })),
   );
   /** The tags the list is narrowed to. */
   private readonly picked = signal<readonly string[]>([]);
@@ -247,7 +253,9 @@ export class HistoryPage {
   }
 
   private retitle(chatId: ChatId, title: string): void {
-    this.saved.update((saved) => saved?.map((chat) => (chat.id === chatId ? { ...chat, title } : chat)));
+    this.saved.update((saved) =>
+      saved?.map((chat) => (chat.id === chatId ? { ...chat, title } : chat)),
+    );
   }
 
   private focusAdd(chatId: ChatId): void {

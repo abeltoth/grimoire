@@ -74,7 +74,9 @@
                     }
                     <span class="from">{{ from(item) }}</span>
                     <span class="detail" [attr.title]="item.detail ?? null">{{ item.detail }}</span>
-                    <span class="n" [attr.title]="heavy(item) ? heavyTitle : null">{{ tokens(item.tokens) }}</span>
+                    <span class="n" [attr.title]="heavy(item) ? heavyTitle : null">{{
+                      tokens(item.tokens)
+                    }}</span>
                     @if (item.problem) {
                       <span class="problem">{{ item.problem }}</span>
                     }

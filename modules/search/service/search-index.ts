@@ -185,7 +185,9 @@ export class SearchIndex {
           turn.output,
         );
       }
-      const used = this.db.prepare('INSERT INTO uses (chat_id, at, kind, name) VALUES (?, ?, ?, ?)');
+      const used = this.db.prepare(
+        'INSERT INTO uses (chat_id, at, kind, name) VALUES (?, ?, ?, ?)',
+      );
       for (const use of uses) used.run(chat.id, use.at, use.kind, use.name);
     });
   }

@@ -87,7 +87,9 @@ export class Transcript {
       copied: new Set(this.chat().copied),
     }),
   );
-  protected readonly agentName = computed(() => this.by() ?? this.chats.agentName(this.chat().agent));
+  protected readonly agentName = computed(
+    () => this.by() ?? this.chats.agentName(this.chat().agent),
+  );
   protected readonly running = computed(() =>
     ['thinking', 'writing', 'waiting'].includes(this.chat().status),
   );
@@ -118,8 +120,12 @@ export class Transcript {
   /** Your message that began the running turn, and when you wrote it. */
   protected readonly turn = computed(() => {
     if (!this.running()) return undefined;
-    const began = this.chat().entries.filter((entry) => entry.kind === 'user').at(-1);
-    return began?.kind === 'user' && began.at !== undefined ? { key: began.id, at: began.at } : undefined;
+    const began = this.chat()
+      .entries.filter((entry) => entry.kind === 'user')
+      .at(-1);
+    return began?.kind === 'user' && began.at !== undefined
+      ? { key: began.id, at: began.at }
+      : undefined;
   });
   private readonly turnKey = computed(() => this.turn()?.key);
   /** The clock the running turn is timed by, ticking each second while it runs. */
@@ -139,7 +145,10 @@ export class Transcript {
   /** What a turn spent, in words, for its title. */
   protected spentTitle(tokens: TurnSpent): string {
     const head = tokens.costly
-      ? this.wording.say('One of the costliest turns in this chapter: ', 'One of the costliest turns in this chat: ')
+      ? this.wording.say(
+          'One of the costliest turns in this chapter: ',
+          'One of the costliest turns in this chat: ',
+        )
       : 'This turn: ';
     return `${head}${tokenCount(tokens.weight)} tokens, weighed as the API prices them\n${usesInWords(tokens.uses)}`;
   }
@@ -225,7 +234,9 @@ export class Transcript {
    * expanding: one for a task the agent added there, where there's one.
    */
   protected showsBoard(note: Note): boolean {
-    return note.did === 'added' && !note.running && !note.failed && !!this.shell.pageTabs.get(BOARD);
+    return (
+      note.did === 'added' && !note.running && !note.failed && !!this.shell.pageTabs.get(BOARD)
+    );
   }
 
   /** Whether a note turns the right page, to its subagent's run or to the board. */

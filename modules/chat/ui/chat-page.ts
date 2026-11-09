@@ -149,7 +149,9 @@ export class ChatPage {
     const chat = this.chat();
     if (keep && chat) void this.chats.rename(chat.id, field.value);
     if (refocus)
-      afterNextRender(() => this.renameButton()?.nativeElement.focus(), { injector: this.injector });
+      afterNextRender(() => this.renameButton()?.nativeElement.focus(), {
+        injector: this.injector,
+      });
   }
 
   /** The chat's settings, as the page header lists them. */
@@ -230,8 +232,7 @@ export class ChatPage {
     if (pending) void this.chats.decide(chat.id, pending.id, 'deny');
     else if (this.running())
       void this.chats.interrupt(chat.id).then((withdrawn) => {
-        if (this.chat()?.id === chat.id)
-          this.composer()?.takeBack(withdrawn);
+        if (this.chat()?.id === chat.id) this.composer()?.takeBack(withdrawn);
       });
   }
 }

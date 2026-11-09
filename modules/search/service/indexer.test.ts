@@ -73,7 +73,13 @@ describe('Indexer', () => {
           at: 11,
           blocks: [
             { kind: 'text', text: 'Looking' },
-            { kind: 'tool', id: 't1', tool: 'Skill', input: { skill: 'code-review' }, skill: 'code-review' },
+            {
+              kind: 'tool',
+              id: 't1',
+              tool: 'Skill',
+              input: { skill: 'code-review' },
+              skill: 'code-review',
+            },
             { kind: 'tool', id: 't2', tool: 'Read', input: {} },
           ],
         },

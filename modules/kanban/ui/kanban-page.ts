@@ -83,9 +83,11 @@ export class KanbanPage {
    * with Change status; Jira is asked how, then its choices show, when
    * there's more than one to pick from.
    */
-  protected readonly inJira = signal<{ card: string; column?: CardColumn; choices?: JiraTransition[] } | null>(
-    null,
-  );
+  protected readonly inJira = signal<{
+    card: string;
+    column?: CardColumn;
+    choices?: JiraTransition[];
+  } | null>(null);
   /** The card being dragged, and the column it's over. */
   protected readonly dragging = signal<string | null>(null);
   protected readonly over = signal<CardColumn | null>(null);
@@ -136,7 +138,9 @@ export class KanbanPage {
       const named = this.chats.all().filter((chat) => chat.title && chat.status !== 'blank');
       if (!named.length) return;
       untracked(() =>
-        this.titles.update((titles) => new Map([...titles, ...named.map((c) => [c.id, c.title] as const)])),
+        this.titles.update(
+          (titles) => new Map([...titles, ...named.map((c) => [c.id, c.title] as const)]),
+        ),
       );
     });
   }
@@ -168,7 +172,8 @@ export class KanbanPage {
       const title = this.titleOf(chat.chatId);
       if (i !== card.chats.length - 1) return { chat, title };
       const status = live ? STATUS[live.status] : { text: 'not open' };
-      const text = live?.status === 'blank' ? this.wording.say('blank page', 'new chat') : status.text;
+      const text =
+        live?.status === 'blank' ? this.wording.say('blank page', 'new chat') : status.text;
       return { chat, title, status: { ...status, text, tone: live?.status ?? 'closed' } };
     });
   }
@@ -258,7 +263,9 @@ export class KanbanPage {
   /** A choice of status by its name, and its transition's too where two lead to the same one. */
   protected choiceLabel(choice: JiraTransition, choices: readonly JiraTransition[]): string {
     const twice = choices.some((other) => other !== choice && other.status === choice.status);
-    return twice && choice.name !== choice.status ? `${choice.status} (${choice.name})` : choice.status;
+    return twice && choice.name !== choice.status
+      ? `${choice.status} (${choice.name})`
+      : choice.status;
   }
 
   /** Changes a Jira card's status by the transition picked, or the one Jira allows. */
@@ -347,6 +354,8 @@ export class KanbanPage {
 
   private async loadTitles(): Promise<void> {
     const past = await this.chats.pastChats().catch(() => []);
-    this.titles.update((titles) => new Map([...past.map((chat) => [chat.id, chat.title] as const), ...titles]));
+    this.titles.update(
+      (titles) => new Map([...past.map((chat) => [chat.id, chat.title] as const), ...titles]),
+    );
   }
 }

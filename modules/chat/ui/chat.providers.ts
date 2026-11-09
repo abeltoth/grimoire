@@ -47,7 +47,9 @@ export function provideChat(): EnvironmentProviders {
       component: SubagentPage,
       heading: () => {
         const input = subagents.block()?.input as { description?: unknown } | undefined;
-        return typeof input?.description === 'string' && input.description ? input.description : undefined;
+        return typeof input?.description === 'string' && input.description
+          ? input.description
+          : undefined;
       },
       whole: true,
     });

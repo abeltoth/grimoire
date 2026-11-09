@@ -1,9 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import type {
-  CommandRequest,
-  OpenChat,
-  Preset,
-} from '@grimoire/contract';
+import type { CommandRequest, OpenChat, Preset } from '@grimoire/contract';
 import { POPOUT } from './core/popout';
 import { provideShellEntries } from './shell/shell-registry';
 import { fakeBridge, pick, render, write } from '../testing/app-harness';
@@ -64,9 +60,9 @@ describe('App', () => {
     TestBed.resetTestingModule();
 
     const windows = await render(fakeBridge().bridge);
-    expect(windows.el.querySelector('gr-page-tabs .command-palette')!.getAttribute('aria-label')).toBe(
-      'Index, the command palette. Control K',
-    );
+    expect(
+      windows.el.querySelector('gr-page-tabs .command-palette')!.getAttribute('aria-label'),
+    ).toBe('Index, the command palette. Control K');
     expect(windows.texts('gr-chat-tab.new i')).toEqual(['Last settings · Ctrl+N']);
   });
 
@@ -101,7 +97,7 @@ describe('App', () => {
     expect(texts('[aria-current="page"] i')).toEqual(['Claude Code · thinking']);
   });
 
-  it('opens a chat\'s settings from a right-click on its chat tab', async () => {
+  it("opens a chat's settings from a right-click on its chat tab", async () => {
     const { fixture, el, texts } = await render(fakeBridge().bridge);
     el.querySelector('gr-chat-tab.chat button')!.dispatchEvent(
       new MouseEvent('contextmenu', { bubbles: true, cancelable: true }),
@@ -114,10 +110,25 @@ describe('App', () => {
     const { bridge, calls, answers } = fakeBridge();
     answers['agents.chats'] = () => [
       { id: 'c7', agent: 'claude-code', title: 'Old notes', cwd: 'C:/Users/me', updatedAt: 0 },
-      { id: 'c8', agent: 'claude-code', title: 'Fix flaky login test', cwd: 'C:/Users/me/git/grimoire', updatedAt: 1 },
-      { id: 'c9', agent: 'claude-code', title: 'New onboarding flow', cwd: 'C:/Users/me/git/breeder', updatedAt: 2 },
+      {
+        id: 'c8',
+        agent: 'claude-code',
+        title: 'Fix flaky login test',
+        cwd: 'C:/Users/me/git/grimoire',
+        updatedAt: 1,
+      },
+      {
+        id: 'c9',
+        agent: 'claude-code',
+        title: 'New onboarding flow',
+        cwd: 'C:/Users/me/git/breeder',
+        updatedAt: 2,
+      },
     ];
-    answers['history.pinsAndTags'] = () => ({ pins: { c7: ['pin', 'star'], c8: ['star'] }, tags: {} });
+    answers['history.pinsAndTags'] = () => ({
+      pins: { c7: ['pin', 'star'], c8: ['star'] },
+      tags: {},
+    });
     answers['agents.open'] = (request: CommandRequest<'agents.open'>): OpenChat => ({
       id: request.chatId,
       agent: request.agent,
@@ -169,7 +180,9 @@ describe('App', () => {
       'Claude Code · ~/git/breeder',
     ]);
     expect(texts('gr-command-palette .entry .where .gr-kbd')).toEqual(['Ctrl', 'N']);
-    expect(texts('gr-command-palette .entry[aria-selected="true"] .label')).toEqual(['New chapter']);
+    expect(texts('gr-command-palette .entry[aria-selected="true"] .label')).toEqual([
+      'New chapter',
+    ]);
 
     field.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
     field.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
@@ -195,7 +208,9 @@ describe('App', () => {
     field.value = 'zzz';
     field.dispatchEvent(new Event('input'));
     await fixture.whenStable();
-    expect(texts('gr-command-palette .entries .note')).toEqual(['Nothing in the index matches “zzz”.']);
+    expect(texts('gr-command-palette .entries .note')).toEqual([
+      'Nothing in the index matches “zzz”.',
+    ]);
     expect(texts('gr-command-palette .count')).toEqual(['0 entries']);
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }));
@@ -204,9 +219,11 @@ describe('App', () => {
     expect(notch.getAttribute('aria-current')).toBeNull();
   });
 
-  it('turns the right page to a page tab\'s page, blank until its feature is written', async () => {
+  it("turns the right page to a page tab's page, blank until its feature is written", async () => {
     const { fixture, el, texts } = await render(fakeBridge().bridge, [
-      provideShellEntries((shell) => shell.pageTabs.add({ id: 'atlas', label: 'Atlas', order: 70 })),
+      provideShellEntries((shell) =>
+        shell.pageTabs.add({ id: 'atlas', label: 'Atlas', order: 70 }),
+      ),
     ]);
     const atlas = [...el.querySelectorAll<HTMLButtonElement>('gr-page-tabs .page-tab')].find(
       (tab) => tab.textContent!.trim() === 'Atlas',
@@ -253,7 +270,9 @@ describe('App', () => {
     expect(texts('gr-command-palette h3')).toEqual(['Presets']);
     expect(field.value).toBe('');
     expect(document.activeElement).toBe(field);
-    expect(texts('gr-command-palette .entry .gloss')).toEqual(['Claude Code · Accept edits · ~/git/breeder']);
+    expect(texts('gr-command-palette .entry .gloss')).toEqual([
+      'Claude Code · Accept edits · ~/git/breeder',
+    ]);
     // Esc goes back to the whole command palette first.
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }));
     await fixture.whenStable();
@@ -331,7 +350,9 @@ describe('App', () => {
     answers['layout.get'] = () => ({ current: 'c2' });
     const { fixture, el, texts } = await render(bridge);
     const closed = () =>
-      calls.filter((c) => c.command === 'agents.close').map((c) => (c.request as { chatId: string }).chatId);
+      calls
+        .filter((c) => c.command === 'agents.close')
+        .map((c) => (c.request as { chatId: string }).chatId);
 
     [...el.querySelectorAll<HTMLButtonElement>('gr-page-header .gr-link')]
       .find((b) => b.textContent!.trim() === 'Close')!
@@ -402,10 +423,14 @@ describe('App', () => {
     expect(el.classList).not.toContain('single');
     expect(shown('gr-right-page gr-command-palette')).toBe(true);
     expect(shown('gr-page-tabs')).toBe(false);
-    const labels = [...el.querySelectorAll('gr-command-palette .entry .label')].map((n) => n.textContent!.trim());
+    const labels = [...el.querySelectorAll('gr-command-palette .entry .label')].map((n) =>
+      n.textContent!.trim(),
+    );
     expect(labels).toContain('Two pages');
     expect(labels).not.toContain('Single page');
-    expect(el.querySelector('gr-command-palette .gr-link')!.textContent).toContain('Back to the single page');
+    expect(el.querySelector('gr-command-palette .gr-link')!.textContent).toContain(
+      'Back to the single page',
+    );
     expect(el.querySelector('gr-command-palette .hint')!.textContent).not.toContain('thumb notch');
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }));
     await fixture.whenStable();
@@ -462,7 +487,14 @@ describe('App', () => {
         { id: 's2', chatId: 'c1', tool: 'Bash', input: { command: 'git push' }, at: 2 },
       ]),
       chat('c2', 'Context meter', [
-        { id: 'q1', chatId: 'c2', tool: 'AskUserQuestion', input: {}, questions: [question], at: 3 },
+        {
+          id: 'q1',
+          chatId: 'c2',
+          tool: 'AskUserQuestion',
+          input: {},
+          questions: [question],
+          at: 3,
+        },
       ]),
       chat('c3', 'New onboarding flow', [
         { id: 's3', chatId: 'c3', tool: 'Bash', input: { command: 'npm run build' }, at: 4 },
@@ -521,7 +553,9 @@ describe('App', () => {
       copied: [],
     });
     const link = (root: ParentNode, label: string) =>
-      [...root.querySelectorAll<HTMLButtonElement>('.gr-link')].find((b) => b.textContent!.trim() === label);
+      [...root.querySelectorAll<HTMLButtonElement>('.gr-link')].find(
+        (b) => b.textContent!.trim() === label,
+      );
     const chatTabs = (texts: (selector: string) => string[]) => texts('gr-chat-tab.chat b');
     /** Lets what the window's closing set off finish. */
     const settle = async (fixture: { whenStable(): Promise<unknown> }) => {
@@ -531,7 +565,10 @@ describe('App', () => {
 
     it('pops a chat out into a window of its own, and takes it back when that window closes', async () => {
       const { bridge, answers, calls, closePopout } = fakeBridge();
-      answers['agents.openChats'] = () => [chat('c1', 'Context meter'), chat('c2', 'Fix flaky login test')];
+      answers['agents.openChats'] = () => [
+        chat('c1', 'Context meter'),
+        chat('c2', 'Fix flaky login test'),
+      ];
       answers['layout.get'] = () => ({ current: 'c1' });
       const { fixture, el, texts } = await render(bridge);
 
@@ -559,7 +596,10 @@ describe('App', () => {
 
     it('opens the book without the chats popped out', async () => {
       const { bridge, answers } = fakeBridge();
-      answers['agents.openChats'] = () => [chat('c1', 'Context meter'), chat('c2', 'Fix flaky login test')];
+      answers['agents.openChats'] = () => [
+        chat('c1', 'Context meter'),
+        chat('c2', 'Fix flaky login test'),
+      ];
       answers['layout.get'] = () => ({ current: 'c2', popouts: [{ chatId: 'c1' }] });
       const { texts } = await render(bridge);
       expect(chatTabs(texts)).toEqual(['Fix flaky login test']);
@@ -568,7 +608,10 @@ describe('App', () => {
 
     it('pops out the chat on the right page, but not a blank one', async () => {
       const { bridge, answers } = fakeBridge();
-      answers['agents.openChats'] = () => [chat('c1', 'Context meter'), chat('c2', 'Fix flaky login test')];
+      answers['agents.openChats'] = () => [
+        chat('c1', 'Context meter'),
+        chat('c2', 'Fix flaky login test'),
+      ];
       answers['layout.get'] = () => ({ current: 'c1', beside: 'c2' });
       const { fixture, el, texts } = await render(bridge);
       link(el.querySelector('gr-chat-page[beside]')!, 'Pop out')!.click();
@@ -589,7 +632,10 @@ describe('App', () => {
 
       it('holds its one chat alone on the desk, and goes back in the book', async () => {
         const { bridge, answers, calls } = fakeBridge();
-        answers['agents.openChats'] = () => [chat('c1', 'Context meter'), chat('c2', 'Fix flaky login test')];
+        answers['agents.openChats'] = () => [
+          chat('c1', 'Context meter'),
+          chat('c2', 'Fix flaky login test'),
+        ];
         answers['layout.get'] = () => ({ current: 'c1', focus: true });
         const { fixture, el, texts } = await render(bridge, popout('c2'));
         expect(texts('gr-page-header h1')).toEqual(['Fix flaky login test']);
@@ -608,10 +654,12 @@ describe('App', () => {
         expect(bridge.window.close).toHaveBeenCalled();
       });
 
-      it('lists the agent\'s commands on its own page, above the message field', async () => {
+      it("lists the agent's commands on its own page, above the message field", async () => {
         const { bridge, answers } = fakeBridge();
         answers['agents.openChats'] = () => [chat('c2', 'Fix flaky login test')];
-        answers['agents.commands'] = () => [{ name: 'compact', description: 'Free up context', kind: 'command' }];
+        answers['agents.commands'] = () => [
+          { name: 'compact', description: 'Free up context', kind: 'command' },
+        ];
         const { fixture, el, texts } = await render(bridge, popout('c2'));
         const field = el.querySelector<HTMLTextAreaElement>('#gr-next-message')!;
         field.value = '/';
@@ -621,7 +669,9 @@ describe('App', () => {
         expect(el.querySelector('gr-slash-commands gr-page-footer')).toBeNull();
         expect(el.querySelector('gr-transcript')).toBeNull();
         expect(el.querySelector('#gr-next-message')).toBe(field);
-        expect(texts('gr-composer .slash-hint')).toEqual(['Claude Code’s commands and skills are listed above ↑']);
+        expect(texts('gr-composer .slash-hint')).toEqual([
+          'Claude Code’s commands and skills are listed above ↑',
+        ]);
 
         field.value = '';
         field.dispatchEvent(new Event('input'));
@@ -630,7 +680,7 @@ describe('App', () => {
         expect(el.querySelector('gr-transcript')).not.toBeNull();
       });
 
-      it('closes its window when its chat closes, or isn\'t open', async () => {
+      it("closes its window when its chat closes, or isn't open", async () => {
         const { bridge, answers, calls } = fakeBridge();
         answers['agents.openChats'] = () => [chat('c2', 'Fix flaky login test')];
         const { fixture, el } = await render(bridge, popout('c2'));

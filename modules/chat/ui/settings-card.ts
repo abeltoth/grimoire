@@ -78,25 +78,19 @@ export class SettingsCard {
   /** On Auto, before the first message: the model and effort are still to be picked. */
   protected readonly auto = computed(() => !this.begun() && !!this.chat().settings.autoModel);
   /** On Auto, once begun: the model was picked for the first message. */
-  protected readonly autoPicked = computed(
-    () => this.begun() && !!this.chat().settings.autoModel,
-  );
+  protected readonly autoPicked = computed(() => this.begun() && !!this.chat().settings.autoModel);
   protected readonly selectedModel = computed(() =>
     this.auto() ? undefined : (this.chat().settings.model ?? this.models()?.default),
   );
   protected readonly modelName = computed(() =>
-    this.auto()
-      ? 'Auto'
-      : this.chats.modelName(this.chat().agent, this.chat().settings.model),
+    this.auto() ? 'Auto' : this.chats.modelName(this.chat().agent, this.chat().settings.model),
   );
   /** The levels the chat's model takes, and the one it runs at. */
   protected readonly effort = computed(() => {
     const { levels, level } = this.chats.effortOf(this.chat().agent, this.chat().settings);
     return { efforts: EFFORTS.filter((e) => levels.includes(e.level)), level };
   });
-  protected readonly folder = computed(
-    () => this.chat().settings.cwd ?? this.chats.folders().home,
-  );
+  protected readonly folder = computed(() => this.chat().settings.cwd ?? this.chats.folders().home);
   /** The chat's folder first, then the others used last. */
   protected readonly folders = computed(() => {
     const current = this.folder();

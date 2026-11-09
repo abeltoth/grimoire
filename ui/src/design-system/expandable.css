@@ -57,7 +57,9 @@
 
 .line {
   display: grid;
-  grid-template-columns: var(--gr-expandable-line-number) minmax(0, 1fr) var(--gr-expandable-mark-col);
+  grid-template-columns: var(--gr-expandable-line-number) minmax(0, 1fr) var(
+      --gr-expandable-mark-col
+    );
   white-space: pre;
 }
 

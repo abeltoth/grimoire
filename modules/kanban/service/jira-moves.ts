@@ -38,7 +38,9 @@ export class JiraMoves {
       try {
         return await transitionsOf(jira, key);
       } catch (error) {
-        throw new Error(`Jira didn’t say how ${key} can move: ${jiraSaid(error)}`, { cause: error });
+        throw new Error(`Jira didn’t say how ${key} can move: ${jiraSaid(error)}`, {
+          cause: error,
+        });
       }
     });
     return column ? all.filter((transition) => transition.column === column) : all;
@@ -63,8 +65,14 @@ export class JiraMoves {
       try {
         this.cards.jira.update(profile, await issueOf(jira, key), this.now());
       } catch (error) {
-        this.log(`Jira: ${key} moved to ${transition.status}, but couldn't be read again: ${jiraSaid(error)}`);
-        this.cards.jira.update(profile, { key, status: transition.status, column: transition.column }, this.now());
+        this.log(
+          `Jira: ${key} moved to ${transition.status}, but couldn't be read again: ${jiraSaid(error)}`,
+        );
+        this.cards.jira.update(
+          profile,
+          { key, status: transition.status, column: transition.column },
+          this.now(),
+        );
       }
     });
     const cards = this.cards.list();
@@ -103,7 +111,8 @@ export class JiraMoves {
       throw error;
     } finally {
       kept.using--;
-      if (!kept.using && this.kept === kept) kept.idle = setTimeout(() => this.drop(kept), this.keepMs).unref();
+      if (!kept.using && this.kept === kept)
+        kept.idle = setTimeout(() => this.drop(kept), this.keepMs).unref();
     }
   }
 

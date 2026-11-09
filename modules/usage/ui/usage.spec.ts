@@ -18,7 +18,7 @@ describe('usage', () => {
     vi.useRealTimers();
   });
 
-  it('shows how much of the plan\'s limits is used in the Usage page, and reads it again', async () => {
+  it("shows how much of the plan's limits is used in the Usage page, and reads it again", async () => {
     const { bridge, answers, calls } = fakeBridge();
     const tonight = new Date(now);
     tonight.setHours(23, 0, 0, 0);
@@ -88,7 +88,8 @@ describe('usage', () => {
       .click();
     await fixture.whenStable();
 
-    const since = (calls.find((c) => c.command === 'usage.history')!.request as { since: number }).since;
+    const since = (calls.find((c) => c.command === 'usage.history')!.request as { since: number })
+      .since;
     expect(now - since).toBeGreaterThan(7 * 24 * 60 * 60_000 - 60_000);
     expect(texts('gr-usage-page .plan figcaption')).toEqual([
       'The week\u2019s limit over the last 7 days',
@@ -97,7 +98,9 @@ describe('usage', () => {
     // One series each: the caption names it, with no legend.
     expect(el.querySelector('gr-usage-page .plan .legend')).toBeNull();
     // Last week's reading stands apart from this week's steps, with the new week marked.
-    const steps = [...el.querySelectorAll('gr-usage-page .plan path.line')].map((p) => p.getAttribute('d')!);
+    const steps = [...el.querySelectorAll('gr-usage-page .plan path.line')].map((p) =>
+      p.getAttribute('d')!,
+    );
     expect(steps).toHaveLength(1);
     expect(steps[0]).toMatch(/^M[\d.]+,[\d.]+H[\d.]+V[\d.]+$/);
     expect(texts('gr-usage-page .plan .mark-label')).toEqual(['New week']);
@@ -198,14 +201,22 @@ describe('usage', () => {
 
     columns[columns.length - 1]!.dispatchEvent(new MouseEvent('mouseenter'));
     await fixture.whenStable();
-    expect(texts('gr-usage-page gr-usage-columns .tip strong')).toEqual(['1.4K', '600', '0', '300', '500']);
+    expect(texts('gr-usage-page gr-usage-columns .tip strong')).toEqual([
+      '1.4K',
+      '600',
+      '0',
+      '300',
+      '500',
+    ]);
 
     [...el.querySelectorAll<HTMLButtonElement>('gr-usage-page .spans button')]
       .find((button) => button.textContent!.trim() === 'Last 24 hours')!
       .click();
     await fixture.whenStable();
     expect(texts('gr-usage-page figcaption')).toEqual(['Tokens by hour', 'Served from the cache']);
-    expect(el.querySelectorAll('gr-usage-page gr-usage-columns rect.hit').length).toBeGreaterThanOrEqual(24);
+    expect(
+      el.querySelectorAll('gr-usage-page gr-usage-columns rect.hit').length,
+    ).toBeGreaterThanOrEqual(24);
     expect(texts('gr-usage-page gr-usage-lines tbody td')).toEqual(['95%']);
   });
 
@@ -233,7 +244,9 @@ describe('usage', () => {
     expect(texts('gr-usage-page .plan .none')).toEqual([]);
     const spent = (12345 / 100).toLocaleString([], { style: 'currency', currency: 'USD' });
     const limit = (600).toLocaleString([], { style: 'currency', currency: 'USD' });
-    expect(texts('gr-usage-page .plan .name')).toEqual([`Usage credits this month ${spent} of ${limit}`]);
+    expect(texts('gr-usage-page .plan .name')).toEqual([
+      `Usage credits this month ${spent} of ${limit}`,
+    ]);
     expect(texts('gr-usage-page .plan .resets')[0]).toMatch(/^resets on \S/);
     expect(texts('gr-usage-page .plan b')).toEqual(['21%']);
     const meter = el.querySelector('gr-usage-page .plan [role="meter"]')!;
@@ -282,7 +295,14 @@ describe('usage', () => {
         { key: 'long_context', share: 80, requests: 40 },
         { key: 'brand_new', share: 5.4, requests: 2 },
       ],
-      advice: [{ key: 'long_context', share: 80, title: 'Start fresh when you switch tasks', detail: 'run /clear' }],
+      advice: [
+        {
+          key: 'long_context',
+          share: 80,
+          title: 'Start fresh when you switch tasks',
+          detail: 'run /clear',
+        },
+      ],
       sources: [{ kind: 'mcp', name: 'docs', share: 9 }],
     });
     answers['usage.breakdown'] = (): UsageBreakdown => ({ day: span(10), week: span(70), at: 0 });
@@ -304,7 +324,15 @@ describe('usage', () => {
         { model: 'claude-haiku-4-5', subagent: true, ...total(1_000) },
       ],
       folders: [{ cwd: 'C:/work/grimoire', ...total(4_000) }],
-      chats: [{ id: 'old-1', agent: 'claude-code', title: 'Ribbon', cwd: 'C:/work/grimoire', ...total(4_000) }],
+      chats: [
+        {
+          id: 'old-1',
+          agent: 'claude-code',
+          title: 'Ribbon',
+          cwd: 'C:/work/grimoire',
+          ...total(4_000),
+        },
+      ],
       tools: [
         { name: 'Read', uses: 40 },
         { name: 'Bash', uses: 10 },
@@ -334,25 +362,38 @@ describe('usage', () => {
         .click();
       await fixture.whenStable();
     };
-    expect(texts('gr-usage-page .tokens h3')).toEqual(['Claude Code’s advice', 'By Grimoire’s count']);
+    expect(texts('gr-usage-page .tokens h3')).toEqual([
+      'Claude Code’s advice',
+      'By Grimoire’s count',
+    ]);
     expect(texts('gr-usage-page .groups [aria-checked="true"]')).toEqual(['Day']);
     expect(texts('gr-usage-page .tokens h4')).toEqual(['Ways of working', 'What took a share']);
-    const day = new Date(2026, 10, 5).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+    const day = new Date(2026, 10, 5).toLocaleDateString([], {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+    });
     // Advice, the total, and the one list shown: by day.
-    expect(texts('gr-usage-page .tokens > .advice .name, .tokens > .total .name, .tokens > .limits .name')).toEqual([
-      'Start fresh when you switch tasks',
-      '4K tokens',
-      day,
-    ]);
+    expect(
+      texts(
+        'gr-usage-page .tokens > .advice .name, .tokens > .total .name, .tokens > .limits .name',
+      ),
+    ).toEqual(['Start fresh when you switch tasks', '4K tokens', day]);
     expect(texts('gr-usage-page .tokens > .limits b')).toEqual(['100%']);
     await pick('Model');
-    expect(texts('gr-usage-page .tokens > .limits .name')).toEqual(['Opus 5.5', 'Subagents on Haiku 4.5']);
+    expect(texts('gr-usage-page .tokens > .limits .name')).toEqual([
+      'Opus 5.5',
+      'Subagents on Haiku 4.5',
+    ]);
     expect(texts('gr-usage-page .tokens > .limits b')).toEqual(['75%', '25%']);
     await pick('Folder');
     expect(texts('gr-usage-page .tokens > .limits .name')).toEqual(['C:/work/grimoire']);
     await pick('Day');
     // Claude Code's own scan is collapsed, with the explanations.
-    expect(texts('gr-usage-page .how summary')).toEqual(['Claude Code’s own scan', 'How this is counted']);
+    expect(texts('gr-usage-page .how summary')).toEqual([
+      'Claude Code’s own scan',
+      'How this is counted',
+    ]);
     expect(texts('gr-usage-page .how .name')).toEqual(['Long context', 'brand new', 'docs']);
     // A way of working Grimoire has no name for keeps Claude Code's.
     expect(texts('gr-usage-page .how b')).toEqual(['80%', '5%', '9%']);
@@ -360,7 +401,10 @@ describe('usage', () => {
     expect(texts('gr-usage-page .how p')[0]).toBe('70 requests in 4 chats');
 
     await showView('Tools & skills');
-    expect(texts('gr-usage-page .tokens h4')).toEqual(['The tools used most', 'The skills used most']);
+    expect(texts('gr-usage-page .tokens h4')).toEqual([
+      'The tools used most',
+      'The skills used most',
+    ]);
     expect(texts('gr-usage-page .tokens .name')).toEqual(['Read', 'Bash', 'code-review']);
     expect(texts('gr-usage-page .tokens b')).toEqual(['40', '10', '1']);
     // Each tool's and skill's uses, against the most used in its list.

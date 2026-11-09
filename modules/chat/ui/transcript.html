@@ -54,7 +54,11 @@
             </p>
           }
           @if (row.attachments.length) {
-            <gr-attachments class="enclosed" [attachments]="row.attachments" [cwd]="chat().settings.cwd" />
+            <gr-attachments
+              class="enclosed"
+              [attachments]="row.attachments"
+              [cwd]="chat().settings.cwd"
+            />
           }
         </article>
       </div>
@@ -127,7 +131,9 @@
                 &ngsp;<span>· {{ hooks.running }} running…</span>
               }
               @if (hooks.blocked) {
-                &ngsp;<span class="failed">· {{ hooks.blocked }} {{ wording.say('barred the way', 'blocked') }}</span>
+                &ngsp;<span class="failed"
+                  >· {{ hooks.blocked }} {{ wording.say('barred the way', 'blocked') }}</span
+                >
               }
               @if (hooks.failed) {
                 &ngsp;<span class="failed">· {{ hooks.failed }} failed</span>
@@ -312,7 +318,12 @@
           (open)="shell.openFile()?.(note.details.path)"
         />
       } @else {
-        <gr-output class="wide" [title]="note.details.title" [text]="note.details.text" [command]="note.details.command ?? ''" />
+        <gr-output
+          class="wide"
+          [title]="note.details.title"
+          [text]="note.details.text"
+          [command]="note.details.command ?? ''"
+        />
       }
     }
   }

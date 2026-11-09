@@ -1,4 +1,13 @@
-import { DestroyRef, Injectable, PendingTasks, computed, effect, inject, signal, untracked } from '@angular/core';
+import {
+  DestroyRef,
+  Injectable,
+  PendingTasks,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+} from '@angular/core';
 import type { GitStatus, PullRequest } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { Chats } from '@ui/app/core/chats';
@@ -16,7 +25,9 @@ export class GitState {
   private readonly pending = inject(PendingTasks);
 
   /** The open chat's folder; your home folder until you pick another. */
-  readonly cwd = computed(() => this.chats.current()?.settings.cwd ?? (this.chats.folders().home || undefined));
+  readonly cwd = computed(
+    () => this.chats.current()?.settings.cwd ?? (this.chats.folders().home || undefined),
+  );
   /** Null outside a repository; undefined until it's first read. */
   readonly status = signal<GitStatus | null | undefined>(undefined);
   /** The pull request for the branch checked out, if it has one. */
@@ -65,14 +76,20 @@ export function statusDetail(status: GitStatus): string {
   const parts: string[] = [];
   const changes = status.changes.length;
   parts.push(
-    changes === 0 ? 'Nothing uncommitted' : `${changes} ${changes === 1 ? 'file' : 'files'} not committed`,
+    changes === 0
+      ? 'Nothing uncommitted'
+      : `${changes} ${changes === 1 ? 'file' : 'files'} not committed`,
   );
   if (status.upstream) parts.push(upstreamDistance(status.upstream));
   return parts.join(' · ');
 }
 
 /** How far the branch is from its upstream, such as "2 ahead, 1 behind origin/main". */
-export function upstreamDistance({ name, ahead, behind }: NonNullable<GitStatus['upstream']>): string {
+export function upstreamDistance({
+  name,
+  ahead,
+  behind,
+}: NonNullable<GitStatus['upstream']>): string {
   if (!ahead && !behind) return `even with ${name}`;
   if (!behind) return `${ahead} ahead of ${name}`;
   return `${ahead ? `${ahead} ahead, ` : ''}${behind} behind ${name}`;

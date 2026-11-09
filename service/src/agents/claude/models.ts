@@ -15,19 +15,28 @@ export function toAgentModels(
   const fallback = all.find(({ value }) => value === 'default')?.resolvedModel;
   const byDefault = aliases.find(({ resolvedModel }) => resolvedModel === fallback);
   return {
-    models: aliases.map(({ value, displayName, description, resolvedModel, supportsEffort, supportedEffortLevels }) => {
-      const efforts: EffortLevel[] = supportsEffort
-        ? EFFORT_LEVELS.filter((level) => supportedEffortLevels?.includes(level))
-        : [];
-      const effort = fitEffort(defaultEffort(resolvedModel ?? value, settings, env), efforts);
-      return {
-        id: value,
-        name: displayName,
+    models: aliases.map(
+      ({
+        value,
+        displayName,
         description,
-        ...(efforts.length ? { efforts } : {}),
-        ...(effort ? { effort } : {}),
-      };
-    }),
+        resolvedModel,
+        supportsEffort,
+        supportedEffortLevels,
+      }) => {
+        const efforts: EffortLevel[] = supportsEffort
+          ? EFFORT_LEVELS.filter((level) => supportedEffortLevels?.includes(level))
+          : [];
+        const effort = fitEffort(defaultEffort(resolvedModel ?? value, settings, env), efforts);
+        return {
+          id: value,
+          name: displayName,
+          description,
+          ...(efforts.length ? { efforts } : {}),
+          ...(effort ? { effort } : {}),
+        };
+      },
+    ),
     ...(byDefault ? { default: byDefault.value } : {}),
   };
 }

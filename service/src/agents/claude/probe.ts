@@ -15,7 +15,9 @@ export const claudeEnv = () => ({ ...process.env, CLAUDE_CODE_ENABLE_TODO_TOOLS:
 export async function probe<T>(ask: (claude: Query) => Promise<T>, cwd?: string): Promise<T> {
   const { query } = await sdk();
   const input = new MessageQueue<SDKUserMessage>();
-  const options = cwd ? { cwd, permissionMode: 'default' as const, env: claudeEnv() } : { permissionMode: 'default' as const };
+  const options = cwd
+    ? { cwd, permissionMode: 'default' as const, env: claudeEnv() }
+    : { permissionMode: 'default' as const };
   const claude = query({ prompt: input, options });
   try {
     return await ask(claude);

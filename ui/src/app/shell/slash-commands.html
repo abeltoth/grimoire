@@ -46,7 +46,8 @@
           >
             <span class="cursor" aria-hidden="true"><gr-icon name="quill" /></span>
             <code class="label"
-              >{{ command.parts[0] }}<b>{{ command.parts[1] }}</b>{{ command.parts[2] }}</code
+              >{{ command.parts[0] }}<b>{{ command.parts[1] }}</b
+              >{{ command.parts[2] }}</code
             >
             @if (command.kind === 'command' && command.description) {
               <span class="gloss">{{ command.description }}</span>

@@ -1,4 +1,12 @@
-import { Component, ElementRef, Injector, afterNextRender, computed, inject, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  Injector,
+  afterNextRender,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { Icon } from '../../design-system/icon';
 import { Profiles } from '../core/profiles';
 import { Wording } from '../core/wording';

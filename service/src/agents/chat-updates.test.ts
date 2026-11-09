@@ -71,20 +71,37 @@ describe('ChatUpdates', () => {
 
     const { entries } = await hub.open('fake', id, settings);
     expect(entries.map((entry) => entry.kind === 'user' && entry.took)).toEqual([90_000, 5_000]);
-    expect(sent.find((s) => s.event === 'agents.entry' && s.payload.entry.kind === 'user' && s.payload.entry.took)).toBeTruthy();
+    expect(
+      sent.find(
+        (s) =>
+          s.event === 'agents.entry' && s.payload.entry.kind === 'user' && s.payload.entry.took,
+      ),
+    ).toBeTruthy();
   });
 
   it('writes what the running turn has spent on your message that began it', async () => {
     const { id } = await hub.start('fake', settings, 'Hello');
     const run = fake.runOf(id);
-    const uses = [{ model: 'claude-opus-5-5', input: 2, cacheWritten: 0, cacheWrittenLong: 10, cacheRead: 0, output: 5 }];
+    const uses = [
+      {
+        model: 'claude-opus-5-5',
+        input: 2,
+        cacheWritten: 0,
+        cacheWrittenLong: 10,
+        cacheRead: 0,
+        output: 5,
+      },
+    ];
     vi.advanceTimersByTime(1_000);
     run.events.tokens(uses);
 
     const { entries } = await hub.open('fake', id, settings);
     const yours = entries[0]!;
     expect(yours.kind === 'user' && yours.tokens).toEqual({ at: yours.at, uses });
-    expect(sent.at(-1)).toMatchObject({ event: 'agents.entry', payload: { entry: { id: yours.id, tokens: { uses } } } });
+    expect(sent.at(-1)).toMatchObject({
+      event: 'agents.entry',
+      payload: { entry: { id: yours.id, tokens: { uses } } },
+    });
   });
 
   it('writes the hooks run on each turn on your message that began it, as they go', async () => {
@@ -93,16 +110,30 @@ describe('ChatUpdates', () => {
     const lint = { id: 'h1', name: 'PostToolUse:Edit', event: 'PostToolUse', tool: 'Edit' };
     const stop = { id: 'h2', name: 'Stop', event: 'Stop' };
     run.events.hooks([{ ...lint, outcome: 'running' }]);
-    run.events.hooks([{ ...lint, outcome: 'passed', took: 400 }, { ...stop, outcome: 'running' }]);
+    run.events.hooks([
+      { ...lint, outcome: 'passed', took: 400 },
+      { ...stop, outcome: 'running' },
+    ]);
     expect(sent.at(-1)).toMatchObject({
       event: 'agents.entry',
-      payload: { entry: { kind: 'user', hooks: [{ id: 'h1', outcome: 'passed' }, { id: 'h2', outcome: 'running' }] } },
+      payload: {
+        entry: {
+          kind: 'user',
+          hooks: [
+            { id: 'h1', outcome: 'passed' },
+            { id: 'h2', outcome: 'running' },
+          ],
+        },
+      },
     });
 
     run.events.turnEnded();
     hub.send(id, 'Again');
     // One begun on the turn before ends on it; one begun now goes with the new turn.
-    run.events.hooks([{ ...stop, outcome: 'blocked', took: 50 }, { id: 'h3', name: 'UserPromptSubmit', event: 'UserPromptSubmit', outcome: 'passed' }]);
+    run.events.hooks([
+      { ...stop, outcome: 'blocked', took: 50 },
+      { id: 'h3', name: 'UserPromptSubmit', event: 'UserPromptSubmit', outcome: 'passed' },
+    ]);
 
     const { entries } = await hub.open('fake', id, settings);
     const yours = entries.filter((entry) => entry.kind === 'user');
@@ -122,7 +153,13 @@ describe('ChatUpdates', () => {
     const run = fake.runOf(id);
     run.events.hooks([
       { id: 'h1', name: 'Stop', event: 'Stop', outcome: 'passed' },
-      { id: 'h2', name: 'PostToolUse:Edit', event: 'PostToolUse', tool: 'Edit', outcome: 'running' },
+      {
+        id: 'h2',
+        name: 'PostToolUse:Edit',
+        event: 'PostToolUse',
+        tool: 'Edit',
+        outcome: 'running',
+      },
     ]);
     run.events.closed();
 
@@ -147,7 +184,9 @@ describe('ChatUpdates', () => {
         { id: 'h2', blocks: [{ text: 'Found it' }] },
       ],
     });
-    expect((await hub.open('fake', id, settings)).entries.map((entry) => entry.id)).not.toContain('h1');
+    expect((await hub.open('fake', id, settings)).entries.map((entry) => entry.id)).not.toContain(
+      'h1',
+    );
     expect(sent.at(-1)).toMatchObject({
       event: 'agents.subagentEntry',
       payload: { chatId: id, toolId: 'toolu_1', entry: { id: 'h2' } },
@@ -167,7 +206,10 @@ describe('ChatUpdates', () => {
     run.events.subagentEntry('toolu_1', reply('h1', 'Found it'));
     run.events.subagentState('toolu_2', 'working');
     run.events.subagentState('toolu_2', 'done');
-    expect(await hub.subagent(id, 'toolu_1')).toMatchObject({ entries: [{ id: 'h1' }], state: 'working' });
+    expect(await hub.subagent(id, 'toolu_1')).toMatchObject({
+      entries: [{ id: 'h1' }],
+      state: 'working',
+    });
     expect(await hub.subagent(id, 'toolu_2')).toEqual({ entries: [], state: 'done' });
 
     run.events.closed();

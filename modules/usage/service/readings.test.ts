@@ -25,8 +25,15 @@ describe('UsageReadings', () => {
       account: 'me@example.com',
       at: 1000,
     });
-    readings.record('claude-code', { plan: 'max', windows: [{ span: 'week', used: 41, resetsAt: THURSDAY }], at: 2000 });
-    expect(readings.since('claude-code', 0).map((r) => r.account)).toEqual(['me@example.com', undefined]);
+    readings.record('claude-code', {
+      plan: 'max',
+      windows: [{ span: 'week', used: 41, resetsAt: THURSDAY }],
+      at: 2000,
+    });
+    expect(readings.since('claude-code', 0).map((r) => r.account)).toEqual([
+      'me@example.com',
+      undefined,
+    ]);
   });
 });
 

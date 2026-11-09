@@ -113,10 +113,11 @@ export function migrate(
   migrations: readonly string[],
   latest = migrations.length,
 ): void {
-  db.exec('CREATE TABLE IF NOT EXISTS schema_versions (owner TEXT PRIMARY KEY, version INTEGER NOT NULL)');
+  db.exec(
+    'CREATE TABLE IF NOT EXISTS schema_versions (owner TEXT PRIMARY KEY, version INTEGER NOT NULL)',
+  );
   const row = db.prepare('SELECT version FROM schema_versions WHERE owner = ?').get(owner) as
-    | { version: number }
-    | undefined;
+    { version: number } | undefined;
   const version = row?.version ?? 0;
   migrations.slice(version, latest).forEach((sql, i) => {
     db.exec('BEGIN');
@@ -136,7 +137,9 @@ export function migrate(
 
 /** A database versioned as one whole, by PRAGMA user_version, has a layout no owner knows, so it starts again empty. */
 function emptyIfVersionedWhole(db: DatabaseSync): void {
-  const { user_version: version } = db.prepare('PRAGMA user_version').get() as { user_version: number };
+  const { user_version: version } = db.prepare('PRAGMA user_version').get() as {
+    user_version: number;
+  };
   if (version === 0) return;
   const tables = db
     .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")

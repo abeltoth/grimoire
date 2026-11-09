@@ -14,7 +14,9 @@ export function registerKanban(registry: CommandRegistry, cards: CardStore, emit
   };
   registry.register('kanban.list', () => cards.list());
   registry.register('kanban.save', (draft) => changed(cards.save(draft)));
-  registry.register('kanban.move', ({ id, column, before }) => changed(cards.move(id, column, before)));
+  registry.register('kanban.move', ({ id, column, before }) =>
+    changed(cards.move(id, column, before)),
+  );
   registry.register('kanban.close', ({ id, closed }) => changed(cards.close(id, closed)));
   registry.register('kanban.link', ({ id, ...chat }) => changed(cards.link(id, chat)));
 }

@@ -8,7 +8,14 @@
  * --ephemeral keeps Grimoire's own data in memory, for smoke tests and captures.
  */
 import { randomBytes } from 'node:crypto';
-import { appendFileSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  appendFileSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import {
@@ -52,7 +59,8 @@ const buildId = values['build-id'];
 
 mkdirSync(path.join(dataDir, 'logs'), { recursive: true });
 const logFile = path.join(dataDir, 'logs', 'service.log');
-const log = (message: string) => appendFileSync(logFile, `${new Date().toISOString()} [${process.pid}] ${message}\n`);
+const log = (message: string) =>
+  appendFileSync(logFile, `${new Date().toISOString()} [${process.pid}] ${message}\n`);
 const infoFile = path.join(dataDir, SERVICE_INFO_FILE);
 
 process.on('uncaughtException', (error) => {
@@ -159,7 +167,14 @@ async function stop(): Promise<void> {
 }
 
 try {
-  server = await startServer({ endpoint, token, buildId, registry, log, onShutdown: () => void stop() });
+  server = await startServer({
+    endpoint,
+    token,
+    buildId,
+    registry,
+    log,
+    onShutdown: () => void stop(),
+  });
 } catch (error) {
   if (error instanceof AlreadyRunningError) {
     log(error.message);
@@ -170,7 +185,13 @@ try {
 
 events.toWindows(server.broadcast);
 
-const info: ServiceInfo = { endpoint, token, pid: process.pid, buildId, protocolVersion: PROTOCOL_VERSION };
+const info: ServiceInfo = {
+  endpoint,
+  token,
+  pid: process.pid,
+  buildId,
+  protocolVersion: PROTOCOL_VERSION,
+};
 writeFileSync(`${infoFile}.tmp`, JSON.stringify(info), { mode: 0o600 });
 renameSync(`${infoFile}.tmp`, infoFile);
 log(`Listening on ${endpoint}, build ${buildId}`);

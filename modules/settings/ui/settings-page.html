@@ -226,8 +226,8 @@
       (change)="setJiraQuery(jiraField)"
     ></textarea>
     <p class="note">
-      Those this Jira query finds, through your claude.ai Atlassian connector. Emptied, it finds yours
-      not done, and those done in the last two weeks.
+      Those this Jira query finds, through your claude.ai Atlassian connector. Emptied, it finds
+      yours not done, and those done in the last two weeks.
     </p>
 
     @if (accounts.agent(); as agent) {
@@ -425,7 +425,8 @@
   }
   @if (deleted(); as gone) {
     <p class="none" role="status">
-      “{{ gone.name }}” is deleted. Its Claude folder stays at <code>{{ gone.folder }}</code>.
+      “{{ gone.name }}” is deleted. Its Claude folder stays at <code>{{ gone.folder }}</code
+      >.
     </p>
   }
 

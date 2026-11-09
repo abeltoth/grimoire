@@ -52,7 +52,10 @@ export function askOf(approval: Approval, cwd?: string): Ask {
   };
 }
 
-export function scopeText(scope: AlwaysAllow['scope'], say: (book: string, plain: string) => string): string {
+export function scopeText(
+  scope: AlwaysAllow['scope'],
+  say: (book: string, plain: string) => string,
+): string {
   const scopes: Record<AlwaysAllow['scope'], string> = {
     chat: say('in this chapter', 'in this chat'),
     project: 'in this project',

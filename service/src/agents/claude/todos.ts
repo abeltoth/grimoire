@@ -26,8 +26,14 @@ const DESCRIPTION =
 
 const INPUT = {
   title: z.string().describe('A few words naming the task'),
-  notes: z.string().optional().describe('More about the task: what someone picking it up needs to know'),
-  folder: z.string().optional().describe("The project folder the task is in; this chat's folder when left out"),
+  notes: z
+    .string()
+    .optional()
+    .describe('More about the task: what someone picking it up needs to know'),
+  folder: z
+    .string()
+    .optional()
+    .describe("The project folder the task is in; this chat's folder when left out"),
 };
 
 /** The chat a card is added in, as a card links back to it. */
@@ -73,7 +79,11 @@ export function addTodoTool(sdk: ServerMaker, chat: TodoChat, add: AddTodo) {
       } catch (error) {
         return failed(error instanceof Error ? error.message : String(error));
       }
-      return { content: [{ type: 'text', text: `Added "${draft.title}" to To do on the user's Kanban board.` }] };
+      return {
+        content: [
+          { type: 'text', text: `Added "${draft.title}" to To do on the user's Kanban board.` },
+        ],
+      };
     },
     { alwaysLoad: true },
   );

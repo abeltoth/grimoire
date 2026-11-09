@@ -21,7 +21,9 @@ export class OpenChats {
 
   list(): StoredOpenChat[] {
     const rows = this.db
-      .prepare('SELECT chat_id, agent, settings FROM open_chats WHERE profile = ? ORDER BY position')
+      .prepare(
+        'SELECT chat_id, agent, settings FROM open_chats WHERE profile = ? ORDER BY position',
+      )
       .all(this.profile()) as { chat_id: string; agent: string; settings: string }[];
     return rows.map((row) => ({
       chatId: row.chat_id,

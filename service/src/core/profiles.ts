@@ -132,8 +132,7 @@ export class ProfileStore {
   /** The ID of the profile with this name, whatever its case. */
   private called(name: string): string | undefined {
     const row = this.db.prepare('SELECT id FROM profiles WHERE name = ?').get(name) as
-      | { id: string }
-      | undefined;
+      { id: string } | undefined;
     return row?.id;
   }
 

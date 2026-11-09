@@ -1,14 +1,19 @@
 @let page = shown();
 @let approvals = rightPage.approvals() ? registry.approvalsPage() : undefined;
 @if (rightPage.commandPalette() !== null) {
-  <gr-page side="right" [attr.aria-label]="rightPageLabel() + ': ' + wording.say('Index', 'Command palette')">
+  <gr-page
+    side="right"
+    [attr.aria-label]="rightPageLabel() + ': ' + wording.say('Index', 'Command palette')"
+  >
     <gr-command-palette [backTo]="back()" />
     <gr-drawing class="sigil" name="empty-page" />
   </gr-page>
 } @else if (commandsHere()) {
   <gr-page
     side="right"
-    [attr.aria-label]="rightPageLabel() + ': ' + wording.say('Index', 'Command palette') + ', commands and skills'"
+    [attr.aria-label]="
+      rightPageLabel() + ': ' + wording.say('Index', 'Command palette') + ', commands and skills'
+    "
   >
     <gr-slash-commands [backTo]="back()" />
     <gr-drawing class="sigil" name="empty-page" />
@@ -21,7 +26,9 @@
 } @else if (approvals) {
   <gr-page
     side="right"
-    [attr.aria-label]="rightPageLabel() + ': ' + wording.say('Awaiting your seal', 'Waiting for approval')"
+    [attr.aria-label]="
+      rightPageLabel() + ': ' + wording.say('Awaiting your seal', 'Waiting for approval')
+    "
   >
     <ng-container *ngComponentOutlet="approvals; inputs: { backTo: back() }" />
     <gr-drawing class="sigil" name="empty-page" />
@@ -31,23 +38,26 @@
     <ng-container *ngComponentOutlet="page.component" />
   </gr-page>
 } @else {
-<gr-page side="right" [attr.aria-label]="page ? rightPageLabel() + ': ' + wording.label(page) : rightPageLabel()">
-  <gr-page-header>
-    <div class="row">
-      <gr-right-page-tabs [current]="page?.id" />
+  <gr-page
+    side="right"
+    [attr.aria-label]="page ? rightPageLabel() + ': ' + wording.label(page) : rightPageLabel()"
+  >
+    <gr-page-header>
+      <div class="row">
+        <gr-right-page-tabs [current]="page?.id" />
+      </div>
+    </gr-page-header>
+
+    <div class="body">
+      @if (page?.component; as component) {
+        <ng-container *ngComponentOutlet="component" />
+      }
     </div>
-  </gr-page-header>
 
-  <div class="body">
-    @if (page?.component; as component) {
-      <ng-container *ngComponentOutlet="component" />
-    }
-  </div>
-
-  <gr-drawing class="sigil" name="empty-page" />
-  <gr-page-footer>
-    <span class="spacer"></span>
-    <span>{{ page?.foot?.() }}</span>
-  </gr-page-footer>
-</gr-page>
+    <gr-drawing class="sigil" name="empty-page" />
+    <gr-page-footer>
+      <span class="spacer"></span>
+      <span>{{ page?.foot?.() }}</span>
+    </gr-page-footer>
+  </gr-page>
 }

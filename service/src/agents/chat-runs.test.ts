@@ -90,7 +90,10 @@ describe('ChatRuns', () => {
     const run = fake.runOf(id);
     run.events.turnEnded();
     run.events.suggestion('Run the tests');
-    expect(sent.at(-1)).toEqual({ event: 'agents.suggestion', payload: { chatId: id, suggestion: 'Run the tests' } });
+    expect(sent.at(-1)).toEqual({
+      event: 'agents.suggestion',
+      payload: { chatId: id, suggestion: 'Run the tests' },
+    });
     expect((await hub.open('fake', id, settings)).suggestion).toBe('Run the tests');
     expect((await hub.openChats()).map((chat) => chat.suggestion)).toEqual(['Run the tests']);
 
@@ -164,7 +167,13 @@ describe('ChatRuns', () => {
       run.events.followUps(offered);
       expect(hub.takeFollowUp(id, 1)).toEqual({
         agent: 'fake',
-        settings: { cwd: '/work', model: 'small', effort: 'high', mode: 'plan', mcpOff: ['github'] },
+        settings: {
+          cwd: '/work',
+          model: 'small',
+          effort: 'high',
+          mode: 'plan',
+          mcpOff: ['github'],
+        },
         prompt: 'Cut a release',
       });
       expect(lastFollowUps()).toEqual({ chatId: id, followUps: [offered[0]] });
@@ -188,7 +197,10 @@ describe('ChatRuns', () => {
       event: 'agents.context',
       payload: { chatId: id, context: { used: 62_000, limit: 100_000 } },
     });
-    expect((await hub.open('fake', id, settings)).context).toEqual({ used: 62_000, limit: 100_000 });
+    expect((await hub.open('fake', id, settings)).context).toEqual({
+      used: 62_000,
+      limit: 100_000,
+    });
   });
 
   it('passes on the prompt cache each turn leaves', async () => {

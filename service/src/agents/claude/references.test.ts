@@ -18,7 +18,9 @@ describe('file references', () => {
     );
     expect(written).toBe(`Why is this blurry?\n\n@"src/app/ribbon.ts"\n@"${outside}"`);
     expect(withReferences('Just text', [], cwd)).toBe('Just text');
-    expect(withReferences('', [{ kind: 'file', path: path.join(cwd, 'a b.txt') }], cwd)).toBe('@"a b.txt"');
+    expect(withReferences('', [{ kind: 'file', path: path.join(cwd, 'a b.txt') }], cwd)).toBe(
+      '@"a b.txt"',
+    );
   });
 
   it('reads them back off the last lines, quoted or as typed in a terminal', () => {

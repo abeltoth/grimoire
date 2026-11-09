@@ -47,7 +47,11 @@ export async function startServer(options: ServiceServerOptions): Promise<Servic
   };
 }
 
-function handleConnection(socket: net.Socket, options: ServiceServerOptions, clients: Set<net.Socket>): void {
+function handleConnection(
+  socket: net.Socket,
+  options: ServiceServerOptions,
+  clients: Set<net.Socket>,
+): void {
   const decoder = new LineDecoder();
   let authenticated = false;
   const send = (message: ServiceMessage) => socket.write(encodeMessage(message));
@@ -78,7 +82,12 @@ function handleConnection(socket: net.Socket, options: ServiceServerOptions, cli
         authenticated = true;
         clearTimeout(helloTimer);
         clients.add(socket);
-        send({ kind: 'welcome', buildId: options.buildId, pid: process.pid, protocolVersion: PROTOCOL_VERSION });
+        send({
+          kind: 'welcome',
+          buildId: options.buildId,
+          pid: process.pid,
+          protocolVersion: PROTOCOL_VERSION,
+        });
         continue;
       }
       if (message.kind === 'request') {

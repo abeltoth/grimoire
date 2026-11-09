@@ -43,7 +43,13 @@ export class Setup {
   }
 
   /** Writes one of the files the agent's setup in the folder lists, unless it changed since it was opened. */
-  saveFile(agent: AgentId, cwd: string | undefined, file: string, text: string, changedAt: number): Promise<SetupFile> {
+  saveFile(
+    agent: AgentId,
+    cwd: string | undefined,
+    file: string,
+    text: string,
+    changedAt: number,
+  ): Promise<SetupFile> {
     return this.files.save(agent, cwd ?? homedir(), file, text, changedAt);
   }
 

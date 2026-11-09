@@ -24,7 +24,9 @@ export function provideKanban(): EnvironmentProviders {
       const card = board.current();
       if (!card) return;
       const label =
-        card.title.length > BADGE_LENGTH ? `${card.title.slice(0, BADGE_LENGTH - 1).trimEnd()}…` : card.title;
+        card.title.length > BADGE_LENGTH
+          ? `${card.title.slice(0, BADGE_LENGTH - 1).trimEnd()}…`
+          : card.title;
       const column = COLUMNS.find((c) => c.column === card.column)!.label;
       onCleanup(
         shell.badges.add({

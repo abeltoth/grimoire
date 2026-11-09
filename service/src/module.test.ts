@@ -22,7 +22,12 @@ describe('Modules', () => {
 
   it('passes each step of the service on to the modules that take it', () => {
     const db = openDatabase(':memory:');
-    const hooks = { ready: vi.fn(), profileSwitched: vi.fn(), profileRemoved: vi.fn(), stop: vi.fn() };
+    const hooks = {
+      ready: vi.fn(),
+      profileSwitched: vi.fn(),
+      profileRemoved: vi.fn(),
+      stop: vi.fn(),
+    };
     const modules = new Modules([
       { id: 'a', start: () => hooks },
       { id: 'b', start: () => {} },

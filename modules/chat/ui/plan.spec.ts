@@ -1,7 +1,7 @@
 import { fakeBridge, render, write } from '@ui/testing/app-harness';
 
 describe('plan', () => {
-  it('keeps the chat\'s plan in the Plan, and its tools out of the margin', async () => {
+  it("keeps the chat's plan in the Plan, and its tools out of the margin", async () => {
     const { bridge, emit } = fakeBridge();
     const { fixture, el, texts } = await render(bridge);
     expect(texts('gr-plan .none')).toEqual([
@@ -31,9 +31,15 @@ describe('plan', () => {
     await fixture.whenStable();
 
     expect(texts('gr-plan li > *')).toEqual([
-      'i.', 'Read the composer', 'done',
-      'ii.', 'Fill in the meter', 'writing',
-      'iii.', 'Run the tests', 'to do',
+      'i.',
+      'Read the composer',
+      'done',
+      'ii.',
+      'Fill in the meter',
+      'writing',
+      'iii.',
+      'Run the tests',
+      'to do',
     ]);
     expect(texts('gr-plan li.now .text')).toEqual(['Fill in the meter']);
     expect(texts('gr-right-page gr-page-footer')).toEqual(['1 of 3 done']);

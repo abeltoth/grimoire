@@ -17,7 +17,9 @@
     }
   </p>
   @if (git.pullRequest(); as pr) {
-    <p class="sub">Pull request #{{ pr.number }}: <i>{{ pr.title }}</i></p>
+    <p class="sub">
+      Pull request #{{ pr.number }}: <i>{{ pr.title }}</i>
+    </p>
   }
 
   <section aria-labelledby="git-branches">
@@ -34,7 +36,9 @@
             <ul [class.grown]="!!trunk()">
               @for (branch of grown(); track branch.name) {
                 <li>
-                  <ng-container *ngTemplateOutlet="row; context: { $implicit: branch, isTrunk: false }" />
+                  <ng-container
+                    *ngTemplateOutlet="row; context: { $implicit: branch, isTrunk: false }"
+                  />
                 </li>
               }
             </ul>
@@ -62,7 +66,8 @@
               (click)="toggle(change)"
             >
               <span class="path"
-                ><span class="folder">{{ folderOf(change.path) }}</span>{{ nameOf(change.path) }}</span
+                ><span class="folder">{{ folderOf(change.path) }}</span
+                >{{ nameOf(change.path) }}</span
               >
               <span class="leader" aria-hidden="true"></span>
               <span class="kind" [class.alert]="change.kind === 'conflicted'">

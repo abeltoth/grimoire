@@ -27,17 +27,28 @@ const events = () => sent.map((s) => s.event);
 describe('NewChats', () => {
   it('starts a chat on Auto on the model and effort picked for its first message', async () => {
     fake.picks.set('Fix the ribbon', { model: 'small', effort: 'low' });
-    const chat = await hub.start('fake', { ...settings, autoModel: true, model: 'big', effort: 'max' }, 'Fix the ribbon');
+    const chat = await hub.start(
+      'fake',
+      { ...settings, autoModel: true, model: 'big', effort: 'max' },
+      'Fix the ribbon',
+    );
     expect(chat.settings).toEqual({ cwd: '/work', autoModel: true, model: 'small', effort: 'low' });
     expect(fake.runOf(chat.id).settings).toMatchObject({ model: 'small', effort: 'low' });
 
     // When nothing is picked, it runs on the agent's defaults.
-    const unpicked = await hub.start('fake', { ...settings, autoModel: true, model: 'small' }, 'Hello');
+    const unpicked = await hub.start(
+      'fake',
+      { ...settings, autoModel: true, model: 'small' },
+      'Hello',
+    );
     expect(unpicked.settings).toEqual({ cwd: '/work', autoModel: true });
 
     // Picking another model ends Auto; another effort doesn't.
     await hub.configure(chat.id, { effort: 'medium' });
-    expect((await hub.open('fake', chat.id, settings)).settings).toMatchObject({ autoModel: true, effort: 'medium' });
+    expect((await hub.open('fake', chat.id, settings)).settings).toMatchObject({
+      autoModel: true,
+      effort: 'medium',
+    });
     await hub.configure(chat.id, { model: 'big' });
     expect((await hub.open('fake', chat.id, settings)).settings).toEqual({
       cwd: '/work',
@@ -48,7 +59,10 @@ describe('NewChats', () => {
 
   describe('sending one entry to two models', () => {
     const begun = async (cwd: string) => {
-      fake.transcripts.set('c1', [{ kind: 'user', id: 'u1', text: 'Add a meter' }, reply('r1', 'Added.')]);
+      fake.transcripts.set('c1', [
+        { kind: 'user', id: 'u1', text: 'Add a meter' },
+        reply('r1', 'Added.'),
+      ]);
       fake.chats = [{ id: 'c1', agent: 'fake', title: 'Context meter', cwd, updatedAt: 1 }];
       await hub.open('fake', 'c1', { cwd });
     };
@@ -65,7 +79,11 @@ describe('NewChats', () => {
         copied: ['u1'],
         readOnly: { chatId: 'c1', title: 'Context meter' },
       });
-      expect(fake.runOf('c1')).toMatchObject({ resume: true, sent: ['Colour it'], settings: { cwd: '/work' } });
+      expect(fake.runOf('c1')).toMatchObject({
+        resume: true,
+        sent: ['Colour it'],
+        settings: { cwd: '/work' },
+      });
       expect(fake.runOf('fork-2')).toMatchObject({
         resume: true,
         sent: ['Colour it'],
@@ -77,13 +95,20 @@ describe('NewChats', () => {
     it('waits for the turn to end', async () => {
       await begun('/work');
       hub.send('c1', 'Colour it');
-      await expect(hub.parallel({ chatId: 'c1' }, 'small', 'Bigger')).rejects.toThrow('Wait for the turn to end');
+      await expect(hub.parallel({ chatId: 'c1' }, 'small', 'Bigger')).rejects.toThrow(
+        'Wait for the turn to end',
+      );
     });
 
     it('begins the second afresh for a new chat, its title a variant of the first', async () => {
       fake.chats = [{ id: 'c1', agent: 'fake', title: 'Login bug', cwd: '/work', updatedAt: 1 }];
       const second = await hub.parallel(
-        { agent: 'fake', settings: { ...settings, mode: 'plan' }, title: 'Login bug', alongside: 'c0' },
+        {
+          agent: 'fake',
+          settings: { ...settings, mode: 'plan' },
+          title: 'Login bug',
+          alongside: 'c0',
+        },
         'small',
         'Fix it',
       );
@@ -95,7 +120,11 @@ describe('NewChats', () => {
       });
       expect(fake.runOf(second.id)).toMatchObject({ resume: false, sent: ['Fix it'] });
 
-      const untitled = await hub.parallel({ agent: 'fake', settings: { cwd: '/plain' }, alongside: 'c0' }, 'small', 'Fix it');
+      const untitled = await hub.parallel(
+        { agent: 'fake', settings: { cwd: '/plain' }, alongside: 'c0' },
+        'small',
+        'Fix it',
+      );
       expect(untitled).toMatchObject({ title: '', settings: { cwd: '/plain', model: 'small' } });
     });
   });
@@ -136,7 +165,7 @@ describe('NewChats', () => {
     expect(picking.started?.live.closed).toBe(true);
   });
 
-  it('forks a chat after a message\'s turn into the next free variant, and opens it', async () => {
+  it("forks a chat after a message's turn into the next free variant, and opens it", async () => {
     fake.transcripts.set('c1', [
       { kind: 'user', id: 'u1', text: 'Add a meter' },
       reply('r1', 'Added.'),
@@ -161,7 +190,7 @@ describe('NewChats', () => {
     expect((await hub.fork('fork-3', 'u1')).title).toBe('Context meter (c)');
   });
 
-  it('marks a fork\'s entries as copied, which can\'t be undone', async () => {
+  it("marks a fork's entries as copied, which can't be undone", async () => {
     const store = hubStore(openDatabase(':memory:'));
     hub = new AgentHub(() => {}, 50, store);
     hub.addAdapter(fake);

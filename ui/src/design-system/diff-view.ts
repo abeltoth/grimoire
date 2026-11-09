@@ -52,7 +52,8 @@ export class DiffView {
 function markOf(lines: readonly DiffLine[], index: number, breaks: ReadonlySet<number>): string {
   const line = lines[index]!;
   if (line.kind === 'removed') return 'dele';
-  if (line.kind !== 'inserted' || (!breaks.has(index) && lines[index - 1]?.kind === 'inserted')) return '';
+  if (line.kind !== 'inserted' || (!breaks.has(index) && lines[index - 1]?.kind === 'inserted'))
+    return '';
   let run = 1;
   while (lines[index + run]?.kind === 'inserted' && !breaks.has(index + run)) run++;
   return run === 1 ? '‸ insert' : `‸ insert ${run} lines`;

@@ -25,7 +25,10 @@ declare module '@grimoire/contract' {
     /** The terminals running now, oldest first. */
     'terminal.list': { request: Record<string, never>; response: TerminalInfo[] };
     /** Starts your shell in the folder, at the size given. */
-    'terminal.open': { request: { cwd: string; cols: number; rows: number }; response: TerminalInfo };
+    'terminal.open': {
+      request: { cwd: string; cols: number; rows: number };
+      response: TerminalInfo;
+    };
     /** What the terminal shows now, to draw it again after its page was closed. */
     'terminal.screen': { request: { id: string }; response: TerminalScreen };
     /** Types into the terminal. */

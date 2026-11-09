@@ -1,7 +1,7 @@
 <p class="lead">
   Chats Grimoire begins by itself, on the days and at the time you set, each run a new
-  {{ wording.say('chapter', 'chat') }} with Full access. They run while Grimoire’s service does; a time it was away for runs when it’s back,
-  unless that’s more than three hours late.
+  {{ wording.say('chapter', 'chat') }} with Full access. They run while Grimoire’s service does; a
+  time it was away for runs when it’s back, unless that’s more than three hours late.
 </p>
 
 @if (scheduled.failed(); as error) {
@@ -34,7 +34,8 @@
           <ol class="runs" aria-label="Last runs">
             @for (run of s.runs; track run.dueAt) {
               <li [class.amiss]="run.outcome !== 'began'">
-                <span class="when">{{ when(run.dueAt) }}</span>&ngsp;
+                <span class="when">{{ when(run.dueAt) }}</span
+                >&ngsp;
                 <span class="outcome">{{ outcome(run) }}</span>
                 @if (run.chatId) {
                   &ngsp;<button type="button" class="gr-link" (click)="scheduled.openRun(s, run)">

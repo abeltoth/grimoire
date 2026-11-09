@@ -116,7 +116,15 @@ describe('Git', () => {
     commit('Be');
     const { trunk, branches } = (await new Git().branches(repo))!;
     expect(trunk).toBe('main');
-    expect(branches.map(({ name, current, ahead, behind, subject }) => ({ name, current, ahead, behind, subject }))).toEqual([
+    expect(
+      branches.map(({ name, current, ahead, behind, subject }) => ({
+        name,
+        current,
+        ahead,
+        behind,
+        subject,
+      })),
+    ).toEqual([
       { name: 'main', current: true, ahead: 0, behind: 0, subject: 'Be' },
       { name: 'feature', current: false, ahead: 2, behind: 1, subject: 'Five' },
     ]);

@@ -25,7 +25,10 @@ try {
 const socket = net.createConnection(info.endpoint);
 let failed = false;
 socket.on('connect', () => {
-  socket.write(JSON.stringify({ kind: 'hello', token: info.token, protocolVersion: info.protocolVersion }) + '\n');
+  socket.write(
+    JSON.stringify({ kind: 'hello', token: info.token, protocolVersion: info.protocolVersion }) +
+      '\n',
+  );
   socket.write(JSON.stringify({ kind: 'shutdown' }) + '\n');
 });
 socket.on('error', (error) => {

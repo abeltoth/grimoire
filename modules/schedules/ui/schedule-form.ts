@@ -1,4 +1,13 @@
-import { Component, computed, inject, input, linkedSignal, output, signal, untracked } from '@angular/core';
+import {
+  Component,
+  computed,
+  inject,
+  input,
+  linkedSignal,
+  output,
+  signal,
+  untracked,
+} from '@angular/core';
 import type { AgentId, EffortLevel, ScheduleDraft, ScheduleInfo } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { Chats } from '@ui/app/core/chats';
@@ -35,7 +44,9 @@ export class ScheduleForm {
   // Written out from the schedule changed; a new one from the chat you're on.
   protected readonly name = linkedSignal(() => this.schedule()?.name ?? '');
   protected readonly prompt = linkedSignal(() => this.schedule()?.prompt ?? '');
-  protected readonly days = linkedSignal<ReadonlySet<number>>(() => new Set(this.schedule()?.days ?? WEEKDAYS));
+  protected readonly days = linkedSignal<ReadonlySet<number>>(
+    () => new Set(this.schedule()?.days ?? WEEKDAYS),
+  );
   protected readonly time = linkedSignal(() => this.schedule()?.time ?? '08:00');
   protected readonly agent = linkedSignal<AgentId>(
     () =>
@@ -46,8 +57,12 @@ export class ScheduleForm {
     const schedule = this.schedule();
     return schedule ? schedule.settings.cwd : untracked(() => this.chats.current()?.settings.cwd);
   });
-  protected readonly model = linkedSignal<string | undefined>(() => this.schedule()?.settings.model);
-  protected readonly effort = linkedSignal<EffortLevel | undefined>(() => this.schedule()?.settings.effort);
+  protected readonly model = linkedSignal<string | undefined>(
+    () => this.schedule()?.settings.model,
+  );
+  protected readonly effort = linkedSignal<EffortLevel | undefined>(
+    () => this.schedule()?.settings.effort,
+  );
   protected readonly saving = signal(false);
 
   protected readonly folders = computed(() => {
@@ -58,7 +73,10 @@ export class ScheduleForm {
   protected readonly models = computed(() => this.chats.models()[this.agent()]);
   protected readonly selectedModel = computed(() => this.model() ?? this.models()?.default);
   protected readonly efforts = computed(() => {
-    const { levels, level } = this.chats.effortOf(this.agent(), { model: this.selectedModel(), effort: this.effort() });
+    const { levels, level } = this.chats.effortOf(this.agent(), {
+      model: this.selectedModel(),
+      effort: this.effort(),
+    });
     return { choices: EFFORTS.filter((e) => levels.includes(e.level)), level };
   });
   protected readonly complete = computed(
@@ -91,7 +109,11 @@ export class ScheduleForm {
       ...(this.schedule() ? { id: this.schedule()!.id } : {}),
       name: this.name(),
       agent: this.agent(),
-      settings: { ...(cwd ? { cwd } : {}), ...(model ? { model } : {}), ...(effort ? { effort } : {}) },
+      settings: {
+        ...(cwd ? { cwd } : {}),
+        ...(model ? { model } : {}),
+        ...(effort ? { effort } : {}),
+      },
       prompt: this.prompt(),
       days: [...this.days()],
       time: this.time(),

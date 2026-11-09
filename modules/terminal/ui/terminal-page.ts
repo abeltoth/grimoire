@@ -5,7 +5,8 @@ import { Icon } from '@ui/design-system/icon';
 import { Terminals } from './terminals';
 import { TerminalSheet } from './terminal-sheet';
 
-const time = (at: number) => new Date(at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+const time = (at: number) =>
+  new Date(at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
 /**
  * The Terminal page: your shells, each on a tab of its own, written on the

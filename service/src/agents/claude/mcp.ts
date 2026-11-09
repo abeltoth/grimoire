@@ -2,7 +2,10 @@ import type { Settings } from '@anthropic-ai/claude-agent-sdk';
 import type { ChatSettings } from '@grimoire/contract';
 
 /** The MCP servers off for a chat: those off in every chat, and its own; each once, sorted. */
-export function mcpOff(everywhere: readonly string[], settings?: Pick<ChatSettings, 'mcpOff'>): string[] {
+export function mcpOff(
+  everywhere: readonly string[],
+  settings?: Pick<ChatSettings, 'mcpOff'>,
+): string[] {
   return [...new Set([...everywhere, ...(settings?.mcpOff ?? [])])].sort();
 }
 

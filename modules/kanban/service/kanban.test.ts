@@ -44,7 +44,11 @@ const board = (all: Card[] = cards.list()) =>
 
 describe('Kanban cards', () => {
   it('adds a card at the foot of To do, tidied, and changes it in its place', () => {
-    const first = cards.save({ title: ' Add dark theme tokens ', notes: ' The night theme first. \n', cwd: '/git/grimoire' })[0]!;
+    const first = cards.save({
+      title: ' Add dark theme tokens ',
+      notes: ' The night theme first. \n',
+      cwd: '/git/grimoire',
+    })[0]!;
     expect(first).toEqual({
       id: first.id,
       kind: 'task',
@@ -62,9 +66,15 @@ describe('Kanban cards', () => {
   });
 
   it('turns away a card without a title or a folder, or one that isn’t there', () => {
-    expect(() => cards.save({ title: ' ', notes: '', cwd: '/git' })).toThrow('A card needs a title');
-    expect(() => cards.save({ title: 'Tests', notes: '', cwd: '' })).toThrow('A card needs a folder');
-    expect(() => cards.save({ id: 'gone', title: 'Tests', notes: '', cwd: '/git' })).toThrow('There is no such card');
+    expect(() => cards.save({ title: ' ', notes: '', cwd: '/git' })).toThrow(
+      'A card needs a title',
+    );
+    expect(() => cards.save({ title: 'Tests', notes: '', cwd: '' })).toThrow(
+      'A card needs a folder',
+    );
+    expect(() => cards.save({ id: 'gone', title: 'Tests', notes: '', cwd: '/git' })).toThrow(
+      'There is no such card',
+    );
     expect(() => cards.move('gone', 'done')).toThrow('There is no such card');
   });
 
@@ -89,7 +99,10 @@ describe('Kanban cards', () => {
     now = 2_000;
     cards.close(a.id, true);
     expect(board().todo).toEqual(['B']);
-    expect(cards.list().find((card) => card.id === a.id)).toMatchObject({ closedAt: 2_000, column: 'todo' });
+    expect(cards.list().find((card) => card.id === a.id)).toMatchObject({
+      closedAt: 2_000,
+      column: 'todo',
+    });
     now = 3_000;
     cards.close(a.id, true);
     expect(cards.list().find((card) => card.id === a.id)!.closedAt).toBe(2_000);
@@ -104,22 +117,38 @@ describe('Kanban cards', () => {
     cards.move(b.id, 'done');
     cards.link(a.id, { chatId: 'chat-1', agent: 'claude-code', cwd: '/git/grimoire' });
     now = 2_000;
-    cards.link(a.id, { chatId: 'chat-2', agent: 'claude-code', cwd: '/git/grimoire/.claude/worktrees/a' });
+    cards.link(a.id, {
+      chatId: 'chat-2',
+      agent: 'claude-code',
+      cwd: '/git/grimoire/.claude/worktrees/a',
+    });
     cards.link(a.id, { chatId: 'chat-1', agent: 'claude-code', cwd: '/git/grimoire' });
     // Only you put a card in Done; one there stays.
     cards.link(b.id, { chatId: 'chat-3', agent: 'claude-code', cwd: '/git/grimoire' });
     expect(board()).toEqual({ todo: [], doing: ['A'], done: ['B'] });
     expect(cards.list()[0]!.chats).toEqual([
       { chatId: 'chat-1', agent: 'claude-code', cwd: '/git/grimoire', at: 1_000 },
-      { chatId: 'chat-2', agent: 'claude-code', cwd: '/git/grimoire/.claude/worktrees/a', at: 2_000 },
+      {
+        chatId: 'chat-2',
+        agent: 'claude-code',
+        cwd: '/git/grimoire/.claude/worktrees/a',
+        at: 2_000,
+      },
     ]);
   });
 
   it('notes the chat a card an agent added was made in, apart from the chats it began, and keeps it', () => {
     const madeIn = { chatId: 'chat-1', agent: 'claude-code', cwd: '/git/grimoire' };
-    const a = cards.save({ title: 'Context meter', notes: '', cwd: '/git/breeder' }, madeIn).at(-1)!;
+    const a = cards
+      .save({ title: 'Context meter', notes: '', cwd: '/git/breeder' }, madeIn)
+      .at(-1)!;
     expect(a).toMatchObject({ column: 'todo', cwd: '/git/breeder', chats: [], madeIn });
-    cards.save({ id: a.id, title: 'Context meter', notes: 'From the usage events.', cwd: '/git/breeder' });
+    cards.save({
+      id: a.id,
+      title: 'Context meter',
+      notes: 'From the usage events.',
+      cwd: '/git/breeder',
+    });
     cards.link(a.id, { chatId: 'chat-2', agent: 'claude-code', cwd: '/git/breeder' });
     const card = cards.list()[0]!;
     expect(card.madeIn).toEqual(madeIn);
@@ -173,7 +202,11 @@ describe('Kanban cards', () => {
     const registry = new CommandRegistry();
     const emit = vi.fn();
     registerKanban(registry, cards, emit);
-    const [card] = (await registry.dispatch('kanban.save', { title: 'A', notes: '', cwd: '/git' })) as Card[];
+    const [card] = (await registry.dispatch('kanban.save', {
+      title: 'A',
+      notes: '',
+      cwd: '/git',
+    })) as Card[];
     await registry.dispatch('kanban.move', { id: card!.id, column: 'done' });
     await registry.dispatch('kanban.close', { id: card!.id, closed: true });
     const linked = (await registry.dispatch('kanban.link', {

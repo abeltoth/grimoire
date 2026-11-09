@@ -14,7 +14,10 @@ const DAY = 24 * 60 * 60_000;
 /** "08:00" as your clock reads it, such as "8:00 AM". */
 export function clock(time: string): string {
   const [hours, minutes] = time.split(':').map(Number);
-  return new Date(2000, 0, 1, hours, minutes).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  return new Date(2000, 0, 1, hours, minutes).toLocaleTimeString([], {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 }
 
 /** When a schedule runs, in words: "Weekdays at 8:00 AM", "Mondays and Thursdays at 9:30 AM". */
@@ -27,7 +30,8 @@ export function cadence(days: readonly number[], time: string): string {
   else if (on.size === 5 && weekdays) which = 'Weekdays';
   else if (on.size === 2 && on.has(0) && on.has(6)) which = 'Weekends';
   else if (!named.length) return 'On no days';
-  else which = named.length === 1 ? named[0]! : `${named.slice(0, -1).join(', ')} and ${named.at(-1)}`;
+  else
+    which = named.length === 1 ? named[0]! : `${named.slice(0, -1).join(', ')} and ${named.at(-1)}`;
   return `${which} at ${clock(time)}`;
 }
 
@@ -54,8 +58,11 @@ export function dateline(at: number): string {
 /** When a run was due: "4 Nov, 8:00 AM". */
 export function when(at: number): string {
   const date = new Date(at);
-  return `${date.toLocaleDateString([], { day: 'numeric', month: 'short' })}, ${date.toLocaleTimeString([], {
-    hour: 'numeric',
-    minute: '2-digit',
-  })}`;
+  return `${date.toLocaleDateString([], { day: 'numeric', month: 'short' })}, ${date.toLocaleTimeString(
+    [],
+    {
+      hour: 'numeric',
+      minute: '2-digit',
+    },
+  )}`;
 }

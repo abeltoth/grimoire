@@ -27,9 +27,7 @@ describe('toRows', () => {
     expect(rows.map((row) => row.kind)).toEqual(['you', 'reply']);
     const reply = rows[1]!;
     if (reply.kind !== 'reply') throw new Error('expected a reply');
-    expect(
-      reply.notes.map(({ verb, target, running }) => ({ verb, target, running })),
-    ).toEqual([
+    expect(reply.notes.map(({ verb, target, running }) => ({ verb, target, running }))).toEqual([
       { verb: 'Read', target: '/repo/src/login.ts', running: false },
       { verb: 'Tested', target: 'npm test', running: true },
     ]);
@@ -126,7 +124,13 @@ describe('toRows', () => {
 
   it('shows a file by its name and anything else in full', () => {
     const rows = toRows(
-      [agent('a1', tool('Edit', { file_path: '/repo/src/app/a.ts' }), tool('Bash', { command: 'npm test -- --watch=false' }))],
+      [
+        agent(
+          'a1',
+          tool('Edit', { file_path: '/repo/src/app/a.ts' }),
+          tool('Bash', { command: 'npm test -- --watch=false' }),
+        ),
+      ],
       '/repo',
     );
     const notes = rows[0]!.kind === 'notes' ? rows[0]!.notes : [];
@@ -142,20 +146,30 @@ describe('toRows', () => {
     const rows = toRows([
       agent(
         'a1',
-        { ...tool('Bash', { command: 'npm test -w ui', description: 'Run UI tests' }, ok), id: 'b1' },
+        {
+          ...tool('Bash', { command: 'npm test -w ui', description: 'Run UI tests' }, ok),
+          id: 'b1',
+        },
         { ...tool('Bash', { command: 'ls' }, ok), id: 'b2' },
         { ...tool('Bash', { command: long }, ok), id: 'b3' },
       ),
     ]);
     const notes = rows[0]!.kind === 'notes' ? rows[0]!.notes : [];
-    expect(notes.map(({ target, label, described, details }) => ({ target, label, described, details }))).toEqual([
+    expect(
+      notes.map(({ target, label, described, details }) => ({ target, label, described, details })),
+    ).toEqual([
       {
         target: 'npm test -w ui',
         label: 'Run UI tests',
         described: true,
         details: { kind: 'output', title: 'Run UI tests', text: 'ok', command: 'npm test -w ui' },
       },
-      { target: 'ls', label: 'ls', described: undefined, details: { kind: 'output', title: 'ls', text: 'ok' } },
+      {
+        target: 'ls',
+        label: 'ls',
+        described: undefined,
+        details: { kind: 'output', title: 'ls', text: 'ok' },
+      },
       {
         target: long,
         label: long,
@@ -167,7 +181,13 @@ describe('toRows', () => {
 
   it('merges changes in a row to one file, stacking their diffs', () => {
     const done = { text: 'Updated.', isError: false };
-    const edit = (id: string, file: string, from: string, to: string, result?: ToolBlock['result']) => ({
+    const edit = (
+      id: string,
+      file: string,
+      from: string,
+      to: string,
+      result?: ToolBlock['result'],
+    ) => ({
       ...tool('Edit', { file_path: file, old_string: from, new_string: to }, result),
       id,
     });
@@ -185,7 +205,15 @@ describe('toRows', () => {
       '/repo',
     );
     const notes = rows[0]!.kind === 'notes' ? rows[0]!.notes : [];
-    expect(notes.map(({ label, times, counts, running, failed }) => ({ label, times, counts, running, failed }))).toEqual([
+    expect(
+      notes.map(({ label, times, counts, running, failed }) => ({
+        label,
+        times,
+        counts,
+        running,
+        failed,
+      })),
+    ).toEqual([
       { label: 'a.ts', times: 2, counts: '+3 −2', running: false, failed: false },
       { label: 'a.ts', times: undefined, counts: undefined, running: false, failed: true },
       { label: 'a.ts', times: undefined, counts: '+1 −1', running: true, failed: false },
@@ -204,7 +232,10 @@ describe('toRows', () => {
       ],
       breaks: [2],
     });
-    expect(rows[0]!.kind === 'notes' && rows[0]!.summary).toMatchObject({ text: 'Changed 2 files', counts: '+5 −4' });
+    expect(rows[0]!.kind === 'notes' && rows[0]!.summary).toMatchObject({
+      text: 'Changed 2 files',
+      counts: '+5 −4',
+    });
   });
 
   it('links a message that resumed a subagent to its run, but not one sent elsewhere', () => {
@@ -213,23 +244,46 @@ describe('toRows', () => {
     const rows = toRows([
       agent(
         'a1',
-        tool('SendMessage', { to: 'a819', summary: 'Ask for more', message: 'More, please.' }, resumed),
+        tool(
+          'SendMessage',
+          { to: 'a819', summary: 'Ask for more', message: 'More, please.' },
+          resumed,
+        ),
         { ...tool('SendMessage', { to: 'other', message: 'Hi' }, sent), id: 'other-id' },
       ),
     ]);
     const notes = rows[0]!.kind === 'notes' ? rows[0]!.notes : [];
-    expect(notes.map(({ verb, target, did, subagent }) => ({ verb, target, did, subagent: subagent?.id }))).toEqual([
-      { verb: 'Messaged a helper', target: 'Ask for more', did: 'helped', subagent: 'SendMessage-id' },
+    expect(
+      notes.map(({ verb, target, did, subagent }) => ({
+        verb,
+        target,
+        did,
+        subagent: subagent?.id,
+      })),
+    ).toEqual([
+      {
+        verb: 'Messaged a helper',
+        target: 'Ask for more',
+        did: 'helped',
+        subagent: 'SendMessage-id',
+      },
       { verb: 'SendMessage', target: '', did: 'other', subagent: undefined },
     ]);
   });
 
   it('notes a task the agent added to the Kanban board by its title, and sums them up', () => {
-    const added = { text: 'Added "Context meter" to To do on the user\'s Kanban board.', isError: false };
+    const added = {
+      text: 'Added "Context meter" to To do on the user\'s Kanban board.',
+      isError: false,
+    };
     const rows = toRows([
       agent(
         'a1',
-        tool('mcp__grimoire__add_todo', { title: ' Context meter ', notes: 'From the usage events.' }, added),
+        tool(
+          'mcp__grimoire__add_todo',
+          { title: ' Context meter ', notes: 'From the usage events.' },
+          added,
+        ),
         { ...tool('mcp__grimoire__add_todo', { title: 'Ribbon tests' }), id: 'second-id' },
       ),
     ]);
@@ -305,8 +359,22 @@ describe('toRows', () => {
   });
 
   it("counts a turn's hooks on its closing line as they run, and what it spent once it ended", () => {
-    const run = (id: string, outcome: HookRun['outcome']): HookRun => ({ id, name: 'Stop', event: 'Stop', outcome });
-    const uses = [{ model: 'claude-opus-5-5', input: 1, cacheWritten: 0, cacheWrittenLong: 0, cacheRead: 0, output: 1 }];
+    const run = (id: string, outcome: HookRun['outcome']): HookRun => ({
+      id,
+      name: 'Stop',
+      event: 'Stop',
+      outcome,
+    });
+    const uses = [
+      {
+        model: 'claude-opus-5-5',
+        input: 1,
+        cacheWritten: 0,
+        cacheWrittenLong: 0,
+        cacheRead: 0,
+        output: 1,
+      },
+    ];
     const running: Entry = {
       kind: 'user',
       id: 'u1',
@@ -323,7 +391,9 @@ describe('toRows', () => {
     });
 
     const ended = toRows([{ ...running, took: 5 }, agent('a1', text('Done'))]).at(-1)!;
-    expect(ended.kind === 'spent' && [ended.took, ended.tokens?.uses, ended.hooks?.runs.length]).toEqual([5, uses, 3]);
+    expect(
+      ended.kind === 'spent' && [ended.took, ended.tokens?.uses, ended.hooks?.runs.length],
+    ).toEqual([5, uses, 3]);
     expect(toRows([you('u2', 'Hi')]).map((row) => row.kind)).toEqual(['you']);
   });
 });

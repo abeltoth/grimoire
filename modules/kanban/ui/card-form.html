@@ -1,4 +1,8 @@
-<form class="form" (submit)="$event.preventDefault(); save()" (keydown.escape)="$event.preventDefault(); done.emit()">
+<form
+  class="form"
+  (submit)="$event.preventDefault(); save()"
+  (keydown.escape)="$event.preventDefault(); done.emit()"
+>
   <input
     class="line name"
     autocomplete="off"

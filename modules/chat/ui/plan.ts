@@ -50,5 +50,7 @@ export class Plan {
 /** The Plan's line in the page footer, such as "3 of 5 done". */
 export function planFoot(chats: Chats): string {
   const plan = chats.current()?.plan ?? [];
-  return plan.length ? `${plan.filter((step) => step.status === 'done').length} of ${plan.length} done` : '';
+  return plan.length
+    ? `${plan.filter((step) => step.status === 'done').length} of ${plan.length} done`
+    : '';
 }

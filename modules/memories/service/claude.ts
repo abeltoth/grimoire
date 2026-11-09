@@ -295,12 +295,16 @@ export function readMemories(input: {
 export const claudeMemories: MemorySource = {
   read: async (cwd) => {
     const claudeFolder = claudeHome();
-    const settings = settingsFilesIn(cwd, claudeFolder, process.platform).map((file) => readSettingsFile(file));
+    const settings = settingsFilesIn(cwd, claudeFolder, process.platform).map((file) =>
+      readSettingsFile(file),
+    );
     return readMemories({
       cwd,
       claudeFolder,
       settings: memorySettings(
-        settings.flatMap(({ source, settings: own }) => (source === 'plugin' ? [] : [{ source, settings: own }])),
+        settings.flatMap(({ source, settings: own }) =>
+          source === 'plugin' ? [] : [{ source, settings: own }],
+        ),
         homedir(),
       ),
       at: Date.now(),

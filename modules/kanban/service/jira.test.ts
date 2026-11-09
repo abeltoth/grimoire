@@ -1,6 +1,11 @@
 import type { Card } from '@grimoire/contract';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { type Connector, type Connectors, ToolFailed, type ToolResult } from '@grimoire/service/agents/claude/connectors';
+import {
+  type Connector,
+  type Connectors,
+  ToolFailed,
+  type ToolResult,
+} from '@grimoire/service/agents/claude/connectors';
 import { CommandRegistry } from '@grimoire/service/registry';
 import { setActiveProfile } from '@grimoire/service/storage/app-state';
 import { migrate, openDatabase } from '@grimoire/service/storage/database';
@@ -31,15 +36,25 @@ function openBoard(file: string) {
 }
 
 const SITE = 'https://acme.atlassian.net';
-const text = (json: unknown): ToolResult => ({ content: [{ type: 'text', text: JSON.stringify(json) }] });
+const text = (json: unknown): ToolResult => ({
+  content: [{ type: 'text', text: JSON.stringify(json) }],
+});
 
 /** An issue as Jira's REST API writes it. */
-const issue = (key: string, summary: string, category: string, change: Record<string, unknown> = {}) => ({
+const issue = (
+  key: string,
+  summary: string,
+  category: string,
+  change: Record<string, unknown> = {},
+) => ({
   id: '10001',
   key,
   fields: {
     summary,
-    status: { name: change['status'] ?? 'Status', statusCategory: { key: category, name: 'Category' } },
+    status: {
+      name: change['status'] ?? 'Status',
+      statusCategory: { key: category, name: 'Category' },
+    },
     issuetype: { name: 'Story' },
     priority: { name: 'Medium' },
     description: null,
@@ -48,7 +63,12 @@ const issue = (key: string, summary: string, category: string, change: Record<st
 });
 
 const SITES = [
-  { id: 'confluence-only', url: 'https://wiki.example.com', name: 'wiki', scopes: ['read:confluence-content.all'] },
+  {
+    id: 'confluence-only',
+    url: 'https://wiki.example.com',
+    name: 'wiki',
+    scopes: ['read:confluence-content.all'],
+  },
   { id: 'cloud-1', url: `${SITE}/`, name: 'acme', scopes: ['read:jira-work', 'write:jira-work'] },
 ];
 
@@ -92,7 +112,8 @@ function fakeConnectors(
     return {
       list: async () => listed,
       call: async (_connector, tool, args) => {
-        if (!allow.has(tool)) throw new Error(`Grimoire doesn't call claude.ai Atlassian's tool "${tool}"`);
+        if (!allow.has(tool))
+          throw new Error(`Grimoire doesn't call claude.ai Atlassian's tool "${tool}"`);
         calls.push({ tool, args });
         if (answers[tool]) return answers[tool](args);
         if (tool === 'getAccessibleAtlassianResources') return text(SITES);
@@ -112,7 +133,9 @@ describe('reading the Atlassian connector’s answers', () => {
       cloudId: 'c',
       url: '',
     });
-    expect(() => readSite(text([]))).toThrow('getAccessibleAtlassianResources listed no site with a cloud ID');
+    expect(() => readSite(text([]))).toThrow(
+      'getAccessibleAtlassianResources listed no site with a cloud ID',
+    );
     expect(() => readSite(text({ sites: 'none' }))).toThrow("didn't answer with a list of sites");
   });
 
@@ -158,24 +181,36 @@ describe('reading the Atlassian connector’s answers', () => {
       ],
       next: 'page-2',
     });
-    expect(readSearch(text({ issues: [], nextPageToken: 'x', isLast: true }), SITE)).toEqual({ issues: [] });
+    expect(readSearch(text({ issues: [], nextPageToken: 'x', isLast: true }), SITE)).toEqual({
+      issues: [],
+    });
     // JSON may come after a line of prose, or as structured content.
     expect(
-      readSearch({ content: [{ type: 'text', text: 'Found 0 issues' }], structuredContent: { issues: [] } }, ''),
+      readSearch(
+        { content: [{ type: 'text', text: 'Found 0 issues' }], structuredContent: { issues: [] } },
+        '',
+      ),
     ).toEqual({ issues: [] });
     expect(
       readSearch(
-        { content: [{ type: 'text', text: 'Found 1 issue' }, ...text([issue('A-1', 'A', 'new')]).content] },
+        {
+          content: [
+            { type: 'text', text: 'Found 1 issue' },
+            ...text([issue('A-1', 'A', 'new')]).content,
+          ],
+        },
         '',
       ).issues.map((found) => [found.key, found.url]),
     ).toEqual([['A-1', '']]);
   });
 
   it('says what didn’t match in an answer it can’t read', () => {
-    expect(() => readSearch({ content: [{ type: 'text', text: '# Issues\n- GRIM-1' }] }, SITE)).toThrow(
-      "searchJiraIssuesUsingJql didn't answer in JSON: # Issues",
+    expect(() =>
+      readSearch({ content: [{ type: 'text', text: '# Issues\n- GRIM-1' }] }, SITE),
+    ).toThrow("searchJiraIssuesUsingJql didn't answer in JSON: # Issues");
+    expect(() => readSearch({ content: [] }, SITE)).toThrow(
+      'searchJiraIssuesUsingJql answered with no text',
     );
-    expect(() => readSearch({ content: [] }, SITE)).toThrow('searchJiraIssuesUsingJql answered with no text');
     expect(() => readSearch(text({ total: 0, results: 'none' }), SITE)).toThrow(
       'searchJiraIssuesUsingJql answered with no list of issues (it has total, results)',
     );
@@ -218,13 +253,24 @@ describe('reading the Atlassian connector’s answers', () => {
           type: 'orderedList',
           attrs: { order: 1 },
           content: [
-            { type: 'listItem', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Read' }] }] },
-            { type: 'listItem', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Fill' }] }] },
+            {
+              type: 'listItem',
+              content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Read' }] }],
+            },
+            {
+              type: 'listItem',
+              content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Fill' }] }],
+            },
           ],
         },
         {
           type: 'bulletList',
-          content: [{ type: 'listItem', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Test' }] }] }],
+          content: [
+            {
+              type: 'listItem',
+              content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Test' }] }],
+            },
+          ],
         },
         { type: 'codeBlock', content: [{ type: 'text', text: 'npm test' }] },
       ],
@@ -239,14 +285,20 @@ describe('reading the Atlassian connector’s answers', () => {
 
 describe('finding the Atlassian connector', () => {
   it('takes the one with the tools the sync calls, among several named Atlassian', () => {
-    const connector = (name: string, status: Connector['status'], tools: string[] = []): Connector => ({
+    const connector = (
+      name: string,
+      status: Connector['status'],
+      tools: string[] = [],
+    ): Connector => ({
       name,
       status,
       tools,
     });
     const rovo = connector('claude.ai Atlassian Rovo', 'needs-auth');
     const atlassian = connector('claude.ai Atlassian', 'connected', Object.values(JIRA_TOOLS));
-    expect(atlassianIn([connector('claude.ai Slack', 'connected'), rovo, atlassian])).toBe(atlassian);
+    expect(atlassianIn([connector('claude.ai Slack', 'connected'), rovo, atlassian])).toBe(
+      atlassian,
+    );
     const other = connector('claude.ai Atlassian (2)', 'connected');
     expect(atlassianIn([rovo, other])).toBe(other);
     expect(atlassianIn([rovo])).toBe(rovo);
@@ -260,9 +312,15 @@ describe('fetching your Jira issues', () => {
     expect(await fetchJira(none.open, 'jql')).toEqual({ outcome: 'none' });
     expect(none.calls).toEqual([]);
     expect(none.close).toHaveBeenCalled();
-    expect(await fetchJira(fakeConnectors({ status: 'disabled' }).open, 'jql')).toEqual({ outcome: 'none' });
-    expect(await fetchJira(fakeConnectors({ status: 'needs-auth' }).open, 'jql')).toEqual({ outcome: 'needs-auth' });
-    expect(await fetchJira(fakeConnectors({ status: 'failed', error: 'HTTP 500' }).open, 'jql')).toEqual({
+    expect(await fetchJira(fakeConnectors({ status: 'disabled' }).open, 'jql')).toEqual({
+      outcome: 'none',
+    });
+    expect(await fetchJira(fakeConnectors({ status: 'needs-auth' }).open, 'jql')).toEqual({
+      outcome: 'needs-auth',
+    });
+    expect(
+      await fetchJira(fakeConnectors({ status: 'failed', error: 'HTTP 500' }).open, 'jql'),
+    ).toEqual({
       outcome: 'failed',
       error: 'HTTP 500',
     });
@@ -274,7 +332,9 @@ describe('fetching your Jira issues', () => {
   });
 
   it('allows only tools that read, and asks for the issues a page at a time, up to the most', async () => {
-    const many = Array.from({ length: 60 }, (_, i) => issue(`GRIM-${i + 1}`, `Task ${i + 1}`, 'new'));
+    const many = Array.from({ length: 60 }, (_, i) =>
+      issue(`GRIM-${i + 1}`, `Task ${i + 1}`, 'new'),
+    );
     const { open, calls, allowed, close } = fakeConnectors({}, [
       { issues: many.slice(0, 50), nextPageToken: 'p2' },
       { issues: [many[49], ...many.slice(50)], nextPageToken: 'p3' },
@@ -304,7 +364,9 @@ describe('fetching your Jira issues', () => {
         args: expect.objectContaining({ maxResults: 40, nextPageToken: 'p3' }),
       },
     ]);
-    expect(fetched.outcome === 'synced' && fetched.issues.map((found) => found.key)).toHaveLength(61);
+    expect(fetched.outcome === 'synced' && fetched.issues.map((found) => found.key)).toHaveLength(
+      61,
+    );
     expect(close).toHaveBeenCalled();
   });
 
@@ -332,7 +394,14 @@ describe('Jira cards on the board', () => {
     pages = [];
     emit = vi.fn<(event: string, payload: unknown) => void>();
     const open = (allowed: ReadonlySet<string>) => fakeConnectors({}, pages).open(allowed);
-    syncer = new JiraSyncer(cards, () => 'assignee = currentUser()', open, emit, undefined, () => now);
+    syncer = new JiraSyncer(
+      cards,
+      () => 'assignee = currentUser()',
+      open,
+      emit,
+      undefined,
+      () => now,
+    );
   });
 
   const titles = (all: Card[] = cards.list()) =>
@@ -342,7 +411,9 @@ describe('Jira cards on the board', () => {
     cards.save({ title: 'Mine', notes: '', cwd: '/git' });
     pages.push({
       issues: [
-        issue('GRIM-2', 'Night theme', 'done', { status: { name: 'Closed', statusCategory: { key: 'done' } } }),
+        issue('GRIM-2', 'Night theme', 'done', {
+          status: { name: 'Closed', statusCategory: { key: 'done' } },
+        }),
         issue('GRIM-1', 'Context meter', 'new', { description: 'Fill it in.' }),
       ],
     });
@@ -357,14 +428,26 @@ describe('Jira cards on the board', () => {
       column: 'todo',
       createdAt: 1_000,
       chats: [],
-      jira: { key: 'GRIM-1', url: `${SITE}/browse/GRIM-1`, type: 'Story', priority: 'Medium', status: 'Status' },
+      jira: {
+        key: 'GRIM-1',
+        url: `${SITE}/browse/GRIM-1`,
+        type: 'Story',
+        priority: 'Medium',
+        status: 'Status',
+      },
     });
-    expect(emit.mock.calls.map(([event]) => event)).toEqual(['kanban.jira', 'kanban.changed', 'kanban.jira']);
+    expect(emit.mock.calls.map(([event]) => event)).toEqual([
+      'kanban.jira',
+      'kanban.changed',
+      'kanban.jira',
+    ]);
     expect(emit.mock.calls[0]![1]).toEqual({ jira: { status: 'none', syncing: true } });
   });
 
   it('replaces them each sync, keeping a closed one closed and the chats each began, and Jira’s columns', async () => {
-    pages.push({ issues: [issue('GRIM-1', 'Context meter', 'new'), issue('GRIM-2', 'Night theme', 'new')] });
+    pages.push({
+      issues: [issue('GRIM-1', 'Context meter', 'new'), issue('GRIM-2', 'Night theme', 'new')],
+    });
     await syncer.sync();
     const [meter, night] = cards.list();
     cards.close(night!.id, true);
@@ -388,7 +471,9 @@ describe('Jira cards on the board', () => {
     expect(titles()).toEqual(['todo Ribbons', 'doing Context meter, again']);
     const again = cards.list().find((card) => card.jira?.key === 'GRIM-1')!;
     expect(again).toMatchObject({ createdAt: 1_000, chats: [{ chatId: 'chat-1', at: 1_000 }] });
-    expect(cards.list().find((card) => card.jira?.key === 'GRIM-2')).toMatchObject({ closedAt: 1_000 });
+    expect(cards.list().find((card) => card.jira?.key === 'GRIM-2')).toMatchObject({
+      closedAt: 1_000,
+    });
 
     // One the query no longer finds goes; one closed opens again where Jira has it.
     pages.push({ issues: [issue('GRIM-2', 'Night theme', 'indeterminate')] });
@@ -450,9 +535,22 @@ describe('Jira cards on the board', () => {
 const TRANSITIONS = {
   expand: 'transitions',
   transitions: [
-    { id: '11', name: 'Start', to: { name: 'In Progress', statusCategory: { key: 'indeterminate' } } },
-    { id: '21', name: 'Review', to: { name: 'In Review', statusCategory: { key: 'indeterminate' } } },
-    { id: '31', name: 'Finish', to: { name: 'Done', statusCategory: { key: 'done' } }, hasScreen: false },
+    {
+      id: '11',
+      name: 'Start',
+      to: { name: 'In Progress', statusCategory: { key: 'indeterminate' } },
+    },
+    {
+      id: '21',
+      name: 'Review',
+      to: { name: 'In Review', statusCategory: { key: 'indeterminate' } },
+    },
+    {
+      id: '31',
+      name: 'Finish',
+      to: { name: 'Done', statusCategory: { key: 'done' } },
+      hasScreen: false,
+    },
     { id: '41', name: 'Park', to: { name: 'Backlog', statusCategory: { key: 'new' } } },
   ],
 };
@@ -466,7 +564,9 @@ describe('reading an issue’s transitions', () => {
       { id: '41', name: 'Park', status: 'Backlog', column: 'todo' },
     ]);
     expect(
-      readTransitions(text([{ id: 5, name: 'Close', to: 'Closed', statusCategory: { name: 'Done' } }])),
+      readTransitions(
+        text([{ id: 5, name: 'Close', to: 'Closed', statusCategory: { name: 'Done' } }]),
+      ),
     ).toEqual([{ id: '5', name: 'Close', status: 'Closed', column: 'done' }]);
   });
 
@@ -485,9 +585,12 @@ describe('reading an issue’s transitions', () => {
   });
 
   it('words what Jira said when it refused', () => {
-    const refused = (said: string) => new ToolFailed('mcp__claude_ai_Atlassian__transitionJiraIssue', said);
+    const refused = (said: string) =>
+      new ToolFailed('mcp__claude_ai_Atlassian__transitionJiraIssue', said);
     expect(
-      jiraSaid(refused('HTTP 400: {"errorMessages":[],"errors":{"resolution":"Resolution is required."}}')),
+      jiraSaid(
+        refused('HTTP 400: {"errorMessages":[],"errors":{"resolution":"Resolution is required."}}'),
+      ),
     ).toBe('Resolution is required.');
     expect(jiraSaid(refused('{"errorMessages":["You can’t."],"errors":{}}'))).toBe('You can’t.');
     expect(jiraSaid(refused('Transition is not valid'))).toBe('Transition is not valid');
@@ -523,12 +626,21 @@ describe('moving Jira cards in Jira', () => {
       getTransitionsForJiraIssue: () => text({ ...TRANSITIONS, transitions }),
       transitionJiraIssue: ({ transition }) => {
         if (refuse) throw new ToolFailed('mcp__claude_ai_Atlassian__transitionJiraIssue', refuse);
-        status = TRANSITIONS.transitions.find((t) => t.id === (transition as { id: string }).id)!.to;
+        status = TRANSITIONS.transitions.find(
+          (t) => t.id === (transition as { id: string }).id,
+        )!.to;
         return text({});
       },
       getJiraIssue: () => text(issue('GRIM-1', 'Context meter, as Jira has it', '', { status })),
     });
-    await new JiraSyncer(cards, () => 'jql', fake.open, () => {}, undefined, () => now).sync();
+    await new JiraSyncer(
+      cards,
+      () => 'jql',
+      fake.open,
+      () => {},
+      undefined,
+      () => now,
+    ).sync();
     fake.calls.length = 0;
     opened = 0;
     const open = (allowed: ReadonlySet<string>) => {
@@ -544,10 +656,9 @@ describe('moving Jira cards in Jira', () => {
     expect(await moves.transitions('jira:personal:GRIM-1', 'done')).toEqual([
       { id: '31', name: 'Finish', status: 'Done', column: 'done' },
     ]);
-    expect((await moves.transitions('jira:personal:GRIM-1', 'doing')).map((t) => t.status)).toEqual([
-      'In Progress',
-      'In Review',
-    ]);
+    expect((await moves.transitions('jira:personal:GRIM-1', 'doing')).map((t) => t.status)).toEqual(
+      ['In Progress', 'In Review'],
+    );
     fake.calls.length = 0;
     transitions = TRANSITIONS.transitions.filter((t) => t.to.statusCategory.key !== 'new');
     expect(await moves.transitions('jira:personal:GRIM-1', 'todo')).toEqual([]);
@@ -575,7 +686,11 @@ describe('moving Jira cards in Jira', () => {
       'transitionJiraIssue',
       'getJiraIssue',
     ]);
-    expect(fake.calls[2]!.args).toEqual({ cloudId: 'cloud-1', issueIdOrKey: 'GRIM-1', transition: { id: '31' } });
+    expect(fake.calls[2]!.args).toEqual({
+      cloudId: 'cloud-1',
+      issueIdOrKey: 'GRIM-1',
+      transition: { id: '31' },
+    });
     expect(fake.calls[3]!.args).toEqual({
       cloudId: 'cloud-1',
       issueIdOrKey: 'GRIM-1',
@@ -591,7 +706,9 @@ describe('moving Jira cards in Jira', () => {
     // One process for both steps, the one allowed the tool that writes, which the sync's isn't.
     expect(opened).toBe(1);
     expect(fake.allowed).toEqual([JIRA_READ_ONLY, JIRA_ALLOWED]);
-    expect([...JIRA_ALLOWED].filter((tool) => !JIRA_READ_ONLY.has(tool))).toEqual(['transitionJiraIssue']);
+    expect([...JIRA_ALLOWED].filter((tool) => !JIRA_READ_ONLY.has(tool))).toEqual([
+      'transitionJiraIssue',
+    ]);
     expect(fake.close).toHaveBeenCalledTimes(1);
     moves.close();
     await vi.waitFor(() => expect(fake.close).toHaveBeenCalledTimes(2));
@@ -638,7 +755,9 @@ describe('moving Jira cards in Jira', () => {
     await expect(moves.transitions('jira:personal:GRIM-1')).rejects.toThrow(
       'The Atlassian connector needs connecting again on claude.ai',
     );
-    await expect(moves.transitions('jira:personal:GRIM-1')).rejects.toThrow('needs connecting again');
+    await expect(moves.transitions('jira:personal:GRIM-1')).rejects.toThrow(
+      'needs connecting again',
+    );
     expect(auth.allowed).toHaveLength(2);
   });
 
@@ -647,11 +766,20 @@ describe('moving Jira cards in Jira', () => {
     const slow = fakeConnectors({}, [], {
       searchJiraIssuesUsingJql: async () => {
         await new Promise<void>((resolve) => (answer = resolve));
-        return text({ issues: [issue('GRIM-2', 'Ribbons', 'new'), issue('GRIM-1', 'Context meter', 'new')] });
+        return text({
+          issues: [issue('GRIM-2', 'Ribbons', 'new'), issue('GRIM-1', 'Context meter', 'new')],
+        });
       },
     });
     now = 2_000;
-    const syncing = new JiraSyncer(cards, () => 'jql', slow.open, emit, undefined, () => now).sync();
+    const syncing = new JiraSyncer(
+      cards,
+      () => 'jql',
+      slow.open,
+      emit,
+      undefined,
+      () => now,
+    ).sync();
     await vi.waitFor(() => expect(answer).toBeDefined());
     now = 3_000;
     const [finish] = await moves.transitions('jira:personal:GRIM-1', 'done');
@@ -659,16 +787,17 @@ describe('moving Jira cards in Jira', () => {
     answer!();
     await syncing;
     // The sync found it as it was, to do: it stays where it went, in its place in Jira's order.
-    expect(cards.list().map((card) => `${card.column} ${card.jira!.key} ${card.jira!.status}`)).toEqual([
-      'todo GRIM-2 Status',
-      'done GRIM-1 Done',
-    ]);
+    expect(
+      cards.list().map((card) => `${card.column} ${card.jira!.key} ${card.jira!.status}`),
+    ).toEqual(['todo GRIM-2 Status', 'done GRIM-1 Done']);
   });
 
   it('starts a process of its own for another profile', async () => {
     await moves.transitions('jira:personal:GRIM-1');
     setActiveProfile(db, 'work');
-    await expect(moves.transitions('jira:personal:GRIM-1')).rejects.toThrow('There is no such Jira card');
+    await expect(moves.transitions('jira:personal:GRIM-1')).rejects.toThrow(
+      'There is no such Jira card',
+    );
     const work = fakeConnectors({}, [{ issues: [issue('W-1', 'Work', 'new')] }]);
     await new JiraSyncer(cards, () => 'jql', work.open, emit).sync();
     await moves.transitions('jira:work:W-1');
@@ -677,4 +806,3 @@ describe('moving Jira cards in Jira', () => {
     await vi.waitFor(() => expect(fake.close).toHaveBeenCalledTimes(2));
   });
 });
-

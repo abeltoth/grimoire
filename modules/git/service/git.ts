@@ -42,7 +42,10 @@ const LARGEST_NEW_FILE = 1024 * 1024;
  * never stored (ADR-009).
  */
 export class Git {
-  private readonly pullRequests = new Map<string, { at: number; pr: Promise<PullRequest | null> }>();
+  private readonly pullRequests = new Map<
+    string,
+    { at: number; pr: Promise<PullRequest | null> }
+  >();
 
   constructor(private readonly run: Run = runTool) {}
 
@@ -59,7 +62,10 @@ export class Git {
   async status(cwd: string): Promise<GitStatus | null> {
     const root = await this.root(cwd);
     if (!root) return null;
-    return parseStatus(root, await this.git(root, 'status', '--porcelain=v2', '--branch', '--untracked-files=all', '-z'));
+    return parseStatus(
+      root,
+      await this.git(root, 'status', '--porcelain=v2', '--branch', '--untracked-files=all', '-z'),
+    );
   }
 
   async branches(cwd: string): Promise<GitBranches | null> {
@@ -68,10 +74,17 @@ export class Git {
     const names = (await this.git(root, 'for-each-ref', '--format=%(refname:short)', 'refs/heads'))
       .split('\n')
       .filter(Boolean);
-    const remoteDefault = await this.git(root, 'symbolic-ref', '--quiet', '--short', 'refs/remotes/origin/HEAD')
+    const remoteDefault = await this.git(
+      root,
+      'symbolic-ref',
+      '--quiet',
+      '--short',
+      'refs/remotes/origin/HEAD',
+    )
       .then((ref) => ref.trim().replace(/^origin\//, ''))
       .catch(() => '');
-    const trunk = [remoteDefault, 'main', 'master'].find((name) => name && names.includes(name)) ?? null;
+    const trunk =
+      [remoteDefault, 'main', 'master'].find((name) => name && names.includes(name)) ?? null;
     const fields = [
       '%(refname:short)',
       '%(HEAD)',
@@ -80,7 +93,12 @@ export class Git {
       trunk ? `%(ahead-behind:${trunk})` : '0 0',
       '%(subject)',
     ];
-    const out = await this.git(root, 'for-each-ref', `--format=${fields.join('%00')}`, 'refs/heads');
+    const out = await this.git(
+      root,
+      'for-each-ref',
+      `--format=${fields.join('%00')}`,
+      'refs/heads',
+    );
     const here = path.resolve(root).toLowerCase();
     const branches = out
       .split('\n')
@@ -113,9 +131,15 @@ export class Git {
     if (path.relative(root, full).startsWith('..') || path.isAbsolute(path.relative(root, full))) {
       return [];
     }
-    const out = await this.git(root, 'diff', 'HEAD', '--no-color', '--no-ext-diff', '--', file).catch(
-      () => '',
-    );
+    const out = await this.git(
+      root,
+      'diff',
+      'HEAD',
+      '--no-color',
+      '--no-ext-diff',
+      '--',
+      file,
+    ).catch(() => '');
     if (out.trim()) return parseDiff(out);
     try {
       const text = await readFile(full, 'utf8');
@@ -134,9 +158,15 @@ export class Git {
   async committed(cwd: string, file: string): Promise<string | null | undefined> {
     const root = await this.root(cwd);
     if (!root) return undefined;
-    const status = await this.git(root, 'status', '--porcelain', '-z', '--untracked-files=all', '--', file).catch(
-      () => '',
-    );
+    const status = await this.git(
+      root,
+      'status',
+      '--porcelain',
+      '-z',
+      '--untracked-files=all',
+      '--',
+      file,
+    ).catch(() => '');
     if (!status) return undefined;
     if (status.startsWith('??') || status.startsWith('A')) return null;
     return this.git(root, 'show', `HEAD:${file}`).catch(() => null);
@@ -148,7 +178,14 @@ export class Git {
     // A few at a time, to stay inside the command line's limit.
     for (let i = 0; i < paths.length; i += 100) {
       const some = paths.slice(i, i + 100);
-      const out = await this.git(root, '-c', 'core.quotePath=false', 'check-ignore', '--', ...some).catch(() => '');
+      const out = await this.git(
+        root,
+        '-c',
+        'core.quotePath=false',
+        'check-ignore',
+        '--',
+        ...some,
+      ).catch(() => '');
       for (const file of out.split(/\r?\n/)) if (file) found.add(file);
     }
     return found;
@@ -156,7 +193,14 @@ export class Git {
 
   /** The repository's files that git doesn't ignore, committed or not, from its top folder. */
   async files(root: string): Promise<string[]> {
-    const out = await this.git(root, 'ls-files', '-z', '--cached', '--others', '--exclude-standard');
+    const out = await this.git(
+      root,
+      'ls-files',
+      '-z',
+      '--cached',
+      '--others',
+      '--exclude-standard',
+    );
     return [...new Set(out.split('\0').filter(Boolean))];
   }
 
@@ -206,7 +250,12 @@ export function parseStatus(root: string, out: string): GitStatus {
       changes.push(changeOf(words[1]!, after(8)));
     } else if (field.startsWith('2 ')) {
       // A rename names the file it was in the next field.
-      changes.push({ path: after(9), kind: 'renamed', from: fields[++i]!, staged: words[1]![0] !== '.' });
+      changes.push({
+        path: after(9),
+        kind: 'renamed',
+        from: fields[++i]!,
+        staged: words[1]![0] !== '.',
+      });
     } else if (field.startsWith('u ')) {
       changes.push({ path: after(10), kind: 'conflicted', staged: false });
     } else if (field.startsWith('? ')) {
@@ -288,7 +337,13 @@ export function toPullRequest(pr: GhPullRequest): PullRequest {
     title: pr.title,
     url: pr.url,
     state:
-      pr.state === 'MERGED' ? 'merged' : pr.state === 'CLOSED' ? 'closed' : pr.isDraft ? 'draft' : 'open',
+      pr.state === 'MERGED'
+        ? 'merged'
+        : pr.state === 'CLOSED'
+          ? 'closed'
+          : pr.isDraft
+            ? 'draft'
+            : 'open',
     review: REVIEWS[pr.reviewDecision ?? ''] ?? null,
     checks,
   };

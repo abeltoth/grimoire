@@ -60,7 +60,9 @@ function lookOf(element: Element): Look {
     scrollbarSliderActiveBackground: token('scrollbar-hover'),
   };
   for (const colour of colours) {
-    const key = colour.replace(/-(\w)/, (_, letter: string) => letter.toUpperCase()) as keyof ITheme;
+    const key = colour.replace(/-(\w)/, (_, letter: string) =>
+      letter.toUpperCase(),
+    ) as keyof ITheme;
     (theme as Record<string, string>)[key] = token(colour);
   }
   return {
@@ -155,7 +157,9 @@ export class TerminalSheet {
       cursorInactiveStyle: 'outline',
       scrollback: 5000,
       allowProposedApi: true,
-      ...(windowsBuild ? { windowsPty: { backend: 'conpty' as const, buildNumber: windowsBuild } } : {}),
+      ...(windowsBuild
+        ? { windowsPty: { backend: 'conpty' as const, buildNumber: windowsBuild } }
+        : {}),
     });
     this.term = term;
     if (screen) term.write(screen.data);
@@ -164,7 +168,9 @@ export class TerminalSheet {
 
     this.fit = new FitAddon();
     term.loadAddon(this.fit);
-    term.attachCustomKeyEventHandler((event) => !forWindow(event, term.hasSelection(), this.bridge.platform));
+    term.attachCustomKeyEventHandler(
+      (event) => !forWindow(event, term.hasSelection(), this.bridge.platform),
+    );
     term.onData((data) => void this.bridge.invoke('terminal.write', { id, data }).catch(() => {}));
     term.onResize(({ cols, rows }) => {
       void this.bridge.invoke('terminal.resize', { id, cols, rows }).catch(() => {});

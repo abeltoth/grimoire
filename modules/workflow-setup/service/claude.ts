@@ -350,7 +350,10 @@ export const claudeSetup: SetupReader = {
     probe(async (claude) => {
       const since = Date.now();
       let mcpServers = await claude.mcpServerStatus();
-      while (mcpServers.some((server) => server.status === 'pending') && Date.now() - since < MCP_SETTLE_MS) {
+      while (
+        mcpServers.some((server) => server.status === 'pending') &&
+        Date.now() - since < MCP_SETTLE_MS
+      ) {
         await new Promise((resolve) => setTimeout(resolve, 200));
         mcpServers = await claude.mcpServerStatus();
       }

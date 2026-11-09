@@ -34,8 +34,12 @@ describe('storage', () => {
 
   it('leaves an owner at its last good version when a migration fails', () => {
     const db = openDatabase(':memory:');
-    expect(() => migrate(db, 'one', ['CREATE TABLE a (x TEXT)', 'CREATE TABLE a (x TEXT)'])).toThrow();
-    expect(db.prepare("SELECT version FROM schema_versions WHERE owner = 'one'").get()).toEqual({ version: 1 });
+    expect(() =>
+      migrate(db, 'one', ['CREATE TABLE a (x TEXT)', 'CREATE TABLE a (x TEXT)']),
+    ).toThrow();
+    expect(db.prepare("SELECT version FROM schema_versions WHERE owner = 'one'").get()).toEqual({
+      version: 1,
+    });
   });
 
   it('starts a database versioned as one whole again, empty', () => {
@@ -43,11 +47,15 @@ describe('storage', () => {
     dirs.push(dir);
     const file = path.join(dir, 'grimoire.db');
     const old = new DatabaseSync(file);
-    old.exec("CREATE TABLE chapters (chat_id TEXT); INSERT INTO chapters VALUES ('a'); PRAGMA user_version = 22");
+    old.exec(
+      "CREATE TABLE chapters (chat_id TEXT); INSERT INTO chapters VALUES ('a'); PRAGMA user_version = 22",
+    );
     old.close();
 
     const db = openDatabase(file);
-    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all() as { name: string }[];
+    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all() as {
+      name: string;
+    }[];
     expect(tables.map((table) => table.name)).not.toContain('chapters');
     expect(new ProfileStore(db, () => dir).list().active).toBe('personal');
     db.close();
@@ -104,7 +112,9 @@ describe('storage', () => {
     expect(presets.list()).toEqual([]);
     presets.save({ name: ' Bug fix ', agent: 'codex', settings: { mode: 'accept-edits' } });
     presets.save({ name: 'Plan a feature', agent: 'claude-code', settings: { mode: 'plan' } });
-    expect(presets.save({ name: 'bug FIX', agent: 'claude-code', settings: { cwd: '/w' } })).toEqual([
+    expect(
+      presets.save({ name: 'bug FIX', agent: 'claude-code', settings: { cwd: '/w' } }),
+    ).toEqual([
       { name: 'bug FIX', agent: 'claude-code', settings: { cwd: '/w' } },
       { name: 'Plan a feature', agent: 'claude-code', settings: { mode: 'plan' } },
     ]);
@@ -115,11 +125,23 @@ describe('storage', () => {
 
   it('remembers the layout, and only what it knows', () => {
     const layout = new LayoutStore(openDatabase(':memory:'));
-    expect(layout.get()).toEqual({ current: null, beside: null, lastUsed: null, focus: false, popouts: [] });
+    expect(layout.get()).toEqual({
+      current: null,
+      beside: null,
+      lastUsed: null,
+      focus: false,
+      popouts: [],
+    });
     const lastUsed = { agent: 'claude-code', settings: { cwd: '/work', mode: 'plan' as const } };
     layout.set({ current: 'a', beside: 'b', lastUsed });
     layout.set({ unknown: 1 } as never);
-    expect(layout.get()).toEqual({ current: 'a', beside: 'b', lastUsed, focus: false, popouts: [] });
+    expect(layout.get()).toEqual({
+      current: 'a',
+      beside: 'b',
+      lastUsed,
+      focus: false,
+      popouts: [],
+    });
     const popouts = [{ chatId: 'c', bounds: { x: 10, y: 20, width: 800, height: 900 } }];
     layout.set({ current: null, beside: null, focus: true, popouts });
     expect(layout.get()).toEqual({ current: null, beside: null, lastUsed, focus: true, popouts });
@@ -146,7 +168,10 @@ describe('storage', () => {
         'assignee = currentUser() AND (statusCategory != Done OR statusCategoryChangedDate >= -14d) ORDER BY updated DESC',
     });
     settings.set({ wording: 'plain', newChat: { from: 'preset', preset: 'Bug fix' } });
-    settings.set({ themeName: 'night', theme: { '--gr-page': '#fffaf0', '--gr-size-text': '18px' } });
+    settings.set({
+      themeName: 'night',
+      theme: { '--gr-page': '#fffaf0', '--gr-size-text': '18px' },
+    });
     settings.set({ themeName: 'auto' });
     expect(() => settings.set({ themeName: 'neon' } as never)).toThrow('"themeName"');
     settings.set({ accounts: ['me@example.com', 'mum@example.com'] });

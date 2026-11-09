@@ -10,7 +10,8 @@
     repeating-linear-gradient(
       90deg,
       transparent 0 calc(var(--gr-approval-card-laid-pitch) - 1px),
-      var(--gr-approval-card-laid) calc(var(--gr-approval-card-laid-pitch) - 1px) var(--gr-approval-card-laid-pitch)
+      var(--gr-approval-card-laid) calc(var(--gr-approval-card-laid-pitch) - 1px)
+        var(--gr-approval-card-laid-pitch)
     ),
     var(--gr-surface);
   box-shadow: var(--gr-shadow-surface-tucked);

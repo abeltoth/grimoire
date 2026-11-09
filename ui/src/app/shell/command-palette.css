@@ -47,8 +47,8 @@
   z-index: 1;
   overflow-x: hidden;
   overflow-y: auto;
-  padding: var(--gr-command-palette-pad-top) var(--page-inset-end) var(--gr-command-palette-pad-bottom)
-    var(--page-inset-start);
+  padding: var(--gr-command-palette-pad-top) var(--page-inset-end)
+    var(--gr-command-palette-pad-bottom) var(--page-inset-start);
 }
 
 .search {
@@ -112,7 +112,8 @@ h3 {
   align-items: baseline;
   width: calc(100% + var(--gr-command-palette-cursor-w) + var(--gr-command-palette-entry-pad-end));
   margin-left: calc(var(--gr-command-palette-cursor-w) * -1);
-  padding: var(--gr-command-palette-entry-pad-y) var(--gr-command-palette-entry-pad-end) var(--gr-command-palette-entry-pad-y) 0;
+  padding: var(--gr-command-palette-entry-pad-y) var(--gr-command-palette-entry-pad-end)
+    var(--gr-command-palette-entry-pad-y) 0;
   border-radius: var(--gr-radius-note);
   font-size: var(--gr-size-command-palette-entry);
   color: var(--gr-ink);

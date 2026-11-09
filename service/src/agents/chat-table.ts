@@ -96,7 +96,13 @@ export class ChatTable {
   }
 
   /** Keeps a chat as open, idle, with these entries. */
-  track(id: ChatId, agent: AgentAdapter, settings: ChatSettings, entries: Entry[], title: string): ChatState {
+  track(
+    id: ChatId,
+    agent: AgentAdapter,
+    settings: ChatSettings,
+    entries: Entry[],
+    title: string,
+  ): ChatState {
     const chat: ChatState = {
       id,
       agent,

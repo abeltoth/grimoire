@@ -74,7 +74,8 @@ export class JiraSyncer {
       if (fetched.outcome === 'synced') {
         // A card moved in Jira meanwhile keeps what Jira said of it then.
         this.cards.jira.replace(profile, fetched.issues, this.now(), began);
-        if (this.cards.profile() === profile) this.emit('kanban.changed', { cards: this.cards.list() });
+        if (this.cards.profile() === profile)
+          this.emit('kanban.changed', { cards: this.cards.list() });
       } else {
         const error = fetched.outcome === 'failed' ? fetched.error : undefined;
         if (error) this.log(`Jira sync failed: ${error}`);

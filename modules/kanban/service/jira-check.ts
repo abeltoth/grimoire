@@ -13,7 +13,11 @@
  */
 import { parseArgs } from 'node:util';
 import { DEFAULT_JIRA_QUERY } from '@grimoire/contract';
-import { type Connector, type ToolResult, openConnectors } from '@grimoire/service/agents/claude/connectors';
+import {
+  type Connector,
+  type ToolResult,
+  openConnectors,
+} from '@grimoire/service/agents/claude/connectors';
 import {
   JIRA_ALLOWED,
   JIRA_READ_ONLY,
@@ -26,7 +30,10 @@ import {
 } from './jira';
 
 const { values } = parseArgs({
-  options: { 'claude-folder': { type: 'string' }, jql: { type: 'string', default: DEFAULT_JIRA_QUERY } },
+  options: {
+    'claude-folder': { type: 'string' },
+    jql: { type: 'string', default: DEFAULT_JIRA_QUERY },
+  },
 });
 if (values['claude-folder']) process.env['CLAUDE_CONFIG_DIR'] = values['claude-folder'];
 
@@ -51,22 +58,30 @@ async function check(): Promise<void> {
   console.log(`\nYour claude.ai connectors (${listed.length}):`);
   for (const connector of listed) {
     const error = connector.error ? `: ${connector.error}` : '';
-    console.log(`  ${connector.name}: ${connector.status}${error}, ${connector.tools.length} tools`);
+    console.log(
+      `  ${connector.name}: ${connector.status}${error}, ${connector.tools.length} tools`,
+    );
   }
   const atlassian = atlassianIn(listed);
   if (!atlassian) {
-    console.log('\nNo Atlassian connector here: the Kanban board shows no Jira cards, and says nothing of it.');
+    console.log(
+      '\nNo Atlassian connector here: the Kanban board shows no Jira cards, and says nothing of it.',
+    );
     return;
   }
   printTools(atlassian);
   if (atlassian.status !== 'connected') {
-    console.log(`\n${atlassian.name} is ${atlassian.status}: the board says so, and shows the issues last synced.`);
+    console.log(
+      `\n${atlassian.name} is ${atlassian.status}: the board says so, and shows the issues last synced.`,
+    );
     return;
   }
 
   const sites = await call(atlassian, JIRA_TOOLS.sites, {});
   const site = readSite(sites);
-  console.log(`\nThe site the board searches: cloud ID ${site.cloudId}, ${site.url || 'no https address'}`);
+  console.log(
+    `\nThe site the board searches: cloud ID ${site.cloudId}, ${site.url || 'no https address'}`,
+  );
 
   console.log(`\nSearching with: ${values.jql}`);
   const found = await call(atlassian, JIRA_TOOLS.search, {
@@ -76,11 +91,19 @@ async function check(): Promise<void> {
     maxResults: 10,
   });
   const page = readSearch(found, site.url);
-  console.log(`\nRead as the board reads it: ${page.issues.length} issues${page.next ? ', and a next page' : ''}`);
+  console.log(
+    `\nRead as the board reads it: ${page.issues.length} issues${page.next ? ', and a next page' : ''}`,
+  );
   for (const issue of page.issues) {
-    const about = [issue.type, issue.priority && `${issue.priority} priority`].filter(Boolean).join(', ');
-    console.log(`  ${issue.key}  ${issue.status} → ${issue.column}  (${about || 'no type or priority'})`);
-    console.log(`      ${issue.summary}${issue.description ? ` [${issue.description.length} chars of description]` : ''}`);
+    const about = [issue.type, issue.priority && `${issue.priority} priority`]
+      .filter(Boolean)
+      .join(', ');
+    console.log(
+      `  ${issue.key}  ${issue.status} → ${issue.column}  (${about || 'no type or priority'})`,
+    );
+    console.log(
+      `      ${issue.summary}${issue.description ? ` [${issue.description.length} chars of description]` : ''}`,
+    );
   }
   const json = jsonOf(found, JIRA_TOOLS.search);
   const first = Array.isArray(json)
@@ -101,15 +124,21 @@ async function check(): Promise<void> {
     issueIdOrKey: issue.key,
   });
   const raw = jsonOf(transitions, JIRA_TOOLS.transitions);
-  const one = Array.isArray(raw) ? raw[0] : (raw as { transitions?: unknown[] } | null)?.transitions?.[0];
+  const one = Array.isArray(raw)
+    ? raw[0]
+    : (raw as { transitions?: unknown[] } | null)?.transitions?.[0];
   if (one !== undefined) {
     console.log('\nThe first transition as it came:');
     console.log(clipped(JSON.stringify(one, null, 2), RAW_TRANSITION_CHARS));
   }
   const read = readTransitions(transitions);
-  console.log(`\nRead as moving its card reads them: ${issue.key} (${issue.status}) has ${read.length}`);
+  console.log(
+    `\nRead as moving its card reads them: ${issue.key} (${issue.status}) has ${read.length}`,
+  );
   for (const transition of read) {
-    console.log(`  to ${transition.status} → ${transition.column}  (${transition.id}, "${transition.name}")`);
+    console.log(
+      `  to ${transition.status} → ${transition.column}  (${transition.id}, "${transition.name}")`,
+    );
   }
 }
 
@@ -126,15 +155,22 @@ function printTools(atlassian: Connector): void {
     console.log(`  ${tool}${marks}${writes ? ' (writes, to move a card; never called here)' : ''}`);
   }
   const missing = [...JIRA_ALLOWED].filter((tool) => !atlassian.tools.includes(tool));
-  if (missing.length) console.log(`  Not there, though Grimoire expects them: ${missing.join(', ')}`);
+  if (missing.length)
+    console.log(`  Not there, though Grimoire expects them: ${missing.join(', ')}`);
   console.log(
     '  (Claude Code lists no input schemas; a call with arguments the tool doesn’t take fails, saying which it takes.)',
   );
 }
 
 /** Calls the tool, printing the shape of its answer, and how it came, cut short. */
-async function call(atlassian: Connector, tool: string, args: Record<string, unknown>): Promise<ToolResult> {
-  console.log(`\nCalling ${tool} ${JSON.stringify({ ...args, ...(args['jql'] ? { jql: '…' } : {}) })}`);
+async function call(
+  atlassian: Connector,
+  tool: string,
+  args: Record<string, unknown>,
+): Promise<ToolResult> {
+  console.log(
+    `\nCalling ${tool} ${JSON.stringify({ ...args, ...(args['jql'] ? { jql: '…' } : {}) })}`,
+  );
   const started = Date.now();
   const result = await connectors.call(atlassian, tool, args);
   console.log(`  answered in ${Date.now() - started} ms with ${shapeOf(result)}`);
@@ -154,5 +190,7 @@ function shapeOf(result: ToolResult): string {
 }
 
 function clipped(text: string, chars: number = RAW_CHARS): string {
-  return text.length > chars ? `${text.slice(0, chars)}\n  … ${text.length - chars} more characters` : text;
+  return text.length > chars
+    ? `${text.slice(0, chars)}\n  … ${text.length - chars} more characters`
+    : text;
 }

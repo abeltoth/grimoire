@@ -14,7 +14,11 @@ import { fakeBridge, render } from '@ui/testing/app-harness';
 describe('settings', () => {
   describe('profiles', () => {
     const personal = { id: 'personal', name: 'Personal', claudeFolder: null };
-    const work = { id: 'work', name: 'Work', claudeFolder: 'C:/Users/me/AppData/Grimoire/profiles/work/claude' };
+    const work = {
+      id: 'work',
+      name: 'Work',
+      claudeFolder: 'C:/Users/me/AppData/Grimoire/profiles/work/claude',
+    };
 
     function withProfiles(active = 'personal') {
       const fake = fakeBridge();
@@ -26,7 +30,11 @@ describe('settings', () => {
         return list;
       };
       fake.answers['profiles.create'] = ({ name }: { name: string }) => {
-        const made = { id: name.toLowerCase(), name, claudeFolder: `C:/Users/me/AppData/Grimoire/profiles/${name.toLowerCase()}/claude` };
+        const made = {
+          id: name.toLowerCase(),
+          name,
+          claudeFolder: `C:/Users/me/AppData/Grimoire/profiles/${name.toLowerCase()}/claude`,
+        };
         list = { ...list, profiles: [...list.profiles, made] };
         return list;
       };
@@ -77,7 +85,9 @@ describe('settings', () => {
     it('says why a switch was refused', async () => {
       const { bridge, answers } = withProfiles();
       answers['profiles.switch'] = () => {
-        throw new Error('Can’t switch to "Work" yet. Wait for "Fix the ribbon" to finish, or stop it, first');
+        throw new Error(
+          'Can’t switch to "Work" yet. Wait for "Fix the ribbon" to finish, or stop it, first',
+        );
       };
       const { fixture, el, texts } = await render(bridge);
       el.querySelector<HTMLButtonElement>('gr-title-bar .window-title')!.click();
@@ -134,9 +144,9 @@ describe('settings', () => {
       expect(deletes()).toEqual([true, true, false]);
 
       // Renamed in place.
-      const renames = [...el.querySelectorAll<HTMLButtonElement>(`${section} .profile .actions button`)].filter(
-        (b) => b.textContent!.trim() === 'Rename',
-      );
+      const renames = [
+        ...el.querySelectorAll<HTMLButtonElement>(`${section} .profile .actions button`),
+      ].filter((b) => b.textContent!.trim() === 'Rename');
       renames[2]!.click();
       await fixture.whenStable();
       const name = el.querySelector<HTMLInputElement>(`${section} .name-field`)!;
@@ -149,7 +159,9 @@ describe('settings', () => {
       expect(texts(`${section} h3`)).toEqual(['Personal', 'Work open now', 'Side project']);
 
       // Deleting says where the Claude folder stays.
-      const lastDelete = [...el.querySelectorAll<HTMLButtonElement>(`${section} .profile .actions button`)]
+      const lastDelete = [
+        ...el.querySelectorAll<HTMLButtonElement>(`${section} .profile .actions button`),
+      ]
         .filter((b) => b.textContent!.trim() === 'Delete')
         .at(-1)!;
       lastDelete.click();
@@ -161,8 +173,14 @@ describe('settings', () => {
 
     it('switches to a new profile to sign it in, then asks for the account once the window is back', async () => {
       const { bridge, answers, calls } = withProfiles();
-      answers['agents.list'] = () => [{ id: 'claude-code', name: 'Claude Code', capabilities: ['sign-in'] }];
-      answers['agents.account'] = (): AgentSignIn => ({ agent: 'claude-code', account: null, pending: null });
+      answers['agents.list'] = () => [
+        { id: 'claude-code', name: 'Claude Code', capabilities: ['sign-in'] },
+      ];
+      answers['agents.account'] = (): AgentSignIn => ({
+        agent: 'claude-code',
+        account: null,
+        pending: null,
+      });
       const { fixture, el, texts } = await render(bridge);
       await openSettings(el, fixture);
       const section = 'section[aria-labelledby="gr-settings-profiles"]';
@@ -185,8 +203,14 @@ describe('settings', () => {
 
     it('opens Settings on the account to sign in as, after switching to sign in', async () => {
       const { bridge, answers } = withProfiles('work');
-      answers['agents.list'] = () => [{ id: 'claude-code', name: 'Claude Code', capabilities: ['sign-in'] }];
-      answers['agents.account'] = (): AgentSignIn => ({ agent: 'claude-code', account: null, pending: null });
+      answers['agents.list'] = () => [
+        { id: 'claude-code', name: 'Claude Code', capabilities: ['sign-in'] },
+      ];
+      answers['agents.account'] = (): AgentSignIn => ({
+        agent: 'claude-code',
+        account: null,
+        pending: null,
+      });
       sessionStorage.setItem('grimoire.signInNext', 'work');
       const { fixture, el, texts } = await render(bridge);
       await new Promise((resolve) => setTimeout(resolve));
@@ -214,7 +238,8 @@ describe('settings', () => {
     const { bridge, answers, calls, emit } = fakeBridge();
     let kept: GrimoireSettings = { ...DEFAULT_SETTINGS };
     answers['settings.get'] = () => kept;
-    answers['settings.set'] = (change: Partial<GrimoireSettings>) => (kept = { ...kept, ...change });
+    answers['settings.set'] = (change: Partial<GrimoireSettings>) =>
+      (kept = { ...kept, ...change });
     const { fixture, el, texts } = await render(bridge);
     const word = (text: string) =>
       [...el.querySelectorAll<HTMLButtonElement>('#gr-settings-general ~ .form .word')].find(
@@ -237,7 +262,14 @@ describe('settings', () => {
       'MCP servers in every chapter',
       'Jira issues on the Kanban board',
     ]);
-    expect(checked()).toEqual(['The book’s', 'Drawn', 'The one used last', 'Your last settings', 'On', 'On']);
+    expect(checked()).toEqual([
+      'The book’s',
+      'Drawn',
+      'The one used last',
+      'Your last settings',
+      'On',
+      'On',
+    ]);
     expect(texts('gr-settings-page [aria-labelledby="gr-settings-mcp"] .none')).toEqual(['None']);
 
     word('Plain').click();
@@ -257,7 +289,9 @@ describe('settings', () => {
     ]);
     expect(texts('gr-tab-page .title')).toEqual(['Settings']);
     expect(texts('gr-tab-page .row .gr-link')).toEqual(['Back to Plan Esc']);
-    expect(texts('section[aria-labelledby="gr-settings-general"] .label')[2]).toBe('Default agent for new chats');
+    expect(texts('section[aria-labelledby="gr-settings-general"] .label')[2]).toBe(
+      'Default agent for new chats',
+    );
     expect(texts('gr-chat-tab.new b')).toEqual(['New chat']);
 
     word('Left out').click();
@@ -272,10 +306,12 @@ describe('settings', () => {
     jql.value = ' ';
     jql.dispatchEvent(new Event('change'));
     await fixture.whenStable();
-    expect(calls.filter((c) => c.command === 'settings.set').slice(-2).map((c) => c.request)).toEqual([
-      { jiraQuery: 'project = GRIM' },
-      { jiraQuery: DEFAULT_SETTINGS.jiraQuery },
-    ]);
+    expect(
+      calls
+        .filter((c) => c.command === 'settings.set')
+        .slice(-2)
+        .map((c) => c.request),
+    ).toEqual([{ jiraQuery: 'project = GRIM' }, { jiraQuery: DEFAULT_SETTINGS.jiraQuery }]);
     expect(jql.value).toBe(DEFAULT_SETTINGS.jiraQuery);
 
     // Another window changed them back.
@@ -298,7 +334,16 @@ describe('settings', () => {
 
   it('turns MCP servers off in every chat in Settings', async () => {
     const { bridge, answers, calls } = fakeBridge();
-    const empty = { memory: [], skills: [], agents: [], commands: [], hooks: [], mcpServers: [], plugins: [], permissions: [] };
+    const empty = {
+      memory: [],
+      skills: [],
+      agents: [],
+      commands: [],
+      hooks: [],
+      mcpServers: [],
+      plugins: [],
+      permissions: [],
+    };
     answers['setup.get'] = (request: CommandRequest<'setup.get'>): AgentSetup => ({
       cwd: request.cwd ?? 'C:/Users/me',
       sections: {
@@ -313,7 +358,8 @@ describe('settings', () => {
     });
     let kept: GrimoireSettings = { ...DEFAULT_SETTINGS, mcpOff: ['linear'] };
     answers['settings.get'] = () => kept;
-    answers['settings.set'] = (change: Partial<GrimoireSettings>) => (kept = { ...kept, ...change });
+    answers['settings.set'] = (change: Partial<GrimoireSettings>) =>
+      (kept = { ...kept, ...change });
     const { fixture, el, texts } = await render(bridge);
     [...el.querySelectorAll<HTMLButtonElement>('gr-page-tabs .page-tab')]
       .find((tab) => tab.textContent!.trim() === 'Colophon')!
@@ -352,7 +398,8 @@ describe('settings', () => {
       newChat: { from: 'preset', preset: 'Bug fix' },
     };
     answers['settings.get'] = () => kept;
-    answers['settings.set'] = (change: Partial<GrimoireSettings>) => (kept = { ...kept, ...change });
+    answers['settings.set'] = (change: Partial<GrimoireSettings>) =>
+      (kept = { ...kept, ...change });
     const { fixture, el, texts } = await render(bridge);
 
     // The blank page it opens on begins with the preset too.
@@ -364,9 +411,10 @@ describe('settings', () => {
       .find((tab) => tab.textContent!.trim() === 'Colophon')!
       .click();
     await fixture.whenStable();
-    expect(
-      texts('#gr-settings-general ~ .form .word[aria-checked="true"]').slice(2, 4),
-    ).toEqual(['The one used last', 'Bug fix']);
+    expect(texts('#gr-settings-general ~ .form .word[aria-checked="true"]').slice(2, 4)).toEqual([
+      'The one used last',
+      'Bug fix',
+    ]);
     const word = (text: string) =>
       [...el.querySelectorAll<HTMLButtonElement>('#gr-settings-general ~ .form .word')].find(
         (button) => button.textContent!.trim() === text,
@@ -418,7 +466,10 @@ describe('settings', () => {
           ['aria-label', 'placeholder', 'title'].map((name) => node.getAttribute(name) ?? ''),
         ),
       ].join('\n');
-      return said.split('\n').filter((line) => BOOK.test(line)).map((line) => line.trim());
+      return said
+        .split('\n')
+        .filter((line) => BOOK.test(line))
+        .map((line) => line.trim());
     };
     const pageTab = (label: string) =>
       [...el.querySelectorAll<HTMLButtonElement>('gr-page-tabs .page-tab')]
@@ -471,12 +522,19 @@ describe('settings', () => {
 
   it('switches the account Claude Code signs in as in Settings, for every chat', async () => {
     const { bridge, answers, calls, emit } = fakeBridge();
-    answers['agents.list'] = () => [{ id: 'claude-code', name: 'Claude Code', capabilities: ['sign-in'] }];
+    answers['agents.list'] = () => [
+      { id: 'claude-code', name: 'Claude Code', capabilities: ['sign-in'] },
+    ];
     let kept: GrimoireSettings = { ...DEFAULT_SETTINGS, accounts: ['mum@example.com'] };
     answers['settings.get'] = () => kept;
-    answers['settings.set'] = (change: Partial<GrimoireSettings>) => (kept = { ...kept, ...change });
+    answers['settings.set'] = (change: Partial<GrimoireSettings>) =>
+      (kept = { ...kept, ...change });
     const me = { email: 'me@example.com', plan: 'pro', expiresAt: null };
-    answers['agents.account'] = (): AgentSignIn => ({ agent: 'claude-code', account: me, pending: null });
+    answers['agents.account'] = (): AgentSignIn => ({
+      agent: 'claude-code',
+      account: me,
+      pending: null,
+    });
     let finish!: (state: AgentSignIn) => void;
     let fail!: (error: Error) => void;
     answers['agents.signIn'] = () =>
@@ -560,13 +618,19 @@ describe('settings', () => {
     fail(new Error('Login failed: the account is on hold'));
     await new Promise((resolve) => setTimeout(resolve));
     await fixture.whenStable();
-    expect(texts('gr-settings-page [role="alert"]')).toEqual(['Login failed: the account is on hold']);
+    expect(texts('gr-settings-page [role="alert"]')).toEqual([
+      'Login failed: the account is on hold',
+    ]);
   });
 
   it('keeps presets in Settings, to rename, remove, and give a first message new chats begin with', async () => {
     const { bridge, answers, calls } = fakeBridge();
     let saved: Preset[] = [
-      { name: 'Bug fix', agent: 'claude-code', settings: { mode: 'accept-edits', cwd: 'C:/Users/me/git/breeder' } },
+      {
+        name: 'Bug fix',
+        agent: 'claude-code',
+        settings: { mode: 'accept-edits', cwd: 'C:/Users/me/git/breeder' },
+      },
       { name: 'Plan a feature', agent: 'claude-code', settings: { mode: 'plan' } },
     ];
     answers['presets.list'] = () => saved;
@@ -591,7 +655,9 @@ describe('settings', () => {
       )!;
 
     expect(texts('gr-settings-page .preset h3')).toEqual(['Bug fix', 'Plan a feature']);
-    expect(texts('gr-settings-page .preset .sub')[0]).toBe('Claude Code · Accept edits · ~/git/breeder');
+    expect(texts('gr-settings-page .preset .sub')[0]).toBe(
+      'Claude Code · Accept edits · ~/git/breeder',
+    );
 
     const prompt = preset('Bug fix').querySelector<HTMLTextAreaElement>('textarea')!;
     prompt.value = 'Find the failing test and fix it';
@@ -639,7 +705,8 @@ describe('settings', () => {
     const { bridge, answers, calls } = fakeBridge();
     let kept: GrimoireSettings = { ...DEFAULT_SETTINGS };
     answers['settings.get'] = () => kept;
-    answers['settings.set'] = (change: Partial<GrimoireSettings>) => (kept = { ...kept, ...change });
+    answers['settings.set'] = (change: Partial<GrimoireSettings>) =>
+      (kept = { ...kept, ...change });
     const { fixture, el, texts } = await render(bridge);
     const root = document.documentElement.style;
     const sets = () => calls.filter((c) => c.command === 'settings.set').map((c) => c.request);
@@ -687,14 +754,20 @@ describe('settings', () => {
     expect(sets()).toEqual([]);
     await settle();
     expect(sets()).toEqual([{ theme: { '--gr-page': '#ffffff' } }]);
-    expect(texts('gr-theme-editor .count')).toEqual([expect.stringMatching(/ tokens · 1 changed$/)]);
+    expect(texts('gr-theme-editor .count')).toEqual([
+      expect.stringMatching(/ tokens · 1 changed$/),
+    ]);
 
     const field = el.querySelector<HTMLInputElement>('#gr-theme-search')!;
     field.value = 'composer';
     field.dispatchEvent(new Event('input'));
     await fixture.whenStable();
-    expect(texts('gr-theme-editor summary')).toEqual([expect.stringMatching(/^Chat: composer\s*\d+$/)]);
-    const gap = el.querySelector<HTMLInputElement>('gr-theme-editor input[aria-label="--gr-composer-gap"]')!;
+    expect(texts('gr-theme-editor summary')).toEqual([
+      expect.stringMatching(/^Chat: composer\s*\d+$/),
+    ]);
+    const gap = el.querySelector<HTMLInputElement>(
+      'gr-theme-editor input[aria-label="--gr-composer-gap"]',
+    )!;
     expect(gap.value).toBe('5px');
     gap.value = '8px';
     gap.dispatchEvent(new Event('change'));
@@ -721,7 +794,8 @@ describe('settings', () => {
     const { bridge, answers } = fakeBridge();
     let kept: GrimoireSettings = { ...DEFAULT_SETTINGS };
     answers['settings.get'] = () => kept;
-    answers['settings.set'] = (change: Partial<GrimoireSettings>) => (kept = { ...kept, ...change });
+    answers['settings.set'] = (change: Partial<GrimoireSettings>) =>
+      (kept = { ...kept, ...change });
     const { fixture, el, texts } = await render(bridge);
     const root = document.documentElement.style;
     const settle = async () => {
@@ -824,7 +898,8 @@ describe('settings', () => {
     const { bridge, answers } = fakeBridge();
     let kept: GrimoireSettings = { ...DEFAULT_SETTINGS, theme: { '--gr-page': '#fffaf0' } };
     answers['settings.get'] = () => kept;
-    answers['settings.set'] = (change: Partial<GrimoireSettings>) => (kept = { ...kept, ...change });
+    answers['settings.set'] = (change: Partial<GrimoireSettings>) =>
+      (kept = { ...kept, ...change });
     const { fixture, el, texts } = await render(bridge);
     const theme = () => document.documentElement.dataset['theme'];
     [...el.querySelectorAll<HTMLButtonElement>('gr-page-tabs .page-tab')]

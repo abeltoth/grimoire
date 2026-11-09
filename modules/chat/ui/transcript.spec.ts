@@ -13,12 +13,17 @@ describe('transcript', () => {
     expect(texts('.stop')).toEqual(['Stop Esc 2m 14s']);
     expect(texts('.spent-line .took')).toEqual([]);
 
-    emit('agents.entry', { chatId: 'chat-1', entry: { ...user, at: Date.now() - 200_000, took: 200_000 } });
+    emit('agents.entry', {
+      chatId: 'chat-1',
+      entry: { ...user, at: Date.now() - 200_000, took: 200_000 },
+    });
     emit('agents.status', { chatId: 'chat-1', status: 'idle' });
     await fixture.whenStable();
     expect(texts('.stop')).toEqual([]);
     expect(texts('.spent-line .took')).toEqual(['3m 20s']);
-    expect(el.querySelector('.spent-line .took')!.getAttribute('title')).toBe('This turn took 3m 20s');
+    expect(el.querySelector('.spent-line .took')!.getAttribute('title')).toBe(
+      'This turn took 3m 20s',
+    );
   });
 
   it("shows what each turn spent at its end, the chat's costliest three in rubric", async () => {
@@ -37,7 +42,10 @@ describe('transcript', () => {
       chatId: 'chat-1',
       entry: { kind: 'user' as const, id, text: id, at: 1, took: 1, tokens: { at: 1, uses } },
     });
-    emit('agents.entry', turn('u1', use(500, 100), { ...use(2_000), model: 'claude-haiku-4-5', subagent: true }));
+    emit(
+      'agents.entry',
+      turn('u1', use(500, 100), { ...use(2_000), model: 'claude-haiku-4-5', subagent: true }),
+    );
     await fixture.whenStable();
     expect(texts('.spent-line .spent')).toEqual(['3K tokens']);
     // One turn alone isn't marked the costliest.
@@ -53,7 +61,13 @@ describe('transcript', () => {
     emit('agents.entry', turn('u4', use(100)));
     emit('agents.entry', turn('u5', use(2_000)));
     await fixture.whenStable();
-    expect(texts('.spent-line .spent')).toEqual(['3K tokens', '500 tokens', '4K tokens', '100 tokens', '2K tokens']);
+    expect(texts('.spent-line .spent')).toEqual([
+      '3K tokens',
+      '500 tokens',
+      '4K tokens',
+      '100 tokens',
+      '2K tokens',
+    ]);
     expect(texts('.spent-line .spent.costly')).toEqual(['3K tokens', '4K tokens', '2K tokens']);
     expect(el.querySelector('.spent-line .spent.costly')!.getAttribute('title')).toMatch(
       /^One of the costliest turns in this chapter: 3K tokens/,
@@ -64,11 +78,24 @@ describe('transcript', () => {
     const { bridge, emit } = fakeBridge();
     const { fixture, el, texts } = await render(bridge);
     await write(fixture, el, 'Fix the flaky login test');
-    const user = { kind: 'user' as const, id: 'u1', text: 'Fix the flaky login test', at: Date.now() };
+    const user = {
+      kind: 'user' as const,
+      id: 'u1',
+      text: 'Fix the flaky login test',
+      at: Date.now(),
+    };
     const lint = { id: 'h1', name: 'PostToolUse:Edit', event: 'PostToolUse', tool: 'Edit' };
-    const guard = { id: 'h2', name: 'PreToolUse:PowerShell', event: 'PreToolUse', tool: 'PowerShell' };
+    const guard = {
+      id: 'h2',
+      name: 'PreToolUse:PowerShell',
+      event: 'PreToolUse',
+      tool: 'PowerShell',
+    };
     const stop = { id: 'h3', name: 'Stop', event: 'Stop' };
-    emit('agents.entry', { chatId: 'chat-1', entry: { ...user, hooks: [{ ...lint, outcome: 'running' }] } });
+    emit('agents.entry', {
+      chatId: 'chat-1',
+      entry: { ...user, hooks: [{ ...lint, outcome: 'running' }] },
+    });
     await fixture.whenStable();
     expect(texts('.spent-line .hooks')).toEqual(['1 hook · 1 running…']);
     // Stop stays where the turn writes, apart from its closing line.
@@ -110,7 +137,9 @@ describe('transcript', () => {
 
     lines[1]!.click();
     await fixture.whenStable();
-    expect(el.querySelector('.hook gr-output')!.getAttribute('aria-label')).toBe('Output of PreToolUse:PowerShell');
+    expect(el.querySelector('.hook gr-output')!.getAttribute('aria-label')).toBe(
+      'Output of PreToolUse:PowerShell',
+    );
     expect(texts('.hook gr-output .code')).toEqual(['No rm -rf here']);
   });
 
@@ -218,14 +247,25 @@ describe('transcript', () => {
     });
     await fixture.whenStable();
 
-    expect(texts('.note.summary > *')).toEqual(['Changed 1 file, ran the tests once', '+2 −1', '1 failed']);
+    expect(texts('.note.summary > *')).toEqual([
+      'Changed 1 file, ran the tests once',
+      '+2 −1',
+      '1 failed',
+    ]);
     const run = el.querySelector<HTMLButtonElement>('.note.summary')!;
     expect(run.getAttribute('aria-expanded')).toBe('false');
 
     run.click();
     await fixture.whenStable();
     expect(run.getAttribute('aria-expanded')).toBe('true');
-    expect(texts('.run .note > *')).toEqual(['Edited', 'meter.ts', '+2 −1', 'Tested', 'npm test', 'failed']);
+    expect(texts('.run .note > *')).toEqual([
+      'Edited',
+      'meter.ts',
+      '+2 −1',
+      'Tested',
+      'npm test',
+      'failed',
+    ]);
     expect(el.querySelector('gr-diff-view, gr-output')).toBeNull();
 
     const notes = el.querySelectorAll<HTMLButtonElement>('.run .note');

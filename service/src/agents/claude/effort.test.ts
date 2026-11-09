@@ -35,8 +35,12 @@ describe('defaultEffort', () => {
   });
 
   it('lets CLAUDE_CODE_EFFORT_LEVEL win, and says nothing when nothing is set', () => {
-    expect(defaultEffort('claude-opus-5-5', settings, { CLAUDE_CODE_EFFORT_LEVEL: 'low' })).toBe('low');
-    expect(defaultEffort('claude-opus-5-5', {}, { CLAUDE_CODE_EFFORT_LEVEL: 'unset' })).toBeUndefined();
+    expect(defaultEffort('claude-opus-5-5', settings, { CLAUDE_CODE_EFFORT_LEVEL: 'low' })).toBe(
+      'low',
+    );
+    expect(
+      defaultEffort('claude-opus-5-5', {}, { CLAUDE_CODE_EFFORT_LEVEL: 'unset' }),
+    ).toBeUndefined();
   });
 });
 

@@ -1,5 +1,10 @@
 import type { CardColumn, JiraIssue, JiraTransition } from '@grimoire/contract';
-import { type Connector, type Connectors, ToolFailed, type ToolResult } from '@grimoire/service/agents/claude/connectors';
+import {
+  type Connector,
+  type Connectors,
+  ToolFailed,
+  type ToolResult,
+} from '@grimoire/service/agents/claude/connectors';
 
 /**
  * Your Jira issues, through your claude.ai Atlassian connector: the one
@@ -31,7 +36,12 @@ export const JIRA_TOOLS = {
 /** The tools the sync calls; the Atlassian connector is the one that has them. */
 const SYNC_TOOLS = [JIRA_TOOLS.sites, JIRA_TOOLS.search];
 /** The tools moving a card calls. */
-const MOVE_TOOLS = [JIRA_TOOLS.sites, JIRA_TOOLS.transitions, JIRA_TOOLS.transition, JIRA_TOOLS.issue];
+const MOVE_TOOLS = [
+  JIRA_TOOLS.sites,
+  JIRA_TOOLS.transitions,
+  JIRA_TOOLS.transition,
+  JIRA_TOOLS.issue,
+];
 
 /**
  * The tools of the connector the sync and `npm run jira:check` may call:
@@ -52,7 +62,10 @@ export const JIRA_READ_ONLY: ReadonlySet<string> = new Set([
  * one that writes, which changes an issue's status as you move its card.
  * Nothing else can change Jira.
  */
-export const JIRA_ALLOWED: ReadonlySet<string> = new Set([...JIRA_READ_ONLY, JIRA_TOOLS.transition]);
+export const JIRA_ALLOWED: ReadonlySet<string> = new Set([
+  ...JIRA_READ_ONLY,
+  JIRA_TOOLS.transition,
+]);
 
 /** The most issues on the board, and how many are asked for at a time. */
 export const MAX_ISSUES = 100;
@@ -84,7 +97,8 @@ export type JiraFetch =
  */
 export function atlassianIn(connectors: readonly Connector[]): Connector | undefined {
   const atlassian = connectors.filter((connector) => ATLASSIAN.test(connector.name));
-  const syncs = (connector: Connector) => SYNC_TOOLS.every((tool) => connector.tools.includes(tool));
+  const syncs = (connector: Connector) =>
+    SYNC_TOOLS.every((tool) => connector.tools.includes(tool));
   return (
     atlassian.find(syncs) ??
     atlassian.find((connector) => connector.status === 'connected') ??
@@ -143,7 +157,9 @@ export async function fetchJira(
 async function reach(
   connectors: Connectors,
   tools: readonly string[],
-): Promise<{ outcome: 'reached'; atlassian: Connector } | Exclude<JiraFetch, { outcome: 'synced' }>> {
+): Promise<
+  { outcome: 'reached'; atlassian: Connector } | Exclude<JiraFetch, { outcome: 'synced' }>
+> {
   const atlassian = atlassianIn(await connectors.list());
   if (!atlassian || atlassian.status === 'disabled') return { outcome: 'none' };
   if (atlassian.status === 'needs-auth') return { outcome: 'needs-auth' };
@@ -181,7 +197,9 @@ export interface JiraSite {
  * saying why, when there's none here or it can't be used; the process is
  * stopped then.
  */
-export async function openJira(open: (allowed: ReadonlySet<string>) => Promise<Connectors>): Promise<JiraSite> {
+export async function openJira(
+  open: (allowed: ReadonlySet<string>) => Promise<Connectors>,
+): Promise<JiraSite> {
   const connectors = await open(JIRA_ALLOWED);
   try {
     const reached = await reach(connectors, MOVE_TOOLS);
@@ -191,7 +209,8 @@ export async function openJira(open: (allowed: ReadonlySet<string>) => Promise<C
     }
     if (reached.outcome === 'failed') throw new Error(reached.error);
     const { atlassian } = reached;
-    const call = (tool: string, args: Record<string, unknown>) => connectors.call(atlassian, tool, args);
+    const call = (tool: string, args: Record<string, unknown>) =>
+      connectors.call(atlassian, tool, args);
     const site = readSite(await call(JIRA_TOOLS.sites, {}));
     return { call, ...site, close: () => connectors.close() };
   } catch (error) {
@@ -202,7 +221,9 @@ export async function openJira(open: (allowed: ReadonlySet<string>) => Promise<C
 
 /** The changes of status Jira allows the issue now. */
 export async function transitionsOf(jira: JiraSite, key: string): Promise<JiraTransition[]> {
-  return readTransitions(await jira.call(JIRA_TOOLS.transitions, { cloudId: jira.cloudId, issueIdOrKey: key }));
+  return readTransitions(
+    await jira.call(JIRA_TOOLS.transitions, { cloudId: jira.cloudId, issueIdOrKey: key }),
+  );
 }
 
 /**
@@ -210,7 +231,11 @@ export async function transitionsOf(jira: JiraSite, key: string): Promise<JiraTr
  * what it answers when it does isn't read. Rejects when Jira refuses,
  * such as for a field the change needs that only Jira asks for.
  */
-export async function transitionIssue(jira: JiraSite, key: string, transition: string): Promise<void> {
+export async function transitionIssue(
+  jira: JiraSite,
+  key: string,
+  transition: string,
+): Promise<void> {
   await jira.call(JIRA_TOOLS.transition, {
     cloudId: jira.cloudId,
     issueIdOrKey: key,
@@ -231,7 +256,8 @@ export function readTransitions(result: ToolResult): JiraTransition[] {
   const tool = JIRA_TOOLS.transitions;
   const json = jsonOf(result, tool);
   const list = Array.isArray(json) ? json : arrayIn(json, ['transitions', 'values', 'results']);
-  if (!list) throw new Error(`${tool} answered with no list of transitions (it has ${membersOf(json)})`);
+  if (!list)
+    throw new Error(`${tool} answered with no list of transitions (it has ${membersOf(json)})`);
   return list.map((transition, i) => readTransition(transition, i));
 }
 
@@ -255,7 +281,12 @@ function readTransition(transition: unknown, i: number): JiraTransition {
       `${tool}'s transition "${name || id}" says no category of the status it leads to (it has ${membersOf(to ?? transition)})`,
     );
   }
-  return { id: String(id), name: name || status, status: status || String(id), column: columnOf(category) };
+  return {
+    id: String(id),
+    name: name || status,
+    status: status || String(id),
+    column: columnOf(category),
+  };
 }
 
 /** The issue a read of one answered with: Jira's own shape, or it under `issue`. */
@@ -321,7 +352,9 @@ export function readSite(result: ToolResult): { cloudId: string; url: string } {
   const json = jsonOf(result, JIRA_TOOLS.sites);
   const list = Array.isArray(json) ? json : arrayIn(json, ['resources', 'sites', 'values']);
   if (!list) throw new Error(`${JIRA_TOOLS.sites} didn't answer with a list of sites`);
-  const sites = list.filter(isObject).filter((site) => typeof site['id'] === 'string' && site['id']);
+  const sites = list
+    .filter(isObject)
+    .filter((site) => typeof site['id'] === 'string' && site['id']);
   const jira = sites.find((site) => hasJira(site['scopes'])) ?? sites[0];
   if (!jira) throw new Error(`${JIRA_TOOLS.sites} listed no site with a cloud ID`);
   const url = typeof jira['url'] === 'string' ? jira['url'].replace(/\/+$/, '') : '';
@@ -337,7 +370,9 @@ export function readSearch(
   const list = Array.isArray(json) ? json : arrayIn(json, ['issues', 'values', 'results']);
   if (!list) {
     const keys = isObject(json) ? Object.keys(json).join(', ') : typeof json;
-    throw new Error(`${JIRA_TOOLS.search} answered with no list of issues (it has ${keys || 'nothing'})`);
+    throw new Error(
+      `${JIRA_TOOLS.search} answered with no list of issues (it has ${keys || 'nothing'})`,
+    );
   }
   const issues = list.map((issue, i) => readIssue(issue, site, i));
   const page = isObject(json) ? json : {};
@@ -352,7 +387,12 @@ export function readSearch(
  * An issue as the search, or a read of one, answered it: Jira's own shape,
  * its fields under `fields`, or the same fields flat.
  */
-function readIssue(issue: unknown, site: string, i: number, tool: string = JIRA_TOOLS.search): FetchedIssue {
+function readIssue(
+  issue: unknown,
+  site: string,
+  i: number,
+  tool: string = JIRA_TOOLS.search,
+): FetchedIssue {
   if (!isObject(issue) || typeof issue['key'] !== 'string' || !issue['key']) {
     throw new Error(`${tool}'s issue ${i + 1} has no key`);
   }
@@ -368,7 +408,9 @@ function readIssue(issue: unknown, site: string, i: number, tool: string = JIRA_
     url: site ? `${site}/browse/${encodeURIComponent(key)}` : '',
     summary,
     description:
-      description.length > MAX_DESCRIPTION ? `${description.slice(0, MAX_DESCRIPTION - 1)}…` : description,
+      description.length > MAX_DESCRIPTION
+        ? `${description.slice(0, MAX_DESCRIPTION - 1)}…`
+        : description,
     type: nameOf(fields['issuetype']),
     priority: nameOf(fields['priority']),
     status: nameOf(status),
@@ -383,7 +425,9 @@ function readIssue(issue: unknown, site: string, i: number, tool: string = JIRA_
  */
 export function columnOf(category: unknown): CardColumn {
   const said = (isObject(category) ? (category['key'] ?? category['name']) : category) ?? '';
-  const word = String(said).toLowerCase().replace(/[\s_-]/g, '');
+  const word = String(said)
+    .toLowerCase()
+    .replace(/[\s_-]/g, '');
   if (word === 'done') return 'done';
   if (word === 'indeterminate' || word === 'inprogress') return 'doing';
   return 'todo';
@@ -397,7 +441,9 @@ export function columnOf(category: unknown): CardColumn {
 export function plainText(description: unknown): string {
   if (typeof description === 'string') return description.trim();
   if (!isObject(description)) return '';
-  return written(description).replace(/\n{3,}/g, '\n\n').trim();
+  return written(description)
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 /** A node of Atlassian Document Format, written out. */
@@ -465,7 +511,11 @@ function arrayIn(json: unknown, names: string[]): unknown[] | undefined {
 
 /** What an answer has: an object's members, or what it is otherwise. */
 function membersOf(json: unknown): string {
-  return isObject(json) ? Object.keys(json).join(', ') || 'nothing' : Array.isArray(json) ? 'a list' : typeof json;
+  return isObject(json)
+    ? Object.keys(json).join(', ') || 'nothing'
+    : Array.isArray(json)
+      ? 'a list'
+      : typeof json;
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {

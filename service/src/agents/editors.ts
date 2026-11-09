@@ -18,7 +18,8 @@ export class Editors {
   /** Gives the open chats sent one entry in parallel one chat that edits; each chat that changed hears so. */
   settle(): void {
     const order = this.store.chats.list().map((chat) => chat.chatId);
-    const place = (chat: ChatState) => (order.includes(chat.id) ? order.indexOf(chat.id) : order.length);
+    const place = (chat: ChatState) =>
+      order.includes(chat.id) ? order.indexOf(chat.id) : order.length;
     const groups = new Map<string, ChatState[]>();
     for (const chat of this.table.chats.values()) {
       const group = this.store.parallels.groupOf(chat.id);
@@ -49,7 +50,9 @@ export class Editors {
 
   /** The chat that edits in place of one that only reads; undefined for a chat that edits. */
   readOnlyOf(chat: ChatState): Editor | undefined {
-    return chat.editor ? { chatId: chat.editor, title: this.table.chats.get(chat.editor)?.title ?? '' } : undefined;
+    return chat.editor
+      ? { chatId: chat.editor, title: this.table.chats.get(chat.editor)?.title ?? '' }
+      : undefined;
   }
 
   /** The chats that only read while this one edits hear its new title. */

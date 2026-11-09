@@ -259,8 +259,15 @@ function markCostliest(rows: Row[]): void {
 }
 
 function hookLog(key: string, runs: readonly HookRun[]): HookLog {
-  const counted = (outcome: HookRun['outcome']) => runs.filter((run) => run.outcome === outcome).length;
-  return { key, runs, running: counted('running'), blocked: counted('blocked'), failed: counted('failed') };
+  const counted = (outcome: HookRun['outcome']) =>
+    runs.filter((run) => run.outcome === outcome).length;
+  return {
+    key,
+    runs,
+    running: counted('running'),
+    blocked: counted('blocked'),
+    failed: counted('failed'),
+  };
 }
 
 function margin(pending: Note[]): Margin {
@@ -429,7 +436,14 @@ function detailsOf(
     };
   }
   return block.result?.text
-    ? { details: { kind: 'output', title, text: block.result.text, ...(command ? { command } : {}) } }
+    ? {
+        details: {
+          kind: 'output',
+          title,
+          text: block.result.text,
+          ...(command ? { command } : {}),
+        },
+      }
     : {};
 }
 
@@ -482,7 +496,9 @@ function describe(
     case 'Agent':
       return ['Asked a helper', text('description'), 'helped'];
     case 'SendMessage':
-      return resumed ? ['Messaged a helper', text('summary') || text('to'), 'helped'] : [tool, '', 'other'];
+      return resumed
+        ? ['Messaged a helper', text('summary') || text('to'), 'helped']
+        : [tool, '', 'other'];
     case 'AskUserQuestion':
       return ['Asked you', '', 'asked'];
     case ADD_TODO_TOOL:

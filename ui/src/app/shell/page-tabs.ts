@@ -1,11 +1,4 @@
-import {
-  Component,
-  ElementRef,
-  afterRenderEffect,
-  computed,
-  inject,
-  signal,
-} from '@angular/core';
+import { Component, ElementRef, afterRenderEffect, computed, inject, signal } from '@angular/core';
 import { GRIMOIRE_BRIDGE } from '../core/bridge';
 import { Wording } from '../core/wording';
 import { RightPageState } from './right-page-state';

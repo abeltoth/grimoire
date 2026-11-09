@@ -37,7 +37,9 @@ const INPUT = {
         title: z.string().describe('A few words naming the task'),
         prompt: z
           .string()
-          .describe("The new chat's first message: the task, with what a fresh chat needs to know to do it"),
+          .describe(
+            "The new chat's first message: the task, with what a fresh chat needs to know to do it",
+          ),
       }),
     )
     .min(1)
@@ -97,7 +99,11 @@ export function savedFollowUps(messages: readonly ClaudeMessage[]): FollowUp[] |
     if (message.type !== 'assistant' || message.parent_tool_use_id) continue;
     const content = (message.message as { content?: unknown } | undefined)?.content;
     if (!Array.isArray(content)) continue;
-    for (const block of content as { type?: string; name?: string; input?: { tasks?: unknown } }[]) {
+    for (const block of content as {
+      type?: string;
+      name?: string;
+      input?: { tasks?: unknown };
+    }[]) {
       if (block.type !== 'tool_use' || block.name !== FOLLOW_UPS_TOOL) continue;
       const followUps = toFollowUps(block.input?.tasks);
       found = followUps.length ? followUps : undefined;

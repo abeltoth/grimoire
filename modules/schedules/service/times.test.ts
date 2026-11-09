@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { dueTimes, isTime, nextDue } from './times';
 
 // Local times, so the tests read the same in any time zone. 4 November 2026 is a Wednesday.
-const at = (day: number, hours: number, minutes = 0) => new Date(2026, 10, day, hours, minutes).getTime();
+const at = (day: number, hours: number, minutes = 0) =>
+  new Date(2026, 10, day, hours, minutes).getTime();
 const weekdays = { days: [1, 2, 3, 4, 5], time: '08:00' };
 const WEEK = 7 * 24 * 60 * 60_000;
 

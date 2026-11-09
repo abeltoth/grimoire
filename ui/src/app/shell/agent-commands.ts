@@ -48,7 +48,9 @@ export class AgentCommands {
     source: this.listed,
     computation: (listed: ListedCommand[]) => listed[0]?.name,
   });
-  readonly chosen = computed(() => this.listed().find((command) => command.name === this.selected()));
+  readonly chosen = computed(() =>
+    this.listed().find((command) => command.name === this.selected()),
+  );
 
   /** Turns the right page to the commands, asking the agent for them when they're new. */
   open(search: CommandSearch): void {
@@ -92,7 +94,11 @@ function key({ agent, cwd }: CommandSearch): string {
 }
 
 /** One kind's commands whose name holds the query, those starting with it first. */
-function narrow(commands: AgentCommand[], kind: AgentCommand['kind'], query: string): ListedCommand[] {
+function narrow(
+  commands: AgentCommand[],
+  kind: AgentCommand['kind'],
+  query: string,
+): ListedCommand[] {
   const needle = query.toLowerCase();
   const found = commands.flatMap((command): ListedCommand[] => {
     if (command.kind !== kind) return [];
@@ -103,7 +109,9 @@ function narrow(commands: AgentCommand[], kind: AgentCommand['kind'], query: str
     const lead = shown.length - command.name.length;
     const from = at === 0 ? 0 : at + lead;
     const end = at + lead + needle.length;
-    return [{ ...command, parts: [shown.slice(0, from), shown.slice(from, end), shown.slice(end)] }];
+    return [
+      { ...command, parts: [shown.slice(0, from), shown.slice(from, end), shown.slice(end)] },
+    ];
   });
   return found.sort((a, b) => Number(a.parts[0] !== '') - Number(b.parts[0] !== ''));
 }

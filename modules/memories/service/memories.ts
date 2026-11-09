@@ -38,7 +38,13 @@ export class Memories {
   }
 
   /** Writes one of the memories the agent keeps for the folder, unless it changed since it was opened. */
-  save(agent: AgentId, cwd: string | undefined, file: string, text: string, changedAt: number): Promise<SetupFile> {
+  save(
+    agent: AgentId,
+    cwd: string | undefined,
+    file: string,
+    text: string,
+    changedAt: number,
+  ): Promise<SetupFile> {
     return this.files.save(agent, cwd ?? homedir(), file, text, changedAt);
   }
 

@@ -4,8 +4,7 @@ import { PERSONAL_PROFILE } from '@grimoire/contract';
 /** The profile in use, whose settings, layout, presets, schedules and chats the stores keep. */
 export function activeProfile(db: DatabaseSync): string {
   const row = db.prepare("SELECT value FROM app_state WHERE key = 'activeProfile'").get() as
-    | { value: string }
-    | undefined;
+    { value: string } | undefined;
   return row?.value ?? PERSONAL_PROFILE;
 }
 

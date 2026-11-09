@@ -4,7 +4,11 @@ import { toAgentModels } from './models';
 
 const ALL = ['low', 'medium', 'high', 'xhigh', 'max'] as const;
 
-const model = (value: string, resolvedModel: string, levels?: ModelInfo['supportedEffortLevels']): ModelInfo => ({
+const model = (
+  value: string,
+  resolvedModel: string,
+  levels?: ModelInfo['supportedEffortLevels'],
+): ModelInfo => ({
   value,
   resolvedModel,
   displayName: value,
@@ -25,13 +29,28 @@ describe('toAgentModels', () => {
     const { models, default: byDefault } = toAgentModels(all, {}, {});
     expect(byDefault).toBe('opus');
     expect(models.map((m) => m.id)).toEqual(['opus', 'sonnet-4-6', 'haiku-4-5']);
-    expect(models[0]).toEqual({ id: 'opus', name: 'opus', description: 'opus model', efforts: [...ALL] });
-    expect(models[2]).toEqual({ id: 'haiku-4-5', name: 'haiku-4-5', description: 'haiku-4-5 model' });
+    expect(models[0]).toEqual({
+      id: 'opus',
+      name: 'opus',
+      description: 'opus model',
+      efforts: [...ALL],
+    });
+    expect(models[2]).toEqual({
+      id: 'haiku-4-5',
+      name: 'haiku-4-5',
+      description: 'haiku-4-5 model',
+    });
   });
 
   it('gives each model the effort your settings give it, as near as it takes', () => {
     const xhigh = { effortLevel: 'xhigh' };
-    const settings = { modelSettings: { 'claude-opus-5-5': xhigh, 'claude-sonnet-4-6': xhigh, 'claude-haiku-4-5': xhigh } };
+    const settings = {
+      modelSettings: {
+        'claude-opus-5-5': xhigh,
+        'claude-sonnet-4-6': xhigh,
+        'claude-haiku-4-5': xhigh,
+      },
+    };
     const { models } = toAgentModels(all, settings, {});
     expect(models.map((m) => m.effort)).toEqual(['xhigh', 'high', undefined]);
   });

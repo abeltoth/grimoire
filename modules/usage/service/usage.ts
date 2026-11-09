@@ -36,7 +36,8 @@ export class Usage {
    */
   readEvery(ms: number): () => void {
     const read = () => {
-      for (const agent of this.agents()) if (this.sources.has(agent)) this.plan(agent).catch(() => {});
+      for (const agent of this.agents())
+        if (this.sources.has(agent)) this.plan(agent).catch(() => {});
     };
     read();
     const timer = setInterval(read, ms);

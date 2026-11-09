@@ -49,7 +49,9 @@ export class Board {
    * The Jira cards being moved in Jira, by ID, each shown where it's
    * going meanwhile: the column, and the status once it's picked.
    */
-  private readonly held = signal<ReadonlyMap<string, { column: CardColumn; status?: string }>>(new Map());
+  private readonly held = signal<ReadonlyMap<string, { column: CardColumn; status?: string }>>(
+    new Map(),
+  );
 
   /**
    * Every card, on the board or closed, a Jira card being moved where it's
@@ -64,7 +66,11 @@ export class Board {
       const to = held.get(card.id);
       if (!to || !card.jira) return card;
       if (to.column !== card.column) shifted.add(card.id);
-      return { ...card, column: to.column, jira: { ...card.jira, status: to.status ?? card.jira.status } };
+      return {
+        ...card,
+        column: to.column,
+        jira: { ...card.jira, status: to.status ?? card.jira.status },
+      };
     });
     return CARD_COLUMNS.flatMap((column) => [
       ...shown.filter((card) => card.column === column && !shifted.has(card.id)),
@@ -85,7 +91,9 @@ export class Board {
   /** The card on the board the chat you're on began from, if any. */
   readonly current = computed(() => {
     const id = this.chats.currentId();
-    return id ? this.open().find((card) => card.chats.some((chat) => chat.chatId === id)) : undefined;
+    return id
+      ? this.open().find((card) => card.chats.some((chat) => chat.chatId === id))
+      : undefined;
   });
 
   constructor() {
@@ -147,7 +155,10 @@ export class Board {
    */
   async transitions(id: string, column?: CardColumn): Promise<JiraTransition[] | undefined> {
     try {
-      return (await this.bridge.invoke('kanban.transitions', { id, ...(column ? { column } : {}) })) ?? [];
+      return (
+        (await this.bridge.invoke('kanban.transitions', { id, ...(column ? { column } : {}) })) ??
+        []
+      );
     } catch (error) {
       this.jiraNote.set({ card: id, text: messageOf(error), openInJira: true });
       return undefined;
@@ -160,7 +171,9 @@ export class Board {
    * on it, with an offer to open it in Jira. False then.
    */
   async transition(id: string, transition: JiraTransition): Promise<boolean> {
-    this.held.update((held) => new Map([...held, [id, { column: transition.column, status: transition.status }]]));
+    this.held.update(
+      (held) => new Map([...held, [id, { column: transition.column, status: transition.status }]]),
+    );
     try {
       const cards = await this.bridge.invoke('kanban.transition', { id, transition });
       if (cards) this.listed.set(cards);

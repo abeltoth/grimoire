@@ -8,7 +8,8 @@ import { defaultShell, spawnPty, windowsBuild, type Pty, type Shell, type SpawnP
 // Both packages are CommonJS whose exports Node's ESM loader can't see, so
 // they're required, once the first terminal opens.
 const require = createRequire(import.meta.url);
-let screens: { Screen: typeof Headless.Terminal; SerializeAddon: typeof Serialize.SerializeAddon } | undefined;
+let screens:
+  { Screen: typeof Headless.Terminal; SerializeAddon: typeof Serialize.SerializeAddon } | undefined;
 const loadScreens = () =>
   (screens ??= {
     Screen: (require('@xterm/headless') as typeof Headless).Terminal,
@@ -170,6 +171,7 @@ export class Terminals {
 
 /** A size a pseudo-terminal accepts: whole, and at least one cell. */
 function fit(cols: number, rows: number): { cols: number; rows: number } {
-  const whole = (n: number, fallback: number) => (Number.isFinite(n) && n >= 1 ? Math.floor(n) : fallback);
+  const whole = (n: number, fallback: number) =>
+    Number.isFinite(n) && n >= 1 ? Math.floor(n) : fallback;
   return { cols: whole(cols, 80), rows: whole(rows, 24) };
 }

@@ -2,7 +2,17 @@
  * The Electron app: windows only (ADR-010). All state lives in the
  * background service, which this process starts and relays to.
  */
-import { app, BrowserWindow, dialog, ipcMain, net, protocol, screen, shell, type WebFrameMain } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  net,
+  protocol,
+  screen,
+  shell,
+  type WebFrameMain,
+} from 'electron';
 import { existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -54,7 +64,8 @@ function getService(): Promise<ServiceClient> {
     (client) => {
       client.on('close', () => (service = undefined));
       client.on('event', (name, payload) => {
-        for (const win of BrowserWindow.getAllWindows()) win.webContents.send('grimoire:event', name, payload);
+        for (const win of BrowserWindow.getAllWindows())
+          win.webContents.send('grimoire:event', name, payload);
         if (name !== 'profiles.changed') return;
         const { profiles } = payload as EventPayload<'profiles.changed'>;
         if (activeProfile.changedTo(profiles.active)) openProfile();
@@ -110,7 +121,9 @@ ipcMain.handle('grimoire:chooseFolder', async (event) => {
   if (!isTrusted(event.senderFrame)) throw new Error('Untrusted sender');
   const win = BrowserWindow.fromWebContents(event.sender);
   const options = { properties: ['openDirectory' as const] };
-  const result = win ? await dialog.showOpenDialog(win, options) : await dialog.showOpenDialog(options);
+  const result = win
+    ? await dialog.showOpenDialog(win, options)
+    : await dialog.showOpenDialog(options);
   return result.canceled ? null : (result.filePaths[0] ?? null);
 });
 
@@ -118,7 +131,9 @@ ipcMain.handle('grimoire:chooseFiles', async (event) => {
   if (!isTrusted(event.senderFrame)) throw new Error('Untrusted sender');
   const win = BrowserWindow.fromWebContents(event.sender);
   const options = { properties: ['openFile' as const, 'multiSelections' as const] };
-  const result = win ? await dialog.showOpenDialog(win, options) : await dialog.showOpenDialog(options);
+  const result = win
+    ? await dialog.showOpenDialog(win, options)
+    : await dialog.showOpenDialog(options);
   return result.canceled ? [] : result.filePaths;
 });
 
@@ -166,7 +181,10 @@ function reopenPopouts(): void {
     .then((layout) => {
       const saved = (layout as Partial<Layout> | undefined)?.popouts ?? [];
       // Any popped out meanwhile stay out too.
-      popouts = [...saved, ...popouts.filter((kept) => !saved.some((popout) => popout.chatId === kept.chatId))];
+      popouts = [
+        ...saved,
+        ...popouts.filter((kept) => !saved.some((popout) => popout.chatId === kept.chatId)),
+      ];
       for (const popout of saved) openPopout(popout);
     })
     .catch((error: unknown) => console.error(error));
@@ -218,17 +236,25 @@ function openPopout(popout: Popout): void {
 
 /** Where a new popout goes: one page wide, at the side of the screen the main window is on. */
 function popoutPlace(): { width: number; height: number; x?: number; y?: number } {
-  const area = screen.getDisplayMatching(mainWindow?.getBounds() ?? screen.getPrimaryDisplay().bounds).workArea;
+  const area = screen.getDisplayMatching(
+    mainWindow?.getBounds() ?? screen.getPrimaryDisplay().bounds,
+  ).workArea;
   const width = Math.min(860, area.width);
   const height = Math.min(960, area.height);
-  return { width, height, x: area.x + area.width - width, y: area.y + Math.round((area.height - height) / 2) };
+  return {
+    width,
+    height,
+    x: area.x + area.width - width,
+    y: area.y + Math.round((area.height - height) / 2),
+  };
 }
 
 /** Serves the built UI on app://grimoire, falling back to index.html. */
 function serveUi(request: Request): Promise<Response> {
   const relative = decodeURIComponent(new URL(request.url).pathname).replace(/^\/+/, '');
   let file = path.resolve(paths.ui, relative || 'index.html');
-  if (!file.startsWith(paths.ui + path.sep)) return Promise.resolve(new Response('Not found', { status: 404 }));
+  if (!file.startsWith(paths.ui + path.sep))
+    return Promise.resolve(new Response('Not found', { status: 404 }));
   if (!existsSync(file) || statSync(file).isDirectory()) file = path.join(paths.ui, 'index.html');
   return net.fetch(pathToFileURL(file).toString());
 }
@@ -252,7 +278,9 @@ function createWindow(popout?: Popout): BrowserWindow {
     backgroundColor: '#15110e',
     // Grimoire draws its own title bar: native traffic lights on Mac,
     // drawn window controls elsewhere.
-    ...(isMac ? { titleBarStyle: 'hidden' as const, trafficLightPosition: { x: 16, y: 12 } } : { frame: false }),
+    ...(isMac
+      ? { titleBarStyle: 'hidden' as const, trafficLightPosition: { x: 16, y: 12 } }
+      : { frame: false }),
     webPreferences: {
       preload: paths.preload,
       contextIsolation: true,

@@ -19,7 +19,8 @@ function withoutIpcPrefix<T>(request: Promise<T>): Promise<T> {
 
 const bridge: GrimoireBridge = {
   platform,
-  invoke: (command, request) => withoutIpcPrefix(ipcRenderer.invoke('grimoire:invoke', command, request)),
+  invoke: (command, request) =>
+    withoutIpcPrefix(ipcRenderer.invoke('grimoire:invoke', command, request)),
   on: (event, listener) => {
     const handler = (_: IpcRendererEvent, name: string, payload: unknown) => {
       if (name === event) listener(payload as never);

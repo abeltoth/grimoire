@@ -72,7 +72,8 @@ export class ScheduleStore {
   }
 
   get(id: string): Schedule | undefined {
-    const row = this.db.prepare('SELECT * FROM schedules WHERE id = ?').get(id) as ScheduleRow | undefined;
+    const row = this.db.prepare('SELECT * FROM schedules WHERE id = ?').get(id) as
+      ScheduleRow | undefined;
     return row && fromRow(row);
   }
 
@@ -87,7 +88,9 @@ export class ScheduleStore {
     if (!name) throw new Error('A schedule needs a name');
     if (!prompt) throw new Error('A schedule needs a first message');
     if (!isTime(draft.time)) throw new Error(`"${draft.time}" isn't a time such as 08:00`);
-    const days = [...new Set(draft.days)].filter((day) => Number.isInteger(day) && day >= 0 && day <= 6).sort();
+    const days = [...new Set(draft.days)]
+      .filter((day) => Number.isInteger(day) && day >= 0 && day <= 6)
+      .sort();
     const schedule: Schedule = { ...draft, id: draft.id ?? randomUUID(), name, prompt, days };
     this.db
       .prepare(
@@ -121,8 +124,7 @@ export class ScheduleStore {
   /** The last time the schedule was due that has been run or counted as missed. */
   handledUntil(id: string): number {
     const row = this.db.prepare('SELECT handled_until FROM schedules WHERE id = ?').get(id) as
-      | { handled_until: number }
-      | undefined;
+      { handled_until: number } | undefined;
     return row?.handled_until ?? 0;
   }
 
@@ -136,13 +138,23 @@ export class ScheduleStore {
         `INSERT OR REPLACE INTO schedule_runs (schedule_id, due_at, outcome, ran_at, chat_id, cwd, error)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
       )
-      .run(run.scheduleId, run.dueAt, run.outcome, run.ranAt ?? null, run.chatId ?? null, run.cwd ?? null, run.error ?? null);
+      .run(
+        run.scheduleId,
+        run.dueAt,
+        run.outcome,
+        run.ranAt ?? null,
+        run.chatId ?? null,
+        run.cwd ?? null,
+        run.error ?? null,
+      );
   }
 
   /** Deletes a profile's schedules and their runs. */
   removeProfile(profile: string): void {
     this.db
-      .prepare('DELETE FROM schedule_runs WHERE schedule_id IN (SELECT id FROM schedules WHERE profile = ?)')
+      .prepare(
+        'DELETE FROM schedule_runs WHERE schedule_id IN (SELECT id FROM schedules WHERE profile = ?)',
+      )
       .run(profile);
     this.db.prepare('DELETE FROM schedules WHERE profile = ?').run(profile);
   }

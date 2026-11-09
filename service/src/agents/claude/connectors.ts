@@ -157,12 +157,22 @@ async function callTool(
   } catch (error) {
     throw new Error(`${tool} failed: ${error instanceof Error ? error.message : String(error)}`);
   }
-  const content = Array.isArray(response?.content) ? (response.content as ToolResult['content']) : [];
+  const content = Array.isArray(response?.content)
+    ? (response.content as ToolResult['content'])
+    : [];
   if (response?.isError) {
-    throw new ToolFailed(tool, content.map((block) => block.text ?? '').join(' ').trim());
+    throw new ToolFailed(
+      tool,
+      content
+        .map((block) => block.text ?? '')
+        .join(' ')
+        .trim(),
+    );
   }
   return {
     content,
-    ...(response?.structuredContent !== undefined ? { structuredContent: response.structuredContent } : {}),
+    ...(response?.structuredContent !== undefined
+      ? { structuredContent: response.structuredContent }
+      : {}),
   };
 }

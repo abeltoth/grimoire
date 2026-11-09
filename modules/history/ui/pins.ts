@@ -55,6 +55,8 @@ export class Pins {
   protected toggle(mark: Mark): void {
     if (this.blank()) return;
     const { id } = this.chat();
-    this.pinsAndTags.pin(id, mark, !this.has(mark)).catch((error: unknown) => this.chats.fail(id, error));
+    this.pinsAndTags
+      .pin(id, mark, !this.has(mark))
+      .catch((error: unknown) => this.chats.fail(id, error));
   }
 }

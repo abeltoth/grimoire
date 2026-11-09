@@ -13,8 +13,7 @@ export class Parallels {
   /** The chat's group: the one it joined, else its own ID. */
   groupOf(chatId: ChatId): string {
     const row = this.db.prepare('SELECT group_id FROM parallels WHERE chat_id = ?').get(chatId) as
-      | { group_id: string }
-      | undefined;
+      { group_id: string } | undefined;
     return row?.group_id ?? chatId;
   }
 
@@ -29,9 +28,9 @@ export class Parallels {
   }
 
   editorOf(group: string): ChatId | undefined {
-    const row = this.db.prepare('SELECT chat_id FROM parallel_editors WHERE group_id = ?').get(group) as
-      | { chat_id: ChatId }
-      | undefined;
+    const row = this.db
+      .prepare('SELECT chat_id FROM parallel_editors WHERE group_id = ?')
+      .get(group) as { chat_id: ChatId } | undefined;
     return row?.chat_id;
   }
 

@@ -35,7 +35,10 @@ export class RightPageState {
   /** Whether the right page is turned away from its own pages. */
   readonly turned = computed(
     () =>
-      this.approvals() || this.commandPalette() !== null || this.commands() !== null || this.pageTab() !== null,
+      this.approvals() ||
+      this.commandPalette() !== null ||
+      this.commands() !== null ||
+      this.pageTab() !== null,
   );
 
   /** Asked before the right page turns away from a page tab's page; false keeps it there. */

@@ -1,6 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
-import { CARD_COLUMNS, type Card, type CardChat, type CardColumn, type CardDraft } from '@grimoire/contract';
+import {
+  CARD_COLUMNS,
+  type Card,
+  type CardChat,
+  type CardColumn,
+  type CardDraft,
+} from '@grimoire/contract';
 import { activeProfile } from '@grimoire/service/storage/app-state';
 import { JiraCards } from './jira-store';
 
@@ -80,7 +86,9 @@ export class CardStore {
         ? { madeIn: { chatId: row.made_in_chat, agent: row.made_in_agent!, cwd: row.made_in_cwd! } }
         : {}),
     }));
-    const jira = this.jira.list(profile).map((card): Card => ({ ...card, chats: chatsOf(card.id) }));
+    const jira = this.jira
+      .list(profile)
+      .map((card): Card => ({ ...card, chats: chatsOf(card.id) }));
     return CARD_COLUMNS.flatMap((column) => [
       ...own.filter((card) => card.column === column),
       ...jira.filter((card) => card.column === column),
@@ -131,7 +139,9 @@ export class CardStore {
     if (!CARD_COLUMNS.includes(column)) throw new Error(`There's no column "${column}"`);
     const order = (
       this.db
-        .prepare('SELECT id FROM cards WHERE profile = ? AND column_id = ? AND id != ? ORDER BY position')
+        .prepare(
+          'SELECT id FROM cards WHERE profile = ? AND column_id = ? AND id != ? ORDER BY position',
+        )
         .all(this.profile(), column, id) as { id: string }[]
     ).map((row) => row.id);
     const at = before === undefined ? -1 : order.indexOf(before);
@@ -208,7 +218,9 @@ export class CardStore {
   /** The place after the last card in a column. */
   private foot(column: CardColumn): number {
     const row = this.db
-      .prepare('SELECT COALESCE(MAX(position), -1) + 1 AS next FROM cards WHERE profile = ? AND column_id = ?')
+      .prepare(
+        'SELECT COALESCE(MAX(position), -1) + 1 AS next FROM cards WHERE profile = ? AND column_id = ?',
+      )
       .get(this.profile(), column) as { next: number };
     return row.next;
   }

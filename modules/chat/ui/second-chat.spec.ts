@@ -22,11 +22,16 @@ describe('second-chat', () => {
       )!;
     const beside = (el: HTMLElement) => el.querySelector<HTMLElement>('gr-chat-page[beside]');
     const layouts = (calls: { command: string; request: unknown }[]) =>
-      calls.filter((c) => c.command === 'layout.set').map((c) => c.request as Record<string, unknown>);
+      calls
+        .filter((c) => c.command === 'layout.set')
+        .map((c) => c.request as Record<string, unknown>);
 
     it('puts another open chat there, to work in as on the left page', async () => {
       const { bridge, answers, calls } = fakeBridge();
-      answers['agents.openChats'] = () => [chat('c1', 'Context meter'), chat('c2', 'Fix flaky login test')];
+      answers['agents.openChats'] = () => [
+        chat('c1', 'Context meter'),
+        chat('c2', 'Fix flaky login test'),
+      ];
       answers['layout.get'] = () => ({ current: 'c1' });
       const { fixture, el, texts } = await render(bridge);
 
@@ -43,7 +48,9 @@ describe('second-chat', () => {
       expect(layouts(calls)).toContainEqual({ beside: 'c2' });
       // Both pages are chats: the left one stays, the other heads the right page with its title.
       expect(texts('gr-page-header h1')).toEqual(['Context meter']);
-      expect(texts('gr-right-page-tabs .tabs [aria-pressed="true"]')).toEqual(['Fix flaky login test']);
+      expect(texts('gr-right-page-tabs .tabs [aria-pressed="true"]')).toEqual([
+        'Fix flaky login test',
+      ]);
       expect(beside(el)!.querySelector('.meta')!.textContent).toContain('C:/work/c2');
       expect(texts('gr-chat-tab.beside b')).toEqual(['Fix flaky login test']);
       expect(texts('gr-chat-tab.beside i')).toEqual(['Claude Code · idle · on the facing page']);
@@ -55,7 +62,10 @@ describe('second-chat', () => {
       await fixture.whenStable();
       beside(el)!.querySelector<HTMLButtonElement>('gr-composer .send')!.click();
       await fixture.whenStable();
-      expect(calls).toContainEqual({ command: 'agents.send', request: { chatId: 'c2', text: 'Run the tests again' } });
+      expect(calls).toContainEqual({
+        command: 'agents.send',
+        request: { chatId: 'c2', text: 'Run the tests again' },
+      });
 
       // Its settings open on it, without turning the left page.
       beside(el)!.querySelector<HTMLButtonElement>('.meta button')!.click();
@@ -65,7 +75,9 @@ describe('second-chat', () => {
       // Esc there closes them, and leaves the left page alone.
       beside(el)!
         .querySelector('.meta button')!
-        .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+        .dispatchEvent(
+          new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+        );
       await fixture.whenStable();
       expect(el.querySelector('gr-settings-card')).toBeNull();
 
@@ -118,19 +130,29 @@ describe('second-chat', () => {
 
     it('opens the book with the chat that was beside the one you were on', async () => {
       const { bridge, answers } = fakeBridge();
-      answers['agents.openChats'] = () => [chat('c1', 'Context meter'), chat('c2', 'Fix flaky login test')];
+      answers['agents.openChats'] = () => [
+        chat('c1', 'Context meter'),
+        chat('c2', 'Fix flaky login test'),
+      ];
       answers['layout.get'] = () => ({ current: 'c1', beside: 'c2' });
       const { el, texts } = await render(bridge);
       expect(texts('gr-page-header h1')).toEqual(['Context meter']);
-      expect(texts('gr-right-page-tabs .tabs [aria-pressed="true"]')).toEqual(['Fix flaky login test']);
+      expect(texts('gr-right-page-tabs .tabs [aria-pressed="true"]')).toEqual([
+        'Fix flaky login test',
+      ]);
       expect(beside(el)).not.toBeNull();
     });
 
-    it('lists the agent\'s commands for its message on the left page', async () => {
+    it("lists the agent's commands for its message on the left page", async () => {
       const { bridge, answers } = fakeBridge();
-      answers['agents.openChats'] = () => [chat('c1', 'Context meter'), chat('c2', 'Fix flaky login test')];
+      answers['agents.openChats'] = () => [
+        chat('c1', 'Context meter'),
+        chat('c2', 'Fix flaky login test'),
+      ];
       answers['layout.get'] = () => ({ current: 'c1', beside: 'c2' });
-      answers['agents.commands'] = () => [{ name: 'compact', description: 'Free up context', kind: 'command' }];
+      answers['agents.commands'] = () => [
+        { name: 'compact', description: 'Free up context', kind: 'command' },
+      ];
       const { fixture, el, texts } = await render(bridge);
       const field = el.querySelector<HTMLTextAreaElement>('#gr-next-message-beside')!;
       field.value = '/';
@@ -155,7 +177,10 @@ describe('second-chat', () => {
 
     it('forgets the chat beside once it closes', async () => {
       const { bridge, answers, calls } = fakeBridge();
-      answers['agents.openChats'] = () => [chat('c1', 'Context meter'), chat('c2', 'Fix flaky login test')];
+      answers['agents.openChats'] = () => [
+        chat('c1', 'Context meter'),
+        chat('c2', 'Fix flaky login test'),
+      ];
       answers['layout.get'] = () => ({ current: 'c1', beside: 'c2' });
       const { fixture, el, texts } = await render(bridge);
       [...beside(el)!.querySelectorAll<HTMLButtonElement>('.gr-link')]
@@ -171,7 +196,11 @@ describe('second-chat', () => {
     describe('parallel chats', () => {
       const parallel = (el: HTMLElement) =>
         el.querySelector<HTMLButtonElement>('gr-composer button[aria-label^="Parallel texts"]');
-      const write = async (el: HTMLElement, fixture: { whenStable(): Promise<unknown> }, text: string) => {
+      const write = async (
+        el: HTMLElement,
+        fixture: { whenStable(): Promise<unknown> },
+        text: string,
+      ) => {
         const field = el.querySelector<HTMLTextAreaElement>('#gr-next-message')!;
         field.value = text;
         field.dispatchEvent(new Event('input'));
@@ -199,7 +228,9 @@ describe('second-chat', () => {
         // The chat is on Opus, the default: the others are offered, the first picked.
         expect(texts('gr-composer .parallel-model')).toEqual(['Sonnet 5.5', 'Haiku 5.5']);
         expect(texts('gr-composer .parallel-model[aria-checked="true"]')).toEqual(['Sonnet 5.5']);
-        expect(texts('gr-composer .parallel-where')).toEqual(['a copy of this chapter, on the facing page']);
+        expect(texts('gr-composer .parallel-where')).toEqual([
+          'a copy of this chapter, on the facing page',
+        ]);
         el.querySelectorAll<HTMLButtonElement>('gr-composer .parallel-model')[1]!.click();
         await fixture.whenStable();
         expect(texts('gr-composer .parallel-model[aria-checked="true"]')).toEqual(['Haiku 5.5']);
@@ -217,7 +248,9 @@ describe('second-chat', () => {
         expect(layouts(calls)).toContainEqual({ focus: false });
         expect(layouts(calls)).toContainEqual({ beside: 'c2' });
         expect(texts('gr-page-header h1')).toEqual(['Context meter']);
-        expect(texts('gr-right-page-tabs .tabs [aria-pressed="true"]')).toEqual(['Context meter (a)']);
+        expect(texts('gr-right-page-tabs .tabs [aria-pressed="true"]')).toEqual([
+          'Context meter (a)',
+        ]);
         expect(beside(el)!.querySelector('gr-transcript')).not.toBeNull();
         // It works in the same folder, so it only reads while the chat edits.
         expect(beside(el)!.querySelector('.read-only p')!.textContent!.trim()).toBe(
@@ -235,7 +268,9 @@ describe('second-chat', () => {
         const { fixture, el, texts } = await render(bridge);
         parallel(el)!.click();
         await fixture.whenStable();
-        expect(texts('gr-composer .parallel-where')).toEqual(['a chapter of its own, on the facing page']);
+        expect(texts('gr-composer .parallel-where')).toEqual([
+          'a chapter of its own, on the facing page',
+        ]);
 
         await write(el, fixture, 'Fix the login test');
         el.querySelector<HTMLButtonElement>('gr-composer .send')!.click();
@@ -258,7 +293,9 @@ describe('second-chat', () => {
       it('waits for the turn to end to copy a chat', async () => {
         const { bridge, answers } = fakeBridge();
         answers['agents.list'] = forking;
-        answers['agents.openChats'] = () => [{ ...chat('c1', 'Context meter'), status: 'thinking' }];
+        answers['agents.openChats'] = () => [
+          { ...chat('c1', 'Context meter'), status: 'thinking' },
+        ];
         answers['layout.get'] = () => ({ current: 'c1' });
         const { fixture, el } = await render(bridge);
         expect(parallel(el)!.getAttribute('aria-disabled')).toBe('true');
@@ -267,7 +304,7 @@ describe('second-chat', () => {
         expect(el.querySelector('gr-composer .parallel')).toBeNull();
       });
 
-      it('shows on the chat why the copy couldn\'t be made', async () => {
+      it("shows on the chat why the copy couldn't be made", async () => {
         const { bridge, answers } = fakeBridge();
         answers['agents.list'] = forking;
         answers['agents.openChats'] = () => [chat('c1', 'Context meter')];
@@ -284,7 +321,7 @@ describe('second-chat', () => {
         expect(beside(el)).toBeNull();
       });
 
-      it('isn\'t offered when the agent can\'t copy a chat that has begun', async () => {
+      it("isn't offered when the agent can't copy a chat that has begun", async () => {
         const { bridge, answers } = fakeBridge();
         answers['agents.openChats'] = () => [chat('c1', 'Context meter')];
         answers['layout.get'] = () => ({ current: 'c1' });

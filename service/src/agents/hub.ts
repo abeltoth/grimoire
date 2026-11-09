@@ -64,7 +64,8 @@ export class AgentHub {
     this.editors = new Editors(emit, this.table, store);
     // The agent's open chats move to its new account, each as soon as no turn runs.
     this.accounts = new Accounts(emit, this.table, (adapter) => {
-      for (const chat of this.table.chats.values()) if (chat.agent === adapter) this.runs.restartWhenIdle(chat);
+      for (const chat of this.table.chats.values())
+        if (chat.agent === adapter) this.runs.restartWhenIdle(chat);
     });
     this.runs = new ChatRuns(emit, this.table, this.updates, this.approvals, this.editors);
     this.newChats = new NewChats(this.table, store, this.updates, this.editors, this.runs, {
@@ -169,7 +170,12 @@ export class AgentHub {
     return this.newChats.start(agent, settings, text, title, attachments);
   }
 
-  parallel(from: ParallelFrom, model: string, text: string, attachments: Attachment[] = []): Promise<OpenChat> {
+  parallel(
+    from: ParallelFrom,
+    model: string,
+    text: string,
+    attachments: Attachment[] = [],
+  ): Promise<OpenChat> {
     return this.newChats.parallel(from, model, text, attachments);
   }
 
@@ -245,13 +251,16 @@ export class AgentHub {
    */
   async undo(chatId: ChatId, entryId: string): Promise<void> {
     const chat = this.table.chat(chatId);
-    if (chat.editor) throw new Error(`${this.editors.editing(chat)}: make this the editing chat to undo`);
+    if (chat.editor)
+      throw new Error(`${this.editors.editing(chat)}: make this the editing chat to undo`);
     if (chat.status !== 'idle') throw new Error('Stop the turn before undoing');
     const from = chat.entries.findIndex((entry) => entry.kind === 'user' && entry.id === entryId);
     if (from === -1) throw new Error('This message is not in the chat');
     if (chat.withdrawn.includes(entryId)) throw new Error('This message is already undone');
     if (chat.copied.includes(entryId))
-      throw new Error("This message was copied from the chat this one was forked from, so it can't be undone");
+      throw new Error(
+        "This message was copied from the chat this one was forked from, so it can't be undone",
+      );
     const live = this.runs.live(chat);
     if (!live.undo) throw new Error(`${chat.agent.info.name} can't undo`);
     await live.undo(entryId);
@@ -283,7 +292,10 @@ export class AgentHub {
    * comes back. It works where the chat does, at its model, effort,
    * permission and MCP servers.
    */
-  takeFollowUp(chatId: ChatId, index: number): { agent: AgentId; settings: NewChatSettings; prompt: string } {
+  takeFollowUp(
+    chatId: ChatId,
+    index: number,
+  ): { agent: AgentId; settings: NewChatSettings; prompt: string } {
     const chat = this.table.chat(chatId);
     const taken = chat.followUps?.[index];
     if (!taken) throw new Error('This task is no longer offered');
@@ -368,13 +380,16 @@ export class AgentHub {
         adapter.title(chatId, settings.cwd),
       ]);
       // Another window may have opened it meanwhile.
-      chat = this.table.chats.get(chatId) ?? this.table.track(chatId, adapter, settings, history.entries, title);
+      chat =
+        this.table.chats.get(chatId) ??
+        this.table.track(chatId, adapter, settings, history.entries, title);
       chat.plan = history.plan;
       if (history.cache && !chat.cache) chat.cache = history.cache;
       chat.withdrawn = this.store.withdrawn.list(chatId);
       chat.copied = this.store.copied.list(chatId);
       // What the last turn offered stands, unless the chat went on meanwhile.
-      if (history.followUps?.length && chat.status === 'idle' && !chat.followUps) chat.followUps = history.followUps;
+      if (history.followUps?.length && chat.status === 'idle' && !chat.followUps)
+        chat.followUps = history.followUps;
     }
     this.store.chats.add({ chatId, agent, settings: chat.settings });
     return chat;

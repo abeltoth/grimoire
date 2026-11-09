@@ -23,6 +23,11 @@ export class FollowUps {
 
   /** The prompt's first line that has words, which the card shows. */
   protected firstLine(prompt: string): string {
-    return prompt.split('\n').find((line) => line.trim())?.trim() ?? '';
+    return (
+      prompt
+        .split('\n')
+        .find((line) => line.trim())
+        ?.trim() ?? ''
+    );
   }
 }

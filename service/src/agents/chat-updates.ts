@@ -1,4 +1,11 @@
-import type { ChatStatus, Entry, HookRun, SubagentRun, SubagentState, UserEntry } from '@grimoire/contract';
+import type {
+  ChatStatus,
+  Entry,
+  HookRun,
+  SubagentRun,
+  SubagentState,
+  UserEntry,
+} from '@grimoire/contract';
 import type { Emit } from '../events';
 import type { ChatState } from './chat-table';
 
@@ -84,7 +91,9 @@ export class ChatUpdates {
     const yours = chat.entries.filter((entry): entry is UserEntry => entry.kind === 'user');
     const changed = new Map<string, UserEntry>();
     for (const run of runs) {
-      const began = yours.findLast((entry) => entry.hooks?.some((known) => known.id === run.id)) ?? yours.at(-1);
+      const began =
+        yours.findLast((entry) => entry.hooks?.some((known) => known.id === run.id)) ??
+        yours.at(-1);
       if (!began) continue;
       const entry = changed.get(began.id) ?? { ...began, hooks: [...(began.hooks ?? [])] };
       const hooks = entry.hooks!;

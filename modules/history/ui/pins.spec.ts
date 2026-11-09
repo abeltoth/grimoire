@@ -22,7 +22,8 @@ describe('pins', () => {
     answers['layout.get'] = () => ({ current: 'c1' });
     answers['history.pinsAndTags'] = () => ({ pins: { c1: ['star'] }, tags: {} });
     const { fixture, el } = await render(bridge);
-    const labels = () => [...el.querySelectorAll('gr-pins button')].map((b) => b.getAttribute('aria-label'));
+    const labels = () =>
+      [...el.querySelectorAll('gr-pins button')].map((b) => b.getAttribute('aria-label'));
     expect(labels()).toEqual(['Pin this chapter', 'Starred. Unfold to unstar']);
 
     el.querySelector<HTMLButtonElement>('gr-pins .pin')!.click();

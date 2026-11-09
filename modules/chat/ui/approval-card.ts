@@ -55,7 +55,8 @@ export class ApprovalCard {
   protected readonly wording = inject(Wording);
   protected readonly folder = computed(() => this.chats.folderName(this.cwd()));
   protected readonly headId = computed(() => `gr-approval-card-${this.approval().id}`);
-  protected readonly scopeText = (scope: AlwaysAllow['scope']) => scopeText(scope, this.wording.say);
+  protected readonly scopeText = (scope: AlwaysAllow['scope']) =>
+    scopeText(scope, this.wording.say);
 
   constructor() {
     // Ready for Enter, unless you're writing somewhere.

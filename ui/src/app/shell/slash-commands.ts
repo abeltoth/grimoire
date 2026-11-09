@@ -1,11 +1,4 @@
-import {
-  Component,
-  ElementRef,
-  afterRenderEffect,
-  computed,
-  inject,
-  input,
-} from '@angular/core';
+import { Component, ElementRef, afterRenderEffect, computed, inject, input } from '@angular/core';
 import type { AgentCommand } from '@grimoire/contract';
 import { Icon } from '../../design-system/icon';
 import { Chats } from '../core/chats';
@@ -50,7 +43,10 @@ export class SlashCommands {
   protected readonly sections = computed<Section[]>(() => {
     const listed = this.commands.listed();
     const sections: Section[] = [
-      { title: `${this.agentName()}’s commands`, entries: listed.filter((c) => c.kind === 'command') },
+      {
+        title: `${this.agentName()}’s commands`,
+        entries: listed.filter((c) => c.kind === 'command'),
+      },
       { title: `${this.agentName()}’s skills`, entries: listed.filter((c) => c.kind === 'skill') },
     ];
     return sections.filter((section) => section.entries.length);
@@ -74,7 +70,9 @@ export class SlashCommands {
   constructor() {
     afterRenderEffect(() => {
       this.commands.selected();
-      this.host.querySelector('.entry[aria-selected="true"]')?.scrollIntoView?.({ block: 'nearest' });
+      this.host
+        .querySelector('.entry[aria-selected="true"]')
+        ?.scrollIntoView?.({ block: 'nearest' });
     });
   }
 

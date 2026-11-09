@@ -133,16 +133,26 @@ describe('SearchIndex', () => {
     const day = (d: number) => new Date(2026, 10, d, 12).getTime();
     const tool = (name: string, d = 5) => ({ at: day(d), kind: 'tool' as const, name });
     const skill = (name: string, d = 5) => ({ at: day(d), kind: 'skill' as const, name });
-    index.put({ id: 'c1', agent: 'a', updatedAt: 1 }, [], [], [
-      tool('Read'),
-      tool('Bash'),
-      tool('Read'),
-      skill('review'),
-      // Before the span.
-      tool('Write', 1),
-      skill('deploy', 1),
-    ]);
-    index.put({ id: 'c2', agent: 'a', updatedAt: 1 }, [], [], [tool('Bash'), tool('Read'), skill('deploy')]);
+    index.put(
+      { id: 'c1', agent: 'a', updatedAt: 1 },
+      [],
+      [],
+      [
+        tool('Read'),
+        tool('Bash'),
+        tool('Read'),
+        skill('review'),
+        // Before the span.
+        tool('Write', 1),
+        skill('deploy', 1),
+      ],
+    );
+    index.put(
+      { id: 'c2', agent: 'a', updatedAt: 1 },
+      [],
+      [],
+      [tool('Bash'), tool('Read'), skill('deploy')],
+    );
 
     const totals = index.tokens(day(4));
     expect(totals.tools).toEqual([

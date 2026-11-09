@@ -21,7 +21,9 @@ describe('upcoming', () => {
   it('says today or tomorrow, then the weekday, then the date', () => {
     expect(upcoming(at(4), now)).toBe(`today at ${time}`);
     expect(upcoming(at(5), now)).toBe(`tomorrow at ${time}`);
-    expect(upcoming(at(9), now)).toBe(`on ${new Date(at(9)).toLocaleDateString([], { weekday: 'long' })} at ${time}`);
+    expect(upcoming(at(9), now)).toBe(
+      `on ${new Date(at(9)).toLocaleDateString([], { weekday: 'long' })} at ${time}`,
+    );
     expect(upcoming(at(12), now)).toBe(
       `on ${new Date(at(12)).toLocaleDateString([], { day: 'numeric', month: 'short' })} at ${time}`,
     );

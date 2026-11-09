@@ -3,7 +3,11 @@ import { mcpOff, mcpSettings } from './mcp';
 
 describe('mcpOff', () => {
   it("joins those off in every chat with the chat's own, each once, sorted", () => {
-    expect(mcpOff(['slack', 'github'], { mcpOff: ['github', 'linear'] })).toEqual(['github', 'linear', 'slack']);
+    expect(mcpOff(['slack', 'github'], { mcpOff: ['github', 'linear'] })).toEqual([
+      'github',
+      'linear',
+      'slack',
+    ]);
     expect(mcpOff([], {})).toEqual([]);
     expect(mcpOff(['github'])).toEqual(['github']);
   });

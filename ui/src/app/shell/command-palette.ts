@@ -87,32 +87,30 @@ export class CommandPalette {
   protected readonly sections = computed<Section[]>(() => {
     const query = this.query().trim();
     if (this.listingPresets()) {
-      const presets = this.presets.all().map(
-        (preset): CommandPaletteEntry => ({
-          id: `preset-${preset.name}`,
-          label: preset.name,
-          hint: `${this.presets.describe(preset)} ·`,
-          folder: this.chats.folderName(preset.settings.cwd),
-          where: this.wording.say('new chapter', 'new chat'),
-          run: () => this.chats.newChat(preset),
-        }),
+      const presets = this.presets.all().map((preset): CommandPaletteEntry => ({
+        id: `preset-${preset.name}`,
+        label: preset.name,
+        hint: `${this.presets.describe(preset)} ·`,
+        folder: this.chats.folderName(preset.settings.cwd),
+        where: this.wording.say('new chapter', 'new chat'),
+        run: () => this.chats.newChat(preset),
+      }));
+      return [{ title: 'Presets', entries: matching(presets, query) }].filter(
+        (s) => s.entries.length,
       );
-      return [{ title: 'Presets', entries: matching(presets, query) }].filter((s) => s.entries.length);
     }
     const commands = this.registry.commands
       .all()
       .filter((command) => command.run && command.id !== 'shell.commandPalette')
-      .map(
-        (command): CommandPaletteEntry => ({
-          id: `action-${command.id}`,
-          label: this.wording.label(command),
-          ...(command.hint
-            ? { hint: typeof command.hint === 'string' ? command.hint : command.hint() }
-            : {}),
-          ...(command.shortcut ? { shortcut: command.shortcut } : {}),
-          run: command.run!,
-        }),
-      );
+      .map((command): CommandPaletteEntry => ({
+        id: `action-${command.id}`,
+        label: this.wording.label(command),
+        ...(command.hint
+          ? { hint: typeof command.hint === 'string' ? command.hint : command.hint() }
+          : {}),
+        ...(command.shortcut ? { shortcut: command.shortcut } : {}),
+        run: command.run!,
+      }));
     const fromPreset: CommandPaletteEntry = {
       id: 'action-from-preset',
       label: this.wording.say('New chapter from preset', 'New chat from preset'),
@@ -128,16 +126,16 @@ export class CommandPalette {
     const actions = [...commands.slice(0, after), fromPreset, ...commands.slice(after)];
     // Chats come newest first, so a stable sort keeps that order within each rank.
     const rank = this.registry.rankChat() ?? (() => 0);
-    const chats = [...this.pastChats()].sort((a, b) => rank(b) - rank(a)).map(
-      (chat): CommandPaletteEntry => ({
+    const chats = [...this.pastChats()]
+      .sort((a, b) => rank(b) - rank(a))
+      .map((chat): CommandPaletteEntry => ({
         id: `chat-${chat.id}`,
         label: chat.title || this.wording.untitled(),
         hint: `${this.chats.agentName(chat.agent)} ·`,
         folder: this.chats.folderName(chat.cwd),
         where: this.wording.say('in Table of contents', 'in History'),
         run: () => void this.chats.openChat(chat),
-      }),
-    );
+      }));
     const sections: Section[] = [
       { title: 'Actions', entries: matching(actions, query) },
       {
@@ -182,7 +180,9 @@ export class CommandPalette {
     afterNextRender(() => this.field().nativeElement.focus());
     afterRenderEffect(() => {
       this.selected();
-      this.host.querySelector('.entry[aria-selected="true"]')?.scrollIntoView?.({ block: 'nearest' });
+      this.host
+        .querySelector('.entry[aria-selected="true"]')
+        ?.scrollIntoView?.({ block: 'nearest' });
     });
   }
 

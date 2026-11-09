@@ -7,7 +7,8 @@ import { type BeginChat, Scheduler, runTitle } from './scheduler';
 import { ScheduleStore } from './store';
 
 // Local times; 4 November 2026 is a Wednesday.
-const at = (day: number, hours: number, minutes = 0) => new Date(2026, 10, day, hours, minutes).getTime();
+const at = (day: number, hours: number, minutes = 0) =>
+  new Date(2026, 10, day, hours, minutes).getTime();
 
 const draft: ScheduleDraft = {
   name: 'Morning repo summary',
@@ -27,7 +28,14 @@ let scheduler: Scheduler;
 let db: ReturnType<typeof openDatabase>;
 
 const chat = (id: string, cwd: string): OpenChat =>
-  ({ id, agent: 'claude-code', title: '', settings: { cwd }, status: 'thinking', entries: [] }) as unknown as OpenChat;
+  ({
+    id,
+    agent: 'claude-code',
+    title: '',
+    settings: { cwd },
+    status: 'thinking',
+    entries: [],
+  }) as unknown as OpenChat;
 
 beforeEach(() => {
   now = at(4, 7);
@@ -54,7 +62,12 @@ const runs = () => scheduler.list()[0]!.runs.map(({ dueAt, outcome }) => [dueAt,
 describe('Scheduler', () => {
   it('saves a schedule, tidying its days, and tells when it runs next', () => {
     const schedule = save();
-    expect(schedule).toMatchObject({ name: 'Morning repo summary', days: [1, 2, 3, 4, 5], nextAt: at(4, 8), runs: [] });
+    expect(schedule).toMatchObject({
+      name: 'Morning repo summary',
+      days: [1, 2, 3, 4, 5],
+      nextAt: at(4, 8),
+      runs: [],
+    });
     expect(events.map((e) => e.event)).toEqual(['schedules.changed']);
     expect(scheduler.save({ ...draft, id: schedule.id, enabled: false })[0]!.nextAt).toBeNull();
   });
@@ -81,9 +94,19 @@ describe('Scheduler', () => {
         runTitle('Morning repo summary', at(4, 8)),
       ],
     ]);
-    const run = { scheduleId: id, dueAt: at(4, 8), outcome: 'began', ranAt: now, chatId: 'chat-1', cwd: '/git/grimoire' };
+    const run = {
+      scheduleId: id,
+      dueAt: at(4, 8),
+      outcome: 'began',
+      ranAt: now,
+      chatId: 'chat-1',
+      cwd: '/git/grimoire',
+    };
     expect(scheduler.list()[0]!.runs).toEqual([run]);
-    expect(events.find((e) => e.event === 'schedules.began')?.payload).toEqual({ run, chat: chat('chat-1', '/git/grimoire') });
+    expect(events.find((e) => e.event === 'schedules.began')?.payload).toEqual({
+      run,
+      chat: chat('chat-1', '/git/grimoire'),
+    });
     expect(scheduler.list()[0]!.nextAt).toBe(at(5, 8));
   });
 
@@ -133,7 +156,11 @@ describe('Scheduler', () => {
   it('runs a schedule now, whatever its days', async () => {
     const { id } = save({ days: [] });
     now = at(4, 13);
-    await expect(scheduler.run(id)).resolves.toMatchObject({ outcome: 'began', dueAt: now, chatId: 'chat-1' });
+    await expect(scheduler.run(id)).resolves.toMatchObject({
+      outcome: 'began',
+      dueAt: now,
+      chatId: 'chat-1',
+    });
     expect(begun[0]![3]).toBe(runTitle('Morning repo summary', now));
     await expect(scheduler.run('nope')).rejects.toThrow('There is no such schedule');
   });
@@ -167,7 +194,9 @@ describe('Scheduler', () => {
     setActiveProfile(db, 'personal');
     await scheduler.check();
     expect(begun).toEqual([]);
-    expect(scheduler.list()[0]!.runs).toEqual([{ scheduleId: id, dueAt: at(4, 8), outcome: 'skipped' }]);
+    expect(scheduler.list()[0]!.runs).toEqual([
+      { scheduleId: id, dueAt: at(4, 8), outcome: 'skipped' },
+    ]);
 
     // Away too long, the earlier times are missed as ever; the last is skipped.
     setActiveProfile(db, 'work');

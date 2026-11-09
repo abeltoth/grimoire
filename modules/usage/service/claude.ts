@@ -113,7 +113,9 @@ export const claudeUsage: UsageSource = {
   breakdown: () =>
     probe(async (claude) => {
       // Experimental in the SDK: its name and answer may change in any release.
-      const usage = await claude.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET({ skipBehaviors: false });
+      const usage = await claude.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET({
+        skipBehaviors: false,
+      });
       return toUsageBreakdown(usage, Date.now());
     }),
 };

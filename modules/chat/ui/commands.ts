@@ -2,16 +2,49 @@
 export type CommandDeed = 'read' | 'searched' | 'tested' | 'committed' | 'ran';
 
 /** Programs that only show a file. */
-const READERS = new Set(['cat', 'head', 'tail', 'sed', 'wc', 'less', 'more', 'get-content', 'gc', 'type']);
+const READERS = new Set([
+  'cat',
+  'head',
+  'tail',
+  'sed',
+  'wc',
+  'less',
+  'more',
+  'get-content',
+  'gc',
+  'type',
+]);
 
 /** Programs that look for files or text. */
-const SEARCHERS = new Set(['grep', 'rg', 'egrep', 'find', 'ls', 'tree', 'select-string', 'get-childitem', 'dir', 'gci']);
+const SEARCHERS = new Set([
+  'grep',
+  'rg',
+  'egrep',
+  'find',
+  'ls',
+  'tree',
+  'select-string',
+  'get-childitem',
+  'dir',
+  'gci',
+]);
 
 /** Programs that run around the work without doing any of it: moving about, saying something. */
-const ASIDES = new Set(['cd', 'pushd', 'popd', 'echo', 'printf', 'true', 'set-location', 'write-output', 'write-host']);
+const ASIDES = new Set([
+  'cd',
+  'pushd',
+  'popd',
+  'echo',
+  'printf',
+  'true',
+  'set-location',
+  'write-output',
+  'write-host',
+]);
 
 /** A test runner, as the start of what a command ran. */
-const TESTS = /^(npm|pnpm|yarn)( run)? test\b|^(npx )?(vitest|jest|mocha|pytest|playwright test)\b|^(npx )?ng test\b|^go test\b|^cargo test\b|^dotnet test\b/;
+const TESTS =
+  /^(npm|pnpm|yarn)( run)? test\b|^(npx )?(vitest|jest|mocha|pytest|playwright test)\b|^(npx )?ng test\b|^go test\b|^cargo test\b|^dotnet test\b/;
 
 /**
  * What a shell command did: read, searched, tested or committed when all it
@@ -42,7 +75,12 @@ function partsOf(command: string): string[] {
   return lines
     .join('\n')
     .split(/&&|\|\||;|\n/)
-    .map((part) => part.split(/(?<!\\)\|/)[0]!.trim().replace(/^[({\s]+/, ''))
+    .map((part) =>
+      part
+        .split(/(?<!\\)\|/)[0]!
+        .trim()
+        .replace(/^[({\s]+/, ''),
+    )
     .filter(Boolean);
 }
 

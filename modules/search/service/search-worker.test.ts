@@ -56,7 +56,17 @@ describe('SearchWorker', () => {
       output: 0,
       weight: 0,
     };
-    const totals = { since: 1_000, total: none, days: [], hours: [], models: [], folders: [], chats: [], tools: [], skills: [] };
+    const totals = {
+      since: 1_000,
+      total: none,
+      days: [],
+      hours: [],
+      models: [],
+      folders: [],
+      chats: [],
+      tools: [],
+      skills: [],
+    };
     worker.reply({ id: 1, totals });
     await expect(asked).resolves.toEqual(totals);
   });

@@ -136,7 +136,8 @@ export class Composer {
     return context?.limit ? Math.round((context.used / context.limit) * 100) : undefined;
   });
 
-  private readonly messageField = viewChild.required<ElementRef<HTMLTextAreaElement>>('messageField');
+  private readonly messageField =
+    viewChild.required<ElementRef<HTMLTextAreaElement>>('messageField');
 
   /**
    * What you're writing; each chat keeps its own until it's sent. A
@@ -377,7 +378,8 @@ export class Composer {
     for (const file of files) {
       const path = this.bridge.pathOf(file);
       if (path) this.enclose([{ kind: 'file', path }]);
-      else if (file.type.startsWith('image/')) this.addPicture(file, `Picture, dropped at ${now()}`);
+      else if (file.type.startsWith('image/'))
+        this.addPicture(file, `Picture, dropped at ${now()}`);
     }
   }
 

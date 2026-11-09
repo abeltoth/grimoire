@@ -15,7 +15,9 @@ export const AUTO_DARK: ThemeName = 'night';
 export class DesignSettings {
   private readonly root = inject(DOCUMENT).documentElement;
   // A window without matchMedia, such as a test's, is simply light.
-  private readonly dark = inject(DOCUMENT).defaultView?.matchMedia?.('(prefers-color-scheme: dark)');
+  private readonly dark = inject(DOCUMENT).defaultView?.matchMedia?.(
+    '(prefers-color-scheme: dark)',
+  );
 
   readonly drawings = signal(true);
   /** The ready-made theme chosen; "auto" follows the system's light or dark. */

@@ -57,19 +57,36 @@ export class NewChats {
    * works in the same folder, so while the first edits, the second only
    * reads (ADR-011).
    */
-  async parallel(from: ParallelFrom, model: string, text: string, attachments: Attachment[] = []): Promise<OpenChat> {
-    if (!text.trim() && !attachments.length) throw new Error('Write something, or attach something, to send');
+  async parallel(
+    from: ParallelFrom,
+    model: string,
+    text: string,
+    attachments: Attachment[] = [],
+  ): Promise<OpenChat> {
+    if (!text.trim() && !attachments.length)
+      throw new Error('Write something, or attach something, to send');
     if (!('chatId' in from)) {
       const cwd = from.settings.cwd ?? homedir();
       const named = from.title?.trim();
-      const title = named ? await this.variantTitle(this.table.adapter(from.agent), named, cwd) : undefined;
+      const title = named
+        ? await this.variantTitle(this.table.adapter(from.agent), named, cwd)
+        : undefined;
       // The second model is the one asked for, not Auto's.
       const { autoModel: _, ...settings } = from.settings;
-      return this.begin(from.agent, { ...settings, cwd, model }, text, title, attachments, from.alongside);
+      return this.begin(
+        from.agent,
+        { ...settings, cwd, model },
+        text,
+        title,
+        attachments,
+        from.alongside,
+      );
     }
     const chat = this.table.chat(from.chatId);
-    if (!chat.agent.fork) throw new Error(`${chat.agent.info.name} can't copy a chat to another model`);
-    if (chat.status !== 'idle') throw new Error('Wait for the turn to end, or stop it, to send to two models');
+    if (!chat.agent.fork)
+      throw new Error(`${chat.agent.info.name} can't copy a chat to another model`);
+    if (chat.status !== 'idle')
+      throw new Error('Wait for the turn to end, or stop it, to send to two models');
     const last = chat.entries.findLast((entry) => entry.kind === 'user');
     if (!last) throw new Error('This chat has nothing to copy yet');
     const title = await this.variantTitle(chat.agent, chat.title, chat.settings.cwd);
@@ -116,7 +133,11 @@ export class NewChats {
    * A new chat's settings on Auto: the model and effort the agent picks for
    * its first message, in place of any set; the agent's defaults when it can't say.
    */
-  private async autoPicked(agent: AgentId, settings: ChatSettings, text: string): Promise<ChatSettings> {
+  private async autoPicked(
+    agent: AgentId,
+    settings: ChatSettings,
+    text: string,
+  ): Promise<ChatSettings> {
     const { model: _, effort: __, ...rest } = settings;
     const picked = await this.table
       .adapter(agent)

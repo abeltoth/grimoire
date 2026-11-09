@@ -22,7 +22,8 @@ afterEach(() => {
 describe('Accounts', () => {
   describe('signing in to another account', () => {
     let signing: SigningAdapter;
-    const accountEvents = () => sent.filter((s) => s.event === 'agents.account').map((s) => s.payload);
+    const accountEvents = () =>
+      sent.filter((s) => s.event === 'agents.account').map((s) => s.payload);
 
     beforeEach(() => {
       signing = new SigningAdapter();
@@ -36,9 +37,15 @@ describe('Accounts', () => {
         account: { email: 'me@example.com', plan: 'pro', expiresAt: null },
         pending: null,
       });
-      hub.addAdapter(Object.assign(new FakeAdapter(), { info: { id: 'plain', name: 'Plain', capabilities: [] } }));
+      hub.addAdapter(
+        Object.assign(new FakeAdapter(), {
+          info: { id: 'plain', name: 'Plain', capabilities: [] },
+        }),
+      );
       expect(await hub.account('plain')).toEqual({ agent: 'plain', account: null, pending: null });
-      await expect(hub.signIn('plain', 'mum@example.com')).rejects.toThrow("Plain can't switch accounts");
+      await expect(hub.signIn('plain', 'mum@example.com')).rejects.toThrow(
+        "Plain can't switch accounts",
+      );
       await expect(hub.signIn('fake', 'mum')).rejects.toThrow('Give the email');
     });
 
@@ -66,7 +73,11 @@ describe('Accounts', () => {
       expect(signing.signingIn?.codes).toEqual(['abc#123']);
 
       signing.signingIn?.finish();
-      const mum = { agent: 'fake', account: { email: 'mum@example.com', plan: 'pro', expiresAt: null }, pending: null };
+      const mum = {
+        agent: 'fake',
+        account: { email: 'mum@example.com', plan: 'pro', expiresAt: null },
+        pending: null,
+      };
       expect(await signedIn).toEqual(mum);
       expect(accountEvents().at(-1)).toEqual(mum);
 

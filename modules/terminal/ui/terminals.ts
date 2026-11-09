@@ -49,7 +49,10 @@ export class Terminals {
   /** Starts a shell in the open chat's folder, on a tab of its own. */
   async open(): Promise<void> {
     try {
-      const terminal = await this.bridge.invoke('terminal.open', { cwd: this.cwd(), ...this.size() });
+      const terminal = await this.bridge.invoke('terminal.open', {
+        cwd: this.cwd(),
+        ...this.size(),
+      });
       this.terminals.update((terminals) => [...terminals, terminal]);
       this.shownId.set(terminal.id);
     } catch (error) {

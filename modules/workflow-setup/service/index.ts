@@ -6,7 +6,9 @@ import { Setup, setupFolders } from './setup';
 export const workflowSetup: ServiceModule = {
   id: 'workflow-setup',
   start({ registry, events, hub }) {
-    const setup = new Setup(SETUP_READERS, (agent, cwd) => events.emit('setup.changed', { agent, cwd }));
+    const setup = new Setup(SETUP_READERS, (agent, cwd) =>
+      events.emit('setup.changed', { agent, cwd }),
+    );
     registry.register('setup.get', ({ agent, cwd }) => setup.get(agent, cwd));
     registry.register('setup.folders', async () => setupFolders((await hub.folders()).recent));
     registry.register('setup.openFile', ({ agent, cwd, path }) => setup.openFile(agent, cwd, path));

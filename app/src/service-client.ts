@@ -1,6 +1,11 @@
 import { EventEmitter } from 'node:events';
 import net from 'node:net';
-import { PROTOCOL_VERSION, type ServiceInfo, type ServiceMessage, type WireError } from '@grimoire/contract';
+import {
+  PROTOCOL_VERSION,
+  type ServiceInfo,
+  type ServiceMessage,
+  type WireError,
+} from '@grimoire/contract';
 import { LineDecoder, encodeMessage } from '@grimoire/contract/wire';
 
 export class ServiceError extends Error {
@@ -22,7 +27,10 @@ interface ClientEvents {
 /** The app's connection to the background service. */
 export class ServiceClient extends EventEmitter<ClientEvents> {
   private nextId = 1;
-  private readonly pending = new Map<number, { resolve: (value: unknown) => void; reject: (error: Error) => void }>();
+  private readonly pending = new Map<
+    number,
+    { resolve: (value: unknown) => void; reject: (error: Error) => void }
+  >();
   private closed = false;
 
   private constructor(
@@ -42,7 +50,10 @@ export class ServiceClient extends EventEmitter<ClientEvents> {
     socket.on('close', () => this.onClose());
   }
 
-  static connect(info: Pick<ServiceInfo, 'endpoint' | 'token'>, timeoutMs = 3000): Promise<ServiceClient> {
+  static connect(
+    info: Pick<ServiceInfo, 'endpoint' | 'token'>,
+    timeoutMs = 3000,
+  ): Promise<ServiceClient> {
     return new Promise((resolve, reject) => {
       const socket = net.createConnection(info.endpoint);
       const decoder = new LineDecoder();
@@ -53,7 +64,10 @@ export class ServiceClient extends EventEmitter<ClientEvents> {
         socket.destroy();
         reject(error);
       };
-      const timer = setTimeout(() => fail(new Error('Timed out waiting for the service')), timeoutMs);
+      const timer = setTimeout(
+        () => fail(new Error('Timed out waiting for the service')),
+        timeoutMs,
+      );
       const onError = (error: Error) => fail(error);
       const onClose = () => fail(new Error('The service closed the connection'));
       const onData = (chunk: string) => {
@@ -79,7 +93,9 @@ export class ServiceClient extends EventEmitter<ClientEvents> {
 
       socket.on('error', onError).on('close', onClose).on('data', onData);
       socket.on('connect', () =>
-        socket.write(encodeMessage({ kind: 'hello', token: info.token, protocolVersion: PROTOCOL_VERSION })),
+        socket.write(
+          encodeMessage({ kind: 'hello', token: info.token, protocolVersion: PROTOCOL_VERSION }),
+        ),
       );
     });
   }
@@ -123,7 +139,8 @@ export class ServiceClient extends EventEmitter<ClientEvents> {
   private onClose(): void {
     if (this.closed) return;
     this.closed = true;
-    for (const waiting of this.pending.values()) waiting.reject(new Error('The service connection closed'));
+    for (const waiting of this.pending.values())
+      waiting.reject(new Error('The service connection closed'));
     this.pending.clear();
     this.emit('close');
   }

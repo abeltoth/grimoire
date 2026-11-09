@@ -20,14 +20,22 @@ afterEach(async () => {
 });
 
 function tempEndpoint(): string {
-  const dir = mkdtempSync(path.join(os.tmpdir(), `grimoire-test-${randomBytes(4).toString('hex')}-`));
+  const dir = mkdtempSync(
+    path.join(os.tmpdir(), `grimoire-test-${randomBytes(4).toString('hex')}-`),
+  );
   dirs.push(dir);
   return endpointFor(dir);
 }
 
 async function start(endpoint = tempEndpoint(), onShutdown = () => {}) {
   const registry = new CommandRegistry();
-  registry.register('core.ping', () => ({ pid: 1, buildId: 'b1', startedAt: 0, uptimeMs: 0, node: 'x' }));
+  registry.register('core.ping', () => ({
+    pid: 1,
+    buildId: 'b1',
+    startedAt: 0,
+    uptimeMs: 0,
+    node: 'x',
+  }));
   const server = await startServer({
     endpoint,
     token: TOKEN,
@@ -42,7 +50,11 @@ async function start(endpoint = tempEndpoint(), onShutdown = () => {}) {
 }
 
 /** Connects, sends `messages`, and collects replies until the socket closes or `count` arrive. */
-function exchange(endpoint: string, messages: unknown[], count: number): Promise<{ replies: ServiceMessage[]; closed: boolean }> {
+function exchange(
+  endpoint: string,
+  messages: unknown[],
+  count: number,
+): Promise<{ replies: ServiceMessage[]; closed: boolean }> {
   return new Promise((resolve) => {
     const socket = net.createConnection(endpoint);
     const decoder = new LineDecoder();
@@ -66,9 +78,22 @@ const hello = { kind: 'hello', token: TOKEN, protocolVersion: PROTOCOL_VERSION }
 describe('service server', () => {
   it('welcomes a client with the right token and answers ping', async () => {
     const { endpoint } = await start();
-    const { replies } = await exchange(endpoint, [hello, { kind: 'request', id: 7, command: 'core.ping', request: {} }], 2);
-    expect(replies[0]).toMatchObject({ kind: 'welcome', buildId: 'b1', protocolVersion: PROTOCOL_VERSION });
-    expect(replies[1]).toMatchObject({ kind: 'response', id: 7, ok: true, response: { buildId: 'b1' } });
+    const { replies } = await exchange(
+      endpoint,
+      [hello, { kind: 'request', id: 7, command: 'core.ping', request: {} }],
+      2,
+    );
+    expect(replies[0]).toMatchObject({
+      kind: 'welcome',
+      buildId: 'b1',
+      protocolVersion: PROTOCOL_VERSION,
+    });
+    expect(replies[1]).toMatchObject({
+      kind: 'response',
+      id: 7,
+      ok: true,
+      response: { buildId: 'b1' },
+    });
   });
 
   it('closes the connection on a wrong token', async () => {
@@ -80,7 +105,11 @@ describe('service server', () => {
 
   it('ignores requests sent before the hello', async () => {
     const { endpoint } = await start();
-    const { replies, closed } = await exchange(endpoint, [{ kind: 'request', id: 1, command: 'core.ping', request: {} }], 1);
+    const { replies, closed } = await exchange(
+      endpoint,
+      [{ kind: 'request', id: 1, command: 'core.ping', request: {} }],
+      1,
+    );
     expect(closed).toBe(true);
     expect(replies).toEqual([]);
   });
@@ -93,14 +122,27 @@ describe('service server', () => {
 
   it('answers an unknown command with an error', async () => {
     const { endpoint } = await start();
-    const { replies } = await exchange(endpoint, [hello, { kind: 'request', id: 2, command: 'nope', request: {} }], 2);
-    expect(replies[1]).toMatchObject({ kind: 'response', id: 2, ok: false, error: { code: 'unknown-command' } });
+    const { replies } = await exchange(
+      endpoint,
+      [hello, { kind: 'request', id: 2, command: 'nope', request: {} }],
+      2,
+    );
+    expect(replies[1]).toMatchObject({
+      kind: 'response',
+      id: 2,
+      ok: false,
+      error: { code: 'unknown-command' },
+    });
   });
 
   it('calls onShutdown when the app asks', async () => {
     let asked = false;
     const { endpoint } = await start(undefined, () => (asked = true));
-    await exchange(endpoint, [hello, { kind: 'shutdown' }, { kind: 'request', id: 3, command: 'core.ping', request: {} }], 2);
+    await exchange(
+      endpoint,
+      [hello, { kind: 'shutdown' }, { kind: 'request', id: 3, command: 'core.ping', request: {} }],
+      2,
+    );
     expect(asked).toBe(true);
   });
 

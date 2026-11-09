@@ -15,11 +15,19 @@ export const kanban: ServiceModule = {
     registerKanban(registry, cards, events.emit);
     // Your Jira issues come through your claude.ai Atlassian connector, on a Claude Code process of their own;
     // moving one in Jira, on another, the one that may change Jira.
-    const jira = new JiraSyncer(cards, () => settings.get().jiraQuery, openConnectors, events.emit, log);
+    const jira = new JiraSyncer(
+      cards,
+      () => settings.get().jiraQuery,
+      openConnectors,
+      events.emit,
+      log,
+    );
     const moves = new JiraMoves(cards, openConnectors, events.emit, log);
     registerJira(registry, jira, moves);
     // A task the agent adds goes on the board in use, which every window is told of.
-    claude.addTodosWith((draft, madeIn) => events.emit('kanban.changed', { cards: cards.save(draft, madeIn) }));
+    claude.addTodosWith((draft, madeIn) =>
+      events.emit('kanban.changed', { cards: cards.save(draft, madeIn) }),
+    );
     return {
       // The board's Jira issues are synced every hour, as well as when the board opens.
       ready: () => jira.syncEvery(60 * 60_000),

@@ -4,7 +4,8 @@ import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 
 function reader(win: BrowserWindow) {
-  return (expression: string): Promise<string> => win.webContents.executeJavaScript(expression).then(String, () => '');
+  return (expression: string): Promise<string> =>
+    win.webContents.executeJavaScript(expression).then(String, () => '');
 }
 
 /** Waits until the UI has the service's answer; returns 'connected', 'failed' or ''. */
@@ -12,7 +13,9 @@ async function waitForService(win: BrowserWindow): Promise<string> {
   const read = reader(win);
   const deadline = Date.now() + 30_000;
   while (Date.now() < deadline) {
-    const state = await read(`document.querySelector('[data-service-state]')?.getAttribute('data-service-state') ?? ''`);
+    const state = await read(
+      `document.querySelector('[data-service-state]')?.getAttribute('data-service-state') ?? ''`,
+    );
     if (state === 'connected' || state === 'failed') return state;
     await delay(200);
   }
@@ -24,9 +27,14 @@ async function waitForService(win: BrowserWindow): Promise<string> {
  * result, prints it, stops the smoke service and exits 0 on success.
  * This covers the whole path: Angular, preload, IPC, app, socket, service.
  */
-export async function runSmokeTest(win: BrowserWindow, stopService: () => Promise<void>): Promise<void> {
+export async function runSmokeTest(
+  win: BrowserWindow,
+  stopService: () => Promise<void>,
+): Promise<void> {
   const state = await waitForService(win);
-  const text = await reader(win)(`document.querySelector('[data-service-state]')?.textContent?.trim() ?? ''`);
+  const text = await reader(win)(
+    `document.querySelector('[data-service-state]')?.textContent?.trim() ?? ''`,
+  );
   const passed = state === 'connected';
   console.log(`Smoke test ${passed ? 'passed' : 'failed'}: ${state || 'timed out'}. ${text}`);
 
@@ -51,7 +59,9 @@ export async function runCapture(
   }
   const state = await waitForService(win);
   const read = reader(win);
-  await read('document.fonts.ready.then(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))))');
+  await read(
+    'document.fonts.ready.then(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))))',
+  );
   const fonts = await read(
     `[...document.fonts].filter((f) => f.status === 'loaded').map((f) => f.family + ' ' + f.weight + ' ' + f.style).join(', ')`,
   );
@@ -59,7 +69,9 @@ export async function runCapture(
   const out = path.resolve(file);
   writeFileSync(out, image.toPNG());
   const { width, height } = image.getSize();
-  console.log(`Captured ${width}×${height} to ${out} (service ${state || 'timed out'}). Fonts loaded: ${fonts || 'none'}`);
+  console.log(
+    `Captured ${width}×${height} to ${out} (service ${state || 'timed out'}). Fonts loaded: ${fonts || 'none'}`,
+  );
 
   await Promise.race([stopService().catch(() => {}), delay(5000)]);
   app.exit(0);

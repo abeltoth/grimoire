@@ -1,7 +1,13 @@
 import path from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { GRIMOIRE_SERVER, type ServerMaker, grimoireOptions } from './grimoire-tools';
-import { ADD_TODO_PROMPT, ADD_TODO_TOOL, ADD_TODO_TOOL_NAME, type AddTodo, TodoChat } from './todos';
+import {
+  ADD_TODO_PROMPT,
+  ADD_TODO_TOOL,
+  ADD_TODO_TOOL_NAME,
+  type AddTodo,
+  TodoChat,
+} from './todos';
 
 type Handler = (args: { title: string; notes?: string; folder?: string }) => Promise<unknown>;
 
@@ -71,10 +77,12 @@ describe('the add_todo tool', () => {
   });
 
   it('adds a card in the chat’s folder, tidied, made in the chat, and says so', async () => {
-    await expect(addTodo().handler({ title: ' Context meter ', notes: ' From the usage events.\n' })).resolves.toEqual(
-      said('Added "Context meter" to To do on the user\'s Kanban board.'),
-    );
-    expect(added).toEqual([[{ title: 'Context meter', notes: 'From the usage events.', cwd }, chat]]);
+    await expect(
+      addTodo().handler({ title: ' Context meter ', notes: ' From the usage events.\n' }),
+    ).resolves.toEqual(said('Added "Context meter" to To do on the user\'s Kanban board.'));
+    expect(added).toEqual([
+      [{ title: 'Context meter', notes: 'From the usage events.', cwd }, chat],
+    ]);
   });
 
   it('puts the card in the folder named, one not absolute taken from the chat’s', async () => {
@@ -86,7 +94,9 @@ describe('the add_todo tool', () => {
   });
 
   it('tells the agent when the card was turned away, or its chat isn’t known yet', async () => {
-    await expect(addTodo().handler({ title: '  ' })).resolves.toEqual(said('A card needs a title', true));
+    await expect(addTodo().handler({ title: '  ' })).resolves.toEqual(
+      said('A card needs a title', true),
+    );
     await expect(addTodo(false).handler({ title: 'Context meter' })).resolves.toEqual(
       said('There is no chat to add the task in yet.', true),
     );

@@ -9,7 +9,11 @@ const REFERENCE = /^@(?:"([^"]+)"|(\S+))$/;
  * on lines of their own after the text, which Claude Code reads in with the
  * message. Files inside the chat's folder are named relative to it.
  */
-export function withReferences(text: string, attachments: readonly Attachment[], cwd: string): string {
+export function withReferences(
+  text: string,
+  attachments: readonly Attachment[],
+  cwd: string,
+): string {
   const references = attachments
     .filter((attachment): attachment is FileAttachment => attachment.kind === 'file')
     .map(({ path: file }) => `@"${named(file, cwd)}"`);

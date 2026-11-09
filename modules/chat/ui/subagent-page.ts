@@ -60,13 +60,16 @@ export class SubagentPage {
     const chat = this.subagents.chat();
     const toolId = this.subagents.block()?.id;
     const own = chat?.entries.some(
-      (entry) => entry.kind === 'agent' && entry.blocks.some((b) => b.kind === 'tool' && b.id === toolId),
+      (entry) =>
+        entry.kind === 'agent' && entry.blocks.some((b) => b.kind === 'tool' && b.id === toolId),
     );
     return chat && own ? this.chats.agentName(chat.agent) : this.wording.say('Helper', 'Subagent');
   });
 
   /** Whether there's nothing of what the subagent did to read, as yet or at all. */
-  protected readonly unrecorded = computed(() => !this.subagents.loading() && !this.subagents.entries().length);
+  protected readonly unrecorded = computed(
+    () => !this.subagents.loading() && !this.subagents.entries().length,
+  );
 
   /**
    * The subagent's run as a chat that only reads: its task first, then what
@@ -79,9 +82,18 @@ export class SubagentPage {
     if (!chat || !block) return undefined;
     let entries: readonly Entry[] = this.subagents.entries();
     // A message's result only says it was sent.
-    if (this.unrecorded() && block.result?.text && !this.subagents.running() && block.tool !== 'SendMessage')
+    if (
+      this.unrecorded() &&
+      block.result?.text &&
+      !this.subagents.running() &&
+      block.tool !== 'SendMessage'
+    )
       entries = [
-        { kind: 'agent', id: `${block.id}/result`, blocks: [{ kind: 'text', text: block.result.text }] },
+        {
+          kind: 'agent',
+          id: `${block.id}/result`,
+          blocks: [{ kind: 'text', text: block.result.text }],
+        },
       ];
     const prompt = entries.some((entry) => entry.kind === 'user') ? '' : this.task().prompt;
     return {
@@ -90,7 +102,9 @@ export class SubagentPage {
       title: chat.title,
       settings: chat.settings,
       status: this.subagents.running() ? 'thinking' : 'idle',
-      entries: prompt ? [{ kind: 'user', id: `${block.id}/task`, text: prompt }, ...entries] : [...entries],
+      entries: prompt
+        ? [{ kind: 'user', id: `${block.id}/task`, text: prompt }, ...entries]
+        : [...entries],
       approvals: [],
       queued: [],
       plan: [],
