@@ -20,7 +20,8 @@ import {
 import { ClaudeAdapter } from './agents/claude/claude-adapter';
 import { useClaudeFolder } from './agents/claude/config-dir';
 import { registerAgentCommands } from './agents/commands';
-import { AgentHub, hubStore } from './agents/hub';
+import { AgentHub } from './agents/hub';
+import { hubStore } from './agents/chat-table';
 import { LayoutStore, registerLayout } from './core/layout';
 import { PresetStore, registerPresets } from './core/presets';
 import { ProfileStore, registerProfiles } from './core/profiles';

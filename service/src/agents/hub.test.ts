@@ -7,7 +7,8 @@ import { setActiveProfile } from '../storage/app-state';
 import { openDatabase } from '../storage/database';
 import type { ChatEvents, LiveChat } from './adapter';
 import { FakeAdapter } from './fake-adapter';
-import { AgentHub, hubStore } from './hub';
+import { hubStore } from './chat-table';
+import { AgentHub } from './hub';
 
 type Sent = { [K in EventName]: { event: K; payload: EventPayload<K> } }[EventName];
 
