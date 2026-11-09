@@ -8,9 +8,19 @@ import type {
 import { fakeBridge, render } from '@ui/testing/app-harness';
 
 describe('usage', () => {
+  // The page counts days and hours back from now, so the tests fix it.
+  const now = new Date(2026, 10, 9, 15, 30).getTime();
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(now);
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('shows how much of the plan\'s limits is used in the Usage page, and reads it again', async () => {
     const { bridge, answers, calls } = fakeBridge();
-    const tonight = new Date();
+    const tonight = new Date(now);
     tonight.setHours(23, 0, 0, 0);
     let used = 37;
     answers['agents.usage'] = () => ({
@@ -49,7 +59,6 @@ describe('usage', () => {
 
   it("draws the week's limit as steps and each session's peak in the Usage page, with a row a day", async () => {
     const { bridge, answers, calls } = fakeBridge();
-    const now = Date.now();
     const minutes = (n: number) => now - n * 60_000;
     const lastWeek = minutes(3 * 24 * 60);
     const nextWeek = now + 4 * 24 * 60 * 60_000;
@@ -126,7 +135,7 @@ describe('usage', () => {
     const { bridge, answers } = fakeBridge();
     answers['agents.usage'] = () => ({ plan: 'max', windows: [], at: 0 });
     answers['agents.usageBreakdown'] = () => null;
-    const today = new Date();
+    const today = new Date(now);
     today.setHours(0, 0, 0, 0);
     const day = (back: number) => {
       const date = new Date(today);
@@ -142,7 +151,7 @@ describe('usage', () => {
       output,
       weight: input + cacheRead * 0.1 + output * 5,
     });
-    const hour = new Date();
+    const hour = new Date(now);
     hour.setMinutes(0, 0, 0);
     answers['tokens.totals'] = ({ since }: CommandRequest<'tokens.totals'>): TokenTotals => ({
       since,
