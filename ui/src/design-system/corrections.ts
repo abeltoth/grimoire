@@ -1,6 +1,5 @@
-import { Component, ElementRef, computed, input, output, viewChild } from '@angular/core';
+import { Component, computed, input, output } from '@angular/core';
 import type { DiffLine } from '@grimoire/contract';
-import { linesShown } from './fold-out';
 
 interface Line extends DiffLine {
   key: number;
@@ -32,8 +31,6 @@ export class Corrections {
   /** Asks to open the file in Files. */
   readonly open = output<void>();
 
-  private readonly body = viewChild.required<ElementRef<HTMLElement>>('body');
-
   protected readonly marked = computed<Line[]>(() => {
     const breaks = new Set(this.breaks());
     return this.lines().map((line, key, lines) => ({
@@ -48,10 +45,6 @@ export class Corrections {
   );
   protected readonly removed = computed(
     () => this.lines().filter((line) => line.kind === 'removed').length,
-  );
-  protected readonly shown = linesShown(
-    () => this.body().nativeElement,
-    () => this.lines().length,
   );
 }
 

@@ -1,5 +1,4 @@
-import { Component, ElementRef, computed, input, viewChild } from '@angular/core';
-import { linesShown } from './fold-out';
+import { Component, computed, input } from '@angular/core';
 
 /** Terminal colour and cursor codes, which a page can't show. */
 const ESCAPES = /\x1b\[[0-9;?]*[ -/]*[@-~]/g;
@@ -16,13 +15,7 @@ export class Output {
   readonly title = input.required<string>();
   readonly text = input.required<string>();
 
-  private readonly body = viewChild.required<ElementRef<HTMLElement>>('body');
-
   protected readonly lines = computed(() =>
     this.text().replace(ESCAPES, '').replace(/\r?\n$/, '').split(/\r?\n/),
-  );
-  protected readonly shown = linesShown(
-    () => this.body().nativeElement,
-    () => this.lines().length,
   );
 }

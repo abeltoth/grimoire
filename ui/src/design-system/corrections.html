@@ -7,7 +7,7 @@
     <button type="button" class="gr-link" (click)="open.emit()">Open in Files</button>
   }
 </div>
-<div #body class="body" tabindex="0">
+<div class="body" tabindex="0">
   @for (line of marked(); track line.key) {
     <div
       class="line"
@@ -22,9 +22,6 @@
   }
 </div>
 <div class="foot">
-  @if (shown() < lines().length) {
-    <span>{{ shown() }} of {{ lines().length }} lines shown · scroll for the rest</span>
-  }
   <span class="spacer"></span>
   <span>struck: removed · ‸ inserted</span>
 </div>
