@@ -292,8 +292,8 @@ describe('chat-page', () => {
     el.querySelector<HTMLButtonElement>('gr-pins .pin')!.click();
     el.querySelector<HTMLButtonElement>('gr-pins .star')!.click();
     expect(calls.filter((c) => c.command === 'agents.pin').map((c) => c.request)).toEqual([
-      { chatId: 'c1', pin: 'pin', folded: true },
-      { chatId: 'c1', pin: 'star', folded: false },
+      { chatId: 'c1', mark: 'pin', on: true },
+      { chatId: 'c1', mark: 'star', on: false },
     ]);
     emit('agents.pins', { chatId: 'c1', pins: ['pin'] });
     await fixture.whenStable();

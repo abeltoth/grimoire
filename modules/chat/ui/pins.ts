@@ -1,5 +1,5 @@
 import { Component, inject, input } from '@angular/core';
-import type { Pin } from '@grimoire/contract';
+import type { Mark } from '@grimoire/contract';
 import { type Chat, Chats } from '@ui/app/core/chats';
 import { Wording } from '@ui/app/core/wording';
 
@@ -13,10 +13,10 @@ import { Wording } from '@ui/app/core/wording';
     <button
       type="button"
       class="dog pin"
-      [class.folded]="folded('pin')"
+      [class.folded]="has('pin')"
       [attr.aria-disabled]="blank() ? true : null"
       [attr.aria-label]="
-        folded('pin')
+        has('pin')
           ? wording.say('Pinned. Unfold to unpin', 'Pinned. Unpin')
           : wording.say('Pin this chapter', 'Pin this chat')
       "
@@ -25,10 +25,10 @@ import { Wording } from '@ui/app/core/wording';
     <button
       type="button"
       class="dog star"
-      [class.folded]="folded('star')"
+      [class.folded]="has('star')"
       [attr.aria-disabled]="blank() ? true : null"
       [attr.aria-label]="
-        folded('star')
+        has('star')
           ? wording.say('Starred. Unfold to unstar', 'Starred. Unstar')
           : wording.say('Star this chapter', 'Star this chat')
       "
@@ -46,12 +46,12 @@ export class Pins {
     return this.chat().status === 'blank';
   }
 
-  protected folded(pin: Pin): boolean {
-    return this.chat().pins.includes(pin);
+  protected has(mark: Mark): boolean {
+    return this.chat().pins.includes(mark);
   }
 
-  protected toggle(pin: Pin): void {
+  protected toggle(mark: Mark): void {
     if (this.blank()) return;
-    void this.chats.pin(this.chat().id, pin, !this.folded(pin));
+    void this.chats.pin(this.chat().id, mark, !this.has(mark));
   }
 }

@@ -22,7 +22,7 @@ import type {
   ContextUsage,
   PromptCache,
   Attachment,
-  Pin,
+  Mark,
   Editor,
   Entry,
   EventName,
@@ -76,7 +76,7 @@ interface ChatState {
   plan: PlanStep[];
   /** Your entries whose file changes were undone. */
   withdrawn: string[];
-  pins: Pin[];
+  pins: Mark[];
   tags: string[];
   /** Your entries copied from the chat this one was forked from. */
   copied: string[];
@@ -652,7 +652,6 @@ export class AgentHub {
     return `${base} (${letter ?? 'z'})`;
   }
 
-  /** Folds a chat's pin down, or unfolds it. */
   /** Renames a chat with its agent. */
   async rename(chatId: ChatId, title: string): Promise<void> {
     const chat = this.chat(chatId);
@@ -665,8 +664,9 @@ export class AgentHub {
     this.retitled(chat);
   }
 
-  pin(chatId: ChatId, pin: Pin, folded: boolean): void {
-    this.store.pins.set(chatId, pin, folded);
+  /** Puts a mark on a chat, or takes it off. */
+  pin(chatId: ChatId, mark: Mark, on: boolean): void {
+    this.store.pins.set(chatId, mark, on);
     const pins = this.store.pins.of(chatId);
     const chat = this.chats.get(chatId);
     if (chat) chat.pins = pins;

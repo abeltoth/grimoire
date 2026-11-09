@@ -52,8 +52,8 @@ export function registerAgentCommands(registry: CommandRegistry, hub: AgentHub):
   registry.register('agents.parallel', ({ from, model, text, attachments }) =>
     hub.parallel(from, model, text, attachments),
   );
-  registry.register('agents.pin', ({ chatId, pin, folded }) =>
-    hub.pin(chatId, pin, folded),
+  registry.register('agents.pin', ({ chatId, mark, on }) =>
+    hub.pin(chatId, mark, on),
   );
   registry.register('agents.takeFollowUp', ({ chatId, index }) => hub.takeFollowUp(chatId, index));
   registry.register('agents.unqueue', ({ chatId, id }) => hub.unqueue(chatId, id));

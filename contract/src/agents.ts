@@ -189,8 +189,8 @@ export interface ChatSummary {
   cwd?: string;
   /** ms since the epoch. */
   updatedAt: number;
-  /** Which of its pins are folded. */
-  pins: Pin[];
+  /** Its marks: pinned, starred. */
+  pins: Mark[];
   /** Your tags for it, in the order you added them. */
   tags: string[];
 }
@@ -409,8 +409,8 @@ export interface FollowUp {
   prompt: string;
 }
 
-/** A pin on a chat's page: the top corner pins it, the bottom one stars it. */
-export type Pin = 'pin' | 'star';
+/** A mark on a chat: the page's top corner pins it, the bottom one stars it. */
+export type Mark = 'pin' | 'star';
 
 /**
  * The chat that edits while another open chat sent the same entry in
@@ -444,8 +444,8 @@ export interface OpenChat {
   plan: PlanStep[];
   /** Your entries whose file changes were undone; their edits show as withdrawn. */
   withdrawn: string[];
-  /** The pins folded down on the chat. */
-  pins: Pin[];
+  /** The chat's marks: pinned, starred. */
+  pins: Mark[];
   /** Your tags for it, in the order you added them. */
   tags: string[];
   /**
@@ -540,9 +540,9 @@ declare module './commands' {
       request: { from: ParallelFrom; model: string; text: string; attachments?: Attachment[] };
       response: OpenChat;
     };
-    /** Folds a chat's pin down, or unfolds it: pins or stars the chat, or takes that back. */
+    /** Pins or stars a chat, or takes that back. */
     'agents.pin': {
-      request: { chatId: ChatId; pin: Pin; folded: boolean };
+      request: { chatId: ChatId; mark: Mark; on: boolean };
       response: void;
     };
     /** Sets a chat's tags, in the order you added them. */
@@ -619,8 +619,8 @@ declare module './events' {
     'agents.settings': { chatId: ChatId; settings: ChatSettings };
     /** The agent changed its plan. */
     'agents.plan': { chatId: ChatId; plan: PlanStep[] };
-    /** A chat's pins changed: the ones now folded down. */
-    'agents.pins': { chatId: ChatId; pins: Pin[] };
+    /** A chat's marks changed: the ones it has now. */
+    'agents.pins': { chatId: ChatId; pins: Mark[] };
     'agents.tags': { chatId: ChatId; tags: string[] };
     /** Edits were undone: your entries whose file changes are now withdrawn. */
     'agents.withdrawn': { chatId: ChatId; withdrawn: string[] };

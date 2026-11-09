@@ -11,7 +11,7 @@ import type {
   ChatStatus,
   ChatSummary,
   ContextUsage,
-  Pin,
+  Mark,
   EffortLevel,
   Editor,
   Attachment,
@@ -54,8 +54,8 @@ export interface Chat {
   plan: readonly PlanStep[];
   /** Your entries whose file changes were undone. */
   withdrawn: readonly string[];
-  /** The pins folded down: pinned, starred. */
-  pins: readonly Pin[];
+  /** Its marks: pinned, starred. */
+  pins: readonly Mark[];
   /** Your tags, in the order you added them. */
   tags: readonly string[];
   /** Your entries copied from the chat this one was forked from; they can't be undone. */
@@ -671,9 +671,9 @@ export class Chats {
     }
   }
 
-  /** Folds a chat's pin down, or unfolds it. */
-  pin(id: string, pin: Pin, folded: boolean): Promise<void> {
-    return this.settle(id, this.bridge.invoke('agents.pin', { chatId: id, pin, folded }));
+  /** Puts a mark on a chat, or takes it off. */
+  pin(id: string, mark: Mark, on: boolean): Promise<void> {
+    return this.settle(id, this.bridge.invoke('agents.pin', { chatId: id, mark, on }));
   }
 
   /** Takes a message out of the queue; false when it had already gone. */
