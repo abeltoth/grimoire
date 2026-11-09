@@ -1,3 +1,4 @@
+import { NgComponentOutlet } from '@angular/common';
 import {
   Component,
   ElementRef,
@@ -28,11 +29,10 @@ import { Focus } from '@ui/app/shell/focus';
 import { PageFooter } from '@ui/app/shell/page-footer';
 import { HeaderBadges } from '@ui/app/shell/header-badges';
 import { PageHeader } from '@ui/app/shell/page-header';
+import { ShellRegistry } from '@ui/app/shell/shell-registry';
 import { StatusIndicators } from '@ui/app/shell/status-indicators';
 import { ChatIntro } from './chat-intro';
-import { ChatTags } from './chat-tags';
 import { Composer } from './composer';
-import { Pins } from './pins';
 import { FollowUps } from './follow-ups';
 import { SettingsCard } from './settings-card';
 import { Transcript } from './transcript';
@@ -65,10 +65,9 @@ export const SECOND_CHAT = 'second-chat';
   selector: 'gr-chat-page',
   imports: [
     ChatIntro,
-    ChatTags,
     SlashCommands,
     Composer,
-    Pins,
+    NgComponentOutlet,
     RightPageTabs,
     FollowUps,
     Icon,
@@ -93,6 +92,7 @@ export class ChatPage {
   private readonly presets = inject(Presets);
   protected readonly wording = inject(Wording);
   protected readonly focus = inject(Focus);
+  protected readonly shell = inject(ShellRegistry);
   private readonly commands = inject(AgentCommands);
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;

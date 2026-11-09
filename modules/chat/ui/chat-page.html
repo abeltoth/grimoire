@@ -3,7 +3,9 @@
     <gr-slash-commands [backTo]="wording.say('chapter', 'chat')" [foot]="false" />
   } @else {
     @if (!beside()) {
-      <gr-pins [chat]="c" />
+      @for (part of shell.chatCorners.all(); track part.id) {
+        <ng-container *ngComponentOutlet="part.component; inputs: { chat: c }" />
+      }
     }
     <gr-page-header>
       @if (beside()) {
@@ -39,7 +41,9 @@
               </button>
             }
           }
-          <gr-chat-tags [chat]="c" />
+          @for (part of shell.afterTitle.all(); track part.id) {
+            <ng-container *ngComponentOutlet="part.component; inputs: { chat: c }" />
+          }
           <gr-header-badges />
         </div>
       }

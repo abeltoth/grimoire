@@ -264,49 +264,6 @@ describe('chat-page', () => {
     expect(texts('gr-chat-tab b')).toEqual(['Context meter', 'Context meter (a)', 'New chapter']);
   });
 
-  it('pins and stars a chat, but not a blank one', async () => {
-    const { bridge, calls, emit, answers } = fakeBridge();
-    answers['agents.openChats'] = (): OpenChat[] => [
-      {
-        id: 'c1',
-        agent: 'claude-code',
-        title: 'Context meter',
-        settings: { cwd: 'C:/work/grimoire' },
-        status: 'idle',
-        entries: [{ kind: 'user', id: 'u1', text: 'Add a meter' }],
-        approvals: [],
-        queued: [],
-        plan: [],
-        withdrawn: [],
-        pins: ['star'],
-
-        tags: [],
-        copied: [],
-      },
-    ];
-    answers['layout.get'] = () => ({ current: 'c1' });
-    const { fixture, el } = await render(bridge);
-    const labels = () => [...el.querySelectorAll('gr-pins button')].map((b) => b.getAttribute('aria-label'));
-    expect(labels()).toEqual(['Pin this chapter', 'Starred. Unfold to unstar']);
-
-    el.querySelector<HTMLButtonElement>('gr-pins .pin')!.click();
-    el.querySelector<HTMLButtonElement>('gr-pins .star')!.click();
-    expect(calls.filter((c) => c.command === 'agents.pin').map((c) => c.request)).toEqual([
-      { chatId: 'c1', mark: 'pin', on: true },
-      { chatId: 'c1', mark: 'star', on: false },
-    ]);
-    emit('agents.pins', { chatId: 'c1', pins: ['pin'] });
-    await fixture.whenStable();
-    expect(labels()).toEqual(['Pinned. Unfold to unpin', 'Star this chapter']);
-
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'n', ctrlKey: true }));
-    await fixture.whenStable();
-    const blank = [...el.querySelectorAll('gr-pins button')];
-    expect(blank.map((b) => b.getAttribute('aria-disabled'))).toEqual(['true', 'true']);
-    (blank[0] as HTMLButtonElement).click();
-    expect(calls.filter((c) => c.command === 'agents.pin')).toHaveLength(2);
-  });
-
   it('renames a chat in place with the pen beside its title', async () => {
     const { bridge, calls, answers } = fakeBridge();
     answers['agents.list'] = () => [{ id: 'claude-code', name: 'Claude Code', capabilities: ['rename'] }];
@@ -347,43 +304,6 @@ describe('chat-page', () => {
     const { bridge } = fakeBridge();
     const { el } = await render(bridge);
     expect(el.querySelector('[aria-label="Rename chapter"]')).toBeNull();
-  });
-
-  it('tags a chat in its page header, and takes tags off again', async () => {
-    const { bridge, calls } = fakeBridge();
-    const { fixture, el, texts } = await render(bridge);
-    const add = async (tag: string, key: string) => {
-      el.querySelector<HTMLButtonElement>('gr-chat-tags .gr-link')!.click();
-      await fixture.whenStable();
-      const field = el.querySelector<HTMLInputElement>('gr-chat-tags input')!;
-      expect(document.activeElement).toBe(field);
-      field.value = tag;
-      field.dispatchEvent(new KeyboardEvent('keydown', { key, cancelable: true }));
-      await fixture.whenStable();
-    };
-    const tagCalls = () => calls.filter((c) => c.command === 'agents.tag').map((c) => c.request);
-
-    // A blank chat keeps its tags once it starts.
-    await add('ui', 'Enter');
-    expect(texts('gr-chat-tags .tag')).toEqual(['ui']);
-    await write(fixture, el, 'First');
-    expect(tagCalls()).toEqual([{ chatId: 'chat-1', tags: ['ui'] }]);
-
-    await add(' bug ', 'Enter');
-    await add('UI', 'Enter');
-    await add('later', 'Escape');
-    expect(texts('gr-chat-tags .tag')).toEqual(['ui', 'bug']);
-    expect(tagCalls()).toEqual([
-      { chatId: 'chat-1', tags: ['ui'] },
-      { chatId: 'chat-1', tags: ['ui', 'bug'] },
-    ]);
-    expect(calls.filter((c) => c.command === 'agents.interrupt')).toEqual([]);
-    expect(document.activeElement).toBe(el.querySelector('gr-chat-tags .gr-link'));
-
-    el.querySelector<HTMLButtonElement>('[aria-label="Remove tag ui"]')!.click();
-    await fixture.whenStable();
-    expect(texts('gr-chat-tags .tag')).toEqual(['bug']);
-    expect(tagCalls().at(-1)).toEqual({ chatId: 'chat-1', tags: ['bug'] });
   });
 
   it('shows why an undo failed', async () => {

@@ -126,9 +126,9 @@ export class CommandPalette {
     };
     const after = commands.findIndex((entry) => entry.id === 'action-chats.new') + 1;
     const actions = [...commands.slice(0, after), fromPreset, ...commands.slice(after)];
-    // Pinned chats stay at the top; the rest are newest first.
-    const pinned = (chat: ChatSummary) => Number(chat.pins.includes('pin'));
-    const chats = [...this.pastChats()].sort((a, b) => pinned(b) - pinned(a)).map(
+    // Chats come newest first, so a stable sort keeps that order within each rank.
+    const rank = this.registry.rankChat() ?? (() => 0);
+    const chats = [...this.pastChats()].sort((a, b) => rank(b) - rank(a)).map(
       (chat): CommandPaletteEntry => ({
         id: `chat-${chat.id}`,
         label: chat.title || this.wording.untitled(),

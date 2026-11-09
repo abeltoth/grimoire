@@ -9,6 +9,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import type { ChatSummary } from '@grimoire/contract';
 import type { IconName } from '../../design-system/icon';
 import { Chats } from '../core/chats';
 import { Profiles } from '../core/profiles';
@@ -71,6 +72,11 @@ export interface Badge extends Entry {
   open?: () => void;
 }
 
+/** Something drawn on the open chat's page, such as its tags; it takes the chat as its `chat` input. */
+export interface ChatPart extends Entry {
+  component: Type<unknown>;
+}
+
 /** Something you can do from the command palette or with a shortcut. */
 export interface Command extends Entry, Labelled {
   /** A gloss the command palette shows after the label, such as "with your last settings". */
@@ -103,8 +109,9 @@ export class Slot<T extends Entry> {
 
 /**
  * The places in the shell that features fill (ADR-008): page tabs, right
- * pages, page-footer indicators, page-header badges and commands. The shell draws whatever is
- * registered here and knows nothing about the features themselves.
+ * pages, page-footer indicators, page-header badges, parts of the chat's
+ * page and commands. The shell draws whatever is registered here and knows
+ * nothing about the features themselves.
  */
 @Injectable({ providedIn: 'root' })
 export class ShellRegistry {
@@ -113,6 +120,16 @@ export class ShellRegistry {
   readonly indicators = new Slot<Indicator>();
   readonly badges = new Slot<Badge>();
   readonly commands = new Slot<Command>();
+  /** On the open chat's page, over its corners, such as its pins; not on a chat beside it. */
+  readonly chatCorners = new Slot<ChatPart>();
+  /** After the open chat's title in its page header, such as its tags; not on a chat beside it. */
+  readonly afterTitle = new Slot<ChatPart>();
+  /**
+   * How high the command palette lists a past chat: higher first, then
+   * newest. The history module's puts pinned chats first; without it,
+   * newest first.
+   */
+  readonly rankChat = signal<((chat: ChatSummary) => number) | undefined>(undefined);
   /** What the left page shows for the open chat: the chat module's page. */
   readonly chatPage = signal<Type<unknown> | undefined>(undefined);
   /**
