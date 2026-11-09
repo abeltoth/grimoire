@@ -55,7 +55,7 @@ h2 {
   color: var(--gr-rubric);
 }
 
-/* A section of the setup, folded shut until you open it. */
+/* A section of the setup, collapsed until you open it. */
 .group {
   border-top: var(--gr-workflow-setup-rule);
 }

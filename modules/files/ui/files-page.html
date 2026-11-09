@@ -165,17 +165,17 @@
       @for (entry of entries; track entry.path) {
         <li>
           @if (entry.kind === 'folder') {
-            @let unfolded = view().unfolded().has(entry.path);
+            @let expanded = view().expanded().has(entry.path);
             <button
               type="button"
               class="entry folder-entry"
               [class.ignored]="entry.ignored"
-              [attr.aria-expanded]="unfolded"
+              [attr.aria-expanded]="expanded"
               (click)="toggle(entry.path)"
             >
-              <gr-icon name="chevron-down" [class.folded]="!unfolded" />{{ entry.name }}/
+              <gr-icon name="chevron-down" [class.collapsed]="!expanded" />{{ entry.name }}/
             </button>
-            @if (unfolded) {
+            @if (expanded) {
               @if (view().entries().has(entry.path)) {
                 <ng-container *ngTemplateOutlet="folder; context: { $implicit: entry.path }" />
               } @else {

@@ -20,7 +20,7 @@ export class FilesView {
   readonly root = signal<string | null>(null);
   /** Each folder's entries once read, by its path; the top folder's is ''. */
   readonly entries = signal<ReadonlyMap<string, readonly FolderEntry[]>>(new Map());
-  readonly unfolded = signal<ReadonlySet<string>>(new Set());
+  readonly expanded = signal<ReadonlySet<string>>(new Set());
   /** Why the folder couldn't be read. */
   readonly unread = signal<string | null>(null);
   readonly query = signal('');
@@ -97,11 +97,11 @@ export class FilesViews {
     }
   }
 
-  /** Folds a folder out, reading it the first time, or back in. */
+  /** Expands a folder, reading it the first time, or collapses it. */
   toggle(view: FilesView, folder: string): void {
-    const open = view.unfolded().has(folder);
-    view.unfolded.update((unfolded) => {
-      const next = new Set(unfolded);
+    const open = view.expanded().has(folder);
+    view.expanded.update((expanded) => {
+      const next = new Set(expanded);
       if (open) next.delete(folder);
       else next.add(folder);
       return next;

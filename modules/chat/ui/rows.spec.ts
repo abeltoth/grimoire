@@ -104,10 +104,10 @@ describe('toRows', () => {
       '/repo',
     );
     const notes = rows[0]!.kind === 'notes' ? rows[0]!.notes : [];
-    expect(notes.map(({ counts, fold }) => ({ counts, fold }))).toEqual([
+    expect(notes.map(({ counts, details }) => ({ counts, details }))).toEqual([
       {
         counts: '+2 −0',
-        fold: {
+        details: {
           kind: 'diff',
           file: 'a.ts',
           path: '/repo/a.ts',
@@ -117,10 +117,10 @@ describe('toRows', () => {
           ],
         },
       },
-      { counts: undefined, fold: { kind: 'output', title: 'b.ts', text: 'String not found.' } },
-      { counts: undefined, fold: { kind: 'output', title: '*.ts', text: 'a.ts\nb.ts' } },
-      { counts: undefined, fold: undefined },
-      { counts: undefined, fold: undefined },
+      { counts: undefined, details: { kind: 'output', title: 'b.ts', text: 'String not found.' } },
+      { counts: undefined, details: { kind: 'output', title: '*.ts', text: 'a.ts\nb.ts' } },
+      { counts: undefined, details: undefined },
+      { counts: undefined, details: undefined },
     ]);
   });
 
@@ -148,19 +148,19 @@ describe('toRows', () => {
       ),
     ]);
     const notes = rows[0]!.kind === 'notes' ? rows[0]!.notes : [];
-    expect(notes.map(({ target, label, described, fold }) => ({ target, label, described, fold }))).toEqual([
+    expect(notes.map(({ target, label, described, details }) => ({ target, label, described, details }))).toEqual([
       {
         target: 'npm test -w ui',
         label: 'Run UI tests',
         described: true,
-        fold: { kind: 'output', title: 'Run UI tests', text: 'ok', command: 'npm test -w ui' },
+        details: { kind: 'output', title: 'Run UI tests', text: 'ok', command: 'npm test -w ui' },
       },
-      { target: 'ls', label: 'ls', described: undefined, fold: { kind: 'output', title: 'ls', text: 'ok' } },
+      { target: 'ls', label: 'ls', described: undefined, details: { kind: 'output', title: 'ls', text: 'ok' } },
       {
         target: long,
         label: long,
         described: undefined,
-        fold: { kind: 'output', title: 'Command', text: 'ok', command: long },
+        details: { kind: 'output', title: 'Command', text: 'ok', command: long },
       },
     ]);
   });
@@ -191,7 +191,7 @@ describe('toRows', () => {
       { label: 'a.ts', times: undefined, counts: '+1 −1', running: true, failed: false },
       { label: 'b.ts', times: undefined, counts: '+1 −1', running: false, failed: false },
     ]);
-    expect(notes[0]!.fold).toEqual({
+    expect(notes[0]!.details).toEqual({
       kind: 'diff',
       file: 'a.ts',
       path: '/repo/a.ts',

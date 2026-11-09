@@ -130,7 +130,7 @@ describe('storage', () => {
     db.close();
   });
 
-  it("keeps a saved theme's changes to the search fields under their new names", () => {
+  it("keeps a saved theme's changes under the tokens' later plain names", () => {
     const dir = mkdtempSync(path.join(tmpdir(), 'grimoire-db-'));
     dirs.push(dir);
     const file = path.join(dir, 'grimoire.db');
@@ -138,12 +138,16 @@ describe('storage', () => {
     const old = openDatabase(file, 19);
     old.exec(
       `INSERT INTO settings (profile, key, value) VALUES
-         ('personal', 'theme', '{"--gr-size-history-look-up":"20px","--gr-ink":"#000000"}');`,
+         ('personal', 'theme', '{"--gr-size-history-look-up":"20px","--gr-size-fold-mark":"14px","--gr-ink":"#000000"}');`,
     );
     old.close();
 
     const db = openDatabase(file);
-    expect(new SettingsStore(db).get().theme).toEqual({ '--gr-size-history-search': '20px', '--gr-ink': '#000000' });
+    expect(new SettingsStore(db).get().theme).toEqual({
+      '--gr-size-history-search': '20px',
+      '--gr-size-expandable-mark': '14px',
+      '--gr-ink': '#000000',
+    });
     db.close();
   });
 

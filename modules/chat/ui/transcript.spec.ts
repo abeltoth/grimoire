@@ -60,7 +60,7 @@ describe('transcript', () => {
     );
   });
 
-  it("counts each turn's hooks on its closing line, folding out to each, what it printed and how it went", async () => {
+  it("counts each turn's hooks on its closing line, expanding to each, what it printed and how it went", async () => {
     const { bridge, emit } = fakeBridge();
     const { fixture, el, texts } = await render(bridge);
     await write(fixture, el, 'Fix the flaky login test');
@@ -184,7 +184,7 @@ describe('transcript', () => {
     expect(el.querySelector('gr-listing')).toBeNull();
   });
 
-  it('sums up a run of tool notes, and folds them out to the diff or the output', async () => {
+  it('sums up a run of tool notes, and expands them to the diff or the output', async () => {
     const { bridge, emit } = fakeBridge();
     const { fixture, el, texts } = await render(bridge);
     await write(fixture, el, 'Add the meter');

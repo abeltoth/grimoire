@@ -269,3 +269,12 @@ export const SEARCH_TOKENS: readonly (readonly [string, string])[] = [
   ['--gr-size-command-palette-look-up', '--gr-size-command-palette-search'],
   ['--gr-size-history-look-up', '--gr-size-history-search'],
 ];
+
+/** The expand and collapse tokens, old to new; migration 21 moves a saved theme's changes to them. */
+export const EXPAND_TOKENS: readonly (readonly [string, string])[] = [
+  ['--gr-files-folded-turn', '--gr-files-collapsed-turn'],
+  ['--gr-git-fold-gap', '--gr-git-expanded-gap'],
+  ['--gr-size-fold-file', '--gr-size-expandable-file'],
+  ['--gr-size-fold-head', '--gr-size-expandable-head'],
+  ['--gr-size-fold-mark', '--gr-size-expandable-mark'],
+];

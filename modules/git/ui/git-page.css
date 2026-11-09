@@ -200,5 +200,5 @@ ul {
 
 gr-diff-view,
 li > .none {
-  margin-top: var(--gr-git-fold-gap);
+  margin-top: var(--gr-git-expanded-gap);
 }

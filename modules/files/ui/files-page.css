@@ -178,8 +178,8 @@ button.file:hover .path {
   transition: transform var(--gr-files-twist-dur) var(--gr-ease-ink);
 }
 
-.entry gr-icon.folded {
-  transform: rotate(var(--gr-files-folded-turn));
+.entry gr-icon.collapsed {
+  transform: rotate(var(--gr-files-collapsed-turn));
 }
 
 /* Files without folders line up with the folders' names. */

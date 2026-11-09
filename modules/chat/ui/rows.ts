@@ -4,7 +4,7 @@ import { deedOf } from './commands';
 import { type DiffLine, type FileChange, fileChange } from './diff';
 
 /** What a tool note expands: a file's diff or what a tool printed. */
-export type Fold =
+export type NoteDetails =
   | {
       kind: 'diff';
       file: string;
@@ -58,7 +58,7 @@ export interface Note {
   /** The change was undone. */
   withdrawn?: boolean;
   /** The details, expanded only when you ask. */
-  fold?: Fold;
+  details?: NoteDetails;
   /** The tool call, when it handed a task to a subagent, whose run can be shown on its own page. */
   subagent?: ToolBlock;
 }
@@ -277,8 +277,8 @@ function mergeEdits(notes: readonly Note[]): Note[] {
       merged.push(note);
       continue;
     }
-    const before = last.fold?.kind === 'diff' ? last.fold : undefined;
-    const after = note.fold?.kind === 'diff' ? note.fold : undefined;
+    const before = last.details?.kind === 'diff' ? last.details : undefined;
+    const after = note.details?.kind === 'diff' ? note.details : undefined;
     const added = (last.added ?? 0) + (note.added ?? 0);
     const removed = (last.removed ?? 0) + (note.removed ?? 0);
     merged[merged.length - 1] = {
@@ -290,7 +290,7 @@ function mergeEdits(notes: readonly Note[]): Note[] {
       removed,
       ...(before && after
         ? {
-            fold: {
+            details: {
               ...before,
               lines: [...before.lines, ...after.lines],
               breaks: [...(before.breaks ?? []), before.lines.length],
@@ -409,7 +409,7 @@ function detailsOf(
   block: ToolBlock,
   { title, command }: { title: string; command?: string },
   cwd?: string,
-): Pick<Note, 'counts' | 'added' | 'removed' | 'fold'> {
+): Pick<Note, 'counts' | 'added' | 'removed' | 'details'> {
   if (!changes.has(block)) changes.set(block, fileChange(block.tool, block.input) ?? null);
   const change = changes.get(block);
   // A change that failed wasn't made; what the tool said about it is what counts.
@@ -420,7 +420,7 @@ function detailsOf(
       counts: `+${added} −${removed}`,
       added,
       removed,
-      fold: {
+      details: {
         kind: 'diff',
         file: relativeTo(cwd, change.file),
         path: change.file,
@@ -429,7 +429,7 @@ function detailsOf(
     };
   }
   return block.result?.text
-    ? { fold: { kind: 'output', title, text: block.result.text, ...(command ? { command } : {}) } }
+    ? { details: { kind: 'output', title, text: block.result.text, ...(command ? { command } : {}) } }
     : {};
 }
 

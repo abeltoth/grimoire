@@ -351,7 +351,7 @@ describe('usage', () => {
     await pick('Folder');
     expect(texts('gr-usage-page .tokens > .limits .name')).toEqual(['C:/work/grimoire']);
     await pick('Day');
-    // Claude Code's own scan is folded away, with the explanations.
+    // Claude Code's own scan is collapsed, with the explanations.
     expect(texts('gr-usage-page .how summary')).toEqual(['Claude Code’s own scan', 'How this is counted']);
     expect(texts('gr-usage-page .how .name')).toEqual(['Long context', 'brand new', 'docs']);
     // A way of working Grimoire has no name for keeps Claude Code's.

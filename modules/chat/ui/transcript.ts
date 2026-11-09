@@ -146,7 +146,7 @@ export class Transcript {
   /** The thinking you're reading, and the runs of notes and hooks you expanded. */
   private readonly open = signal<ReadonlySet<string>>(new Set());
   /** The note whose details you expanded: one at a time, so opening another closes it. */
-  private readonly foldedOut = signal<string | null>(null);
+  private readonly expandedNote = signal<string | null>(null);
   /** The entry being undone, until the agent is done. */
   private readonly undoing = signal<string | null>(null);
   private readonly forking = signal(false);
@@ -167,7 +167,7 @@ export class Transcript {
       this.chat().approvals;
       this.chat().followUps;
       this.open();
-      this.foldedOut();
+      this.expandedNote();
       if (this.following) this.element.scrollTop = this.element.scrollHeight;
     });
   }
@@ -215,14 +215,14 @@ export class Transcript {
     this.following = scrollTop + clientHeight >= scrollHeight - 24;
   }
 
-  /** Whether a note turns the right page to its subagent's run, rather than folding out. */
+  /** Whether a note turns the right page to its subagent's run, rather than expanding. */
   protected showsSubagent(note: Note): boolean {
     return !!note.subagent && this.subagents.canShow();
   }
 
   /**
    * Whether a note turns the right page to the Kanban board, rather than
-   * folding out: one for a task the agent added there, where there's one.
+   * expanding: one for a task the agent added there, where there's one.
    */
   protected showsBoard(note: Note): boolean {
     return note.did === 'added' && !note.running && !note.failed && !!this.shell.pageTabs.get(BOARD);
@@ -236,11 +236,11 @@ export class Transcript {
   protected press(note: Note): void {
     if (this.showsSubagent(note)) this.subagents.show(this.chat().id, note.subagent!);
     else if (this.showsBoard(note)) this.rightPage.openPageTab(BOARD);
-    else if (note.fold) this.foldedOut.update((key) => (key === note.key ? null : note.key));
+    else if (note.details) this.expandedNote.update((key) => (key === note.key ? null : note.key));
   }
 
-  protected isFoldedOut(note: Note): boolean {
-    return this.foldedOut() === note.key;
+  protected isExpanded(note: Note): boolean {
+    return this.expandedNote() === note.key;
   }
 
   protected isOpen(key: string): boolean {

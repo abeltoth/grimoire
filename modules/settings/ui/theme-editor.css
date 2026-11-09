@@ -220,7 +220,7 @@ h3 {
   color: var(--gr-rubric);
 }
 
-/* A heading of the theme's, folded shut until you open it or search for something. */
+/* A heading of the theme's, collapsed until you open it or search for something. */
 .group {
   border-top: 1px solid var(--gr-hairline);
 }

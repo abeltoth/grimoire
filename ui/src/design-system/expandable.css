@@ -24,14 +24,14 @@
   align-items: baseline;
   gap: var(--gr-expandable-head-gap);
   padding: var(--gr-expandable-head-pad);
-  font-size: var(--gr-size-fold-head);
+  font-size: var(--gr-size-expandable-head);
   border-bottom: 1px solid var(--gr-hairline);
 }
 
 .head b {
   font-family: var(--gr-font-mono);
   font-weight: 500;
-  font-size: var(--gr-size-fold-file);
+  font-size: var(--gr-size-expandable-file);
   overflow-wrap: anywhere;
 }
 
@@ -98,7 +98,7 @@
 .mark {
   font-family: var(--gr-font-text);
   font-style: italic;
-  font-size: var(--gr-size-fold-mark);
+  font-size: var(--gr-size-expandable-mark);
   color: var(--gr-rubric);
   padding-left: var(--gr-expandable-mark-pad);
   white-space: nowrap;
@@ -124,7 +124,7 @@
   gap: var(--gr-expandable-foot-gap);
   padding: var(--gr-expandable-foot-pad);
   border-top: 1px solid var(--gr-hairline);
-  font-size: var(--gr-size-fold-mark);
+  font-size: var(--gr-size-expandable-mark);
   font-style: italic;
   color: var(--gr-ink-soft);
 }

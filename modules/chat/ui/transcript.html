@@ -186,7 +186,7 @@
 <ng-content />
 
 <!--
-  The notes beside a row. A run of them is summed up on one line, which folds
+  The notes beside a row. A run of them is summed up on one line, which expands
   out to the notes; what you expand of them spans the text and the margin.
 -->
 <ng-template #marginTemplate let-row>
@@ -226,7 +226,7 @@
     }
   </div>
   @if (!row.summary || isOpen(row.summary.key)) {
-    <ng-container *ngTemplateOutlet="foldsTemplate; context: { $implicit: row.notes }" />
+    <ng-container *ngTemplateOutlet="detailsTemplate; context: { $implicit: row.notes }" />
   }
 </ng-template>
 
@@ -237,8 +237,8 @@
     class="note"
     [class.done]="!note.running && !note.failed"
     [attr.title]="note.target || null"
-    [attr.aria-disabled]="note.fold || turnsPage(note) ? null : true"
-    [attr.aria-expanded]="note.fold && !turnsPage(note) ? isFoldedOut(note) : null"
+    [attr.aria-disabled]="note.details || turnsPage(note) ? null : true"
+    [attr.aria-expanded]="note.details && !turnsPage(note) ? isExpanded(note) : null"
     (click)="press(note)"
   >
     @if (!note.described) {
@@ -298,21 +298,21 @@
 </ng-template>
 
 <!-- The details of the notes you expanded, across the text and the margin. -->
-<ng-template #foldsTemplate let-notes>
+<ng-template #detailsTemplate let-notes>
   @for (note of notes; track note.key) {
-    @if (note.fold && isFoldedOut(note) && !turnsPage(note)) {
-      @if (note.fold.kind === 'diff') {
+    @if (note.details && isExpanded(note) && !turnsPage(note)) {
+      @if (note.details.kind === 'diff') {
         <gr-diff-view
           class="wide"
-          [file]="note.fold.file"
-          [lines]="note.fold.lines"
-          [breaks]="note.fold.breaks ?? []"
+          [file]="note.details.file"
+          [lines]="note.details.lines"
+          [breaks]="note.details.breaks ?? []"
           [caption]="'as marked by ' + agentName()"
           [openable]="!!shell.openFile()"
-          (open)="shell.openFile()?.(note.fold.path)"
+          (open)="shell.openFile()?.(note.details.path)"
         />
       } @else {
-        <gr-output class="wide" [title]="note.fold.title" [text]="note.fold.text" [command]="note.fold.command ?? ''" />
+        <gr-output class="wide" [title]="note.details.title" [text]="note.details.text" [command]="note.details.command ?? ''" />
       }
     }
   }

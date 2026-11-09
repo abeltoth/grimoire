@@ -211,7 +211,7 @@ describe('files', () => {
         { cwd: 'C:/Users/me', path: 'ui/src' },
       ]);
 
-      // Folded back in, and out again without reading it twice.
+      // Collapsed, and expanded again without reading it twice.
       button('.entry', 'ui/').click();
       await fixture.whenStable();
       expect(texts('gr-files-page .tree .entry')).toEqual(['dist/', 'ui/', 'logo.png', 'README.md']);

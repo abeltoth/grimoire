@@ -673,7 +673,7 @@ describe('settings', () => {
       'Room on the page',
     ]);
     expect(texts('gr-theme-editor summary')[0]).toMatch(/^Desk, binding and thumb index\s*\d+$/);
-    // Folded shut until opened.
+    // Collapsed until opened.
     expect(el.querySelector('gr-theme-editor li')).toBeNull();
 
     const paper = el.querySelector<HTMLInputElement>('#gr-theme---gr-page')!;

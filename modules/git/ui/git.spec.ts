@@ -99,7 +99,7 @@ describe('git', () => {
     ]);
     expect(texts('gr-git-page gr-diff-view .head .detail')[0]).toBe('corrections, not committed yet');
 
-    // Folded back in.
+    // Collapsed again.
     el.querySelector<HTMLButtonElement>('gr-git-page .change')!.click();
     await fixture.whenStable();
     expect(el.querySelector('gr-git-page gr-diff-view')).toBeNull();

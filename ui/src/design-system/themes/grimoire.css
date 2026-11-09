@@ -662,7 +662,7 @@
   --gr-git-tree-tick-top: 0.7em;
   --gr-git-tree-rule: rgba(74, 48, 22, 0.3);
   --gr-git-last-indent: 20px;
-  --gr-git-fold-gap: 8px;
+  --gr-git-expanded-gap: 8px;
 
   /* Files: the Files page on the facing page */
   --gr-files-width: 640px;
@@ -676,7 +676,7 @@
   --gr-files-twist-gap: 6px;
   /* The folder's twist and the gap after it, so files line up with the folders' names */
   --gr-files-twist-w: 16px;
-  --gr-files-folded-turn: -90deg;
+  --gr-files-collapsed-turn: -90deg;
   --gr-files-twist-dur: 120ms;
   --gr-files-show-gap: 16px;
   --gr-files-actions-pad: 10px 0 0;
@@ -849,13 +849,13 @@
   --gr-expandable-mark-col: calc(var(--gr-margin-col) + 14px);
   --gr-expandable-head-gap: 12px;
   --gr-expandable-head-pad: 6px 14px 5px;
-  --gr-size-fold-head: 13.5px;
-  --gr-size-fold-file: 12px;
+  --gr-size-expandable-head: 13.5px;
+  --gr-size-expandable-file: 12px;
   --gr-expandable-body-pad: 4px 0;
   --gr-expandable-body-max: 98px;
   --gr-expandable-command-max: 40vh;
   --gr-expandable-line-number: 36px;
-  --gr-size-fold-mark: 13px;
+  --gr-size-expandable-mark: 13px;
   --gr-expandable-mark-pad: 14px;
   --gr-strike: 1.5px;
   --gr-size-caret: 15px;
