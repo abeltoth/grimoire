@@ -608,14 +608,14 @@ describe('App', () => {
     });
     await fixture.whenStable();
 
-    expect(texts('.note.summary > *')).toEqual(['Changed 1 file, ran 1 command', '+2 −1', '1 failed']);
+    expect(texts('.note.summary > *')).toEqual(['Changed 1 file, ran the tests once', '+2 −1', '1 failed']);
     const run = el.querySelector<HTMLButtonElement>('.note.summary')!;
     expect(run.getAttribute('aria-expanded')).toBe('false');
 
     run.click();
     await fixture.whenStable();
     expect(run.getAttribute('aria-expanded')).toBe('true');
-    expect(texts('.run .note > *')).toEqual(['Edited', 'meter.ts', '+2 −1', 'Ran', 'npm test', 'failed']);
+    expect(texts('.run .note > *')).toEqual(['Edited', 'meter.ts', '+2 −1', 'Tested', 'npm test', 'failed']);
     expect(el.querySelector('gr-corrections, gr-output')).toBeNull();
 
     const notes = el.querySelectorAll<HTMLButtonElement>('.run .note');
@@ -750,7 +750,7 @@ describe('App', () => {
       'Handing it back.',
       'It is in meter.ts.',
     ]);
-    expect(texts('gr-helper-page gr-transcript .note > *')).toEqual(['Searched', 'meter', 'Ran', 'npm test']);
+    expect(texts('gr-helper-page gr-transcript .note > *')).toEqual(['Searched', 'meter', 'Tested', 'npm test']);
     expect(texts('gr-helper-page gr-running-foot')).toEqual(['Done']);
     expect(texts('gr-helper-page .meta')).toEqual(['Explore · Haiku 4.5 · Done']);
   });

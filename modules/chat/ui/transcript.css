@@ -286,8 +286,12 @@ p {
   color: var(--gr-ink);
 }
 
-/* A command shown by what it does, in words rather than code. */
+/* A command shown by what it does, in words rather than code, on up to two lines. */
 .target.described {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
   font-family: var(--gr-font-text);
   font-size: inherit;
 }

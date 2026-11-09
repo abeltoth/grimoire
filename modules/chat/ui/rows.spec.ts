@@ -31,7 +31,7 @@ describe('toRows', () => {
       reply.notes.map(({ verb, target, running }) => ({ verb, target, running })),
     ).toEqual([
       { verb: 'Read', target: '/repo/src/login.ts', running: false },
-      { verb: 'Ran', target: 'npm test', running: true },
+      { verb: 'Tested', target: 'npm test', running: true },
     ]);
   });
 
@@ -136,11 +136,32 @@ describe('toRows', () => {
     ]);
   });
 
-  it('shows a command by what it does, when the agent said', () => {
-    const rows = toRows([agent('a1', tool('Bash', { command: 'npm test -w ui', description: 'Run UI tests' }))]);
+  it('shows a command by what it does, when the agent said, and heads its output so', () => {
+    const ok = { text: 'ok', isError: false };
+    const long = `cd /repo && ${'x'.repeat(80)}`;
+    const rows = toRows([
+      agent(
+        'a1',
+        { ...tool('Bash', { command: 'npm test -w ui', description: 'Run UI tests' }, ok), id: 'b1' },
+        { ...tool('Bash', { command: 'ls' }, ok), id: 'b2' },
+        { ...tool('Bash', { command: long }, ok), id: 'b3' },
+      ),
+    ]);
     const notes = rows[0]!.kind === 'notes' ? rows[0]!.notes : [];
-    expect(notes.map(({ target, label }) => ({ target, label }))).toEqual([
-      { target: 'npm test -w ui', label: 'Run UI tests' },
+    expect(notes.map(({ target, label, described, fold }) => ({ target, label, described, fold }))).toEqual([
+      {
+        target: 'npm test -w ui',
+        label: 'Run UI tests',
+        described: true,
+        fold: { kind: 'output', title: 'Run UI tests', text: 'ok', command: 'npm test -w ui' },
+      },
+      { target: 'ls', label: 'ls', described: undefined, fold: { kind: 'output', title: 'ls', text: 'ok' } },
+      {
+        target: long,
+        label: long,
+        described: undefined,
+        fold: { kind: 'output', title: 'Command', text: 'ok', command: long },
+      },
     ]);
   });
 
@@ -243,7 +264,7 @@ describe('toRows', () => {
     expect(rows[1]).toMatchObject({
       summary: {
         key: 'a2/0/all',
-        text: 'Read 2 files, changed 1 file, ran 1 command, searched twice',
+        text: 'Read 2 files, changed 1 file, ran the tests once, searched twice',
         counts: '+3 −1',
         running: true,
         failed: 1,

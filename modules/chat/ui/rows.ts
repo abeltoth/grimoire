@@ -1,5 +1,6 @@
 import type { Enclosure, Entry, HookRun, TokenUse, ToolBlock } from '@grimoire/contract';
 import { weightOf } from '@ui/app/core/tokens';
+import { deedOf } from './commands';
 import { type DiffLine, type FileChange, fileChange } from './diff';
 
 /** What a margin note folds out: a file's corrections or what a tool printed. */
@@ -12,13 +13,21 @@ export type Fold =
       /** Where each edit after the first begins, when edits in a row to the file are merged. */
       breaks?: number[];
     }
-  | { kind: 'output'; title: string; text: string };
+  | {
+      kind: 'output';
+      title: string;
+      text: string;
+      /** The command in full, when the title doesn't show it all. */
+      command?: string;
+    };
 
 /** What a tool did, to sum up a run of notes. */
 export type Deed =
   | 'changed'
   | 'read'
   | 'ran'
+  | 'tested'
+  | 'committed'
   | 'searched'
   | 'fetched'
   | 'searched-web'
@@ -35,6 +44,8 @@ export interface Note {
   target: string;
   /** What the note's one line shows of it: a file's name, a command's description, or the target itself. */
   label: string;
+  /** The label is a command's description, which says what it did: no verb goes before it. */
+  described?: boolean;
   /** How many tool calls in a row it stands for, when edits to one file are merged. */
   times?: number;
   did: Deed;
@@ -309,6 +320,8 @@ const DEEDS: Record<Deed, (n: number) => string> = {
   changed: (n) => `changed ${count(n, 'file', 'files')}`,
   read: (n) => `read ${count(n, 'file', 'files')}`,
   ran: (n) => `ran ${count(n, 'command', 'commands')}`,
+  tested: (n) => `ran the tests ${times(n)}`,
+  committed: (n) => `committed ${times(n)}`,
   searched: (n) => `searched ${times(n)}`,
   fetched: (n) => `fetched ${count(n, 'page', 'pages')}`,
   'searched-web': (n) => `searched the web ${times(n)}`,
@@ -359,15 +372,19 @@ function toNote(key: string, block: ToolBlock, cwd?: string): Note {
   const text = (name: string) => (typeof input[name] === 'string' ? (input[name] as string) : '');
   const file = (name: string) => relativeTo(cwd, text(name));
   const [verb, target, did] = describe(block.tool, text, file, resumes(block));
+  const shell = SHELL_TOOLS.has(block.tool);
+  const description = shell ? text('description').trim() : '';
+  const named = !shell && (did === 'changed' || did === 'read');
   return {
     key,
     verb,
     target,
-    label: did === 'changed' || did === 'read' ? nameOf(target) : (did === 'ran' && text('description').trim()) || target,
+    label: named ? nameOf(target) : description || target,
+    ...(description ? { described: true } : {}),
     did,
     running: !block.result,
     failed: block.result?.isError === true,
-    ...detailsOf(block, target || verb, cwd),
+    ...detailsOf(block, shell ? commandTitle(target, description) : { title: target || verb }, cwd),
     ...(did === 'helped' ? { helper: block } : {}),
   };
 }
@@ -375,9 +392,22 @@ function toNote(key: string, block: ToolBlock, cwd?: string): Note {
 /** Diffs are worked out once per tool call, not each time the reply grows. */
 const changes = new WeakMap<ToolBlock, FileChange | null>();
 
+/** The tools that run a command line. */
+const SHELL_TOOLS = new Set(['Bash', 'PowerShell']);
+
+/** A command's output is headed by what it does, or its one short line; the command in full goes above the output. */
+function commandTitle(command: string, description: string): { title: string; command?: string } {
+  const short = !/\n/.test(command) && command.length <= SHORT_COMMAND;
+  if (!description && short) return { title: command };
+  return { title: description || 'Command', command };
+}
+
+/** The longest command that heads its output by itself. */
+const SHORT_COMMAND = 80;
+
 function detailsOf(
   block: ToolBlock,
-  title: string,
+  { title, command }: { title: string; command?: string },
   cwd?: string,
 ): Pick<Note, 'counts' | 'added' | 'removed' | 'fold'> {
   if (!changes.has(block)) changes.set(block, fileChange(block.tool, block.input) ?? null);
@@ -398,7 +428,9 @@ function detailsOf(
       },
     };
   }
-  return block.result?.text ? { fold: { kind: 'output', title, text: block.result.text } } : {};
+  return block.result?.text
+    ? { fold: { kind: 'output', title, text: block.result.text, ...(command ? { command } : {}) } }
+    : {};
 }
 
 /**
@@ -408,6 +440,14 @@ function detailsOf(
 function resumes(block: ToolBlock): boolean {
   return !block.result || /"resumedAgentId"/.test(block.result.text);
 }
+
+const COMMAND_VERBS: Record<ReturnType<typeof deedOf>, string> = {
+  read: 'Read',
+  searched: 'Searched',
+  tested: 'Tested',
+  committed: 'Committed',
+  ran: 'Ran',
+};
 
 function describe(
   tool: string,
@@ -426,8 +466,10 @@ function describe(
     case 'NotebookEdit':
       return ['Edited', file('notebook_path'), 'changed'];
     case 'Bash':
-    case 'PowerShell':
-      return ['Ran', text('command'), 'ran'];
+    case 'PowerShell': {
+      const deed = deedOf(text('command'));
+      return [COMMAND_VERBS[deed], text('command'), deed];
+    }
     case 'Grep':
       return ['Searched', text('pattern'), 'searched'];
     case 'Glob':

@@ -241,9 +241,11 @@
     [attr.aria-expanded]="note.fold && !turnsPage(note) ? isOpen(note.key) : null"
     (click)="press(note)"
   >
-    <span class="note-head">{{ note.verb }}</span>
+    @if (!note.described) {
+      <span class="note-head">{{ note.verb }}</span>
+    }
     @if (note.label) {
-      <span class="target" [class.described]="note.label !== note.target">{{ note.label }}</span>
+      <span class="target" [class.described]="note.described">{{ note.label }}</span>
     }
     @if (note.times) {
       <span class="detail">×{{ note.times }}</span>
@@ -310,7 +312,7 @@
           (open)="shell.openFile()?.(note.fold.path)"
         />
       } @else {
-        <gr-output class="wide" [title]="note.fold.title" [text]="note.fold.text" />
+        <gr-output class="wide" [title]="note.fold.title" [text]="note.fold.text" [command]="note.fold.command ?? ''" />
       }
     }
   }
