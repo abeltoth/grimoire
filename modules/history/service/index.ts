@@ -1,4 +1,4 @@
-import type { ServiceModule } from '@grimoire/service/module';
+import type { ServiceModule } from '@grimoire/service/core/module';
 import { MIGRATIONS } from './migrations';
 import { Pins } from './pins';
 import { Tags, keptTags } from './tags';

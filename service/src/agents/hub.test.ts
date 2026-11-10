@@ -1,6 +1,6 @@
 import { homedir } from 'node:os';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { setActiveProfile } from '../storage/app-state';
+import { setActiveProfile } from '../core/app-state';
 import { openDatabase } from '../storage/database';
 import { hubStore } from './chat-table';
 import { FakeAdapter } from './fake-adapter';

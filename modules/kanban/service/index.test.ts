@@ -1,8 +1,8 @@
 import type { EventName, EventPayload } from '@grimoire/contract';
 import { describe, expect, it } from 'vitest';
-import type { AgentTool, ModuleContext } from '@grimoire/service/module';
-import { CommandRegistry } from '@grimoire/service/registry';
-import { migrate, openDatabase } from '@grimoire/service/storage/database';
+import type { AgentTool, ModuleContext } from '@grimoire/service/core/module';
+import { CommandRegistry } from '@grimoire/service/core/registry';
+import { migrate, openDatabase } from '@grimoire/service/testing/database';
 import { kanban } from '.';
 import { MIGRATIONS } from './migrations';
 

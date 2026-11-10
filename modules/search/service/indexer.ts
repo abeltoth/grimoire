@@ -1,6 +1,6 @@
 import { homedir } from 'node:os';
 import type { ChatId, Entry } from '@grimoire/contract';
-import type { AgentAdapter } from '@grimoire/service/agents/adapter';
+import type { AgentAdapter } from '@grimoire/service/core/adapter';
 import type { Passage, SearchIndex, ToolUse, TurnUse } from './search-index';
 
 /** What the indexer needs of an agent: its chats, and each one's transcript. */

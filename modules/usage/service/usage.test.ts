@@ -1,5 +1,5 @@
 import type { PlanUsage } from '@grimoire/contract';
-import { migrate, openDatabase } from '@grimoire/service/storage/database';
+import { migrate, openDatabase } from '@grimoire/service/testing/database';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MIGRATIONS } from './migrations';
 import { UsageReadings } from './readings';

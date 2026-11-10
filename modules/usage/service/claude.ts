@@ -6,7 +6,7 @@ import type {
   UsageSpan,
   UsageWindow,
 } from '@grimoire/contract';
-import { probe } from '@grimoire/service/agents/claude/probe';
+import { probe } from '@grimoire/service/claude/probe';
 import type { UsageSource } from './sources';
 
 type Limit = { utilization: number | null; resets_at: string | null } | null | undefined;

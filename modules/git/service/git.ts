@@ -9,7 +9,7 @@ import type {
   GitStatus,
   PullRequest,
 } from '@grimoire/contract';
-import { expand } from '@grimoire/service/agents/files';
+import { expand } from '@grimoire/service/core/files';
 
 /** Runs git or the GitHub CLI in a folder and gives what it printed; rejects when it fails. */
 export type Run = (tool: 'git' | 'gh', args: string[], cwd: string) => Promise<string>;

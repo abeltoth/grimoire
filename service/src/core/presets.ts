@@ -7,7 +7,7 @@ import type {
   Preset,
 } from '@grimoire/contract';
 import type { CommandRegistry } from '../registry';
-import { activeProfile } from '../storage/app-state';
+import { activeProfile } from './app-state';
 import type { SettingsStore } from './settings';
 
 type Emit = <K extends EventName>(event: K, payload: EventPayload<K>) => void;

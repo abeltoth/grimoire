@@ -1,6 +1,6 @@
 import type { Entry } from '@grimoire/contract';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { FakeAdapter } from '@grimoire/service/agents/fake-adapter';
+import { FakeAdapter } from '@grimoire/service/testing/fake-adapter';
 import { Indexer, passagesOf, turnsOf, usesOf } from './indexer';
 import { SearchIndex } from './search-index';
 

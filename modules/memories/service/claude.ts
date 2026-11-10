@@ -10,8 +10,8 @@ import {
 import { homedir } from 'node:os';
 import path from 'node:path';
 import type { AgentMemories, Memory, MemoryFolder } from '@grimoire/contract';
-import { claudeHome } from '@grimoire/service/agents/claude/config-dir';
-import { readSettingsFile, settingsFilesIn } from '@grimoire/service/agents/claude/settings-files';
+import { claudeHome } from '@grimoire/service/claude/config-dir';
+import { readSettingsFile, settingsFilesIn } from '@grimoire/service/claude/settings-files';
 import type { MemorySource } from './memories';
 
 /** The memory index's file name in a memory folder. */

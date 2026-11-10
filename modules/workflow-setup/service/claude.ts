@@ -1,13 +1,13 @@
 import { readdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
-import { claudeHome } from '@grimoire/service/agents/claude/config-dir';
-import { probe } from '@grimoire/service/agents/claude/probe';
+import { claudeHome } from '@grimoire/service/claude/config-dir';
+import { probe } from '@grimoire/service/claude/probe';
 import {
   type ReadSettings,
   readSettingsFile,
   settingsFilesIn,
-} from '@grimoire/service/agents/claude/settings-files';
+} from '@grimoire/service/claude/settings-files';
 import type { AgentSetup, SetupItem, SetupSection, SetupSource } from '@grimoire/contract';
 import type { SetupReader } from './setup';
 

@@ -1,8 +1,8 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import type { AgentId, AgentSetup } from '@grimoire/contract';
-import { claudeHome } from '@grimoire/service/agents/claude/config-dir';
-import { FolderWatcher, type Target } from '@grimoire/service/agents/folder-watcher';
+import { claudeHome } from '@grimoire/service/claude/config-dir';
+import { FolderWatcher, type Target } from '@grimoire/service/core/folder-watcher';
 
 /**
  * The folders to watch for a setup's changes: those its files are in,

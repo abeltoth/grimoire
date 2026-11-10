@@ -1,5 +1,5 @@
-import type { ServiceModule } from '@grimoire/service/module';
-import { type CommandRegistry, UnknownCommandError } from '@grimoire/service/registry';
+import type { ServiceModule } from '@grimoire/service/core/module';
+import { type CommandRegistry, UnknownCommandError } from '@grimoire/service/core/registry';
 import { Files, type Repos } from './files';
 
 /** The file pane: a project's files, to find, view and edit. */

@@ -1,7 +1,7 @@
 import path from 'node:path';
 import type { CardDraft } from '@grimoire/contract';
 import { z } from 'zod';
-import type { AgentTool, ToolChat } from '@grimoire/service/module';
+import type { AgentTool, ToolChat } from '@grimoire/service/core/module';
 
 /** What the agent is told of the tool, in its system prompt. */
 export const ADD_TODO_PROMPT =

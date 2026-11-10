@@ -4,7 +4,7 @@ import {
   type Connectors,
   ToolFailed,
   type ToolResult,
-} from '@grimoire/service/agents/claude/connectors';
+} from '@grimoire/service/claude/connectors';
 
 /**
  * Your Jira issues, through your claude.ai Atlassian connector: the one

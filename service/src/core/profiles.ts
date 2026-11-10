@@ -8,7 +8,7 @@ import {
   type Profiles,
 } from '@grimoire/contract';
 import type { CommandRegistry } from '../registry';
-import { activeProfile, setActiveProfile } from '../storage/app-state';
+import { activeProfile, setActiveProfile } from './app-state';
 
 type Emit = <K extends EventName>(event: K, payload: EventPayload<K>) => void;
 

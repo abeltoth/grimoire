@@ -1,4 +1,4 @@
-import type { ServiceModule } from '@grimoire/service/module';
+import type { ServiceModule } from '@grimoire/service/core/module';
 import { Terminals } from './terminals';
 
 /** The Terminal: shells the service runs, each shown as a tab. */

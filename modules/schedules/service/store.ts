@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import type { Schedule, ScheduleDraft, ScheduleRun } from '@grimoire/contract';
-import { activeProfile } from '@grimoire/service/storage/app-state';
+import { activeProfile } from '@grimoire/service/core/app-state';
 import { isTime } from './times';
 
 interface ScheduleRow {

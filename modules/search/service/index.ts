@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PERSONAL_PROFILE } from '@grimoire/contract';
-import type { ServiceModule } from '@grimoire/service/module';
+import type { ServiceModule } from '@grimoire/service/core/module';
 import { SearchWorker, forkWorker } from './search-worker';
 
 /** Full-text search across past chats, and the token totals counted from them, in a worker of its own (ADR-010). */

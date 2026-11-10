@@ -7,7 +7,7 @@ import {
   type CardColumn,
   type CardDraft,
 } from '@grimoire/contract';
-import { activeProfile } from '@grimoire/service/storage/app-state';
+import { activeProfile } from '@grimoire/service/core/app-state';
 import { JiraCards } from './jira-store';
 
 interface CardRow {

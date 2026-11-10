@@ -155,3 +155,18 @@ subscription                  session files
 - A second exception: the Kanban board's Jira cards come from the user's claude.ai Atlassian connector. The service starts a hidden Claude Code process that loads no settings and saves nothing, and calls the connector's tools through the SDK's control channel (`mcp_call`, with no model turn and no tokens). That channel skips permission checks, so only an explicit list of Jira tools can be called. The sync's process may call only tools that read. Moving a card in Jira uses a process of its own, which may also call `transitionJiraIssue`: the one tool that writes, changing an issue's status.
 - Of the chats sent one entry in parallel, which work in the same folder, one edits, so the two models don't change each other's files; this replaced a git worktree per chat and its setup scripts. The chat the entry was sent from edits, until you make another the editing chat or it closes; the others can't edit files, refused by a hook before Claude Code's own permission checks, but otherwise work as any chat does, at the permission picked for them. Every other chat edits, whatever other chats are open on its folder. Worktrees Grimoire made stay on disk; their chats work in the repository's folder.
 - The later release notes scraper will add the web as another external system.
+
+## ADR-012: Modules use the service through a declared surface
+
+Accepted on 2026-11-10.
+
+**Context:** the service exported every file (`"./*"`), so modules imported its internals by path and nothing stopped one more.
+
+**Decision:** `service/package.json` exports three groups, and nothing else:
+- `@grimoire/service/core/*`, agent-neutral: `module` (with the tools a module gives the agent), `registry`, `events`, `adapter`, `files`, `folder-watcher` and `app-state`.
+- `@grimoire/service/claude/*`, the Claude agent's helpers a Claude-only feature may use (ADR-006): `connectors`, `probe`, `config-dir`, `settings-files`, and `claude-adapter` itself, which the search worker builds in its own process.
+- `@grimoire/service/testing/*`, for a module's tests only: `database` and `fake-adapter`.
+
+**Consequences:**
+- TypeScript refuses any other import from a module, and the lint, which reads the same exports map, says why.
+- A module that needs more of the service adds it to the exports map, in the group it belongs to.

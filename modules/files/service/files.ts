@@ -8,7 +8,7 @@ import type {
   FolderList,
   OpenFile,
 } from '@grimoire/contract';
-import { expand, samePath, unchangedSince } from '@grimoire/service/agents/files';
+import { expand, samePath, unchangedSince } from '@grimoire/service/core/files';
 
 /** A file larger than this isn't opened to edit. */
 const LARGEST = 2 * 1024 * 1024;

@@ -1,7 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { Layout } from '@grimoire/contract';
 import type { CommandRegistry } from '../registry';
-import { activeProfile } from '../storage/app-state';
+import { activeProfile } from './app-state';
 
 const DEFAULTS: Layout = { current: null, beside: null, lastUsed: null, focus: false, popouts: [] };
 

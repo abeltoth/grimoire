@@ -1,5 +1,5 @@
 import type { AgentId, AgentSetup, SetupFile, SetupSource } from '@grimoire/contract';
-import { fileAt, samePath as same, writeUnchanged } from '@grimoire/service/agents/files';
+import { fileAt, samePath as same, writeUnchanged } from '@grimoire/service/core/files';
 
 /** Sources whose files aren't changed here: your organization's, and those a plugin update would replace. */
 const READ_ONLY: readonly SetupSource[] = ['managed', 'plugin', 'built-in'];

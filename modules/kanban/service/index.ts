@@ -1,5 +1,5 @@
-import { openConnectors } from '@grimoire/service/agents/claude/connectors';
-import type { ServiceModule } from '@grimoire/service/module';
+import { openConnectors } from '@grimoire/service/claude/connectors';
+import type { ServiceModule } from '@grimoire/service/core/module';
 import { addTodoTool } from './add-todo';
 import { registerJira, registerKanban } from './commands';
 import { JiraMoves } from './jira-moves';

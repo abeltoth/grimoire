@@ -1,4 +1,4 @@
-import type { ServiceModule } from '@grimoire/service/module';
+import type { ServiceModule } from '@grimoire/service/core/module';
 import { MIGRATIONS } from './migrations';
 import { Scheduler } from './scheduler';
 import { ScheduleStore } from './store';

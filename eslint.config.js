@@ -1,5 +1,7 @@
 // The boundary lint: what may import what between the core and the modules, how long a file may
 // grow, and the house rules a typecheck can't see.
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { defineConfig } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 import angular from 'angular-eslint';
@@ -17,21 +19,13 @@ const sources = ['contract/src', 'service/src', 'app/src', 'ui/src', 'modules', 
 const ui = ['ui/src', 'modules/*/ui'];
 const tests = sources.flatMap((root) => [`${root}/**/*.spec.ts`, `${root}/**/*.test.ts`]);
 
-// What a module may import from the service (REFACTOR.md 2.2).
-const surface = [
-  'module',
-  'registry',
-  'events',
-  'agents/adapter',
-  'agents/files',
-  'agents/folder-watcher',
-  'storage/app-state',
-  'agents/claude/connectors',
-  'agents/claude/probe',
-  'agents/claude/config-dir',
-  'agents/claude/settings-files',
-  'agents/claude/claude-adapter',
-].map((file) => `service/src/${file}.ts`);
+// What a module may import from the service: its exports map (ADR-012), testing/* in tests only.
+const exported = Object.entries(
+  JSON.parse(readFileSync(new URL('service/package.json', import.meta.url), 'utf8')).exports,
+).map(([name, file]) => ({ name, path: path.posix.join('service', file) }));
+const forTests = ({ name }) => name.startsWith('./testing/');
+const surface = exported.filter((entry) => !forTests(entry)).map((entry) => entry.path);
+const testing = exported.filter(forTests).map((entry) => entry.path);
 
 // The one file in each part of the core that may import the modules.
 const registrations = [
@@ -163,11 +157,15 @@ export default defineConfig(
               from: { element: { type: 'module' } },
               disallow: { to: { element: { type: 'service-core' } } },
               message:
-                'A module imports the service only through its public surface, not {{ to.file.path }}.',
+                'A module imports the service only through @grimoire/service/core/* and claude/* (ADR-012), not {{ to.file.path }}.',
             },
             {
               from: { element: { type: 'module' } },
               allow: { to: { element: { type: 'service-core' }, file: { path: surface } } },
+            },
+            {
+              from: { element: { type: 'module' }, file: { path: tests } },
+              allow: { to: { element: { type: 'service-core' }, file: { path: testing } } },
             },
           ],
         },

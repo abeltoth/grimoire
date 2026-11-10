@@ -1,7 +1,7 @@
 import type { EventName, OpenChat, ScheduleDraft } from '@grimoire/contract';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { setActiveProfile } from '@grimoire/service/storage/app-state';
-import { migrate, openDatabase } from '@grimoire/service/storage/database';
+import { setActiveProfile } from '@grimoire/service/core/app-state';
+import { migrate, openDatabase } from '@grimoire/service/testing/database';
 import { MIGRATIONS } from './migrations';
 import { type BeginChat, Scheduler, runTitle } from './scheduler';
 import { ScheduleStore } from './store';

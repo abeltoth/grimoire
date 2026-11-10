@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
 import type { AgentId, AgentSetup, SetupFile } from '@grimoire/contract';
-import { samePath } from '@grimoire/service/agents/files';
+import { samePath } from '@grimoire/service/core/files';
 import { SetupFiles } from './setup-files';
 import { SetupWatcher } from './setup-watcher';
 

@@ -1,5 +1,5 @@
 import type { Card, CardColumn, EventName, EventPayload, JiraTransition } from '@grimoire/contract';
-import { type Connectors, ToolFailed } from '@grimoire/service/agents/claude/connectors';
+import { type Connectors, ToolFailed } from '@grimoire/service/claude/connectors';
 import { type JiraSite, issueOf, jiraSaid, openJira, transitionIssue, transitionsOf } from './jira';
 import type { CardStore } from './store';
 

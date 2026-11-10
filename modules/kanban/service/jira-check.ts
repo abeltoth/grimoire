@@ -17,7 +17,7 @@ import {
   type Connector,
   type ToolResult,
   openConnectors,
-} from '@grimoire/service/agents/claude/connectors';
+} from '@grimoire/service/claude/connectors';
 import {
   JIRA_ALLOWED,
   JIRA_READ_ONLY,

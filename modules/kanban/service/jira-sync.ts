@@ -1,5 +1,5 @@
 import type { EventName, EventPayload, JiraSync } from '@grimoire/contract';
-import type { Connectors } from '@grimoire/service/agents/claude/connectors';
+import type { Connectors } from '@grimoire/service/claude/connectors';
 import { fetchJira } from './jira';
 import type { CardStore } from './store';
 

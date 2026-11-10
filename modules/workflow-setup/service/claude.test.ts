@@ -10,7 +10,7 @@ import {
   sourceOf,
   toSetup,
 } from './claude';
-import type { ReadSettings } from '@grimoire/service/agents/claude/settings-files';
+import type { ReadSettings } from '@grimoire/service/claude/settings-files';
 
 const home = path.join(path.sep, 'home', 'me');
 const cwd = path.join(home, 'git', 'grimoire');

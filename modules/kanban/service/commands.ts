@@ -1,5 +1,5 @@
 import type { Card, EventName, EventPayload } from '@grimoire/contract';
-import type { CommandRegistry } from '@grimoire/service/registry';
+import type { CommandRegistry } from '@grimoire/service/core/registry';
 import type { JiraMoves } from './jira-moves';
 import type { JiraSyncer } from './jira-sync';
 import type { CardStore } from './store';

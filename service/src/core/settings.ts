@@ -7,7 +7,7 @@ import {
   THEME_NAMES,
 } from '@grimoire/contract';
 import type { CommandRegistry } from '../registry';
-import { activeProfile } from '../storage/app-state';
+import { activeProfile } from './app-state';
 
 type Emit = <K extends EventName>(event: K, payload: EventPayload<K>) => void;
 

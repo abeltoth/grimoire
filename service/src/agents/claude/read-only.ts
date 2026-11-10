@@ -1,7 +1,7 @@
 import path from 'node:path';
 import type { HookCallbackMatcher } from '@anthropic-ai/claude-agent-sdk';
 import type { ChatEvents } from '../adapter';
-import { samePath } from '../files';
+import { samePath } from '../../core/files';
 import { claudeHome } from './config-dir';
 
 /**

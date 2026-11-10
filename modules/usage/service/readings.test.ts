@@ -1,6 +1,6 @@
 import type { UsageReading } from '@grimoire/contract';
 import { describe, expect, it } from 'vitest';
-import { migrate, openDatabase } from '@grimoire/service/storage/database';
+import { migrate, openDatabase } from '@grimoire/service/testing/database';
 import { MIGRATIONS } from './migrations';
 import { UsageReadings, sameAccount } from './readings';
 

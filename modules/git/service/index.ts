@@ -1,4 +1,4 @@
-import type { ServiceModule } from '@grimoire/service/module';
+import type { ServiceModule } from '@grimoire/service/core/module';
 import { Git } from './git';
 
 /** The git panel: the folder's repository, its changes and its pull request. */

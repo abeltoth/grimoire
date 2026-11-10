@@ -1,4 +1,4 @@
-import type { ServiceModule } from '@grimoire/service/module';
+import type { ServiceModule } from '@grimoire/service/core/module';
 import { Memories } from './memories';
 import { MEMORY_SOURCES } from './sources';
 

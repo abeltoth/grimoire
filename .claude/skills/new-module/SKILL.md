@@ -25,7 +25,7 @@ need; a module with no UI has no `ui/`.
    }
    ```
 
-2. `service/index.ts`: one `ServiceModule`, imported from `@grimoire/service/module`:
+2. `service/index.ts`: one `ServiceModule`, imported from `@grimoire/service/core/module`:
    `id`, `migrations` if it keeps tables (see the `add-migration` skill), and `start(context)`
    that calls `context.registry.register(...)` for each command and returns `{ stop }` if it runs
    anything. Put the logic in its own file beside it, with a `*.test.ts` next to that.

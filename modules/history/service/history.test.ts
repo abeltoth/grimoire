@@ -1,9 +1,9 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { ServiceEvents } from '@grimoire/service/events';
-import { type ModuleContext, Modules } from '@grimoire/service/module';
-import { CommandRegistry } from '@grimoire/service/registry';
-import { openDatabase } from '@grimoire/service/storage/database';
+import { ServiceEvents } from '@grimoire/service/core/events';
+import { type ModuleContext, Modules } from '@grimoire/service/core/module';
+import { CommandRegistry } from '@grimoire/service/core/registry';
+import { openDatabase } from '@grimoire/service/testing/database';
 import { history } from '.';
 
 let db: DatabaseSync;

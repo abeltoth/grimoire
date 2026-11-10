@@ -25,5 +25,6 @@ Each part is registered in exactly one list: `contract/src/index.ts`, `service/s
   Each module's version is kept under its `id`.
 - A module imports no other module. It reaches one through `registry.call(...)` and
   `events.on(...)`, and its UI reaches the service through the bridge.
-- From the service it imports only the surface `eslint.config.js` lists; the lint warns on the rest.
+- From the service it imports only `@grimoire/service/core/*`, and for a Claude-only feature
+  `@grimoire/service/claude/*`; its tests also `@grimoire/service/testing/*` (ADR-012).
 - Log through `context.log`, not `console`; only a CLI script such as `jira-check.ts` prints.

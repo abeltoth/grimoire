@@ -5,10 +5,10 @@ import {
   type Connectors,
   ToolFailed,
   type ToolResult,
-} from '@grimoire/service/agents/claude/connectors';
-import { CommandRegistry } from '@grimoire/service/registry';
-import { setActiveProfile } from '@grimoire/service/storage/app-state';
-import { migrate, openDatabase } from '@grimoire/service/storage/database';
+} from '@grimoire/service/claude/connectors';
+import { CommandRegistry } from '@grimoire/service/core/registry';
+import { setActiveProfile } from '@grimoire/service/core/app-state';
+import { migrate, openDatabase } from '@grimoire/service/testing/database';
 import { registerJira } from './commands';
 import {
   JIRA_ALLOWED,

@@ -1,4 +1,4 @@
-import type { ServiceModule } from '@grimoire/service/module';
+import type { ServiceModule } from '@grimoire/service/core/module';
 import { SETUP_READERS } from './readers';
 import { Setup, setupFolders } from './setup';
 

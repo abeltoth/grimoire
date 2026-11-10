@@ -7,7 +7,7 @@
  *   node search-worker.mjs --index <file | :memory:>
  */
 import { parseArgs } from 'node:util';
-import { ClaudeAdapter } from '@grimoire/service/agents/claude/claude-adapter';
+import { ClaudeAdapter } from '@grimoire/service/claude/claude-adapter';
 import { Indexer } from './indexer';
 import type { WorkerReply, WorkerRequest } from './protocol';
 import { SearchIndex } from './search-index';
