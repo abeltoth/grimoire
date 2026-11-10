@@ -3,16 +3,10 @@ import type { ChatHistory } from '../adapter';
 import { CacheTracker, type ReplyUsage } from './cache';
 import { savedFollowUps } from './follow-ups';
 import { sdk } from './probe';
-import {
-  type ClaudeMessage,
-  ClaudeTranscript,
-  runBeganWith,
-  savedSubagentState,
-  subagentAgentId,
-  subagentCallIn,
-  turnEnd,
-  wholeRun,
-} from './transcript';
+import { turnEnd, wholeRun } from './entries';
+import { runBeganWith, savedSubagentState, subagentAgentId, subagentCallIn } from './subagent-runs';
+import type { ClaudeMessage } from './messages';
+import { ClaudeTranscript } from './transcript';
 
 /** The chats Claude Code saved, in a folder or in all of them, most recent first. */
 export async function listChats(agent: AgentId, cwd?: string): Promise<ChatSummary[]> {

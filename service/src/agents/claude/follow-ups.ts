@@ -1,7 +1,8 @@
 import type { FollowUp } from '@grimoire/contract';
 import { z } from 'zod';
 import type { ServerMaker } from './grimoire-tools';
-import { type ClaudeMessage, FOLLOW_UPS_TOOL, isYourEntry } from './transcript';
+import { isYourEntry } from './entries';
+import { type ClaudeMessage, FOLLOW_UPS_TOOL } from './messages';
 
 /**
  * The tool on Grimoire's own tool server (grimoire-tools.ts) that lets the

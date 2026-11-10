@@ -1,6 +1,5 @@
 import type {
   AgentEntry,
-  Block,
   ChatStatus,
   Attachment,
   Entry,
@@ -11,76 +10,20 @@ import type {
   TokenCounts,
   TokenUse,
   ToolBlock,
-  ToolResult,
   UserEntry,
 } from '@grimoire/contract';
 import { addTokens } from '@grimoire/contract';
-import type { ReplyUsage } from './cache';
+import {
+  type ApiBlock,
+  type ApiMessage,
+  type ClaudeMessage,
+  type HookMessage,
+  type StreamEvent,
+  type TaskMessage,
+  toBlock,
+  toolResult,
+} from './messages';
 import { splitReferences } from './references';
-
-/** The parts of Claude Code's messages the transcript reads; live and saved messages share them. */
-export interface ClaudeMessage {
-  type: string;
-  uuid?: string;
-  parent_tool_use_id?: string | null;
-  message?: unknown;
-  event?: unknown;
-  /** A note Claude Code added to a run, rather than what someone wrote. */
-  is_meta?: boolean;
-  /** Who sent a message into a run: the agent that asked a subagent is its "coordinator". */
-  origin?: { kind?: string };
-}
-
-/**
- * The ID of the last message in the turn your message `entryId` began: the one
- * just before your next message. Undefined when that turn is the chat's last.
- */
-export function turnEnd(messages: readonly ClaudeMessage[], entryId: string): string | undefined {
-  const at = messages.findIndex((message) => message.uuid === entryId);
-  if (at === -1) throw new Error('This message is not in the chat');
-  const next = messages.findIndex((message, i) => i > at && isYourEntry(message));
-  return next === -1 ? undefined : messages[next - 1]!.uuid;
-}
-
-/** Whether a message is one you wrote, rather than a tool's result. */
-export function isYourEntry(message: ClaudeMessage): boolean {
-  if (message.type !== 'user' || message.parent_tool_use_id) return false;
-  const content = (message.message as ApiMessage | undefined)?.content;
-  if (typeof content === 'string') return true;
-  return (
-    Array.isArray(content) &&
-    content.some((block) => (block.type === 'text' && block.text) || block.type === 'image')
-  );
-}
-
-interface ApiMessage {
-  id?: string;
-  model?: string;
-  usage?: ReplyUsage;
-  content?: string | ApiBlock[];
-}
-
-interface ApiBlock {
-  /** An image block's picture. */
-  source?: { type: string; media_type?: string; data?: string };
-  type: string;
-  text?: string;
-  thinking?: string;
-  id?: string;
-  name?: string;
-  input?: unknown;
-  tool_use_id?: string;
-  content?: string | ApiBlock[];
-  is_error?: boolean;
-}
-
-interface StreamEvent {
-  type: string;
-  index?: number;
-  message?: ApiMessage;
-  content_block?: ApiBlock;
-  delta?: { type: string; text?: string; thinking?: string };
-}
 
 export interface TranscriptListener {
   entry(entry: Entry): void;
@@ -97,158 +40,12 @@ export interface TranscriptListener {
   hooks?(runs: HookRun[]): void;
 }
 
-/** The tool a subagent ends its run with, its report to the agent that asked in its input's `message`. */
-export const HANDBACK_TOOL = 'SubagentHandback';
-
-/** The tool an agent sends a subagent another message with, which resumes its run. */
-export const SEND_TOOL = 'SendMessage';
-
-/**
- * The tool Grimoire gives the agent to offer separate tasks with
- * (follow-ups.ts): they show as cards under the reply, so its call has no row.
- */
-export const FOLLOW_UPS_TOOL = 'mcp__grimoire__suggest_follow_ups';
-
-/**
- * The ID Claude Code keeps a subagent's saved run by, from the result of the
- * tool call that started it; undefined when it names none. Older results
- * end on "agentId: …"; newer ones say the run's report comes "as a message
- * from" it; a message sent to a subagent resumes it, and its result names it
- * as "resumedAgentId".
- */
-export function subagentAgentId(result: string): string | undefined {
-  return (/^agentId: ([\w-]+)/m.exec(result) ??
-    /message from "([\w-]+)"/.exec(result) ??
-    /"resumedAgentId":\s*"([\w-]+)"/.exec(result))?.[1];
-}
-
-/** A tool call that handed a subagent a task, or sent one a message: what it gave, and its result. */
-export interface SubagentCall {
-  prompt?: string;
-  /** Whom a message was sent to, when the call sent one. */
-  sentTo?: string;
-  result?: ToolResult;
-}
-
-/**
- * The tool call `toolId` among the messages: the task it handed a subagent,
- * or whom it sent a message, and its result once it has one. Undefined when
- * it isn't among them.
- */
-export function subagentCallIn(
-  messages: readonly ClaudeMessage[],
-  toolId: string,
-): SubagentCall | undefined {
-  let call: SubagentCall | undefined;
-  for (const message of messages) {
-    const content = (message.message as ApiMessage | undefined)?.content;
-    if (!Array.isArray(content)) continue;
-    for (const block of content) {
-      if (message.type === 'assistant' && block.type === 'tool_use' && block.id === toolId) {
-        const { prompt, to } = (block.input ?? {}) as { prompt?: unknown; to?: unknown };
-        call = {
-          ...call,
-          ...(typeof prompt === 'string' ? { prompt } : {}),
-          ...(block.name === SEND_TOOL && typeof to === 'string' ? { sentTo: to } : {}),
-        };
-      } else if (
-        message.type === 'user' &&
-        block.type === 'tool_result' &&
-        block.tool_use_id === toolId
-      ) {
-        call = { ...call, result: toolResult(block) };
-      }
-    }
-  }
-  return call;
-}
-
-/** Whether a saved subagent's run began with the task `prompt`: its first message is the task it was given. */
-export function runBeganWith(messages: readonly ClaudeMessage[], prompt: string): boolean {
-  const first = messages.find((message) => message.type === 'user');
-  const content = (first?.message as ApiMessage | undefined)?.content;
-  const text =
-    typeof content === 'string'
-      ? content
-      : (content ?? [])
-          .filter((block) => block.type === 'text')
-          .map((block) => block.text ?? '')
-          .join('\n');
-  return !!text && text.trim() === prompt.trim();
-}
-
-/**
- * Where a saved subagent is with its task: done once it handed its report
- * back, else as the result of the tool call that started it says.
- */
-export function savedSubagentState(
-  entries: readonly Entry[],
-  result: ToolResult | undefined,
-): SubagentState {
-  const handedBack = entries.some(
-    (entry) =>
-      entry.kind === 'agent' &&
-      entry.blocks.some((b) => b.kind === 'tool' && b.tool === HANDBACK_TOOL),
-  );
-  if (handedBack) return 'done';
-  if (!result) return 'stopped';
-  return result.isError ? 'failed' : 'done';
-}
-
-/** How Claude Code opens a message the agent that asked sent a subagent while it ran. */
-const SENT_WHILE_WORKING = /^The coordinator sent a message[^\n]*:\n/;
-
-/**
- * A subagent's whole saved run: its task, what it did, and the messages the
- * agent that asked sent it later, which resumed it. Claude Code's own notes
- * to it are left out.
- */
-export function wholeRun(messages: readonly ClaudeMessage[]): Entry[] {
-  const run = new ClaudeTranscript(false);
-  const sent = new Set<string>();
-  for (const message of messages) {
-    const fromAsker = message.origin?.kind === 'coordinator';
-    if (message.type === 'user' && message.is_meta && !fromAsker) continue;
-    if (fromAsker && message.uuid) sent.add(message.uuid);
-    run.applyRun(message);
-  }
-  for (const entry of run.entries)
-    if (entry.kind === 'user' && sent.has(entry.id))
-      entry.text = entry.text.replace(SENT_WHILE_WORKING, '');
-  return run.entries;
-}
-
 /** How a task Claude Code ran ended, as a subagent's state. */
 const TASK_END: Record<string, SubagentState> = {
   completed: 'done',
   failed: 'failed',
   stopped: 'stopped',
 };
-
-/** Claude Code's word on a task it runs, such as a subagent: that it began, or how it ended. */
-interface TaskMessage {
-  subtype?: string;
-  tool_use_id?: string;
-  status?: string;
-}
-
-/**
- * Claude Code's word on a hook it runs: that it began, what it printed so
- * far, or how it ended. It says so only for the hooks it runs itself, such
- * as commands, never for an SDK callback, so Grimoire's own don't show.
- */
-interface HookMessage {
-  subtype?: string;
-  hook_id?: string;
-  /** Such as "PostToolUse:Edit": the event, and on a tool's events the tool. */
-  hook_name?: string;
-  hook_event?: string;
-  output?: string;
-  stdout?: string;
-  stderr?: string;
-  exit_code?: number;
-  outcome?: string;
-}
 
 /** The events a hook runs on for a tool, which its name follows with the tool's. */
 const TOOL_EVENTS = new Set([
@@ -673,41 +470,4 @@ function byModel(spent: Spent): TokenUse[] {
     uses.set(key, sum ? { ...sum, ...addTokens([sum, use]) } : { ...use });
   }
   return [...uses.values()];
-}
-
-/** The tool Claude Code runs a skill with; its input names the skill. */
-const SKILL_TOOL = 'Skill';
-
-function toBlock(block: ApiBlock): Block | undefined {
-  switch (block.type) {
-    case 'text':
-      return { kind: 'text', text: block.text ?? '' };
-    case 'thinking':
-      return { kind: 'thinking', text: block.thinking ?? '' };
-    case 'tool_use': {
-      if (block.name === FOLLOW_UPS_TOOL) return undefined;
-      const input = block.input ?? {};
-      const skill = block.name === SKILL_TOOL ? (input as { skill?: unknown }).skill : undefined;
-      return {
-        kind: 'tool',
-        id: block.id ?? '',
-        tool: block.name ?? '',
-        input,
-        ...(typeof skill === 'string' && skill ? { skill } : {}),
-      };
-    }
-    default:
-      return undefined;
-  }
-}
-
-function toolResult(block: ApiBlock): ToolResult {
-  const text =
-    typeof block.content === 'string'
-      ? block.content
-      : (block.content ?? [])
-          .filter((part) => part.type === 'text')
-          .map((part) => part.text ?? '')
-          .join('\n');
-  return { text, isError: block.is_error === true };
 }

@@ -8,7 +8,8 @@ import {
   toFollowUps,
 } from './follow-ups';
 import { GRIMOIRE_SERVER, ProcessChat, type ServerMaker, grimoireOptions } from './grimoire-tools';
-import { type ClaudeMessage, ClaudeTranscript, FOLLOW_UPS_TOOL } from './transcript';
+import { type ClaudeMessage, FOLLOW_UPS_TOOL } from './messages';
+import { ClaudeTranscript } from './transcript';
 
 const docs = { title: 'Docs', prompt: 'Write the docs' };
 

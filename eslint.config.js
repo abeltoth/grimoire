@@ -39,7 +39,6 @@ const oversized = [
   'modules/settings/ui/settings-page.html',
   'modules/usage/ui/usage-page.html',
   'modules/usage/ui/usage-page.ts',
-  'service/src/agents/claude/transcript.ts',
 ];
 const onTheRealClock = [
   'app/src/service-launcher.test.ts',

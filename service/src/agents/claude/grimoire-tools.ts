@@ -1,7 +1,7 @@
 import type { Options, createSdkMcpServer, tool } from '@anthropic-ai/claude-agent-sdk';
 import type { AgentTool, ToolChat } from '../tools';
 import { FOLLOW_UPS_PROMPT, type FollowUpsKept, followUpsTool } from './follow-ups';
-import { FOLLOW_UPS_TOOL } from './transcript';
+import { FOLLOW_UPS_TOOL } from './messages';
 
 /**
  * Grimoire's own tool server, in the service's process: the one exception
