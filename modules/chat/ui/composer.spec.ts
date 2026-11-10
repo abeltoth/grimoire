@@ -239,6 +239,13 @@ describe('composer', () => {
   });
 
   it('says what the next message re-reads once the prompt cache has run out, and offers to compact first', async () => {
+    // The composer counts how long ago the cache ran out from now, so the test fixes it.
+    const now = new Date(2026, 10, 9, 15, 30).getTime();
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(now);
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
     const { bridge, calls, emit, answers } = fakeBridge();
     answers['agents.list'] = () => [
       { id: 'claude-code', name: 'Claude Code', capabilities: ['compact'] },
@@ -247,7 +254,7 @@ describe('composer', () => {
     await write(fixture, el, 'Hello');
     emit('agents.cache', {
       chatId: 'chat-1',
-      cache: { tokens: 283_412, until: Date.now() - 3 * 3_600_000 },
+      cache: { tokens: 283_412, until: now - 3 * 3_600_000 },
     });
     // Not while a turn runs: it's reading them already.
     await fixture.whenStable();
@@ -267,7 +274,7 @@ describe('composer', () => {
     // A turn leaves a fresh cache.
     emit('agents.cache', {
       chatId: 'chat-1',
-      cache: { tokens: 12_000, until: Date.now() + 3_600_000 },
+      cache: { tokens: 12_000, until: now + 3_600_000 },
     });
     await fixture.whenStable();
     expect(el.querySelector('gr-composer .cold')).toBeNull();

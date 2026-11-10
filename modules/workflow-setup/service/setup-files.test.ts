@@ -102,7 +102,8 @@ describe('SetupFiles', () => {
   it('won’t save over a change made on disk since the file was opened', async () => {
     const opened = await files.open('claude-code', dir, at('CLAUDE.md'));
     writeFileSync(at('CLAUDE.md'), '# Changed elsewhere');
-    utimesSync(at('CLAUDE.md'), new Date(), new Date(opened.changedAt + 5000));
+    const later = new Date(opened.changedAt + 5000);
+    utimesSync(at('CLAUDE.md'), later, later);
     await expect(
       files.save('claude-code', dir, at('CLAUDE.md'), '# Mine', opened.changedAt),
     ).rejects.toThrow('It changed on disk since you opened it. Open it again to see the change.');

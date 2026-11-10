@@ -5,8 +5,15 @@ import { fakeBridge, render } from '@ui/testing/app-harness';
 
 describe('schedules', () => {
   it("keeps scheduled chats as journal entries, names the next run, and adds a run's chat to the book", async () => {
+    // The next run is named from today, so the test fixes today.
+    const now = new Date(2026, 10, 9, 15, 30).getTime();
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(now);
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
     const { bridge, calls, answers, emit } = fakeBridge();
-    const tomorrow = new Date();
+    const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
     const nextAt = tomorrow.setHours(8, 0, 0, 0);
     const dueAt = new Date(nextAt - 24 * 60 * 60_000).getTime();
@@ -30,7 +37,7 @@ describe('schedules', () => {
     answers['schedules.run'] = (): ScheduleRun => {
       const run: ScheduleRun = {
         scheduleId: 's1',
-        dueAt: Date.now(),
+        dueAt: now,
         outcome: 'began',
         chatId: 'run-1',
         cwd: 'C:/Users/me/git/grimoire',
@@ -55,7 +62,7 @@ describe('schedules', () => {
     };
     const { fixture, el, texts } = await render(bridge);
 
-    const indicator = `Morning repo summary ${upcoming(nextAt, Date.now())}`;
+    const indicator = `Morning repo summary ${upcoming(nextAt, now)}`;
     expect(indicator).toMatch(/^Morning repo summary tomorrow at /);
     expect(texts('gr-status-indicators button')).toEqual([indicator]);
     el.querySelector<HTMLButtonElement>('gr-status-indicators button')!.click();

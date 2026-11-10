@@ -4,18 +4,25 @@ import { fakeBridge, render, write } from '@ui/testing/app-harness';
 
 describe('transcript', () => {
   it('times the running turn by Stop, and shows how long each turn took once it ended', async () => {
+    // The turn is timed from when it began to now, so the test fixes now.
+    const now = new Date(2026, 10, 9, 15, 30).getTime();
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(now);
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
     const { bridge, emit } = fakeBridge();
     const { fixture, el, texts } = await render(bridge);
     await write(fixture, el, 'Fix the flaky login test');
     const user = { kind: 'user' as const, id: 'u1', text: 'Fix the flaky login test' };
-    emit('agents.entry', { chatId: 'chat-1', entry: { ...user, at: Date.now() - 134_000 } });
+    emit('agents.entry', { chatId: 'chat-1', entry: { ...user, at: now - 134_000 } });
     await fixture.whenStable();
     expect(texts('.stop')).toEqual(['Stop Esc 2m 14s']);
     expect(texts('.spent-line .took')).toEqual([]);
 
     emit('agents.entry', {
       chatId: 'chat-1',
-      entry: { ...user, at: Date.now() - 200_000, took: 200_000 },
+      entry: { ...user, at: now - 200_000, took: 200_000 },
     });
     emit('agents.status', { chatId: 'chat-1', status: 'idle' });
     await fixture.whenStable();
@@ -82,7 +89,7 @@ describe('transcript', () => {
       kind: 'user' as const,
       id: 'u1',
       text: 'Fix the flaky login test',
-      at: Date.now(),
+      at: new Date(2026, 10, 9, 15, 30).getTime(),
     };
     const lint = { id: 'h1', name: 'PostToolUse:Edit', event: 'PostToolUse', tool: 'Edit' };
     const guard = {

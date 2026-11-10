@@ -19,7 +19,7 @@ function setUp() {
       plan: 'max',
       windows: [{ span: 'session', used: used++, resetsAt: 5000 }],
       account: 'me@example.com',
-      at: Date.now(),
+      at: vi.getMockedSystemTime()!.getTime(),
     }),
     breakdown: async () => null,
   };

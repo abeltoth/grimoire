@@ -129,7 +129,7 @@ describe('general-settings', () => {
         ],
       },
       settingsFiles: [],
-      at: Date.now(),
+      at: new Date(2026, 10, 9, 15, 30).getTime(),
     });
     let kept: GrimoireSettings = { ...DEFAULT_SETTINGS, mcpOff: ['linear'] };
     answers['settings.get'] = () => kept;

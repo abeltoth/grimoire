@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import type { EventName, EventPayload } from '@grimoire/contract';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { defaultShell, shellEnv, spawnPty, type Pty, type Shell } from './shell';
 import { Terminals } from './terminals';
 
@@ -187,9 +187,15 @@ describe('a real shell', () => {
       { shell: () => node, spawn: spawnPty, batchMs: 1 },
     );
     terminals.open({ cwd: folder, cols: 200, rows: 10 });
-    const deadline = Date.now() + 15_000;
-    while (!sent.some((s) => s.event === 'terminal.exited') && Date.now() < deadline)
-      await delay(50);
+    // Gives up quietly at the timeout, so the expect below says what never came.
+    await vi
+      .waitFor(
+        () => {
+          if (!sent.some((s) => s.event === 'terminal.exited')) throw new Error('Not yet');
+        },
+        { timeout: 15_000, interval: 50 },
+      )
+      .catch(() => {});
     terminals.closeAll();
 
     const text = outputs(sent)

@@ -4,7 +4,7 @@ import { fakeBridge, render } from '@ui/testing/app-harness';
 describe('git', () => {
   it("shows the chat's branch and header badges, and its repository on the Git page", async () => {
     const { bridge, calls, answers } = fakeBridge();
-    const now = Date.now();
+    const now = new Date(2026, 10, 9, 15, 30).getTime();
     answers['git.status'] = (): GitStatus => ({
       root: 'C:/Users/me/git/grimoire',
       branch: 'feature/context-meter',

@@ -45,7 +45,7 @@ describe('workflow-setup', () => {
         { source: 'user', path: 'C:/Users/me/.claude/settings.json', exists: true },
         { source: 'project', path: 'C:/Users/me/git/new/.claude/settings.json', exists: false },
       ],
-      at: Date.now(),
+      at: new Date(2026, 10, 9, 15, 30).getTime(),
     });
     const { fixture, el, texts } = await render(bridge);
     [...el.querySelectorAll<HTMLButtonElement>('gr-page-tabs .page-tab')]
@@ -143,7 +143,7 @@ describe('workflow-setup', () => {
         memory: [{ name: '~/.claude/CLAUDE.md', source: 'user', path: memory, tokens: 310 }],
       },
       settingsFiles: [{ source: 'managed', path: managed, exists: true }],
-      at: Date.now(),
+      at: new Date(2026, 10, 9, 15, 30).getTime(),
     });
     let kept = '# Mine';
     answers['setup.openFile'] = (request: CommandRequest<'setup.openFile'>): SetupFile => ({
@@ -285,7 +285,7 @@ describe('workflow-setup', () => {
         })),
       },
       settingsFiles: [],
-      at: Date.now(),
+      at: new Date(2026, 10, 9, 15, 30).getTime(),
     });
     let onDisk = '# Mine';
     answers['setup.openFile'] = (request: CommandRequest<'setup.openFile'>): SetupFile => ({
@@ -364,7 +364,7 @@ describe('workflow-setup', () => {
       cwd: request.cwd ?? 'C:/Users/me',
       sections: empty,
       settingsFiles: [],
-      at: Date.now(),
+      at: new Date(2026, 10, 9, 15, 30).getTime(),
     });
     answers['setup.folders'] = () => [
       'C:/Users/me/git/grimoire',

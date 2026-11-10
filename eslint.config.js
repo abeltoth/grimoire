@@ -39,26 +39,6 @@ const registrations = [
   'contract/src/index.ts',
 ];
 
-// Tests still on the real clock, only warned about until they're fixed (REFACTOR.md 4.2).
-const onTheRealClock = [
-  'app/src/service-launcher.test.ts',
-  'modules/chat/ui/composer.spec.ts',
-  'modules/chat/ui/settings-card.spec.ts',
-  'modules/chat/ui/transcript.spec.ts',
-  'modules/files/service/files.test.ts',
-  'modules/git/ui/git.spec.ts',
-  'modules/kanban/ui/kanban-testing.ts',
-  'modules/memories/ui/memories-page.spec.ts',
-  'modules/memories/ui/memory-editor.spec.ts',
-  'modules/memories/ui/memory-list.spec.ts',
-  'modules/schedules/ui/schedules.spec.ts',
-  'modules/settings/ui/general-settings.spec.ts',
-  'modules/terminal/service/terminals.test.ts',
-  'modules/usage/service/usage.test.ts',
-  'modules/workflow-setup/service/setup-files.test.ts',
-  'modules/workflow-setup/ui/workflow-setup.spec.ts',
-];
-
 const maxLines = { max: 400, skipBlankLines: true, skipComments: true };
 const clockMessage =
   'Tests never read the real clock: use vi.setSystemTime() or pass in a fixed now.';
@@ -109,7 +89,6 @@ export default defineConfig(
     rules: { 'max-lines': ['error', maxLines] },
   },
   { files: tests, rules: { 'no-restricted-syntax': ['error', ...realClock] } },
-  { files: onTheRealClock, rules: { 'no-restricted-syntax': ['warn', ...realClock] } },
   {
     files: sources.map((root) => `${root}/**/*.ts`),
     plugins: { boundaries },

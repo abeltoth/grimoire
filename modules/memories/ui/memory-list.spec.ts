@@ -34,7 +34,7 @@ describe('memory-list', () => {
         { cwd: 'C:/Users/me/git/breeder', count: 3 },
         { cwd: null, count: 1 },
       ],
-      at: Date.now(),
+      at: new Date(2026, 10, 9, 15, 30).getTime(),
     });
     const { fixture, el, texts } = await render(bridge);
     [...el.querySelectorAll<HTMLButtonElement>('gr-page-tabs .page-tab')]
@@ -103,7 +103,7 @@ describe('memory-list', () => {
       memories: [],
       problems: [],
       elsewhere: [],
-      at: Date.now(),
+      at: new Date(2026, 10, 9, 15, 30).getTime(),
     });
     const { fixture, el, texts } = await render(bridge);
     [...el.querySelectorAll<HTMLButtonElement>('gr-page-tabs .page-tab')]

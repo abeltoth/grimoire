@@ -59,7 +59,7 @@ export function withBoard(start: Card[] = []) {
       cards.map((c) => {
         if (c.id !== id) return c;
         const { closedAt: _, ...open } = c;
-        return closed ? { ...open, closedAt: Date.now() } : open;
+        return closed ? { ...open, closedAt: new Date(2026, 10, 9, 15, 30).getTime() } : open;
       }),
     );
   fake.answers['kanban.link'] = ({ id, ...chat }: CommandRequest<'kanban.link'>) => {

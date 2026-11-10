@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, realpathSync, rmSync, statSync, writeFileSync }
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type { EventName, EventPayload } from '@grimoire/contract';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CommandRegistry } from '@grimoire/service/core/registry';
 import { Files } from './files';
 import { reposThrough } from '.';
@@ -51,11 +51,16 @@ const write = (file: string, text: string | Buffer) => {
   mkdirSync(path.dirname(path.join(repo, file)), { recursive: true });
   writeFileSync(path.join(repo, file), text);
 };
-const until = async (done: () => boolean, ms = 3000) => {
-  for (const start = Date.now(); !done() && Date.now() - start < ms;) {
-    await new Promise((resolve) => setTimeout(resolve, 50));
-  }
-};
+// Gives up quietly at the timeout, so the expect after it says what never came.
+const until = (done: () => boolean, ms = 3000) =>
+  vi
+    .waitFor(
+      () => {
+        if (!done()) throw new Error('Not yet');
+      },
+      { timeout: ms, interval: 50 },
+    )
+    .catch(() => {});
 
 beforeEach(() => {
   repo = realpathSync(mkdtempSync(path.join(tmpdir(), 'grimoire-files-')));

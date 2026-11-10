@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, utimesSync } from 'node:fs';
+import { mkdtempSync, rmSync, statSync, utimesSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import * as esbuild from 'esbuild';
@@ -66,7 +66,7 @@ describe('ensureService', () => {
       expect(second.welcome.pid).toBe(first.welcome.pid);
 
       // A rebuild changes the build ID: the old service stops and a new one starts.
-      const later = new Date(Date.now() + 5_000);
+      const later = new Date(statSync(serviceEntry).mtimeMs + 5_000);
       utimesSync(serviceEntry, later, later);
       const third = await ensureService(options);
       clients.push(third);

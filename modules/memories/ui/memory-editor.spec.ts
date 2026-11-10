@@ -28,7 +28,7 @@ describe('memory-editor', () => {
       memories,
       problems: [],
       elsewhere: [],
-      at: Date.now(),
+      at: new Date(2026, 10, 9, 15, 30).getTime(),
     });
     answers['memories.open'] = (request: CommandRequest<'memories.open'>): SetupFile => ({
       path: request.path,
@@ -175,7 +175,7 @@ describe('memory-editor', () => {
       ],
       problems: [],
       elsewhere: [],
-      at: Date.now(),
+      at: new Date(2026, 10, 9, 15, 30).getTime(),
     });
     answers['memories.open'] = (request: CommandRequest<'memories.open'>): SetupFile => ({
       path: request.path,

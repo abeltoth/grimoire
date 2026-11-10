@@ -193,7 +193,7 @@ describe('settings-card', () => {
         ],
       },
       settingsFiles: [],
-      at: Date.now(),
+      at: new Date(2026, 10, 9, 15, 30).getTime(),
     });
     answers['settings.get'] = () => ({ ...DEFAULT_SETTINGS, mcpOff: ['slack'] });
     const { fixture, el, texts } = await render(bridge);
