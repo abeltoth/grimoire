@@ -1,0 +1,343 @@
+@if (view() !== 'limits') {
+  <section class="tokens">
+    <p class="sub">
+      <span class="spans" role="radiogroup" aria-label="Over">
+        @for (each of spans; track each[0]) {
+          <button
+            type="button"
+            role="radio"
+            [attr.aria-checked]="span() === each[0]"
+            (click)="showSpan(each[0])"
+          >
+            {{ each[1].label }}
+          </button>
+        }
+      </span>
+      <span class="dot" aria-hidden="true">·</span>
+      <button
+        type="button"
+        class="gr-link"
+        [attr.aria-disabled]="readingTokens() || null"
+        (click)="readTokens()"
+      >
+        Read again
+      </button>
+    </p>
+
+    @if (view() === 'tokens') {
+      @if (breakdownsFailed(); as error) {
+        <p class="none" role="alert">Claude Code couldn’t say where the usage went: {{ error }}</p>
+      } @else if (breakdowns(); as breakdowns) {
+        @for (each of breakdowns; track each.agent.id) {
+          @if (each.breakdown[span()].advice.length) {
+            <h3>{{ each.agent.name }}’s advice</h3>
+            <ul class="advice">
+              @for (advice of each.breakdown[span()].advice; track advice.key) {
+                <li>
+                  <span class="name">{{ advice.title }}</span>
+                  @if (advice.detail) {
+                    <span class="detail">{{ advice.detail }}</span>
+                  }
+                </li>
+              }
+            </ul>
+          }
+        }
+      }
+
+      <h3>By Grimoire’s count</h3>
+      @if (totalsFailed(); as error) {
+        <p class="none" role="alert">The chats’ tokens couldn’t be counted: {{ error }}</p>
+      } @else if (totals(); as totals) {
+        @if (totals.total.weight) {
+          <p class="total">
+            <span class="name">{{ count(totals.total.weight) }} tokens</span>
+            <span class="detail">{{ inWords(totals.total) }}</span>
+          </p>
+
+          @if (tokensCharts(); as charts) {
+            <gr-usage-columns
+              [caption]="charts.caption"
+              [series]="tokenSeries"
+              [columns]="charts.columns"
+              [format]="tokenFormat"
+            />
+            @if (charts.cache[0]!.points.length) {
+              <gr-usage-lines
+                caption="Served from the cache"
+                [series]="charts.cache"
+                [from]="charts.from"
+                [to]="charts.to"
+                [ticks]="charts.ticks"
+                [breakAfter]="charts.bucket * 1.5"
+                [when]="bucketName"
+              />
+            }
+          }
+
+          <p class="sub">
+            <span class="groups" role="radiogroup" aria-label="Group by">
+              @for (each of groups; track each[0]) {
+                <button
+                  type="button"
+                  role="radio"
+                  [attr.aria-checked]="group() === each[0]"
+                  (click)="group.set(each[0])"
+                >
+                  {{ each[1] }}
+                </button>
+              }
+            </span>
+          </p>
+
+          @switch (group()) {
+            @case ('day') {
+              <ul class="limits">
+                @for (day of top(totals.days, 'day'); track day.day) {
+                  <ng-container
+                    *ngTemplateOutlet="weighed; context: { name: dayName(day.day), total: day }"
+                  />
+                }
+              </ul>
+              <ng-container
+                *ngTemplateOutlet="more; context: { key: 'day', size: totals.days.length }"
+              />
+            }
+            @case ('model') {
+              <ul class="limits">
+                @for (model of top(totals.models, 'model'); track model.model + model.subagent) {
+                  <ng-container
+                    *ngTemplateOutlet="
+                      weighed;
+                      context: { name: modelName(model.model, model.subagent), total: model }
+                    "
+                  />
+                }
+              </ul>
+              <ng-container
+                *ngTemplateOutlet="more; context: { key: 'model', size: totals.models.length }"
+              />
+            }
+            @case ('folder') {
+              <ul class="limits">
+                @for (folder of top(totals.folders, 'folder'); track folder.cwd) {
+                  <ng-container
+                    *ngTemplateOutlet="
+                      weighed;
+                      context: { name: folderName(folder.cwd), total: folder }
+                    "
+                  />
+                } @empty {
+                  <li class="none">No folders over this span.</li>
+                }
+              </ul>
+              <ng-container
+                *ngTemplateOutlet="more; context: { key: 'folder', size: totals.folders.length }"
+              />
+            }
+            @case ('chat') {
+              <ul class="limits">
+                @for (chat of top(totals.chats, 'chat'); track chat.id) {
+                  <li>
+                    <span class="head">
+                      <button type="button" class="name gr-link" (click)="openChat(chat)">
+                        {{ chat.title || 'Untitled' }}
+                      </button>
+                      <span class="resets">{{ count(chat.weight) }} tokens</span>
+                    </span>
+                    <span
+                      class="ticks"
+                      role="meter"
+                      [attr.aria-label]="(chat.title || 'Untitled') + ', share of the tokens'"
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                      [attr.aria-valuenow]="round(shareOf(chat))"
+                    >
+                      <span class="used" [style.width.%]="shareOf(chat)"></span>
+                    </span>
+                    <b>{{ round(shareOf(chat)) }}%</b>
+                  </li>
+                }
+              </ul>
+              <ng-container
+                *ngTemplateOutlet="more; context: { key: 'chat', size: totals.chats.length }"
+              />
+            }
+          }
+        } @else {
+          <p class="none">No chat spent any tokens over this span.</p>
+        }
+      } @else {
+        <p class="none">Counting the chats’ tokens…</p>
+      }
+
+      @if (breakdowns(); as breakdowns) {
+        @for (each of breakdowns; track each.agent.id) {
+          @let scan = each.breakdown[span()];
+          @if (scan.behaviours.length || scan.sources.length) {
+            <details class="how">
+              <summary>{{ each.agent.name }}’s own scan</summary>
+              <p>{{ scan.requests }} requests in {{ scan.chats }} chats</p>
+              @if (scan.behaviours.length) {
+                <h4>Ways of working</h4>
+                <ul class="limits">
+                  @for (behaviour of top(scan.behaviours, 'behaviours'); track behaviour.key) {
+                    <li>
+                      <span class="head">
+                        <span class="name">{{ behaviourName(behaviour.key) }}</span>
+                        <span class="resets">{{ behaviour.requests }} requests</span>
+                      </span>
+                      <span
+                        class="ticks"
+                        role="meter"
+                        [attr.aria-label]="behaviourName(behaviour.key) + ', share of the usage'"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                        [attr.aria-valuenow]="behaviour.share"
+                      >
+                        <span class="used" [style.width.%]="filled(behaviour.share)"></span>
+                      </span>
+                      <b>{{ round(behaviour.share) }}%</b>
+                    </li>
+                  }
+                </ul>
+                <ng-container
+                  *ngTemplateOutlet="
+                    more;
+                    context: { key: 'behaviours', size: scan.behaviours.length }
+                  "
+                />
+              }
+              @if (scan.sources.length) {
+                <h4>What took a share</h4>
+                <ul class="limits">
+                  @for (source of top(scan.sources, 'sources'); track source.kind + source.name) {
+                    <li>
+                      <span class="head">
+                        <span class="name">{{ source.name }}</span>
+                        <span class="resets">{{ sourceKind(source.kind) }}</span>
+                      </span>
+                      <span
+                        class="ticks"
+                        role="meter"
+                        [attr.aria-label]="source.name + ', share of the usage'"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                        [attr.aria-valuenow]="source.share"
+                      >
+                        <span class="used" [style.width.%]="filled(source.share)"></span>
+                      </span>
+                      <b>{{ round(source.share) }}%</b>
+                    </li>
+                  }
+                </ul>
+                <ng-container
+                  *ngTemplateOutlet="more; context: { key: 'sources', size: scan.sources.length }"
+                />
+              }
+            </details>
+          }
+        }
+      }
+
+      <details class="how">
+        <summary>How this is counted</summary>
+        <p>
+          Claude Code’s numbers come from its own look through the chats on this computer. The ways
+          of working overlap, so their shares don’t add up to 100%.
+        </p>
+        <p>
+          Grimoire’s count comes from each chat’s transcript, weighed as the API prices tokens
+          against fresh input: a cache read a tenth, a cache write a quarter more (twice for an
+          hour), output five times. The models’ own prices are left out.
+        </p>
+      </details>
+    } @else {
+      @if (totalsFailed(); as error) {
+        <p class="none" role="alert">The chats’ tokens couldn’t be counted: {{ error }}</p>
+      } @else if (totals(); as totals) {
+        @if (totals.tools.length) {
+          <h4>The tools used most</h4>
+          <ul class="limits" data-used="tools">
+            @for (tool of top(totals.tools, 'tools'); track tool.name) {
+              <ng-container *ngTemplateOutlet="used; context: { used: tool, of: totals.tools }" />
+            }
+          </ul>
+          <ng-container
+            *ngTemplateOutlet="more; context: { key: 'tools', size: totals.tools.length }"
+          />
+        }
+
+        @if (totals.skills.length) {
+          <h4>The skills used most</h4>
+          <ul class="limits" data-used="skills">
+            @for (skill of top(totals.skills, 'skills'); track skill.name) {
+              <ng-container *ngTemplateOutlet="used; context: { used: skill, of: totals.skills }" />
+            }
+          </ul>
+          <ng-container
+            *ngTemplateOutlet="more; context: { key: 'skills', size: totals.skills.length }"
+          />
+          <details class="how">
+            <summary>What counts as a skill</summary>
+            <p>Those the agent ran, and the commands and skills you wrote as /name.</p>
+          </details>
+        }
+
+        @if (!totals.tools.length && !totals.skills.length) {
+          <p class="none">No tools or skills were used over this span.</p>
+        }
+      } @else {
+        <p class="none">Counting the chats’ tokens…</p>
+      }
+    }
+  </section>
+}
+
+<ng-template #more let-key="key" let-size="size">
+  @if (size > shown) {
+    <button type="button" class="gr-link more" (click)="toggle(key)">
+      {{ isOpen(key) ? 'Show fewer' : 'Show all ' + size }}
+    </button>
+  }
+</ng-template>
+
+<ng-template #weighed let-name="name" let-total="total">
+  <li>
+    <span class="head">
+      <span class="name">{{ name }}</span>
+      <span class="resets" [attr.title]="inWords(total)">{{ count(total.weight) }} tokens</span>
+    </span>
+    <span
+      class="ticks"
+      role="meter"
+      [attr.aria-label]="name + ', share of the tokens'"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      [attr.aria-valuenow]="round(shareOf(total))"
+    >
+      <span class="used" [style.width.%]="shareOf(total)"></span>
+    </span>
+    <b>{{ round(shareOf(total)) }}%</b>
+  </li>
+</ng-template>
+
+<ng-template #used let-used="used" let-of="of">
+  <li>
+    <span class="head">
+      <span class="name">{{ used.name }}</span>
+      <span class="resets">{{ uses(used.uses) }}</span>
+    </span>
+    <span
+      class="ticks"
+      role="meter"
+      [attr.aria-label]="used.name + ', uses against the most used'"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      [attr.aria-valuenow]="round(againstMost(used, of))"
+    >
+      <span class="used" [style.width.%]="againstMost(used, of)"></span>
+    </span>
+    <b>{{ used.uses.toLocaleString() }}</b>
+  </li>
+</ng-template>

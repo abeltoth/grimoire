@@ -1,0 +1,29 @@
+/* The views and the spans to show where the tokens went over, the shown one underlined. */
+.spans,
+.groups,
+.tabs {
+  display: inline-flex;
+  gap: var(--gr-usage-spans-gap);
+}
+
+.spans button,
+.groups button,
+.tabs button {
+  padding: var(--gr-settings-word-pad);
+  border-bottom: var(--gr-settings-word-rule-off);
+  font-style: italic;
+  color: var(--gr-ink-soft);
+}
+
+.spans button:hover,
+.groups button:hover,
+.tabs button:hover {
+  color: var(--gr-ink);
+}
+
+.spans button[aria-checked='true'],
+.groups button[aria-checked='true'],
+.tabs button[aria-selected='true'] {
+  color: var(--gr-ink);
+  border-bottom: var(--gr-settings-word-rule);
+}

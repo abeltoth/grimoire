@@ -1,0 +1,24 @@
+:host {
+  display: contents;
+}
+
+section + section {
+  margin-top: var(--gr-usage-section-gap);
+}
+
+h2 {
+  margin: 0;
+  font-family: var(--gr-font-display-sc);
+  font-weight: 400;
+  font-size: var(--gr-size-section-head);
+  letter-spacing: var(--gr-tracking-section-head);
+  color: var(--gr-rubric);
+}
+
+/* The money spent, after the credits' name, as an aside. */
+.spent {
+  margin-left: var(--gr-allowance-gap);
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}

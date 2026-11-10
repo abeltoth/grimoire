@@ -1,0 +1,70 @@
+:host {
+  display: contents;
+}
+
+h3 {
+  margin: var(--gr-usage-head-gap) 0 0;
+  font-family: var(--gr-font-display);
+  font-weight: 400;
+  font-size: var(--gr-size-git-head);
+  color: var(--gr-ink);
+}
+
+h4 {
+  margin: var(--gr-usage-head-gap) 0 var(--gr-aside-gap);
+  font-weight: 500;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.more {
+  margin-top: var(--gr-aside-gap);
+  font-size: var(--gr-size-aside);
+}
+
+/* An explanation kept out of the way until asked for. */
+.how {
+  margin-top: var(--gr-usage-head-gap);
+  max-width: var(--gr-usage-width);
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.how summary {
+  cursor: pointer;
+  font-style: italic;
+}
+
+/* A chat that weighed much opens from its title. */
+button.name {
+  text-align: left;
+}
+
+/* Claude Code's advice, and the totals, each with an aside under it. */
+.advice {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-aside-gap);
+  max-width: var(--gr-usage-width);
+}
+
+.advice li,
+.total {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.total {
+  margin: var(--gr-aside-gap) 0 0;
+  max-width: var(--gr-usage-width);
+}
+
+.detail {
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}

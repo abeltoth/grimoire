@@ -1,0 +1,109 @@
+@if (shown()) {
+  @if (failed(); as error) {
+    <p class="none" role="alert">The plan limits couldn’t be read: {{ error }}</p>
+  } @else if (plans(); as plans) {
+    @for (plan of plans; track plan.agent.id) {
+      <section class="plan">
+        <h2>{{ plan.agent.name }}’s plan limits</h2>
+        <p class="sub">
+          @if (plan.usage.plan) {
+            {{ planName(plan.usage.plan) }},
+          }
+          read at {{ time(plan.usage.at) }}
+          <span class="dot" aria-hidden="true">·</span>
+          <button
+            type="button"
+            class="gr-link"
+            [attr.aria-disabled]="reading() || null"
+            (click)="read()"
+          >
+            Read again
+          </button>
+        </p>
+
+        @if (plan.usage.windows.length || plan.usage.credits) {
+          <ul class="limits">
+            @for (window of plan.usage.windows; track window.span + (window.model ?? '')) {
+              <li>
+                <span class="head">
+                  <span class="name">{{ limitName(window) }}</span>
+                  <span class="resets">{{ resets(window.resetsAt) }}</span>
+                </span>
+                <span
+                  class="ticks"
+                  role="meter"
+                  [attr.aria-label]="limitName(window) + ' used'"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  [attr.aria-valuenow]="window.used"
+                >
+                  <span class="used" [style.width.%]="filled(window.used)"></span>
+                </span>
+                <b>{{ window.used ?? '–' }}%</b>
+              </li>
+            }
+            @if (plan.usage.credits; as credits) {
+              <li>
+                <span class="head">
+                  <span class="name">
+                    Usage credits this month
+                    <span class="spent">{{ spent(credits) }}</span>
+                  </span>
+                  <span class="resets">{{ resetsOn(credits.resetsAt) }}</span>
+                </span>
+                @if (credits.limit !== null) {
+                  <span
+                    class="ticks"
+                    role="meter"
+                    aria-label="Usage credits spent this month"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                    [attr.aria-valuenow]="credits.used"
+                    [attr.aria-valuetext]="spent(credits)"
+                  >
+                    <span class="used" [style.width.%]="filled(credits.used)"></span>
+                  </span>
+                  <b>{{ credits.used === null ? '–' : round(credits.used) }}%</b>
+                }
+              </li>
+            }
+          </ul>
+          @if (plan.chart; as chart) {
+            @if (chart.week.length) {
+              <gr-usage-lines
+                caption="The week’s limit over the last 7 days"
+                [series]="chart.week"
+                [from]="chart.from"
+                [to]="chart.to"
+                [ticks]="chart.ticks"
+                [marks]="chart.marks"
+                [breakAfter]="weekApart"
+                [step]="true"
+                [table]="chart.table"
+                [when]="readingName"
+              />
+            }
+            @if (chart.sessions.length) {
+              <gr-usage-columns
+                caption="How full each session got"
+                [series]="sessionSeries"
+                [columns]="chart.sessions"
+                [format]="percent"
+                [max]="100"
+                [tabled]="false"
+              />
+            }
+          }
+        } @else {
+          <p class="none">
+            No limits to show: {{ plan.agent.name }} isn’t signed in with a Claude subscription.
+          </p>
+        }
+      </section>
+    } @empty {
+      <p class="none plan">None of your agents has a plan with limits.</p>
+    }
+  } @else {
+    <p class="none plan">Asking your agents…</p>
+  }
+}
