@@ -11,7 +11,7 @@ export function passagesOf(title: string, entries: readonly Entry[]): Passage[] 
   const passages: Passage[] = [{ kind: 'title', text: title }];
   for (const entry of entries) {
     if (entry.kind === 'user') passages.push({ kind: 'you', text: entry.text });
-    else {
+    else if (entry.kind === 'agent') {
       const text = entry.blocks
         .flatMap((block) => (block.kind === 'text' ? [block.text] : []))
         .join('\n\n');
@@ -50,7 +50,7 @@ export function usesOf(entries: readonly Entry[]): ToolUse[] {
       continue;
     }
     const at = entry.at ?? turnAt;
-    if (at === undefined) continue;
+    if (entry.kind !== 'agent' || at === undefined) continue;
     for (const block of entry.blocks) {
       if (block.kind !== 'tool' || !block.tool) continue;
       uses.push({ at, kind: 'tool', name: block.tool });

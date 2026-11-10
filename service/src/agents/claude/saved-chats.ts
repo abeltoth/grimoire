@@ -35,6 +35,8 @@ export async function history(chatId: ChatId, cwd: string): Promise<ChatHistory>
     transcript.apply(message, at);
     if (message.type === 'assistant' && message.parent_tool_use_id === null && Number.isFinite(at))
       cache.reply((message.message as { usage?: ReplyUsage }).usage, at);
+    // How long the summary is isn't saved: no cache shows until the next reply.
+    if ((message as ClaudeMessage).isCompactSummary && Number.isFinite(at)) cache.compacted(at);
   }
   // Subagents' runs are saved apart; what they spent counts toward the turns they ran in.
   for (const agentId of await listSubagents(chatId, saved)) {

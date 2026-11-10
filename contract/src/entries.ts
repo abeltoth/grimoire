@@ -6,7 +6,7 @@ import type { TurnTokens } from './tokens';
  */
 
 /** One entry in a transcript. */
-export type Entry = UserEntry | AgentEntry;
+export type Entry = UserEntry | AgentEntry | CompactionEntry;
 
 export interface UserEntry {
   kind: 'user';
@@ -71,6 +71,22 @@ export interface AgentEntry {
   at?: number;
   /** The model that wrote it, such as claude-opus-5-5, when the agent says. */
   model?: string;
+}
+
+/** The agent summed the chat up, so later turns read less, or tried to and failed. */
+export interface CompactionEntry {
+  kind: 'compaction';
+  id: string;
+  /** When it was done, in ms since the epoch, when known. */
+  at?: number;
+  /** Whether you asked for it, or the agent did it as the context window filled, when the agent says. */
+  trigger?: 'manual' | 'auto';
+  /** The tokens the chat held before, when the agent says. */
+  before?: number;
+  /** The tokens it holds after, when the agent says. */
+  after?: number;
+  /** Why it failed; missing when it worked. */
+  error?: string;
 }
 
 export type Block = TextBlock | ThinkingBlock | ToolBlock;

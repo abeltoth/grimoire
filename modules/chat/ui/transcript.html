@@ -146,6 +146,33 @@
         <ng-container *ngTemplateOutlet="hooksTemplate; context: { $implicit: row.hooks }" />
       }
     }
+    @case ('compaction') {
+      <div class="row tight">
+        <p class="compaction" [class.error]="row.error" role="note">
+          @if (row.error) {
+            {{ wording.say('Couldn’t sum the chapter up', 'Couldn’t compact the chat') }}:
+            {{ row.error }}
+          } @else {
+            {{
+              row.trigger === 'auto'
+                ? wording.say(
+                    'Summed up as the page allowance ran out',
+                    'Compacted as the context window filled'
+                  )
+                : wording.say('Chapter summed up', 'Chat compacted')
+            }}
+            @if (row.before && row.after) {
+              · {{ tokenCount(row.before) }} → {{ tokenCount(row.after) }} tokens
+            } @else if (row.before) {
+              · from {{ tokenCount(row.before) }} tokens
+            }
+          }
+          @if (row.at) {
+            &ngsp;<span class="time">{{ time(row.at) }}</span>
+          }
+        </p>
+      </div>
+    }
     @case ('notes') {
       <div class="row">
         <div></div>

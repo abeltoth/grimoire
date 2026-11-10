@@ -45,19 +45,31 @@ export function contextTokens(usage: ReplyUsage): number {
  * left. Subagents' replies are left out: they have caches of their own.
  */
 export class CacheTracker {
-  private last?: { usage: ReplyUsage; at: number };
+  private last?: { tokens: number; at: number };
   /** An hour until a request shows otherwise, as on a Claude subscription. */
   private life = HOUR;
 
   reply(usage: ReplyUsage | undefined, at: number): void {
-    if (!usage) return;
-    this.last = { usage, at };
+    // A compaction keeps the replies before it, which come again after it.
+    if (!usage || (this.last && at < this.last.at)) return;
+    this.last = { tokens: contextTokens(usage), at };
     this.life = cacheLife(usage) ?? this.life;
   }
 
+  /** Claude Code summed the chat up: what it holds now is the summary, `tokens` long when it says. */
+  compacted(at: number, tokens = 0): void {
+    this.last = { tokens, at };
+  }
+
+  /** The chat's context, measured: the summary's length, when its compaction didn't say; true when it was that. */
+  measured(tokens: number): boolean {
+    if (!this.last || this.last.tokens || !tokens) return false;
+    this.last.tokens = tokens;
+    return true;
+  }
+
   get cache(): PromptCache | undefined {
-    if (!this.last) return undefined;
-    const tokens = contextTokens(this.last.usage);
-    return tokens ? { tokens, until: this.last.at + this.life } : undefined;
+    if (!this.last?.tokens) return undefined;
+    return { tokens: this.last.tokens, until: this.last.at + this.life };
   }
 }

@@ -84,6 +84,26 @@ describe('drive', () => {
     expect(events.closed).toHaveBeenCalledWith();
   });
 
+  it('leaves the cache a compaction left, measured once the turn ends, not the one before it', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(5_000);
+    const reply = {
+      type: 'assistant',
+      parent_tool_use_id: null,
+      message: { id: 'msg_1', content: [], usage: { input_tokens: 90_000 } },
+    };
+    const boundary = {
+      type: 'system',
+      subtype: 'compact_boundary',
+      compact_metadata: { trigger: 'manual', pre_tokens: 90_000 },
+    };
+    run(liveQuery([reply, boundary, result]));
+    await settle();
+    vi.useRealTimers();
+    expect(events.cache).toHaveBeenCalledTimes(1);
+    expect(events.cache).toHaveBeenCalledWith({ tokens: 10, until: 5_000 + 3_600_000 });
+  });
+
   it("gives a turn's error, and the query's when it fails", async () => {
     run(liveQuery([{ type: 'result', subtype: 'error_during_execution', errors: ['Boom'] }]));
     await settle();

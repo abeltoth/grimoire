@@ -54,4 +54,23 @@ describe('CacheTracker', () => {
     tracker.reply({ input_tokens: 5 }, 0);
     expect(tracker.cache).toEqual({ tokens: 5, until: 3_600_000 });
   });
+
+  it('starts afresh at a compaction, with the summary’s length once it’s known', () => {
+    const tracker = new CacheTracker();
+    tracker.reply({ input_tokens: 90_000 }, 1_000);
+    tracker.compacted(5_000);
+    expect(tracker.cache).toBeUndefined();
+    // The replies kept from before it come again after it, and change nothing.
+    tracker.reply({ input_tokens: 90_000 }, 1_000);
+    expect(tracker.measured(12_000)).toBe(true);
+    expect(tracker.cache).toEqual({ tokens: 12_000, until: 5_000 + 3_600_000 });
+    expect(tracker.measured(13_000)).toBe(false);
+  });
+
+  it('takes the summary’s length from the compaction, when it says', () => {
+    const tracker = new CacheTracker();
+    tracker.compacted(5_000, 8_000);
+    expect(tracker.measured(12_000)).toBe(false);
+    expect(tracker.cache).toEqual({ tokens: 8_000, until: 5_000 + 3_600_000 });
+  });
 });

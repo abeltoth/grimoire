@@ -2,6 +2,7 @@ import type {
   AgentEntry,
   ChatStatus,
   Attachment,
+  CompactionEntry,
   Entry,
   SubagentState,
   HookRun,
@@ -13,6 +14,7 @@ import type {
   UserEntry,
 } from '@grimoire/contract';
 import { addTokens } from '@grimoire/contract';
+import { type CompactMessage, SavedCompactions, compactionOf } from './compaction';
 import {
   type ApiBlock,
   type ApiMessage,
@@ -100,6 +102,7 @@ export class ClaudeTranscript {
   private readonly hookRuns = new Map<string, HookTimed>();
   /** The runs of the subagents the chat's tool calls started, by tool call. */
   private readonly subagents = new Map<string, ClaudeTranscript>();
+  private readonly savedCompactions = new SavedCompactions();
 
   /**
    * @param live Your own messages aren't echoed back live; the hub adds them as you send.
@@ -195,7 +198,15 @@ export class ClaudeTranscript {
     const entries = this.entries.length;
     if (message.type === 'stream_event') this.applyStreamEvent(message.event as StreamEvent);
     else if (message.type === 'assistant') this.applyAssistant(message.message as ApiMessage);
-    else if (message.type === 'user') this.applyUser(message.uuid, message.message as ApiMessage);
+    else if (message.type === 'system')
+      this.addCompaction(compactionOf(message as CompactMessage, this.nextId('compaction')));
+    else if (message.type === 'user') {
+      const compaction = this.live
+        ? false
+        : this.savedCompactions.take(message, this.entries, this.nextId('compaction'), at);
+      if (typeof compaction === 'object') this.addCompaction(compaction);
+      else if (!compaction) this.applyUser(message.uuid, message.message as ApiMessage);
+    }
     if (at === undefined || !Number.isFinite(at)) return;
     const last = this.entries.at(-1);
     if (this.entries.length > entries && last?.kind === 'user') {
@@ -301,6 +312,17 @@ export class ClaudeTranscript {
         });
     }
     if (texts.length || pictures.length) this.addUserText(uuid, texts.join('\n'), pictures);
+  }
+
+  private addCompaction(entry: CompactionEntry | undefined): void {
+    if (!entry) return;
+    this.entries.push(entry);
+    this.listener?.entry(entry);
+  }
+
+  /** An ID for an entry Claude Code gave none. */
+  private nextId(kind: string): string {
+    return `${kind}-${this.entries.length}`;
   }
 
   /** Your message; the @-references on its last lines are files you attached. */

@@ -373,4 +373,14 @@ describe('toRows', () => {
     ).toEqual([5, uses, 3]);
     expect(toRows([you('u2', 'Hi')]).map((row) => row.kind)).toEqual(['you']);
   });
+
+  it('shows a compaction on a line of its own, between the replies around it', () => {
+    const rows = toRows([
+      you('u1', '/compact'),
+      { kind: 'compaction', id: 'c1', trigger: 'manual', before: 92_000 },
+      agent('a1', text('Done.')),
+    ]);
+    expect(rows.map((row) => row.kind)).toEqual(['you', 'compaction', 'reply']);
+    expect(rows[1]).toEqual({ kind: 'compaction', key: 'c1', trigger: 'manual', before: 92_000 });
+  });
 });

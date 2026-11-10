@@ -113,6 +113,8 @@ export function drive({
           cache.reply(message.message.usage as ReplyUsage, Date.now());
           lookForName();
         }
+        if (message.type === 'system' && message.subtype === 'compact_boundary')
+          cache.compacted(Date.now(), message.compact_metadata.post_tokens);
         if (message.type !== 'result') continue;
         events.turnEnded(resultError(message));
         // What the turn offered shows once it ended, unless the next has begun.
@@ -120,7 +122,11 @@ export function drive({
         if (offered?.length) events.followUps(offered);
         if (cache.cache) events.cache(cache.cache);
         live.getContextUsage({ detail: 'summary' }).then(
-          (usage) => events.context({ used: usage.totalTokens, limit: usage.rawMaxTokens }),
+          (usage) => {
+            events.context({ used: usage.totalTokens, limit: usage.rawMaxTokens });
+            // A compaction that didn't say how long its summary is shows it only here.
+            if (cache.measured(usage.totalTokens)) events.cache(cache.cache!);
+          },
           () => {},
         );
         // Claude Code names the chat after its first turns.

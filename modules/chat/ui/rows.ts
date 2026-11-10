@@ -97,6 +97,13 @@ export function toRows(
       bylined = false;
       continue;
     }
+    if (entry.kind === 'compaction') {
+      flushNotes();
+      const { kind: _, id, ...compaction } = entry;
+      rows.push({ kind: 'compaction', key: id, ...compaction });
+      bylined = false;
+      continue;
+    }
     entry.blocks.forEach((block, i) => {
       const key = `${entry.id}/${i}`;
       const report = block.kind === 'tool' ? handbackOf(block) : undefined;

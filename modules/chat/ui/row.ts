@@ -1,4 +1,4 @@
-import type { Attachment, HookRun, TokenUse, ToolBlock } from '@grimoire/contract';
+import type { Attachment, CompactionEntry, HookRun, TokenUse, ToolBlock } from '@grimoire/contract';
 import type { DiffLine } from './diff';
 
 /** What a tool note expands: a file's diff or what a tool printed. */
@@ -99,6 +99,7 @@ export type Row =
   | { kind: 'thinking'; key: string; text: string }
   | ({ kind: 'reply'; key: string; text: string; byline: boolean; at?: number } & Margin)
   | ({ kind: 'notes'; key: string } & Margin)
+  | ({ kind: 'compaction'; key: string } & Omit<CompactionEntry, 'kind' | 'id'>)
   | {
       kind: 'spent';
       key: string;

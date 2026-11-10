@@ -10,6 +10,10 @@ export interface ClaudeMessage {
   event?: unknown;
   /** A note Claude Code added to a run, rather than what someone wrote. */
   is_meta?: boolean;
+  /** Your message that stands for the chat before a compaction: its summary. */
+  isCompactSummary?: boolean;
+  /** A local command you ran, such as /compact, or what it printed. */
+  isCompletedLocalCommand?: boolean;
   /** Who sent a message into a run: the agent that asked a subagent is its "coordinator". */
   origin?: { kind?: string };
 }

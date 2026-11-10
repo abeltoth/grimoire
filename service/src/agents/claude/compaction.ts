@@ -1,0 +1,75 @@
+import type { CompactionEntry, Entry } from '@grimoire/contract';
+import type { ApiMessage, ClaudeMessage } from './messages';
+
+/** Claude Code's word on a compaction, live: where it cut the chat, or that it failed. */
+export interface CompactMessage {
+  subtype?: string;
+  uuid?: string;
+  compact_metadata?: { trigger?: 'manual' | 'auto'; pre_tokens?: number; post_tokens?: number };
+  compact_result?: 'success' | 'failed';
+  compact_error?: string;
+}
+
+/** The compaction a live system message reports, done or failed; undefined for any other message. */
+export function compactionOf(message: CompactMessage, id: string): CompactionEntry | undefined {
+  if (message.subtype === 'compact_boundary') {
+    const { trigger, pre_tokens, post_tokens } = message.compact_metadata ?? {};
+    return {
+      kind: 'compaction',
+      id: message.uuid ?? id,
+      ...(trigger ? { trigger } : {}),
+      ...(pre_tokens ? { before: pre_tokens } : {}),
+      ...(post_tokens ? { after: post_tokens } : {}),
+    };
+  }
+  if (message.subtype === 'status' && message.compact_result === 'failed')
+    return {
+      kind: 'compaction',
+      id: message.uuid ?? id,
+      error: message.compact_error?.trim() || 'Claude Code gave no reason',
+    };
+  return undefined;
+}
+
+/** Reads the messages a saved chat's compactions left, in order. */
+export class SavedCompactions {
+  /** A /compact was just read: what it printed goes too. */
+  private ran = false;
+
+  /**
+   * What a saved user message is to a compaction: the summary that stands
+   * for the chat before it, which shows as the compaction itself; your
+   * /compact, which marks the last one yours, or what it printed, both
+   * true as the compaction shows them; false for any other message.
+   */
+  take(
+    message: ClaudeMessage,
+    entries: Entry[],
+    id: string,
+    at?: number,
+  ): CompactionEntry | boolean {
+    if (message.isCompactSummary) {
+      const known = at !== undefined && Number.isFinite(at) ? { at } : {};
+      return { kind: 'compaction', id: message.uuid ?? id, ...known };
+    }
+    const command = message.isCompletedLocalCommand
+      ? localCommandOf(message.message as ApiMessage)
+      : undefined;
+    const ran = this.ran;
+    this.ran = command === 'compact';
+    if (command === 'compact') {
+      const last = entries.findLast((entry) => entry.kind === 'compaction');
+      if (last?.kind === 'compaction') last.trigger = 'manual';
+      return true;
+    }
+    return command === 'output' && ran;
+  }
+}
+
+/** What a saved local command's message says: the command you ran, or what it printed. */
+function localCommandOf(message: ApiMessage): 'compact' | 'output' | undefined {
+  const text = typeof message.content === 'string' ? message.content.trimStart() : '';
+  if (text.startsWith('<command-name>/compact</command-name>')) return 'compact';
+  if (text.startsWith('<local-command-stdout>')) return 'output';
+  return undefined;
+}
