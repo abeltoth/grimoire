@@ -1,6 +1,6 @@
 import type { HookRun } from '@grimoire/contract';
 import { duration } from './duration';
-import type { HookLog } from './rows';
+import type { HookLog } from './row';
 
 /** Says a thing in the book's words, or plainly. */
 type Say = (book: string, plain: string) => string;

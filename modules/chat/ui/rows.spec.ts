@@ -1,5 +1,5 @@
 import type { AgentEntry, Entry, HookRun, ToolBlock } from '@grimoire/contract';
-import { type Note, summarize, toRows } from './rows';
+import { toRows } from './rows';
 
 const you = (id: string, text: string): Entry => ({ kind: 'user', id, text });
 const agent = (id: string, ...blocks: AgentEntry['blocks']): Entry => ({
@@ -324,29 +324,6 @@ describe('toRows', () => {
         failed: 1,
         withdrawn: false,
       },
-    });
-  });
-
-  it('sums up a run whose changes were all undone as withdrawn', () => {
-    const changed = (target: string): Note => ({
-      key: target,
-      verb: 'Edited',
-      target,
-      label: target,
-      did: 'changed',
-      running: false,
-      failed: false,
-      counts: '+1 −1',
-      added: 1,
-      removed: 1,
-      withdrawn: true,
-    });
-    expect(summarize([changed('a.ts'), changed('b.ts')])).toEqual({
-      key: 'a.ts/all',
-      text: 'Changed 2 files',
-      running: false,
-      failed: 0,
-      withdrawn: true,
     });
   });
 

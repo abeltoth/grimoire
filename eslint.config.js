@@ -36,7 +36,6 @@ const registrations = [
 
 // Files already past a limit, only warned about until they're split or fixed (REFACTOR.md 3, 4.2).
 const oversized = [
-  'modules/chat/ui/rows.ts',
   'modules/settings/ui/settings-page.html',
   'modules/usage/ui/usage-page.html',
   'modules/usage/ui/usage-page.ts',
