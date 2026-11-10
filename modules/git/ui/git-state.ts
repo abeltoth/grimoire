@@ -10,7 +10,8 @@ import {
 } from '@angular/core';
 import type { GitStatus, PullRequest } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
-import { Chats } from '@ui/app/core/chats';
+import { ChatList } from '@ui/app/core/chat-list';
+import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import type { Badge } from '@ui/app/shell/shell-registry';
 
 /**
@@ -21,12 +22,13 @@ import type { Badge } from '@ui/app/shell/shell-registry';
 @Injectable({ providedIn: 'root' })
 export class GitState {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
-  private readonly chats = inject(Chats);
+  private readonly list = inject(ChatList);
+  private readonly catalog = inject(AgentCatalog);
   private readonly pending = inject(PendingTasks);
 
   /** The open chat's folder; your home folder until you pick another. */
   readonly cwd = computed(
-    () => this.chats.current()?.settings.cwd ?? (this.chats.folders().home || undefined),
+    () => this.list.current()?.settings.cwd ?? (this.catalog.folders().home || undefined),
   );
   /** Null outside a repository; undefined until it's first read. */
   readonly status = signal<GitStatus | null | undefined>(undefined);
@@ -35,7 +37,7 @@ export class GitState {
 
   /** Whether the agent is between turns, when files stop changing under it. */
   private readonly settled = computed(() => {
-    const status = this.chats.current()?.status;
+    const status = this.list.current()?.status;
     return status !== 'thinking' && status !== 'writing';
   });
   /** Which read is the latest, so an earlier one answering late is dropped. */

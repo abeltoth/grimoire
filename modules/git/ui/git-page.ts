@@ -11,7 +11,7 @@ import {
 } from '@angular/core';
 import type { DiffLine, GitBranch, GitBranches, GitChange } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
-import { Chats } from '@ui/app/core/chats';
+import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { ShellRegistry } from '@ui/app/shell/shell-registry';
 import { DiffView } from '@ui/design-system/diff-view';
 import { Icon } from '@ui/design-system/icon';
@@ -43,7 +43,7 @@ export class GitPage {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
   private readonly pending = inject(PendingTasks);
   protected readonly git = inject(GitState);
-  protected readonly chats = inject(Chats);
+  protected readonly catalog = inject(AgentCatalog);
   protected readonly shell = inject(ShellRegistry);
 
   protected readonly branches = signal<GitBranches | null>(null);

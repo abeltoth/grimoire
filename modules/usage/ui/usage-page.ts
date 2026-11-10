@@ -22,7 +22,8 @@ import type {
   Used,
 } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
-import { Chats } from '@ui/app/core/chats';
+import { ChatList } from '@ui/app/core/chat-list';
+import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { Wording } from '@ui/app/core/wording';
 import { countsInWords, modelLabel, tokenCount } from '@ui/app/core/tokens';
 import {
@@ -204,7 +205,8 @@ export function money(minor: number, currency: string): string {
 })
 export class UsagePage {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
-  private readonly chats = inject(Chats);
+  private readonly list = inject(ChatList);
+  private readonly catalog = inject(AgentCatalog);
   private readonly pending = inject(PendingTasks);
   protected readonly wording = inject(Wording);
 
@@ -295,7 +297,7 @@ export class UsagePage {
   constructor() {
     // Read once the agents are known.
     effect(() => {
-      if (this.chats.agents().length)
+      if (this.catalog.agents().length)
         untracked(() => {
           void this.read();
           void this.readTokens();
@@ -343,7 +345,7 @@ export class UsagePage {
   private async readBreakdowns(): Promise<void> {
     this.breakdownsFailed.set(null);
     try {
-      const agents = this.chats.agents();
+      const agents = this.catalog.agents();
       const answers = await Promise.all(
         agents.map((agent) => this.bridge.invoke('usage.breakdown', { agent: agent.id })),
       );
@@ -413,7 +415,7 @@ export class UsagePage {
   }
 
   protected folderName(cwd: string): string {
-    return this.chats.folderName(cwd);
+    return this.catalog.folderName(cwd);
   }
 
   /** A day, such as "Thursday, November 5". */
@@ -427,7 +429,7 @@ export class UsagePage {
   }
 
   protected openChat({ id, agent, title, cwd }: TokenTotals['chats'][number]): void {
-    void this.chats.openChat({
+    void this.list.openChat({
       id,
       agent,
       title,
@@ -442,7 +444,7 @@ export class UsagePage {
     const done = this.pending.add();
     this.failed.set(null);
     try {
-      const agents = this.chats.agents();
+      const agents = this.catalog.agents();
       const since = Date.now() - 7 * DAY;
       const answers = await Promise.all(
         agents.map(async (agent) => {

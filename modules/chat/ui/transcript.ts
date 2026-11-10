@@ -13,7 +13,9 @@ import {
 } from '@angular/core';
 import { Drawing } from '@ui/design-system/drawing';
 import { Icon } from '@ui/design-system/icon';
-import { type Chat, Chats } from '@ui/app/core/chats';
+import { type Chat } from '@ui/app/core/chat';
+import { AgentCatalog } from '@ui/app/core/agent-catalog';
+import { ChatActions } from '@ui/app/core/chat-actions';
 import { RightPageState } from '@ui/app/shell/right-page-state';
 import { ShellRegistry } from '@ui/app/shell/shell-registry';
 import type { Answer, ApprovalDecision, HookRun } from '@grimoire/contract';
@@ -65,7 +67,8 @@ const BOARD = 'kanban';
   host: { role: 'log', 'aria-label': 'Transcript', '(scroll)': 'onScroll()' },
 })
 export class Transcript {
-  private readonly chats = inject(Chats);
+  private readonly catalog = inject(AgentCatalog);
+  private readonly actions = inject(ChatActions);
   private readonly subagents = inject(Subagents);
   protected readonly shell = inject(ShellRegistry);
   protected readonly rightPage = inject(RightPageState);
@@ -88,7 +91,7 @@ export class Transcript {
     }),
   );
   protected readonly agentName = computed(
-    () => this.by() ?? this.chats.agentName(this.chat().agent),
+    () => this.by() ?? this.catalog.agentName(this.chat().agent),
   );
   protected readonly running = computed(() =>
     ['thinking', 'writing', 'waiting'].includes(this.chat().status),
@@ -182,11 +185,11 @@ export class Transcript {
   }
 
   protected decide(approvalId: string, decision: ApprovalDecision): void {
-    void this.chats.decide(this.chat().id, approvalId, decision);
+    void this.actions.decide(this.chat().id, approvalId, decision);
   }
 
   protected answer(approvalId: string, answers: Answer[]): void {
-    void this.chats.answer(this.chat().id, approvalId, answers);
+    void this.actions.answer(this.chat().id, approvalId, answers);
   }
 
   /** Fork works while the chat is idle. */
@@ -198,7 +201,7 @@ export class Transcript {
     if (!this.canFork()) return;
     this.forking.set(true);
     try {
-      await this.chats.fork(this.chat().id, row.key);
+      await this.actions.fork(this.chat().id, row.key);
     } finally {
       this.forking.set(false);
     }
@@ -213,7 +216,7 @@ export class Transcript {
     if (!this.canUndo()) return;
     this.undoing.set(row.key);
     try {
-      await this.chats.undo(this.chat().id, row.key);
+      await this.actions.undo(this.chat().id, row.key);
     } finally {
       this.undoing.set(null);
     }

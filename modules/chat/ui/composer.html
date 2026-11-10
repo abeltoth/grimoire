@@ -20,7 +20,7 @@
       {{ cold.ago }}, so your next {{ wording.say('entry', 'message') }} re-reads about
       <b>{{ cold.tokens }} tokens</b>
     </p>
-    @if (chats.can(agent(), 'compact')) {
+    @if (catalog.can(agent(), 'compact')) {
       <button
         type="button"
         class="gr-link"
@@ -64,7 +64,7 @@
   ></textarea>
   @if (searchingCommands()) {
     <span class="slash-hint"
-      >{{ chats.agentName(agent()) }}’s commands and skills are
+      >{{ catalog.agentName(agent()) }}’s commands and skills are
       @if (popout) {
         listed above ↑
       } @else if (beside()) {

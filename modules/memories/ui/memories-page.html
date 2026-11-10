@@ -40,7 +40,7 @@
   </gr-file-editor>
 } @else {
   <p class="sub">
-    In <span class="folder" [attr.title]="cwd() ?? null">{{ chats.folderName(cwd()) }}</span>
+    In <span class="folder" [attr.title]="cwd() ?? null">{{ catalog.folderName(cwd()) }}</span>
     <span class="dot" aria-hidden="true">·</span>
     <button type="button" class="gr-link" (click)="pickFolder()">Another folder</button>
     @if (kept()?.[0]; as first) {
@@ -64,7 +64,7 @@
       <p class="none">
         {{ one.agent.name }} keeps them in
         <span class="folder" [attr.title]="one.memories.folder">{{
-          chats.folderName(one.memories.folder)
+          catalog.folderName(one.memories.folder)
         }}</span>
         @if (one.memories.index.exists) {
           and reads its index in every chat.
@@ -79,7 +79,7 @@
           @for (folder of one.memories.elsewhere; track folder.cwd ?? $index) {
             @if (folder.cwd; as cwd) {
               <button type="button" class="gr-link" [attr.title]="cwd" (click)="show(cwd)">
-                {{ chats.folderName(cwd) }} <span class="count">{{ folder.count }}</span>
+                {{ catalog.folderName(cwd) }} <span class="count">{{ folder.count }}</span>
               </button>
             }
           }

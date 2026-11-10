@@ -3,13 +3,13 @@
     <gr-chat-tab
       class="chat"
       side="left"
-      [beside]="chat.id === chats.besideId()"
+      [beside]="chat.id === list.besideId()"
       [tone]="tone(chat)"
       [heading]="title(chat)"
       [meta]="meta(chat)"
-      (picked)="chats.open(chat.id)"
-      (dismissed)="chats.close(chat.id)"
-      (settings)="chats.openSettings(chat.id, 'agent')"
+      (picked)="list.open(chat.id)"
+      (dismissed)="list.close(chat.id)"
+      (settings)="list.openSettings(chat.id, 'agent')"
     >
       <gr-icon [name]="icon(chat)" [class]="motion(chat)" />
     </gr-chat-tab>
@@ -25,9 +25,9 @@
       [tone]="tone(chat)"
       [heading]="title(chat)"
       [meta]="meta(chat)"
-      (picked)="chats.open(chat.id)"
-      (dismissed)="chats.close(chat.id)"
-      (settings)="chats.openSettings(chat.id, 'agent')"
+      (picked)="list.open(chat.id)"
+      (dismissed)="list.close(chat.id)"
+      (settings)="list.openSettings(chat.id, 'agent')"
     >
       <gr-icon [name]="icon(chat)" [class]="motion(chat)" />
     </gr-chat-tab>
@@ -41,13 +41,13 @@
       class="chat"
       side="right"
       [style.--stack]="right().length - $index"
-      [beside]="chat.id === chats.besideId()"
+      [beside]="chat.id === list.besideId()"
       [tone]="tone(chat)"
       [heading]="title(chat)"
       [meta]="meta(chat)"
-      (picked)="chats.open(chat.id)"
-      (dismissed)="chats.close(chat.id)"
-      (settings)="chats.openSettings(chat.id, 'agent')"
+      (picked)="list.open(chat.id)"
+      (dismissed)="list.close(chat.id)"
+      (settings)="list.openSettings(chat.id, 'agent')"
     >
       <gr-icon [name]="icon(chat)" [class]="motion(chat)" />
     </gr-chat-tab>
@@ -74,9 +74,10 @@
     tone="new"
     [heading]="newChatLabel()"
     [meta]="
-      (chats.startOf().preset ?? 'Last settings') + (shortcut ? ' · ' + (shortcut | shortcut) : '')
+      (newChats.startOf().preset ?? 'Last settings') +
+      (shortcut ? ' · ' + (shortcut | shortcut) : '')
     "
-    (picked)="chats.newChat()"
+    (picked)="list.newChat()"
   >
     <gr-icon name="plus" />
   </gr-chat-tab>

@@ -1,6 +1,7 @@
 import { Component, computed, inject } from '@angular/core';
 import type { Entry } from '@grimoire/contract';
-import { type Chat, Chats } from '@ui/app/core/chats';
+import { type Chat } from '@ui/app/core/chat';
+import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { modelLabel } from '@ui/app/core/tokens';
 import { Wording } from '@ui/app/core/wording';
 import { RightPageTabs } from '@ui/app/shell/right-page-tabs';
@@ -26,7 +27,7 @@ import { Transcript } from './transcript';
 export class SubagentPage {
   protected readonly subagents = inject(Subagents);
   protected readonly wording = inject(Wording);
-  private readonly chats = inject(Chats);
+  private readonly catalog = inject(AgentCatalog);
   protected readonly page = SUBAGENT_PAGE;
 
   /** The task as the tool call gave it. */
@@ -63,7 +64,9 @@ export class SubagentPage {
       (entry) =>
         entry.kind === 'agent' && entry.blocks.some((b) => b.kind === 'tool' && b.id === toolId),
     );
-    return chat && own ? this.chats.agentName(chat.agent) : this.wording.say('Helper', 'Subagent');
+    return chat && own
+      ? this.catalog.agentName(chat.agent)
+      : this.wording.say('Helper', 'Subagent');
   });
 
   /** Whether there's nothing of what the subagent did to read, as yet or at all. */

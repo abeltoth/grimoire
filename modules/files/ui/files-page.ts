@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import type { GitChange } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
-import { Chats } from '@ui/app/core/chats';
+import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { Wording } from '@ui/app/core/wording';
 import { type Shortcut, ShortcutPipe } from '@ui/app/shell/shortcut';
 import { Icon } from '@ui/design-system/icon';
@@ -33,7 +33,7 @@ export class FilesPage {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
   private readonly pending = inject(PendingTasks);
   private readonly views = inject(FilesViews);
-  protected readonly chats = inject(Chats);
+  protected readonly catalog = inject(AgentCatalog);
   protected readonly wording = inject(Wording);
   protected readonly saveKey: Shortcut = 'Mod+S';
 
@@ -91,7 +91,7 @@ export class FilesPage {
   /** A file's path as the page names it: from the folder, or in full, from your home folder when it's in it. */
   protected shownPath(path: string): string {
     if (!/^([a-zA-Z]:)?\//.test(path)) return path;
-    const home = this.chats.folders().home.replaceAll('\\', '/').replace(/\/$/, '');
+    const home = this.catalog.folders().home.replaceAll('\\', '/').replace(/\/$/, '');
     return home && path.toLowerCase().startsWith(`${home.toLowerCase()}/`)
       ? `~${path.slice(home.length)}`
       : path;

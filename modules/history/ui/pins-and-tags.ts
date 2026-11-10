@@ -1,7 +1,8 @@
 import { Injectable, type WritableSignal, inject, signal } from '@angular/core';
 import type { ChatId, Mark } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
-import { Chats } from '@ui/app/core/chats';
+import { ChatList } from '@ui/app/core/chat-list';
+import { NewChats } from '@ui/app/core/new-chats';
 import { keptTags } from './chat-groups';
 
 /**
@@ -12,18 +13,19 @@ import { keptTags } from './chat-groups';
 @Injectable({ providedIn: 'root' })
 export class PinsAndTags {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
-  private readonly chats = inject(Chats);
+  private readonly list = inject(ChatList);
+  private readonly newChats = inject(NewChats);
   private readonly pinned = signal<ReadonlyMap<ChatId, readonly Mark[]>>(new Map());
   private readonly tagged = signal<ReadonlyMap<ChatId, readonly string[]>>(new Map());
 
   constructor() {
     this.bridge.on('history.pins', ({ chatId, pins }) => put(this.pinned, chatId, pins));
     this.bridge.on('history.tags', ({ chatId, tags }) => put(this.tagged, chatId, tags));
-    this.chats.onBegun((blankId, chat) => {
+    this.newChats.onBegun((blankId, chat) => {
       const tags = this.tags(blankId);
       put(this.tagged, blankId, []);
       if (tags.length)
-        this.tag(chat.id, tags).catch((error: unknown) => this.chats.fail(chat.id, error));
+        this.tag(chat.id, tags).catch((error: unknown) => this.list.fail(chat.id, error));
     });
     void this.load();
   }
@@ -52,7 +54,7 @@ export class PinsAndTags {
     const kept = keptTags(tags);
     if (kept.join('\n') === before.join('\n')) return;
     put(this.tagged, chatId, kept);
-    if (this.chats.all().find((chat) => chat.id === chatId)?.status === 'blank') return;
+    if (this.list.all().find((chat) => chat.id === chatId)?.status === 'blank') return;
     try {
       await this.bridge.invoke('history.tag', { chatId, tags: kept });
     } catch (error) {

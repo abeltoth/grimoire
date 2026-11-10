@@ -11,7 +11,7 @@ import {
 } from '@angular/core';
 import type { SetupFile } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
-import { Chats } from '@ui/app/core/chats';
+import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { RightPageState } from './right-page-state';
 import { type Shortcut, ShortcutPipe, matchesShortcut } from './shortcut';
 
@@ -40,7 +40,7 @@ export interface EditorNote {
 export class FileEditor {
   private readonly platform = inject(GRIMOIRE_BRIDGE).platform;
   private readonly pending = inject(PendingTasks);
-  protected readonly chats = inject(Chats);
+  protected readonly catalog = inject(AgentCatalog);
 
   /** The file as it was opened, or last saved; a new one takes the place of any changes. */
   readonly file = input.required<SetupFile>();

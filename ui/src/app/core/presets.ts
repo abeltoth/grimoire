@@ -1,7 +1,10 @@
 import { Injectable, inject } from '@angular/core';
 import type { AgentId, NewChatSettings, Preset } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from './bridge';
-import { type Chat, Chats } from './chats';
+import { type Chat } from './chat';
+import { ChatList } from './chat-list';
+import { AgentCatalog } from './agent-catalog';
+import { ChatActions } from './chat-actions';
 import { modeName } from './modes';
 import { PresetList } from './preset-list';
 
@@ -13,7 +16,9 @@ import { PresetList } from './preset-list';
 @Injectable({ providedIn: 'root' })
 export class Presets {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
-  private readonly chats = inject(Chats);
+  private readonly chatList = inject(ChatList);
+  private readonly catalog = inject(AgentCatalog);
+  private readonly actions = inject(ChatActions);
   private readonly list = inject(PresetList);
 
   readonly all = this.list.all;
@@ -34,7 +39,7 @@ export class Presets {
     try {
       this.all.set(await this.bridge.invoke('presets.save', preset));
     } catch (error) {
-      this.chats.fail(chat.id, error);
+      this.chatList.fail(chat.id, error);
     }
   }
 
@@ -51,18 +56,18 @@ export class Presets {
   /** Whether a chat can take the preset: once it has begun, its agent and folder stay. */
   fits(preset: Preset, chat: Chat): boolean {
     if (chat.status === 'blank') return true;
-    const folder = (settings: NewChatSettings) => settings.cwd ?? this.chats.folders().home;
+    const folder = (settings: NewChatSettings) => settings.cwd ?? this.catalog.folders().home;
     return preset.agent === chat.agent && folder(preset.settings) === folder(chat.settings);
   }
 
   /** Gives the chat the preset's settings. */
   use(preset: Preset, chat: Chat): Promise<void> {
     if (chat.status === 'blank') {
-      this.chats.setUp(chat.id, preset.agent, preset.settings, preset.prompt);
+      this.actions.setUp(chat.id, preset.agent, preset.settings, preset.prompt);
       return Promise.resolve();
     }
     const { model, effort, mode } = this.spelledOut(preset.agent, preset.settings);
-    return this.chats.configure(chat.id, {
+    return this.actions.configure(chat.id, {
       ...(model ? { model } : {}),
       ...(effort ? { effort } : {}),
       ...(mode ? { mode } : {}),
@@ -71,7 +76,7 @@ export class Presets {
 
   /** What the preset begins with, in a few words: "Claude Code · Plan only". */
   describe(preset: Preset): string {
-    return `${this.chats.agentName(preset.agent)} · ${modeName(preset.settings.mode)}`;
+    return `${this.catalog.agentName(preset.agent)} · ${modeName(preset.settings.mode)}`;
   }
 
   /**
@@ -79,12 +84,12 @@ export class Presets {
    * default model, the effort it runs at when known, Ask first.
    */
   private spelledOut(agent: AgentId, settings: NewChatSettings): NewChatSettings {
-    const cwd = settings.cwd ?? this.chats.folders().home;
+    const cwd = settings.cwd ?? this.catalog.folders().home;
     // On Auto, the model and effort are picked for the first message.
     if (settings.autoModel)
       return { ...(cwd ? { cwd } : {}), autoModel: true, mode: settings.mode ?? 'ask' };
-    const model = settings.model ?? this.chats.models()[agent]?.default;
-    const { level: effort } = this.chats.effortOf(agent, {
+    const model = settings.model ?? this.catalog.models()[agent]?.default;
+    const { level: effort } = this.catalog.effortOf(agent, {
       ...settings,
       ...(model ? { model } : {}),
     });

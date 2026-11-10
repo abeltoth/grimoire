@@ -1,6 +1,9 @@
 import { Component, ElementRef, computed, effect, inject, input } from '@angular/core';
 import type { Approval, ApprovalDecision } from '@grimoire/contract';
-import { type Chat, Chats } from '@ui/app/core/chats';
+import { type Chat } from '@ui/app/core/chat';
+import { ChatList } from '@ui/app/core/chat-list';
+import { AgentCatalog } from '@ui/app/core/agent-catalog';
+import { ChatActions } from '@ui/app/core/chat-actions';
 import { Wording } from '@ui/app/core/wording';
 import { RightPageState } from '@ui/app/shell/right-page-state';
 import { PageFooter } from '@ui/app/shell/page-footer';
@@ -34,13 +37,15 @@ export class ApprovalsPage {
   /** The label of the page it turns back to. */
   readonly backTo = input.required<string>();
 
-  protected readonly chats = inject(Chats);
+  protected readonly list = inject(ChatList);
+  protected readonly catalog = inject(AgentCatalog);
+  protected readonly actions = inject(ChatActions);
   protected readonly rightPage = inject(RightPageState);
   protected readonly wording = inject(Wording);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
 
   protected readonly approvalCards = computed<Waiting[]>(() =>
-    this.chats
+    this.list
       .all()
       .flatMap((chat) =>
         // Questions wait for answers in their chat, not for an approval.
@@ -70,12 +75,12 @@ export class ApprovalsPage {
   }
 
   protected decide(approvalCard: Waiting, decision: ApprovalDecision): void {
-    void this.chats.decide(approvalCard.chat.id, approvalCard.approval.id, decision);
+    void this.actions.decide(approvalCard.chat.id, approvalCard.approval.id, decision);
   }
 
   protected open(approvalCard: Waiting): void {
     this.rightPage.closeApprovals();
-    this.chats.open(approvalCard.chat.id);
+    this.list.open(approvalCard.chat.id);
   }
 
   protected back(event: Event): void {

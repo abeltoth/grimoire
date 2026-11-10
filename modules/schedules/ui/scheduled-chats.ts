@@ -1,7 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import type { ScheduleDraft, ScheduleInfo, ScheduleRun } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
-import { Chats } from '@ui/app/core/chats';
+import { ChatList } from '@ui/app/core/chat-list';
 
 /**
  * The schedules, as the window sees them: a mirror of the service's,
@@ -10,7 +10,7 @@ import { Chats } from '@ui/app/core/chats';
 @Injectable({ providedIn: 'root' })
 export class ScheduledChats {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
-  private readonly chats = inject(Chats);
+  private readonly list = inject(ChatList);
 
   /** Undefined until the service has listed them. */
   readonly all = signal<readonly ScheduleInfo[] | undefined>(undefined);
@@ -27,7 +27,7 @@ export class ScheduledChats {
 
   constructor() {
     this.bridge.on('schedules.changed', ({ schedules }) => this.all.set(schedules));
-    this.bridge.on('schedules.began', ({ chat }) => this.chats.adopt(chat));
+    this.bridge.on('schedules.began', ({ chat }) => this.list.adopt(chat));
     void this.load();
   }
 
@@ -54,7 +54,7 @@ export class ScheduledChats {
     this.failed.set(null);
     try {
       const run = await this.bridge.invoke('schedules.run', { id });
-      if (run?.chatId && this.chats.has(run.chatId)) this.chats.open(run.chatId);
+      if (run?.chatId && this.list.has(run.chatId)) this.list.open(run.chatId);
       if (run?.outcome === 'failed') this.failed.set(run.error ?? 'The run couldn’t begin');
       return run;
     } catch (error) {
@@ -66,8 +66,8 @@ export class ScheduledChats {
   /** Turns to a run's chat, opening it again when it was closed. */
   async openRun(schedule: ScheduleInfo, run: ScheduleRun): Promise<void> {
     if (!run.chatId) return;
-    if (this.chats.has(run.chatId)) return this.chats.open(run.chatId);
-    await this.chats.openChat({
+    if (this.list.has(run.chatId)) return this.list.open(run.chatId);
+    await this.list.openChat({
       id: run.chatId,
       agent: schedule.agent,
       title: '',

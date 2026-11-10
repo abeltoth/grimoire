@@ -26,7 +26,7 @@
         <h2>{{ s.name }}</h2>
         <p class="sub">
           {{ cadence(s.days, s.time) }} · {{ settingsOf(s) }} ·
-          <code>{{ chats.folderName(s.settings.cwd) }}</code>
+          <code>{{ catalog.folderName(s.settings.cwd) }}</code>
         </p>
         <blockquote class="prompt">{{ s.prompt }}</blockquote>
 

@@ -51,7 +51,7 @@
         @for (chat of part.chats; track chat.id) {
           <li
             [attr.data-chat]="chat.id"
-            [attr.aria-current]="chat.id === chats.currentId() ? 'page' : null"
+            [attr.aria-current]="chat.id === list.currentId() ? 'page' : null"
           >
             <button
               type="button"

@@ -1,5 +1,6 @@
 import { computed, effect, inject } from '@angular/core';
-import { type Chat, Chats } from '../core/chats';
+import { type Chat } from '../core/chat';
+import { ChatList } from '../core/chat-list';
 import { Wording } from '../core/wording';
 import { RightPageState } from './right-page-state';
 import { Focus } from './focus';
@@ -30,12 +31,12 @@ function list(names: readonly string[]): string {
  */
 export function noteWaitingChats(shell: ShellRegistry): void {
   const focus = inject(Focus);
-  const chats = inject(Chats);
+  const chatList = inject(ChatList);
   const rightPage = inject(RightPageState);
   const wording = inject(Wording);
 
   const others = computed(() =>
-    focus.on() ? chats.all().filter((chat) => chat.id !== chats.currentId()) : [],
+    focus.on() ? chatList.all().filter((chat) => chat.id !== chatList.currentId()) : [],
   );
   const title = (chat: Chat) => chat.title || wording.untitled();
 
@@ -103,7 +104,7 @@ export function noteWaitingChats(shell: ShellRegistry): void {
         tone: 'alert',
         order: 1,
         detail: note.detail,
-        open: () => chats.open(note.opens!),
+        open: () => chatList.open(note.opens!),
       }),
     );
   });

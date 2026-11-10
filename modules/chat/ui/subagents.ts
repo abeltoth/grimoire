@@ -1,7 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import type { Entry, SubagentRun, SubagentState, ToolBlock } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
-import { Chats } from '@ui/app/core/chats';
+import { ChatList } from '@ui/app/core/chat-list';
 import { POPOUT } from '@ui/app/core/popout';
 import { RightPageState } from '@ui/app/shell/right-page-state';
 import { Focus } from '@ui/app/shell/focus';
@@ -25,7 +25,7 @@ interface Shown {
 @Injectable({ providedIn: 'root' })
 export class Subagents {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
-  private readonly chats = inject(Chats);
+  private readonly list = inject(ChatList);
   private readonly rightPage = inject(RightPageState);
   private readonly focus = inject(Focus);
   private readonly popout = inject(POPOUT);
@@ -50,7 +50,7 @@ export class Subagents {
   /** The chat the subagent shown works for. */
   readonly chat = computed(() => {
     const shown = this.shown();
-    return shown ? this.chats.all().find((chat) => chat.id === shown.chatId) : undefined;
+    return shown ? this.list.all().find((chat) => chat.id === shown.chatId) : undefined;
   });
 
   /** The tool call that started the subagent shown, as it is now when the chat holds it. */

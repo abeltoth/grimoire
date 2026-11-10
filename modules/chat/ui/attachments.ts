@@ -1,7 +1,7 @@
 import { Component, booleanAttribute, computed, inject, input, output } from '@angular/core';
 import type { Attachment } from '@grimoire/contract';
 import { Icon } from '@ui/design-system/icon';
-import { Chats } from '@ui/app/core/chats';
+import { AgentCatalog } from '@ui/app/core/agent-catalog';
 
 type Shown =
   | { kind: 'plate'; attachment: Attachment; number: string; src: string; caption: string }
@@ -19,7 +19,7 @@ type Shown =
   styleUrl: './attachments.css',
 })
 export class Attachments {
-  private readonly chats = inject(Chats);
+  private readonly catalog = inject(AgentCatalog);
 
   readonly attachments = input.required<readonly Attachment[]>();
   /** The chat's folder: files inside it are named from it. */
@@ -43,7 +43,7 @@ export class Attachments {
         kind: 'ref',
         attachment,
         number: ++refs,
-        name: relativeTo(this.cwd(), attachment.path) ?? this.chats.folderName(attachment.path),
+        name: relativeTo(this.cwd(), attachment.path) ?? this.catalog.folderName(attachment.path),
         file: attachment.path.split(/[\\/]/).at(-1) ?? attachment.path,
       };
     });

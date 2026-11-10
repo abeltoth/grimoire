@@ -21,7 +21,7 @@
     aria-label="Agent"
   >
     <h3>Agent</h3>
-    @for (agent of chats.agents(); track agent.id) {
+    @for (agent of catalog.agents(); track agent.id) {
       <button
         type="button"
         class="choice"
@@ -137,7 +137,7 @@
         >
           <gr-icon name="check" />
           <span
-            ><code>{{ chats.folderName(cwd) }}</code></span
+            ><code>{{ catalog.folderName(cwd) }}</code></span
           >
         </button>
       }

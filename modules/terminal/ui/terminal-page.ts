@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { Chats } from '@ui/app/core/chats';
+import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { Wording } from '@ui/app/core/wording';
 import { Icon } from '@ui/design-system/icon';
 import { Terminals } from './terminals';
@@ -20,7 +20,7 @@ const time = (at: number) =>
 })
 export class TerminalPage {
   protected readonly terminals = inject(Terminals);
-  protected readonly chats = inject(Chats);
+  protected readonly catalog = inject(AgentCatalog);
   protected readonly wording = inject(Wording);
 
   constructor() {

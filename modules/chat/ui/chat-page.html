@@ -79,7 +79,7 @@
           </button>
         } @else {
           @if (beside()) {
-            <button type="button" class="gr-link" (click)="chats.setAside()">
+            <button type="button" class="gr-link" (click)="list.setAside()">
               {{ wording.say('Another chapter', 'Another chat') }}
             </button>
           } @else if (focus.on()) {
@@ -94,18 +94,18 @@
               [attr.title]="
                 wording.say('Into a window of its own, as a loose leaf', 'Into a window of its own')
               "
-              (click)="chats.popOut(c.id)"
+              (click)="list.popOut(c.id)"
             >
               <gr-icon name="pop-out" />Pop out
             </button>
           }
         }
-        <button type="button" class="gr-link" (click)="chats.close(c.id)">Close</button>
+        <button type="button" class="gr-link" (click)="list.close(c.id)">Close</button>
       </div>
       @if (c.readOnly; as editing) {
         <div class="row read-only">
           <p>Read-only — “{{ editing.title || wording.untitled() }}” is editing</p>
-          <button type="button" class="gr-link" (click)="chats.takeOver(c.id)">
+          <button type="button" class="gr-link" (click)="actions.takeOver(c.id)">
             {{ wording.say('Make this the editing chapter', 'Make this the editing chat') }}
           </button>
         </div>
@@ -118,7 +118,7 @@
 
     @if (c.status === 'blank') {
       <gr-chat-intro
-        [agentName]="chats.agentName(c.agent)"
+        [agentName]="catalog.agentName(c.agent)"
         [cwd]="c.settings.cwd"
         [mode]="c.settings.mode"
         [begunAt]="c.begunAt ?? 0"

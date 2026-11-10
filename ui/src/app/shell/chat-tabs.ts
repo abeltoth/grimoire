@@ -1,6 +1,9 @@
 import { Component, computed, inject } from '@angular/core';
 import { Icon, type IconName } from '../../design-system/icon';
-import { type Chat, Chats } from '../core/chats';
+import { type Chat } from '../core/chat';
+import { ChatList } from '../core/chat-list';
+import { AgentCatalog } from '../core/agent-catalog';
+import { NewChats } from '../core/new-chats';
 import { Wording } from '../core/wording';
 import { RightPageState } from './right-page-state';
 import { ChatTab, type ChatTabTone } from './chat-tab';
@@ -53,26 +56,28 @@ const MOTION: Partial<Record<Chat['status'], string>> = {
   host: { role: 'navigation', '[attr.aria-label]': "wording.say('Open chapters', 'Open chats')" },
 })
 export class ChatTabs {
-  protected readonly chats = inject(Chats);
+  protected readonly list = inject(ChatList);
+  protected readonly catalog = inject(AgentCatalog);
+  protected readonly newChats = inject(NewChats);
   protected readonly rightPage = inject(RightPageState);
   private readonly registry = inject(ShellRegistry);
 
   /** Where the book lies open: the current chat's place, or past the last one. */
   private readonly openAt = computed(() => {
-    const all = this.chats.all();
-    const at = all.findIndex((c) => c.id === this.chats.currentId());
+    const all = this.list.all();
+    const at = all.findIndex((c) => c.id === this.list.currentId());
     return at === -1 ? all.length : at;
   });
 
-  protected readonly left = computed(() => this.chats.all().slice(0, this.openAt()));
-  protected readonly current = computed(() => this.chats.all().at(this.openAt()));
-  protected readonly right = computed(() => this.chats.all().slice(this.openAt() + 1));
+  protected readonly left = computed(() => this.list.all().slice(0, this.openAt()));
+  protected readonly current = computed(() => this.list.all().at(this.openAt()));
+  protected readonly right = computed(() => this.list.all().slice(this.openAt() + 1));
 
   // Questions wait for answers, not for an approval.
   private readonly approvalsOf = (chat: Chat) =>
     chat.approvals.filter((approval) => !approval.questions).length;
   protected readonly awaitingApproval = computed(() =>
-    this.chats.all().filter((c) => this.approvalsOf(c) > 0),
+    this.list.all().filter((c) => this.approvalsOf(c) > 0),
   );
   protected readonly approvalMeta = computed(() =>
     this.awaitingApproval()
@@ -113,10 +118,10 @@ export class ChatTabs {
         ? this.wording.say('blank page', 'new chat')
         : STATUS_TEXT[chat.status];
     const beside =
-      chat.id === this.chats.besideId()
+      chat.id === this.list.besideId()
         ? this.wording.say(' · on the facing page', ' · on the right page')
         : '';
-    return `${this.chats.agentName(chat.agent)} · ${status}${beside}`;
+    return `${this.catalog.agentName(chat.agent)} · ${status}${beside}`;
   }
 
   protected approvalLabel(): string {

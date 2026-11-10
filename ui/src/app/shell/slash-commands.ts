@@ -1,7 +1,8 @@
 import { Component, ElementRef, afterRenderEffect, computed, inject, input } from '@angular/core';
 import type { AgentCommand } from '@grimoire/contract';
 import { Icon } from '../../design-system/icon';
-import { Chats } from '../core/chats';
+import { ChatList } from '../core/chat-list';
+import { AgentCatalog } from '../core/agent-catalog';
 import { Wording } from '../core/wording';
 import { AgentCommands, type ListedCommand } from './agent-commands';
 import { PageFooter } from './page-footer';
@@ -31,13 +32,14 @@ export class SlashCommands {
   readonly foot = input(true);
 
   protected readonly commands = inject(AgentCommands);
-  private readonly chats = inject(Chats);
+  private readonly list = inject(ChatList);
+  private readonly catalog = inject(AgentCatalog);
   protected readonly wording = inject(Wording);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
 
   protected readonly agentName = computed(() => {
     const search = this.commands.search();
-    return search ? this.chats.agentName(search.agent) : '';
+    return search ? this.catalog.agentName(search.agent) : '';
   });
 
   protected readonly sections = computed<Section[]>(() => {
@@ -80,10 +82,11 @@ export class SlashCommands {
   protected where(command: AgentCommand): { text: string; folder?: true } {
     if (command.kind === 'skill') return { text: 'skill' };
     const search = this.commands.search();
-    const context = this.chats.all().find((chat) => chat.id === search?.chatId)?.context;
+    const context = this.list.all().find((chat) => chat.id === search?.chatId)?.context;
     if (command.name === 'compact' && context?.limit)
       return { text: `${Math.round((context.used / context.limit) * 100)}% used` };
-    if (command.name === 'init') return { text: this.chats.folderName(search?.cwd), folder: true };
+    if (command.name === 'init')
+      return { text: this.catalog.folderName(search?.cwd), folder: true };
     return { text: 'command' };
   }
 

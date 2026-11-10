@@ -75,7 +75,7 @@
       >
         The one used last
       </button>
-      @for (agent of chats.agents(); track agent.id) {
+      @for (agent of catalog.agents(); track agent.id) {
         <button
           type="button"
           class="word"
@@ -356,7 +356,7 @@
       }
       <p class="sub">
         {{ described.describe(preset) }} ·
-        <code>{{ chats.folderName(preset.settings.cwd) }}</code>
+        <code>{{ catalog.folderName(preset.settings.cwd) }}</code>
       </p>
 
       <label class="label" [for]="'gr-preset-prompt-' + i">{{
@@ -456,7 +456,7 @@
         @if (!profile.claudeFolder) {
           Claude Code’s usual place:
         }
-        <code>{{ chats.folderName(folderOf(profile)) }}</code>
+        <code>{{ catalog.folderName(folderOf(profile)) }}</code>
         <button
           type="button"
           class="gr-link copy"

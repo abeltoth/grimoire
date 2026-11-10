@@ -12,7 +12,7 @@
       side="left"
       [alone]="single()"
       [attr.aria-label]="
-        wording.say('Chapter: ', 'Chat: ') + (chats.current()?.title || wording.untitled())
+        wording.say('Chapter: ', 'Chat: ') + (list.current()?.title || wording.untitled())
       "
     >
       @if (commandsHere()) {

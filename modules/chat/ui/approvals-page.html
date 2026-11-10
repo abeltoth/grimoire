@@ -13,7 +13,7 @@
   @for (approvalCard of approvalCards(); track approvalCard.approval.id) {
     <gr-approval-card
       [approval]="approvalCard.approval"
-      [agentName]="chats.agentName(approvalCard.chat.agent)"
+      [agentName]="catalog.agentName(approvalCard.chat.agent)"
       [cwd]="approvalCard.chat.settings.cwd"
       [from]="approvalCard.chat.title || wording.untitled()"
       [autofocus]="approvalCard.approval.id === first()"

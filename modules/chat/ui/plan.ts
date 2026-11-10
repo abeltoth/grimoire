@@ -1,7 +1,8 @@
 import { Component, computed, inject } from '@angular/core';
 import type { PlanStep } from '@grimoire/contract';
 import { Icon } from '@ui/design-system/icon';
-import { Chats } from '@ui/app/core/chats';
+import { ChatList } from '@ui/app/core/chat-list';
+import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { Wording } from '@ui/app/core/wording';
 
 const NUMERALS = ['m', 'cm', 'd', 'cd', 'c', 'xc', 'l', 'xl', 'x', 'ix', 'v', 'iv', 'i'];
@@ -34,13 +35,14 @@ const RUNNING: Record<string, string> = {
   styleUrl: './plan.css',
 })
 export class Plan {
-  private readonly chats = inject(Chats);
+  private readonly list = inject(ChatList);
+  private readonly catalog = inject(AgentCatalog);
   protected readonly wording = inject(Wording);
   protected readonly roman = roman;
 
-  protected readonly chat = this.chats.current;
+  protected readonly chat = this.list.current;
   protected readonly agent = computed(() =>
-    this.chats.agentName(this.chat()?.agent ?? 'claude-code'),
+    this.catalog.agentName(this.chat()?.agent ?? 'claude-code'),
   );
   protected readonly plan = computed<readonly PlanStep[]>(() => this.chat()?.plan ?? []);
   /** What the step under way says: the chat's status while it runs. */
@@ -48,8 +50,8 @@ export class Plan {
 }
 
 /** The Plan's line in the page footer, such as "3 of 5 done". */
-export function planFoot(chats: Chats): string {
-  const plan = chats.current()?.plan ?? [];
+export function planFoot(list: ChatList): string {
+  const plan = list.current()?.plan ?? [];
   return plan.length
     ? `${plan.filter((step) => step.status === 'done').length} of ${plan.length} done`
     : '';

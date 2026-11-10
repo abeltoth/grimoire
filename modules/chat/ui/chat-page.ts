@@ -15,7 +15,10 @@ import {
 } from '@angular/core';
 import { Icon } from '@ui/design-system/icon';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
-import { Chats, type Setting } from '@ui/app/core/chats';
+import { type Setting } from '@ui/app/core/chat';
+import { ChatList } from '@ui/app/core/chat-list';
+import { AgentCatalog } from '@ui/app/core/agent-catalog';
+import { ChatActions } from '@ui/app/core/chat-actions';
 import { POPOUT } from '@ui/app/core/popout';
 import { effortName } from '@ui/app/core/efforts';
 import { modeName } from '@ui/app/core/modes';
@@ -87,7 +90,9 @@ export const SECOND_CHAT = 'second-chat';
   },
 })
 export class ChatPage {
-  protected readonly chats = inject(Chats);
+  protected readonly list = inject(ChatList);
+  protected readonly catalog = inject(AgentCatalog);
+  protected readonly actions = inject(ChatActions);
   private readonly rightPage = inject(RightPageState);
   private readonly presets = inject(Presets);
   protected readonly wording = inject(Wording);
@@ -106,7 +111,7 @@ export class ChatPage {
   protected readonly secondChat = SECOND_CHAT;
   protected readonly chat = computed(() => {
     const id = this.chatId();
-    return id === undefined ? this.chats.current() : this.chats.all().find((c) => c.id === id);
+    return id === undefined ? this.list.current() : this.list.all().find((c) => c.id === id);
   });
   protected readonly composer = viewChild(Composer);
   /** Whether a popout's page lists the agent's commands, searched from its composer. */
@@ -126,7 +131,7 @@ export class ChatPage {
     source: () => this.chat()?.id,
     computation: () => false,
   });
-  protected readonly canRename = computed(() => this.chats.can(this.chat()?.agent, 'rename'));
+  protected readonly canRename = computed(() => this.catalog.can(this.chat()?.agent, 'rename'));
 
   constructor() {
     afterRenderEffect(() => {
@@ -147,7 +152,7 @@ export class ChatPage {
     if (!this.renaming()) return;
     this.renaming.set(false);
     const chat = this.chat();
-    if (keep && chat) void this.chats.rename(chat.id, field.value);
+    if (keep && chat) void this.actions.rename(chat.id, field.value);
     if (refocus)
       afterNextRender(() => this.renameButton()?.nativeElement.focus(), {
         injector: this.injector,
@@ -160,16 +165,16 @@ export class ChatPage {
     if (!chat) return [];
     const { agent, settings } = chat;
     const begun = chat.status !== 'blank';
-    const effort = this.chats.effortOf(agent, settings);
+    const effort = this.catalog.effortOf(agent, settings);
     // Auto picks the effort with the model, at the first message.
     const effortShown = effort.levels.length > 0 && (begun || !settings.autoModel);
     return [
-      { key: 'agent', label: this.chats.agentName(agent) },
-      { key: 'model', label: this.chats.modelLabel(agent, settings, begun) },
+      { key: 'agent', label: this.catalog.agentName(agent) },
+      { key: 'model', label: this.catalog.modelLabel(agent, settings, begun) },
       // Only for a model that takes effort levels.
       ...(effortShown ? [{ key: 'effort' as const, label: effortName(effort.level) }] : []),
       { key: 'mode', label: modeName(settings.mode) },
-      { key: 'folder', label: this.chats.folderName(settings.cwd) },
+      { key: 'folder', label: this.catalog.folderName(settings.cwd) },
       { key: 'preset', label: this.presets.of(chat)?.name ?? 'No preset' },
     ] satisfies { key: Setting; label: string }[];
   });
@@ -183,7 +188,7 @@ export class ChatPage {
 
   /** The settings card, while it's open on this chat. */
   protected readonly card = computed(() => {
-    const card = this.chats.settingsCard();
+    const card = this.list.settingsCard();
     return card && card.id === this.chat()?.id ? card : null;
   });
 
@@ -196,8 +201,8 @@ export class ChatPage {
   protected toggle(setting: Setting): void {
     const chat = this.chat();
     if (!chat) return;
-    if (this.card()?.on === setting) this.chats.closeSettings();
-    else this.chats.openSettings(chat.id, setting);
+    if (this.card()?.on === setting) this.list.closeSettings();
+    else this.list.openSettings(chat.id, setting);
   }
 
   /** Files can be dropped anywhere on the page; they go with the next message. */
@@ -219,7 +224,7 @@ export class ChatPage {
     const card = this.card();
     if (card) {
       event.preventDefault();
-      this.chats.closeSettings();
+      this.list.closeSettings();
       return this.anchorFor(card.on)?.focus();
     }
     if (!this.rightPage.turned()) this.stop();
@@ -229,9 +234,9 @@ export class ChatPage {
     const chat = this.chat();
     if (!chat) return;
     const pending = chat.approvals.find((approval) => !approval.questions);
-    if (pending) void this.chats.decide(chat.id, pending.id, 'deny');
+    if (pending) void this.actions.decide(chat.id, pending.id, 'deny');
     else if (this.running())
-      void this.chats.interrupt(chat.id).then((withdrawn) => {
+      void this.actions.interrupt(chat.id).then((withdrawn) => {
         if (this.chat()?.id === chat.id) this.composer()?.takeBack(withdrawn);
       });
   }

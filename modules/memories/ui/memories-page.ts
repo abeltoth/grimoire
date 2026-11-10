@@ -14,7 +14,8 @@ import {
 } from '@angular/core';
 import type { AgentId, AgentInfo, AgentMemories, Memory, SetupFile } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
-import { Chats } from '@ui/app/core/chats';
+import { ChatList } from '@ui/app/core/chat-list';
+import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { Wording } from '@ui/app/core/wording';
 import { FileEditor } from '@ui/app/shell/file-editor';
 
@@ -85,14 +86,15 @@ function resolve(memories: readonly Memory[], link: string): Memory | undefined 
 })
 export class MemoriesPage {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
-  protected readonly chats = inject(Chats);
+  protected readonly list = inject(ChatList);
+  protected readonly catalog = inject(AgentCatalog);
   protected readonly wording = inject(Wording);
   private readonly pending = inject(PendingTasks);
   private readonly injector = inject(Injector);
 
   /** The folder you picked; the open chat's until you pick one. */
   private readonly picked = signal<string | undefined>(undefined);
-  protected readonly cwd = computed(() => this.picked() ?? this.chats.current()?.settings.cwd);
+  protected readonly cwd = computed(() => this.picked() ?? this.list.current()?.settings.cwd);
 
   /** What the agents keep; undefined until they've answered. */
   protected readonly kept = signal<Kept[] | undefined>(undefined);
@@ -118,7 +120,7 @@ export class MemoriesPage {
   constructor() {
     effect(() => {
       const cwd = this.cwd();
-      if (this.chats.agents().length) untracked(() => void this.read(cwd));
+      if (this.catalog.agents().length) untracked(() => void this.read(cwd));
     });
 
     // The links follow the cards wherever the page's width puts them.
@@ -146,7 +148,7 @@ export class MemoriesPage {
     const done = this.pending.add();
     this.failed.set(null);
     try {
-      const agents = this.chats.agents();
+      const agents = this.catalog.agents();
       const answers = await Promise.all(
         agents.map((agent) =>
           this.bridge.invoke('memories.list', { agent: agent.id, ...(cwd ? { cwd } : {}) }),

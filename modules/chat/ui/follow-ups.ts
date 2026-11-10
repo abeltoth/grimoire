@@ -1,6 +1,6 @@
 import { Component, inject, input } from '@angular/core';
 import type { FollowUp } from '@grimoire/contract';
-import { Chats } from '@ui/app/core/chats';
+import { ChatActions } from '@ui/app/core/chat-actions';
 import { Wording } from '@ui/app/core/wording';
 
 /**
@@ -15,7 +15,7 @@ import { Wording } from '@ui/app/core/wording';
   styleUrl: './follow-ups.css',
 })
 export class FollowUps {
-  protected readonly chats = inject(Chats);
+  protected readonly actions = inject(ChatActions);
   protected readonly wording = inject(Wording);
 
   readonly chatId = input.required<string>();

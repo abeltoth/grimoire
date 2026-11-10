@@ -1,5 +1,5 @@
 import { type EnvironmentProviders, effect, inject, untracked } from '@angular/core';
-import { Chats } from '@ui/app/core/chats';
+import { ChatList } from '@ui/app/core/chat-list';
 import { RightPageState } from '@ui/app/shell/right-page-state';
 import { provideShellEntries } from '@ui/app/shell/shell-registry';
 import { ChatPage, SECOND_CHAT } from './chat-page';
@@ -20,14 +20,14 @@ export function provideChat(): EnvironmentProviders {
   return provideShellEntries((shell) => {
     shell.chatPage.set(ChatPage);
     shell.approvalsPage.set(ApprovalsPage);
-    const chats = inject(Chats);
+    const list = inject(ChatList);
     shell.rightPages.add({
       id: 'plan',
       label: 'Outline',
       plainLabel: 'Plan',
       order: 10,
       component: Plan,
-      foot: () => planFoot(chats),
+      foot: () => planFoot(list),
     });
     shell.rightPages.add({
       id: SECOND_CHAT,
@@ -35,7 +35,7 @@ export function provideChat(): EnvironmentProviders {
       plainLabel: 'Second chat',
       order: 40,
       component: SecondChat,
-      heading: () => chats.beside()?.title || undefined,
+      heading: () => list.beside()?.title || undefined,
       whole: true,
     });
     const subagents = inject(Subagents);
@@ -57,7 +57,7 @@ export function provideChat(): EnvironmentProviders {
     // A chat put beside the one you're on, or found there as the main window opens, shows on the right page.
     const rightPage = inject(RightPageState);
     effect(() => {
-      if (chats.besideId()) untracked(() => rightPage.showPage(SECOND_CHAT));
+      if (list.besideId()) untracked(() => rightPage.showPage(SECOND_CHAT));
     });
   });
 }

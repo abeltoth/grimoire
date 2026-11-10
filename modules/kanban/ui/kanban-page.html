@@ -23,7 +23,7 @@
           [attr.aria-checked]="folder() === f"
           (click)="pick(f)"
         >
-          <code>{{ chats.folderName(f) }}</code>
+          <code>{{ catalog.folderName(f) }}</code>
         </button>
       }
     </p>
@@ -101,12 +101,12 @@
                   }
                 } @else {
                   <p class="where">
-                    <code>{{ chats.folderName(card.cwd) }}</code>
+                    <code>{{ catalog.folderName(card.cwd) }}</code>
                   </p>
                 }
                 @if (card.madeIn; as made) {
                   <p class="made-in">
-                    From {{ chats.agentName(made.agent) }}, in
+                    From {{ catalog.agentName(made.agent) }}, in
                     <button
                       type="button"
                       class="chat"

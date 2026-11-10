@@ -2,7 +2,7 @@ import { NgComponentOutlet } from '@angular/common';
 import { Component, computed, effect, inject } from '@angular/core';
 import { DesignSettings } from '../design-system/design-settings';
 import { GRIMOIRE_BRIDGE } from './core/bridge';
-import { Chats } from './core/chats';
+import { ChatList } from './core/chat-list';
 import { POPOUT } from './core/popout';
 import { ServiceStatus } from './core/service-status';
 import { Wording } from './core/wording';
@@ -57,7 +57,7 @@ export class App {
   // Applies the window-wide design settings, such as drawings on or off.
   protected readonly design = inject(DesignSettings);
   protected readonly service = inject(ServiceStatus);
-  protected readonly chats = inject(Chats);
+  protected readonly list = inject(ChatList);
   protected readonly registry = inject(ShellRegistry);
   protected readonly wording = inject(Wording);
   protected readonly focus = inject(Focus);
@@ -77,7 +77,7 @@ export class App {
   /** Whether the agent's commands show on this page: those searched from the chat on the right page. */
   protected readonly commandsHere = computed(() => {
     const search = this.rightPage.commands();
-    return !!search && search.chatId === this.chats.besideId();
+    return !!search && search.chatId === this.list.besideId();
   });
   private readonly platform = inject(GRIMOIRE_BRIDGE).platform;
 
@@ -100,7 +100,7 @@ export class App {
     // A popout's window is named for its chat, so you can tell it from the main window.
     effect(() => {
       if (!this.popout) return;
-      const title = this.chats.current()?.title || this.wording.untitled();
+      const title = this.list.current()?.title || this.wording.untitled();
       document.title = `${title} · Grimoire`;
     });
   }

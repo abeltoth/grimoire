@@ -13,7 +13,8 @@ import {
 import type { ChatSummary } from '@grimoire/contract';
 import { Icon } from '../../design-system/icon';
 import { GRIMOIRE_BRIDGE } from '../core/bridge';
-import { Chats } from '../core/chats';
+import { ChatList } from '../core/chat-list';
+import { AgentCatalog } from '../core/agent-catalog';
 import { Presets } from '../core/presets';
 import { Wording } from '../core/wording';
 import { RightPageState } from './right-page-state';
@@ -71,7 +72,8 @@ export class CommandPalette {
 
   protected readonly rightPage = inject(RightPageState);
   private readonly registry = inject(ShellRegistry);
-  private readonly chats = inject(Chats);
+  private readonly list = inject(ChatList);
+  private readonly catalog = inject(AgentCatalog);
   private readonly presets = inject(Presets);
   protected readonly wording = inject(Wording);
   protected readonly focus = inject(Focus);
@@ -91,9 +93,9 @@ export class CommandPalette {
         id: `preset-${preset.name}`,
         label: preset.name,
         hint: `${this.presets.describe(preset)} ·`,
-        folder: this.chats.folderName(preset.settings.cwd),
+        folder: this.catalog.folderName(preset.settings.cwd),
         where: this.wording.say('new chapter', 'new chat'),
-        run: () => this.chats.newChat(preset),
+        run: () => this.list.newChat(preset),
       }));
       return [{ title: 'Presets', entries: matching(presets, query) }].filter(
         (s) => s.entries.length,
@@ -131,10 +133,10 @@ export class CommandPalette {
       .map((chat): CommandPaletteEntry => ({
         id: `chat-${chat.id}`,
         label: chat.title || this.wording.untitled(),
-        hint: `${this.chats.agentName(chat.agent)} ·`,
-        folder: this.chats.folderName(chat.cwd),
+        hint: `${this.catalog.agentName(chat.agent)} ·`,
+        folder: this.catalog.folderName(chat.cwd),
         where: this.wording.say('in Table of contents', 'in History'),
-        run: () => void this.chats.openChat(chat),
+        run: () => void this.list.openChat(chat),
       }));
     const sections: Section[] = [
       { title: 'Actions', entries: matching(actions, query) },
@@ -175,7 +177,7 @@ export class CommandPalette {
   );
 
   constructor() {
-    void this.chats.pastChats().then((chats) => this.pastChats.set(chats));
+    void this.catalog.pastChats().then((chats) => this.pastChats.set(chats));
     void this.presets.load();
     afterNextRender(() => this.field().nativeElement.focus());
     afterRenderEffect(() => {

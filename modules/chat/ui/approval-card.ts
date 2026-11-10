@@ -8,7 +8,7 @@ import {
   output,
   viewChild,
 } from '@angular/core';
-import { Chats } from '@ui/app/core/chats';
+import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { Wording } from '@ui/app/core/wording';
 import { ShellRegistry } from '@ui/app/shell/shell-registry';
 import type { AlwaysAllow, Approval, ApprovalDecision } from '@grimoire/contract';
@@ -50,10 +50,10 @@ export class ApprovalCard {
   private readonly allow = viewChild.required<ElementRef<HTMLButtonElement>>('allow');
 
   protected readonly ask = computed(() => askOf(this.approval(), this.cwd()));
-  private readonly chats = inject(Chats);
+  private readonly catalog = inject(AgentCatalog);
   protected readonly shell = inject(ShellRegistry);
   protected readonly wording = inject(Wording);
-  protected readonly folder = computed(() => this.chats.folderName(this.cwd()));
+  protected readonly folder = computed(() => this.catalog.folderName(this.cwd()));
   protected readonly headId = computed(() => `gr-approval-card-${this.approval().id}`);
   protected readonly scopeText = (scope: AlwaysAllow['scope']) =>
     scopeText(scope, this.wording.say);

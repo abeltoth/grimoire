@@ -1,4 +1,4 @@
-@if (chats.beside(); as chat) {
+@if (list.beside(); as chat) {
   <gr-chat-page [chatId]="chat.id" beside />
 } @else {
   <gr-page-header>
@@ -18,7 +18,7 @@
     <ul class="chats">
       @for (chat of others(); track chat.id) {
         <li>
-          <button type="button" class="pick" (click)="chats.putBeside(chat.id)">
+          <button type="button" class="pick" (click)="list.putBeside(chat.id)">
             {{ title(chat) }}
           </button>
           <span class="meta">{{ meta(chat) }}</span>
@@ -29,7 +29,7 @@
         </li>
       }
     </ul>
-    <button type="button" class="gr-link" (click)="chats.newBeside()">
+    <button type="button" class="gr-link" (click)="list.newBeside()">
       {{ wording.say('A new chapter', 'A new chat') }}
     </button>
   </div>

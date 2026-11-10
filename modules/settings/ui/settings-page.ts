@@ -18,7 +18,7 @@ import {
   type Preset,
   type Profile,
 } from '@grimoire/contract';
-import { Chats } from '@ui/app/core/chats';
+import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { McpServers } from '@ui/app/core/mcp-servers';
 import { PresetList } from '@ui/app/core/preset-list';
 import { Presets } from '@ui/app/core/presets';
@@ -48,7 +48,7 @@ import { ThemeEditor } from './theme-editor';
 })
 export class SettingsPage {
   protected readonly settings = inject(Settings);
-  protected readonly chats = inject(Chats);
+  protected readonly catalog = inject(AgentCatalog);
   protected readonly presets = inject(PresetList);
   protected readonly described = inject(Presets);
   protected readonly wording = inject(Wording);
@@ -81,19 +81,19 @@ export class SettingsPage {
 
   /** Whether every agent has said which MCP servers it loads in your home folder. */
   protected readonly mcpRead = computed(() =>
-    this.chats.agents().every((agent) => this.mcp.of(agent.id, this.home()) !== undefined),
+    this.catalog.agents().every((agent) => this.mcp.of(agent.id, this.home()) !== undefined),
   );
 
   /** The MCP servers your agents load in your home folder, and those turned off, by name. */
   protected readonly mcpServers = computed(() => {
-    const listed = this.chats
+    const listed = this.catalog
       .agents()
       .flatMap((agent) => this.mcp.of(agent.id, this.home()) ?? [])
       .map((server) => server.name);
     return [...new Set([...listed, ...this.settings.all().mcpOff])];
   });
 
-  private readonly home = computed(() => this.chats.folders().home || undefined);
+  private readonly home = computed(() => this.catalog.folders().home || undefined);
 
   /** While a new profile's name is being written. */
   protected readonly creating = signal(false);
@@ -110,7 +110,7 @@ export class SettingsPage {
 
   /** Claude Code's usual place, ~/.claude, where Personal leaves it. */
   private readonly usualFolder = computed(() => {
-    const home = this.chats.folders().home;
+    const home = this.catalog.folders().home;
     if (!home) return '';
     return `${home}${home.includes('\\') ? '\\' : '/'}.claude`;
   });
@@ -118,7 +118,7 @@ export class SettingsPage {
   constructor() {
     void this.presets.load();
     effect(() => {
-      for (const agent of this.chats.agents()) this.mcp.load(agent.id, this.home());
+      for (const agent of this.catalog.agents()) this.mcp.load(agent.id, this.home());
     });
     // Switched to a profile to sign it in: the account's email is asked for.
     effect(() => {

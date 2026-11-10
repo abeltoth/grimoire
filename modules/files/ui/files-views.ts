@@ -1,7 +1,8 @@
 import { Injectable, PendingTasks, computed, inject, signal } from '@angular/core';
 import type { FolderEntry, OpenFile } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
-import { Chats } from '@ui/app/core/chats';
+import { ChatList } from '@ui/app/core/chat-list';
+import { AgentCatalog } from '@ui/app/core/agent-catalog';
 
 /** How long typing has to pause before files are looked for, in ms. */
 const FIND_AFTER_MS = 150;
@@ -59,11 +60,12 @@ export class FilesView {
 export class FilesViews {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
   private readonly pending = inject(PendingTasks);
-  private readonly chats = inject(Chats);
+  private readonly list = inject(ChatList);
+  private readonly catalog = inject(AgentCatalog);
   private readonly views = new Map<string, FilesView>();
 
   /** The folder the page shows: the open chat's; your home folder until you pick another. */
-  readonly cwd = computed(() => this.chats.current()?.settings.cwd ?? this.chats.folders().home);
+  readonly cwd = computed(() => this.list.current()?.settings.cwd ?? this.catalog.folders().home);
 
   constructor() {
     this.bridge.on('files.changed', ({ root, path }) => {

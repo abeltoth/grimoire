@@ -11,7 +11,8 @@ import {
   viewChild,
 } from '@angular/core';
 import { Icon } from '@ui/design-system/icon';
-import { type Chat, Chats } from '@ui/app/core/chats';
+import { type Chat } from '@ui/app/core/chat';
+import { ChatList } from '@ui/app/core/chat-list';
 import { PinsAndTags } from './pins-and-tags';
 
 /**
@@ -27,7 +28,7 @@ import { PinsAndTags } from './pins-and-tags';
   host: { role: 'group', 'aria-label': 'Tags' },
 })
 export class ChatTags {
-  private readonly chats = inject(Chats);
+  private readonly list = inject(ChatList);
   private readonly pinsAndTags = inject(PinsAndTags);
   private readonly injector = inject(Injector);
   private readonly field = viewChild<ElementRef<HTMLInputElement>>('field');
@@ -60,7 +61,7 @@ export class ChatTags {
 
   private save(tags: readonly string[]): void {
     const { id } = this.chat();
-    this.pinsAndTags.tag(id, tags).catch((error: unknown) => this.chats.fail(id, error));
+    this.pinsAndTags.tag(id, tags).catch((error: unknown) => this.list.fail(id, error));
   }
 
   private focusAdd(): void {

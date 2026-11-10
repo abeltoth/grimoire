@@ -10,7 +10,9 @@ import {
   untracked,
 } from '@angular/core';
 import type { Card, CardChat, CardColumn, JiraTransition } from '@grimoire/contract';
-import { type Chat, Chats } from '@ui/app/core/chats';
+import { type Chat } from '@ui/app/core/chat';
+import { ChatList } from '@ui/app/core/chat-list';
+import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { Wording } from '@ui/app/core/wording';
 import { Icon, type IconName } from '@ui/design-system/icon';
 import { Board, COLUMNS } from './board';
@@ -68,7 +70,8 @@ interface ListedChat {
 })
 export class KanbanPage {
   protected readonly board = inject(Board);
-  protected readonly chats = inject(Chats);
+  protected readonly list = inject(ChatList);
+  protected readonly catalog = inject(AgentCatalog);
   protected readonly wording = inject(Wording);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly injector = inject(Injector);
@@ -135,7 +138,7 @@ export class KanbanPage {
     void this.loadTitles();
     // A chat closed while the board shows keeps the title it had.
     effect(() => {
-      const named = this.chats.all().filter((chat) => chat.title && chat.status !== 'blank');
+      const named = this.list.all().filter((chat) => chat.title && chat.status !== 'blank');
       if (!named.length) return;
       untracked(() =>
         this.titles.update(
@@ -155,7 +158,7 @@ export class KanbanPage {
 
   /** A chat's title: as it's open, or as the agents list it, or as it was while open. */
   protected titleOf(chatId: string): string {
-    const chat = this.chats.all().find((c) => c.id === chatId);
+    const chat = this.list.all().find((c) => c.id === chatId);
     return chat?.title || this.titles().get(chatId) || this.wording.untitled();
   }
 
@@ -166,7 +169,7 @@ export class KanbanPage {
 
   /** The card's chats, oldest first, the latest with its live status. */
   protected chatsOf(card: Card): ListedChat[] {
-    const open = this.chats.all();
+    const open = this.list.all();
     return card.chats.map((chat, i) => {
       const live = open.find((c) => c.id === chat.chatId);
       const title = this.titleOf(chat.chatId);
@@ -181,7 +184,7 @@ export class KanbanPage {
   /** "In progress · ~/git/grimoire", or "In Review · GRIM-12" for a Jira card, for a closed card. */
   protected closedLine(card: Card): string {
     if (card.jira) return `${card.jira.status || this.columnName(card.column)} · ${card.jira.key}`;
-    return `${this.columnName(card.column)} · ${this.chats.folderName(card.cwd)}`;
+    return `${this.columnName(card.column)} · ${this.catalog.folderName(card.cwd)}`;
   }
 
   /** "synced at 10:42", or on another day "synced 3 Nov, 10:42". */
@@ -353,7 +356,7 @@ export class KanbanPage {
   }
 
   private async loadTitles(): Promise<void> {
-    const past = await this.chats.pastChats().catch(() => []);
+    const past = await this.catalog.pastChats().catch(() => []);
     this.titles.update(
       (titles) => new Map([...past.map((chat) => [chat.id, chat.title] as const), ...titles]),
     );

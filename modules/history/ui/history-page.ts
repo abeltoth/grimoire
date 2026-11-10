@@ -15,7 +15,8 @@ import {
 } from '@angular/core';
 import type { ChatId, ChatSummary, SearchHit } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
-import { Chats } from '@ui/app/core/chats';
+import { ChatList } from '@ui/app/core/chat-list';
+import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { Wording } from '@ui/app/core/wording';
 import { Icon } from '@ui/design-system/icon';
 import {
@@ -48,7 +49,8 @@ const SEARCH_DELAY_MS = 150;
 })
 export class HistoryPage {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
-  protected readonly chats = inject(Chats);
+  protected readonly list = inject(ChatList);
+  protected readonly catalog = inject(AgentCatalog);
   private readonly pinsAndTags = inject(PinsAndTags);
   protected readonly wording = inject(Wording);
   private readonly pending = inject(PendingTasks);
@@ -93,14 +95,14 @@ export class HistoryPage {
   protected readonly parts = computed(() => {
     const listed = this.listed();
     if (!listed) return undefined;
-    const home = this.chats.folders().home;
+    const home = this.catalog.folders().home;
     const hits = this.hits();
     const found = hits ? listed.filter((chat) => hits.has(chat.id)) : listed;
     return partsOf(withTags(found, this.narrowedTo()), home).map((part, i) => ({
       ...part,
       numeral: numeral(i + 1),
       title: partTitle(part.folder, home),
-      folderName: this.chats.folderName(part.folder),
+      folderName: this.catalog.folderName(part.folder),
     }));
   });
 
@@ -117,7 +119,7 @@ export class HistoryPage {
   constructor() {
     // List the chats once the agents are known.
     effect(() => {
-      if (this.chats.agents().length) untracked(() => void this.load());
+      if (this.catalog.agents().length) untracked(() => void this.load());
     });
     // Keep up with chats renamed on their own pages.
     const stop = this.bridge.on('agents.title', ({ chatId, title }) => this.retitle(chatId, title));
@@ -135,7 +137,7 @@ export class HistoryPage {
 
   /** Who wrote a passage: you, or the agent. */
   protected byOf(hit: SearchHit): string {
-    return hit.kind === 'you' ? 'You' : this.chats.agentName(hit.agent);
+    return hit.kind === 'you' ? 'You' : this.catalog.agentName(hit.agent);
   }
 
   /** Searches for what's written, once you stop writing; nothing written lists every chat again. */
@@ -182,7 +184,7 @@ export class HistoryPage {
   }
 
   protected open(chat: ListedChat): void {
-    void this.chats.openChat(chat);
+    void this.list.openChat(chat);
   }
 
   protected finish(
@@ -236,7 +238,7 @@ export class HistoryPage {
   private async load(): Promise<void> {
     const done = this.pending.add();
     try {
-      this.saved.set(await this.chats.pastChats());
+      this.saved.set(await this.catalog.pastChats());
     } finally {
       done();
     }

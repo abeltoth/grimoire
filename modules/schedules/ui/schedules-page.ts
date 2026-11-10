@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import type { ScheduleDraft, ScheduleInfo, ScheduleRun } from '@grimoire/contract';
-import { Chats } from '@ui/app/core/chats';
+import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { Wording } from '@ui/app/core/wording';
 import { effortName } from '@ui/app/core/efforts';
 import { ScheduleForm } from './schedule-form';
@@ -20,7 +20,7 @@ import { cadence, dateline, when } from './wording';
 })
 export class SchedulesPage {
   protected readonly scheduled = inject(ScheduledChats);
-  protected readonly chats = inject(Chats);
+  protected readonly catalog = inject(AgentCatalog);
   protected readonly wording = inject(Wording);
   /** The schedule written out to change, or 'new' for one being added. */
   protected readonly editing = signal<string | null>(null);
@@ -40,12 +40,12 @@ export class SchedulesPage {
   /** "Claude Code · ~/git/grimoire · Opus 5.5, Extra high effort". */
   protected settingsOf(schedule: ScheduleInfo): string {
     const { agent, settings } = schedule;
-    const model = this.chats.modelLabel(agent, settings, false);
-    const { levels, level } = this.chats.effortOf(agent, settings);
+    const model = this.catalog.modelLabel(agent, settings, false);
+    const { levels, level } = this.catalog.effortOf(agent, settings);
     // Auto picks the effort with the model, as each chat begins.
     const effort =
       levels.length && !settings.autoModel ? `, ${effortName(level).toLowerCase()}` : '';
-    return `${this.chats.agentName(agent)} · ${model}${effort}`;
+    return `${this.catalog.agentName(agent)} · ${model}${effort}`;
   }
 
   protected outcome(run: ScheduleRun): string {

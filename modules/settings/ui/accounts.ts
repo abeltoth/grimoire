@@ -1,7 +1,7 @@
 import { DestroyRef, Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import type { AgentId, AgentSignIn } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
-import { Chats } from '@ui/app/core/chats';
+import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { Settings } from '@ui/app/core/settings';
 
 /** An email: something, an @, and a domain, without spaces. */
@@ -24,13 +24,13 @@ function each(emails: readonly string[]): string[] {
 export class Accounts {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
   private readonly settings = inject(Settings);
-  private readonly chats = inject(Chats);
+  private readonly catalog = inject(AgentCatalog);
   /** Counts the sign-ins asked for here, so only the latest one's failure shows. */
   private attempts = 0;
 
   /** The agent whose sign-in is switched: the first that can switch. */
   readonly agent = computed(
-    () => this.chats.agents().find((agent) => agent.capabilities.includes('sign-in')) ?? null,
+    () => this.catalog.agents().find((agent) => agent.capabilities.includes('sign-in')) ?? null,
   );
   readonly state = signal<AgentSignIn | null>(null);
   /** Why the last sign-in didn't happen. */

@@ -52,10 +52,10 @@
         type="button"
         class="word"
         role="radio"
-        [attr.aria-checked]="folder === (cwd() ?? chats.folders().home)"
+        [attr.aria-checked]="folder === (cwd() ?? catalog.folders().home)"
         (click)="cwd.set(folder)"
       >
-        <code>{{ chats.folderName(folder) }}</code>
+        <code>{{ catalog.folderName(folder) }}</code>
       </button>
     }
     <button type="button" class="gr-link" (click)="chooseFolder()">Choose another…</button>

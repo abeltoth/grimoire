@@ -22,7 +22,9 @@ import type {
 } from '@grimoire/contract';
 import { Icon } from '@ui/design-system/icon';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
-import { Chats } from '@ui/app/core/chats';
+import { ChatList } from '@ui/app/core/chat-list';
+import { AgentCatalog } from '@ui/app/core/agent-catalog';
+import { ChatActions } from '@ui/app/core/chat-actions';
 import { POPOUT } from '@ui/app/core/popout';
 import { Settings } from '@ui/app/core/settings';
 import { Wording } from '@ui/app/core/wording';
@@ -49,7 +51,9 @@ import { readPicture } from './pictures';
   host: { role: 'region', '[attr.aria-label]': "wording.say('Next page', 'Message')" },
 })
 export class Composer {
-  protected readonly chats = inject(Chats);
+  protected readonly list = inject(ChatList);
+  protected readonly catalog = inject(AgentCatalog);
+  protected readonly actions = inject(ChatActions);
   protected readonly wording = inject(Wording);
   private readonly commands = inject(AgentCommands);
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
@@ -89,8 +93,8 @@ export class Composer {
   });
   /** The agent's other models, which a parallel text could be on. */
   protected readonly otherModels = computed(() => {
-    const listed = this.chats.models()[this.agent()];
-    const chat = this.chats.all().find((c) => c.id === this.chatId());
+    const listed = this.catalog.models()[this.agent()];
+    const chat = this.list.all().find((c) => c.id === this.chatId());
     const own = chat?.settings.model ?? listed?.default;
     return (listed?.models ?? []).filter((model) => model.id !== own);
   });
@@ -100,13 +104,13 @@ export class Composer {
    * begun only when the agent can copy it.
    */
   protected readonly canParallel = computed(() => {
-    const chat = this.chats.all().find((c) => c.id === this.chatId());
+    const chat = this.list.all().find((c) => c.id === this.chatId());
     if (!chat || this.beside() || this.popout || !this.otherModels().length) return false;
-    return chat.status === 'blank' || this.chats.can(this.agent(), 'fork');
+    return chat.status === 'blank' || this.catalog.can(this.agent(), 'fork');
   });
   /** Whether it can go now: a chat that has begun is copied between turns. */
   protected readonly parallelNow = computed(() => {
-    const status = this.chats.all().find((c) => c.id === this.chatId())?.status;
+    const status = this.list.all().find((c) => c.id === this.chatId())?.status;
     return status === 'blank' || status === 'idle';
   });
   /** The second model, while Parallel is on and the message can go to it. */
@@ -308,7 +312,7 @@ export class Composer {
 
   /** Has the agent sum the chat up before your next message. */
   protected compact(): void {
-    void this.chats.send(this.chatId(), '/compact');
+    void this.actions.send(this.chatId(), '/compact');
   }
 
   /** Writes the command's name in full, ready for what it takes. */
@@ -339,13 +343,13 @@ export class Composer {
     this.attachments.set([]);
     const second = this.second();
     if (!second) {
-      void this.chats.send(this.chatId(), text, attachments);
+      void this.actions.send(this.chatId(), text, attachments);
       return;
     }
     this.parallel.set(null);
     // The second chat goes on the right page, so both pages show.
     this.focus.leave();
-    void this.chats.sendParallel(this.chatId(), second.id, text, attachments);
+    void this.actions.sendParallel(this.chatId(), second.id, text, attachments);
   }
 
   /** Turns Parallel on, on the first of the other models, or off. */
@@ -421,11 +425,11 @@ export class Composer {
   }
 
   protected async edit(queued: QueuedEntry): Promise<void> {
-    if (await this.chats.unqueue(this.chatId(), queued.id)) this.takeBack([queued]);
+    if (await this.actions.unqueue(this.chatId(), queued.id)) this.takeBack([queued]);
   }
 
   protected remove(queued: QueuedEntry): void {
-    void this.chats.unqueue(this.chatId(), queued.id);
+    void this.actions.unqueue(this.chatId(), queued.id);
   }
 }
 

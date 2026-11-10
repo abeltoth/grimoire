@@ -3,9 +3,9 @@
   <p class="none">Reading the repository…</p>
 } @else if (status === null) {
   <h2>Git</h2>
-  <p class="none">{{ chats.folderName(git.cwd()) }} isn’t in a git repository.</p>
+  <p class="none">{{ catalog.folderName(git.cwd()) }} isn’t in a git repository.</p>
 } @else {
-  <h2>{{ chats.folderName(status.root) }}</h2>
+  <h2>{{ catalog.folderName(status.root) }}</h2>
   <p class="sub">
     On <b class="branch">{{ branchLabel() }}</b>
     @if (status.head) {
@@ -120,7 +120,7 @@
       {{ when(branch.at) }}
       @if (branch.worktree) {
         <span class="dot" aria-hidden="true">·</span>
-        in the worktree at {{ chats.folderName(branch.worktree) }}
+        in the worktree at {{ catalog.folderName(branch.worktree) }}
       }
     </span>
   </div>

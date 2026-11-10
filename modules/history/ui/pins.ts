@@ -1,6 +1,7 @@
 import { Component, inject, input } from '@angular/core';
 import type { Mark } from '@grimoire/contract';
-import { type Chat, Chats } from '@ui/app/core/chats';
+import { type Chat } from '@ui/app/core/chat';
+import { ChatList } from '@ui/app/core/chat-list';
 import { Wording } from '@ui/app/core/wording';
 import { PinsAndTags } from './pins-and-tags';
 
@@ -39,7 +40,7 @@ import { PinsAndTags } from './pins-and-tags';
   styleUrl: './pins.css',
 })
 export class Pins {
-  private readonly chats = inject(Chats);
+  private readonly list = inject(ChatList);
   private readonly pinsAndTags = inject(PinsAndTags);
   protected readonly wording = inject(Wording);
   readonly chat = input.required<Chat>();
@@ -57,6 +58,6 @@ export class Pins {
     const { id } = this.chat();
     this.pinsAndTags
       .pin(id, mark, !this.has(mark))
-      .catch((error: unknown) => this.chats.fail(id, error));
+      .catch((error: unknown) => this.list.fail(id, error));
   }
 }

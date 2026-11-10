@@ -15,7 +15,10 @@ import {
 import type { Preset } from '@grimoire/contract';
 import { Icon } from '@ui/design-system/icon';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
-import { type Chat, Chats, type Setting, type SettingsPick } from '@ui/app/core/chats';
+import { type Chat, type Setting, type SettingsPick } from '@ui/app/core/chat';
+import { ChatList } from '@ui/app/core/chat-list';
+import { AgentCatalog } from '@ui/app/core/agent-catalog';
+import { ChatActions } from '@ui/app/core/chat-actions';
 import { EFFORTS } from '@ui/app/core/efforts';
 import { McpServers } from '@ui/app/core/mcp-servers';
 import { MODES } from '@ui/app/core/modes';
@@ -52,7 +55,9 @@ export class SettingsCard {
   /** What the caret points at: the setting in the page header. */
   readonly anchor = input<HTMLElement>();
 
-  protected readonly chats = inject(Chats);
+  protected readonly list = inject(ChatList);
+  protected readonly catalog = inject(AgentCatalog);
+  protected readonly actions = inject(ChatActions);
   protected readonly presets = inject(Presets);
   protected readonly wording = inject(Wording);
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
@@ -73,8 +78,8 @@ export class SettingsCard {
     source: () => this.chat().id,
     computation: () => false,
   });
-  protected readonly agentName = computed(() => this.chats.agentName(this.chat().agent));
-  protected readonly models = computed(() => this.chats.models()[this.chat().agent]);
+  protected readonly agentName = computed(() => this.catalog.agentName(this.chat().agent));
+  protected readonly models = computed(() => this.catalog.models()[this.chat().agent]);
   /** On Auto, before the first message: the model and effort are still to be picked. */
   protected readonly auto = computed(() => !this.begun() && !!this.chat().settings.autoModel);
   /** On Auto, once begun: the model was picked for the first message. */
@@ -83,18 +88,20 @@ export class SettingsCard {
     this.auto() ? undefined : (this.chat().settings.model ?? this.models()?.default),
   );
   protected readonly modelName = computed(() =>
-    this.auto() ? 'Auto' : this.chats.modelName(this.chat().agent, this.chat().settings.model),
+    this.auto() ? 'Auto' : this.catalog.modelName(this.chat().agent, this.chat().settings.model),
   );
   /** The levels the chat's model takes, and the one it runs at. */
   protected readonly effort = computed(() => {
-    const { levels, level } = this.chats.effortOf(this.chat().agent, this.chat().settings);
+    const { levels, level } = this.catalog.effortOf(this.chat().agent, this.chat().settings);
     return { efforts: EFFORTS.filter((e) => levels.includes(e.level)), level };
   });
-  protected readonly folder = computed(() => this.chat().settings.cwd ?? this.chats.folders().home);
+  protected readonly folder = computed(
+    () => this.chat().settings.cwd ?? this.catalog.folders().home,
+  );
   /** The chat's folder first, then the others used last. */
   protected readonly folders = computed(() => {
     const current = this.folder();
-    const others = this.chats.folders().recent.filter((cwd) => cwd !== current);
+    const others = this.catalog.folders().recent.filter((cwd) => cwd !== current);
     return [...(current ? [current] : []), ...others].slice(0, RECENT_FOLDERS);
   });
 
@@ -144,7 +151,7 @@ export class SettingsCard {
   }
 
   protected pick(pick: SettingsPick): void {
-    void this.chats.configure(this.chat().id, pick);
+    void this.actions.configure(this.chat().id, pick);
   }
 
   /** Turns an MCP server off for the chat, or on again; one off in every chat stays off. */
@@ -188,6 +195,6 @@ export class SettingsCard {
   protected pointerDown(event: PointerEvent): void {
     const target = event.target as Node | null;
     if (!target || this.host.contains(target) || this.anchor()?.contains(target)) return;
-    this.chats.closeSettings();
+    this.list.closeSettings();
   }
 }

@@ -1,5 +1,5 @@
 <p class="sub">
-  <span class="folder" [attr.title]="file().path">{{ chats.folderName(file().path) }}</span>
+  <span class="folder" [attr.title]="file().path">{{ catalog.folderName(file().path) }}</span>
   @if (from()) {
     <span class="dot" aria-hidden="true">·</span>
     {{ from() }}
@@ -16,7 +16,7 @@
   #text
   class="text"
   spellcheck="false"
-  [attr.aria-label]="chats.folderName(file().path)"
+  [attr.aria-label]="catalog.folderName(file().path)"
   [readOnly]="readOnly() !== null"
   [value]="draft()"
   (input)="draft.set(text.value)"

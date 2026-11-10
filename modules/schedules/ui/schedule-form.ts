@@ -10,7 +10,8 @@ import {
 } from '@angular/core';
 import type { AgentId, EffortLevel, ScheduleDraft, ScheduleInfo } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
-import { Chats } from '@ui/app/core/chats';
+import { ChatList } from '@ui/app/core/chat-list';
+import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { Wording } from '@ui/app/core/wording';
 import { EFFORTS } from '@ui/app/core/efforts';
 import { ScheduledChats } from './scheduled-chats';
@@ -35,7 +36,8 @@ export class ScheduleForm {
   /** Saved, or put away. */
   readonly done = output<void>();
 
-  protected readonly chats = inject(Chats);
+  protected readonly list = inject(ChatList);
+  protected readonly catalog = inject(AgentCatalog);
   protected readonly wording = inject(Wording);
   private readonly scheduled = inject(ScheduledChats);
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
@@ -51,11 +53,11 @@ export class ScheduleForm {
   protected readonly agent = linkedSignal<AgentId>(
     () =>
       this.schedule()?.agent ??
-      untracked(() => this.chats.current()?.agent ?? this.chats.agents()[0]?.id ?? 'claude-code'),
+      untracked(() => this.list.current()?.agent ?? this.catalog.agents()[0]?.id ?? 'claude-code'),
   );
   protected readonly cwd = linkedSignal<string | undefined>(() => {
     const schedule = this.schedule();
-    return schedule ? schedule.settings.cwd : untracked(() => this.chats.current()?.settings.cwd);
+    return schedule ? schedule.settings.cwd : untracked(() => this.list.current()?.settings.cwd);
   });
   protected readonly model = linkedSignal<string | undefined>(
     () => this.schedule()?.settings.model,
@@ -66,14 +68,14 @@ export class ScheduleForm {
   protected readonly saving = signal(false);
 
   protected readonly folders = computed(() => {
-    const current = this.cwd() ?? this.chats.folders().home;
-    const others = this.chats.folders().recent.filter((cwd) => cwd !== current);
+    const current = this.cwd() ?? this.catalog.folders().home;
+    const others = this.catalog.folders().recent.filter((cwd) => cwd !== current);
     return [...(current ? [current] : []), ...others].slice(0, RECENT_FOLDERS);
   });
-  protected readonly models = computed(() => this.chats.models()[this.agent()]);
+  protected readonly models = computed(() => this.catalog.models()[this.agent()]);
   protected readonly selectedModel = computed(() => this.model() ?? this.models()?.default);
   protected readonly efforts = computed(() => {
-    const { levels, level } = this.chats.effortOf(this.agent(), {
+    const { levels, level } = this.catalog.effortOf(this.agent(), {
       model: this.selectedModel(),
       effort: this.effort(),
     });
@@ -102,7 +104,7 @@ export class ScheduleForm {
 
   protected async save(): Promise<void> {
     if (!this.complete() || this.saving()) return;
-    const cwd = this.cwd() ?? this.chats.folders().home;
+    const cwd = this.cwd() ?? this.catalog.folders().home;
     const model = this.model();
     const effort = this.effort();
     const draft: ScheduleDraft = {

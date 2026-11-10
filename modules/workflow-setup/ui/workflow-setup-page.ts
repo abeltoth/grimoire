@@ -20,7 +20,8 @@ import {
   type SetupSource,
 } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
-import { Chats } from '@ui/app/core/chats';
+import { ChatList } from '@ui/app/core/chat-list';
+import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { FileEditor } from '@ui/app/shell/file-editor';
 
 /** A file of the setup, open to read or change. */
@@ -92,22 +93,23 @@ const SOURCE_NAMES: Record<SetupSource, string> = {
 })
 export class WorkflowSetupPage {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
-  protected readonly chats = inject(Chats);
+  protected readonly list = inject(ChatList);
+  protected readonly catalog = inject(AgentCatalog);
   private readonly pending = inject(PendingTasks);
 
   protected readonly sections = SETUP_SECTIONS;
 
   /** The folder you picked; the open chat's until you pick one. */
   private readonly picked = signal<string | undefined>(undefined);
-  protected readonly cwd = computed(() => this.picked() ?? this.chats.current()?.settings.cwd);
+  protected readonly cwd = computed(() => this.picked() ?? this.list.current()?.settings.cwd);
 
   /** The folders your chats ran in that a setup can be read in, most recent first. */
   private readonly worked = signal<string[]>([]);
   /** The other folders to turn to: the open chat's, then those worked in last. */
   protected readonly others = computed(() => {
-    const home = this.chats.folders().home;
+    const home = this.catalog.folders().home;
     const seen = new Set([folderKey(this.cwd() ?? home)]);
-    return [this.chats.current()?.settings.cwd ?? home, ...this.worked()]
+    return [this.list.current()?.settings.cwd ?? home, ...this.worked()]
       .filter((folder) => {
         if (!folder || seen.has(folderKey(folder))) return false;
         seen.add(folderKey(folder));
@@ -135,7 +137,7 @@ export class WorkflowSetupPage {
     // Read once the agents are known, and again for another folder.
     effect(() => {
       const cwd = this.cwd();
-      if (this.chats.agents().length) untracked(() => void this.read(cwd));
+      if (this.catalog.agents().length) untracked(() => void this.read(cwd));
     });
 
     void this.loadFolders();
@@ -166,7 +168,7 @@ export class WorkflowSetupPage {
     const done = this.pending.add();
     this.failed.set(null);
     try {
-      const agents = this.chats.agents();
+      const agents = this.catalog.agents();
       const answers = await Promise.all(
         agents.map((agent) =>
           this.bridge.invoke('setup.get', { agent: agent.id, ...(cwd ? { cwd } : {}) }),

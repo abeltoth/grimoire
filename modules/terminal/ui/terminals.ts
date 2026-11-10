@@ -1,7 +1,8 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import type { TerminalInfo } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
-import { Chats } from '@ui/app/core/chats';
+import { ChatList } from '@ui/app/core/chat-list';
+import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { tabLabels } from './tab-labels';
 
 /**
@@ -12,10 +13,11 @@ import { tabLabels } from './tab-labels';
 @Injectable({ providedIn: 'root' })
 export class Terminals {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
-  private readonly chats = inject(Chats);
+  private readonly list = inject(ChatList);
+  private readonly catalog = inject(AgentCatalog);
 
   readonly terminals = signal<readonly TerminalInfo[]>([]);
-  readonly labels = computed(() => tabLabels(this.terminals(), this.chats.folders().home));
+  readonly labels = computed(() => tabLabels(this.terminals(), this.catalog.folders().home));
   /** The tab shown; the newest when unset. */
   private readonly shownId = signal<string | undefined>(undefined);
   readonly shown = computed(() => {
@@ -28,7 +30,7 @@ export class Terminals {
   /** The size the shown terminal fits, so a new one starts at it. */
   readonly size = signal({ cols: 80, rows: 24 });
   /** The open chat's folder, where a new terminal starts; your home folder without one. */
-  readonly cwd = computed(() => this.chats.current()?.settings.cwd ?? this.chats.folders().home);
+  readonly cwd = computed(() => this.list.current()?.settings.cwd ?? this.catalog.folders().home);
 
   constructor() {
     this.bridge.on('terminal.exited', ({ id }) => this.forget(id));

@@ -12,7 +12,8 @@ import {
 } from '@angular/core';
 import type { Card } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
-import { Chats } from '@ui/app/core/chats';
+import { ChatList } from '@ui/app/core/chat-list';
+import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { Board } from './board';
 
 const RECENT_FOLDERS = 3;
@@ -33,7 +34,8 @@ export class CardForm {
   /** Saved, or put away. */
   readonly done = output<void>();
 
-  protected readonly chats = inject(Chats);
+  protected readonly list = inject(ChatList);
+  protected readonly catalog = inject(AgentCatalog);
   private readonly board = inject(Board);
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
 
@@ -42,13 +44,13 @@ export class CardForm {
   protected readonly cwd = linkedSignal<string>(
     () =>
       this.card()?.cwd ??
-      untracked(() => this.chats.current()?.settings.cwd ?? this.chats.folders().home),
+      untracked(() => this.list.current()?.settings.cwd ?? this.catalog.folders().home),
   );
   protected readonly saving = signal(false);
 
   protected readonly folders = computed(() => {
     const current = this.cwd();
-    const others = this.chats.folders().recent.filter((cwd) => cwd !== current);
+    const others = this.catalog.folders().recent.filter((cwd) => cwd !== current);
     return [...(current ? [current] : []), ...others].slice(0, RECENT_FOLDERS);
   });
   protected readonly complete = computed(() => !!this.title().trim() && !!this.cwd());

@@ -9,7 +9,8 @@ import {
   type JiraTransition,
 } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
-import { Chats } from '@ui/app/core/chats';
+import { ChatList } from '@ui/app/core/chat-list';
+import { NewChats } from '@ui/app/core/new-chats';
 
 /** The board's columns, in order, as they're headed. */
 export const COLUMNS: readonly { column: CardColumn; label: string }[] = [
@@ -39,7 +40,8 @@ export function promptOf(card: Pick<Card, 'title' | 'notes' | 'jira'>): string {
 @Injectable({ providedIn: 'root' })
 export class Board {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
-  private readonly chats = inject(Chats);
+  private readonly list = inject(ChatList);
+  private readonly newChats = inject(NewChats);
   /** The blank chats opened from cards and not begun yet, each with its card's ID. */
   private readonly opening = new Map<string, string>();
 
@@ -90,7 +92,7 @@ export class Board {
   readonly open = computed(() => (this.all() ?? []).filter((card) => card.closedAt === undefined));
   /** The card on the board the chat you're on began from, if any. */
   readonly current = computed(() => {
-    const id = this.chats.currentId();
+    const id = this.list.currentId();
     return id
       ? this.open().find((card) => card.chats.some((chat) => chat.chatId === id))
       : undefined;
@@ -99,7 +101,7 @@ export class Board {
   constructor() {
     this.bridge.on('kanban.changed', ({ cards }) => this.listed.set(cards));
     this.bridge.on('kanban.jira', ({ jira }) => this.jira.set(jira));
-    this.chats.onBegun((blankId, chat) => {
+    this.newChats.onBegun((blankId, chat) => {
       const id = this.opening.get(blankId);
       if (!id) return;
       this.opening.delete(blankId);
@@ -218,12 +220,12 @@ export class Board {
   newChat(card: Card, folder?: string): void {
     for (const [chat, id] of this.opening) {
       if (id !== card.id) continue;
-      if (this.chats.has(chat)) return this.chats.open(chat);
+      if (this.list.has(chat)) return this.list.open(chat);
       this.opening.delete(chat);
     }
-    const { agent, settings } = this.chats.startOf();
+    const { agent, settings } = this.newChats.startOf();
     const cwd = card.cwd || folder || settings.cwd;
-    const chat = this.chats.newChat({
+    const chat = this.list.newChat({
       agent,
       settings: { ...settings, ...(cwd ? { cwd } : {}) },
       prompt: promptOf(card),
@@ -233,8 +235,8 @@ export class Board {
 
   /** Turns to one of a card's chats, opening it again when it was closed. */
   async openChat(chat: CardChat): Promise<void> {
-    if (this.chats.has(chat.chatId)) return this.chats.open(chat.chatId);
-    await this.chats.openChat({
+    if (this.list.has(chat.chatId)) return this.list.open(chat.chatId);
+    await this.list.openChat({
       id: chat.chatId,
       agent: chat.agent,
       title: '',

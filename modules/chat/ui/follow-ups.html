@@ -9,7 +9,7 @@
           type="button"
           class="card"
           [attr.title]="task.prompt"
-          (click)="chats.takeFollowUp(chatId(), $index)"
+          (click)="actions.takeFollowUp(chatId(), $index)"
         >
           <span class="title">{{ task.title }}</span>
           <span class="line">{{ firstLine(task.prompt) }}</span>

@@ -11,7 +11,8 @@ import {
 } from '@angular/core';
 import type { ChatSummary } from '@grimoire/contract';
 import type { IconName } from '../../design-system/icon';
-import { Chats } from '../core/chats';
+import { ChatList } from '../core/chat-list';
+import { NewChats } from '../core/new-chats';
 import { Profiles } from '../core/profiles';
 import { Wording } from '../core/wording';
 import { RightPageState } from './right-page-state';
@@ -165,17 +166,18 @@ export function provideShell(): EnvironmentProviders {
       shortcut: 'Mod+K',
       run: () => rightPage.openCommandPalette(),
     });
-    const chats = inject(Chats);
+    const list = inject(ChatList);
+    const newChats = inject(NewChats);
     shell.commands.add({
       id: 'chats.new',
       label: 'New chapter',
       plainLabel: 'New chat',
       hint: () => {
-        const preset = chats.startOf().preset;
+        const preset = newChats.startOf().preset;
         return preset ? `from the preset ${preset}` : 'with your last settings';
       },
       shortcut: 'Mod+N',
-      run: () => chats.newChat(),
+      run: () => list.newChat(),
     });
     // Focus mode in the command palette: in, or back out to two pages.
     const focus = inject(Focus);
@@ -223,8 +225,8 @@ export function provideShell(): EnvironmentProviders {
       plainLabel: 'Close chat',
       shortcut: 'Mod+W',
       run: () => {
-        const id = chats.currentId();
-        if (id) void chats.close(id);
+        const id = list.currentId();
+        if (id) void list.close(id);
       },
     });
     noteWaitingChats(shell);

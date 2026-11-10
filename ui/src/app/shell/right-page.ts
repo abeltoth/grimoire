@@ -1,7 +1,7 @@
 import { NgComponentOutlet } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
 import { Drawing } from '../../design-system/drawing';
-import { Chats } from '../core/chats';
+import { ChatList } from '../core/chat-list';
 import { Wording } from '../core/wording';
 import { SlashCommands } from './slash-commands';
 import { CommandPalette } from './command-palette';
@@ -45,7 +45,7 @@ export class RightPage {
   protected readonly rightPage = inject(RightPageState);
   protected readonly wording = inject(Wording);
   protected readonly focus = inject(Focus);
-  private readonly chats = inject(Chats);
+  private readonly list = inject(ChatList);
 
   protected readonly shown = computed<RightPageEntry | undefined>(() => {
     const pages = this.registry.rightPages.all().filter((page) => page.component);
@@ -65,7 +65,7 @@ export class RightPage {
   /** Whether the agent's commands show here: not those searched from the chat on this page. */
   protected readonly commandsHere = computed(() => {
     const search = this.rightPage.commands();
-    return !!search && search.chatId !== this.chats.besideId();
+    return !!search && search.chatId !== this.list.besideId();
   });
 
   /** What the right-hand page is called. */
