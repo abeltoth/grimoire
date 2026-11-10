@@ -43,6 +43,12 @@ beforeEach(() => {
   writeFileSync(path.join(cwd, 'CLAUDE.md'), '# The project');
 });
 
+/** Lets go by what macOS still reports of the files written just before the watch began. */
+async function settled(changed: ReturnType<typeof vi.fn>) {
+  await new Promise((resolve) => setTimeout(resolve, 600));
+  changed.mockClear();
+}
+
 afterEach(() => {
   watcher?.dispose();
   watcher = undefined;
@@ -72,6 +78,7 @@ describe('SetupWatcher', () => {
     const changed = vi.fn();
     watcher = new SetupWatcher(changed, () => path.join(home, '.claude'));
     watcher.watch('claude-code', setupIn(cwd));
+    await settled(changed);
 
     writeFileSync(path.join(home, '.claude', 'history.jsonl'), 'noise');
     await new Promise((resolve) => setTimeout(resolve, 600));
@@ -102,6 +109,7 @@ describe('SetupWatcher', () => {
     watcher = new SetupWatcher(changed, () => claudeFolder);
     claudeFolder = other;
     watcher.watch('claude-code', setupIn(cwd));
+    await settled(changed);
     mkdirSync(path.join(home, '.claude', 'skills', 'deploy'));
     await new Promise((resolve) => setTimeout(resolve, 600));
     expect(changed).not.toHaveBeenCalled();

@@ -12,7 +12,8 @@ const write = (file: string, text: string) => writeFileSync(path.join(repo, file
 const commit = (message: string) => git('commit', '--quiet', '-am', message);
 
 beforeEach(() => {
-  repo = realpathSync(mkdtempSync(path.join(tmpdir(), 'grimoire-git-')));
+  // The real, long path, as git gives it: /private/var on macOS, no short names on Windows.
+  repo = realpathSync.native(mkdtempSync(path.join(tmpdir(), 'grimoire-git-')));
   git('init', '--quiet', '--initial-branch=main');
   git('config', 'user.email', 'test@example.com');
   git('config', 'user.name', 'Test');

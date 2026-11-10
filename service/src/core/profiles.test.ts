@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -17,7 +17,8 @@ let dir: string;
 const folderOf = (id: string) => path.join(dir, 'profiles', id, 'claude');
 
 beforeEach(() => {
-  dir = mkdtempSync(path.join(tmpdir(), 'grimoire-profiles-'));
+  // Claude Code files chats by the real, long path: /private/var on macOS, no short names.
+  dir = realpathSync.native(mkdtempSync(path.join(tmpdir(), 'grimoire-profiles-')));
 });
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 

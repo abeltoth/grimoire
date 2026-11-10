@@ -102,16 +102,20 @@ describe('ServiceClient', () => {
   });
 
   it('emits events pushed by the service', async () => {
+    // Pushed once the client asks, as one sent with the welcome comes before anything listens.
     const at = await fakeService((message, send) => {
-      if (message.kind === 'hello') {
-        send(welcome);
+      if (message.kind === 'hello') send(welcome);
+      if (message.kind === 'request') {
         send({ kind: 'event', event: 'test.happened', payload: { n: 1 } });
+        send({ kind: 'response', id: message.id, ok: true, response: null });
       }
     });
     const client = await ServiceClient.connect({ endpoint: at, token: 't' });
-    const [name, payload] = await new Promise<[string, unknown]>((resolve) =>
+    const pushed = new Promise<[string, unknown]>((resolve) =>
       client.once('event', (...args) => resolve(args)),
     );
+    await client.request('core.ping', {});
+    const [name, payload] = await pushed;
     expect(name).toBe('test.happened');
     expect(payload).toEqual({ n: 1 });
     client.close();

@@ -63,7 +63,8 @@ const until = (done: () => boolean, ms = 3000) =>
     .catch(() => {});
 
 beforeEach(() => {
-  repo = realpathSync(mkdtempSync(path.join(tmpdir(), 'grimoire-files-')));
+  // The real, long path, as git gives it: /private/var on macOS, no short names on Windows.
+  repo = realpathSync.native(mkdtempSync(path.join(tmpdir(), 'grimoire-files-')));
   git('init', '--quiet', '--initial-branch=main');
   git('config', 'user.email', 'test@example.com');
   git('config', 'user.name', 'Test');
@@ -132,7 +133,7 @@ describe('Files', () => {
   });
 
   it('finds files in a folder that isn’t a repository, leaving out node_modules', async () => {
-    const plain = realpathSync(mkdtempSync(path.join(tmpdir(), 'grimoire-plain-')));
+    const plain = realpathSync.native(mkdtempSync(path.join(tmpdir(), 'grimoire-plain-')));
     try {
       mkdirSync(path.join(plain, 'node_modules'));
       writeFileSync(path.join(plain, 'node_modules', 'meter.js'), '');
@@ -174,7 +175,7 @@ describe('Files', () => {
   });
 
   it('opens, saves and watches a file outside the folder when it’s written in full', async () => {
-    const elsewhere = realpathSync(mkdtempSync(path.join(tmpdir(), 'grimoire-elsewhere-')));
+    const elsewhere = realpathSync.native(mkdtempSync(path.join(tmpdir(), 'grimoire-elsewhere-')));
     try {
       const notes = path.join(elsewhere, 'notes.md');
       writeFileSync(notes, '# Notes\n');
