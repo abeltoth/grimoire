@@ -97,6 +97,7 @@ describe('SetupWatcher', () => {
     const changed = vi.fn();
     watcher = new SetupWatcher(changed, () => path.join(home, '.claude'));
     watcher.watch('claude-code', setupIn(cwd));
+    await settled(changed);
     mkdirSync(path.join(home, '.claude', 'skills', 'deploy'));
     await vi.waitFor(() => expect(changed).toHaveBeenCalled(), { timeout: 3000 });
   });
