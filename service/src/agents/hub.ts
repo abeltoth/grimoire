@@ -28,6 +28,7 @@ import { ChatRuns } from './chat-runs';
 import { type ChatState, ChatTable, hubStore } from './chat-table';
 import { ChatUpdates } from './chat-updates';
 import { Editors } from './editors';
+import { HubLifecycle } from './hub-lifecycle';
 import { NewChats } from './new-chats';
 
 /**
@@ -42,8 +43,8 @@ import { NewChats } from './new-chats';
  *
  * Its parts: ChatUpdates changes what a chat holds, ChatRuns runs the
  * agent processes, NewChats begins chats, Approvals waits for your
- * decisions, Editors picks the chat that edits, and Accounts signs the
- * agents in.
+ * decisions, Editors picks the chat that edits, Accounts signs the
+ * agents in, and HubLifecycle puts the chats away.
  */
 export class AgentHub {
   private readonly table = new ChatTable();
@@ -53,6 +54,7 @@ export class AgentHub {
   private readonly accounts: Accounts;
   private readonly runs: ChatRuns;
   private readonly newChats: NewChats;
+  private readonly lifecycle: HubLifecycle;
 
   constructor(
     private readonly emit: Emit,
@@ -72,6 +74,13 @@ export class AgentHub {
       open: (agent, chatId, settings) => this.open(agent, chatId, settings),
       snapshot: (chat) => this.snapshot(chat),
     });
+    this.lifecycle = new HubLifecycle(
+      this.table,
+      store,
+      this.approvals,
+      this.editors,
+      this.accounts,
+    );
   }
 
   addAdapter(adapter: AgentAdapter): void {
@@ -326,48 +335,20 @@ export class AgentHub {
     this.editors.takeOver(this.table.chat(chatId));
   }
 
-  /**
-   * Closes an open chat: it's no longer open after a restart. When it
-   * edited, the chat sent in parallel with it opened first after it edits from now on.
-   */
   close(chatId: ChatId): void {
-    this.store.chats.remove(chatId);
-    this.release(chatId);
-    this.editors.settle();
+    this.lifecycle.close(chatId);
   }
 
-  /** Stops every chat and spare process, for when the service stops; chats reopen when it starts again. */
   closeAll(): void {
-    this.accounts.cancelAll();
-    this.putAway();
-    for (const adapter of this.table.adapters.values()) adapter.dispose?.();
+    this.lifecycle.closeAll();
   }
 
-  /**
-   * Why the open chats can't be put away now, naming those that are busy:
-   * a turn runs or an approval waits in them, or a sign-in is under way.
-   * Undefined when they can.
-   */
   busy(): string | undefined {
-    if (this.accounts.signingIn()) return 'A sign-in is under way: finish or cancel it first';
-    const busy = [...this.table.chats.values()].filter(
-      (chat) => chat.status !== 'idle' || this.approvals.has(chat),
-    );
-    if (!busy.length) return undefined;
-    const names = busy
-      .map((chat) => (chat.title ? `"${chat.title}"` : 'an untitled chat'))
-      .join(', ');
-    return `Wait for ${names} to finish, or stop ${busy.length === 1 ? 'it' : 'them'}, first`;
+    return this.lifecycle.busy();
   }
 
-  /**
-   * Stops every open chat's process and forgets the chats, but keeps their
-   * chats, as when another profile is put in use: they reopen when it's
-   * back. Who the agents were signed in as is forgotten too.
-   */
   putAway(): void {
-    for (const id of [...this.table.chats.keys()]) this.release(id);
-    this.accounts.forget();
+    this.lifecycle.putAway();
   }
 
   /** Opens a chat, unless it's open already, leaving who edits as it was. */
@@ -393,15 +374,6 @@ export class AgentHub {
     }
     this.store.chats.add({ chatId, agent, settings: chat.settings });
     return chat;
-  }
-
-  private release(chatId: ChatId): void {
-    const chat = this.table.chats.get(chatId);
-    if (!chat) return;
-    this.table.chats.delete(chatId);
-    this.approvals.denyAll(chat);
-    chat.live?.close();
-    clearTimeout(chat.flushTimer);
   }
 
   private snapshot(chat: ChatState): OpenChat {
