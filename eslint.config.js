@@ -40,7 +40,6 @@ const oversized = [
   'modules/settings/ui/settings-page.html',
   'modules/usage/ui/usage-page.html',
   'modules/usage/ui/usage-page.ts',
-  'service/src/agents/claude/claude-adapter.ts',
   'service/src/agents/claude/transcript.ts',
 ];
 const onTheRealClock = [
