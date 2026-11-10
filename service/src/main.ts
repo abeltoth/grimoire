@@ -8,24 +8,13 @@
  * --ephemeral keeps Grimoire's own data in memory, for smoke tests and captures.
  */
 import { randomBytes } from 'node:crypto';
-import {
-  appendFileSync,
-  mkdirSync,
-  readFileSync,
-  renameSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { appendFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
-import {
-  type EventPayload,
-  PROTOCOL_VERSION,
-  SERVICE_INFO_FILE,
-  type ServiceInfo,
-} from '@grimoire/contract';
+import { PROTOCOL_VERSION, SERVICE_INFO_FILE, type ServiceInfo } from '@grimoire/contract';
 import { ClaudeAdapter } from './agents/claude/claude-adapter';
 import { useClaudeFolder } from './agents/claude/config-dir';
+import { ClaudeRestarts } from './agents/claude/restarts';
 import { registerAgentCommands } from './agents/commands';
 import { AgentHub } from './agents/hub';
 import { hubStore } from './agents/chat-table';
@@ -41,6 +30,7 @@ import { Modules } from './module';
 import { MODULES } from './modules';
 import { CommandRegistry } from './registry';
 import { AlreadyRunningError, startServer, type ServiceServer } from './server';
+import { removeServiceInfo, writeServiceInfo } from './service-info';
 import { openDatabase } from './storage/database';
 
 const { values } = parseArgs({
@@ -89,25 +79,7 @@ useClaudeFolder(profiles.active().claudeFolder);
 registerLayout(registry, new LayoutStore(db));
 const settingsStore = new SettingsStore(db);
 registerPresets(registry, new PresetStore(db), settingsStore, broadcast);
-let { mcpOff, suggestions, followUps } = settingsStore.get();
-registerSettings(registry, settingsStore, (event, payload) => {
-  broadcast(event, payload);
-  if (event !== 'settings.changed') return;
-  const settings = (payload as EventPayload<'settings.changed'>).settings;
-  // Suggestions, or separate tasks, turned on or off: the spare starts again with them; open chats, when theirs next does.
-  if (settings.suggestions !== suggestions || settings.followUps !== followUps) {
-    ({ suggestions, followUps } = settings);
-    claude.dispose();
-    claude.warm();
-  }
-  // Other MCP servers off in every chat: the open chats, and the spare, start again with them.
-  const now = settings.mcpOff;
-  if (now.length === mcpOff.length && now.every((name) => mcpOff.includes(name))) return;
-  mcpOff = now;
-  hub.mcpChanged();
-  claude.dispose();
-  claude.warm();
-});
+registerSettings(registry, settingsStore, broadcast);
 
 const hub = new AgentHub(broadcast, 50, hubStore(db));
 const tools = new AgentTools();
@@ -118,6 +90,8 @@ const claude = new ClaudeAdapter(
   () => tools.all(),
 );
 hub.addAdapter(claude);
+const restarts = new ClaudeRestarts(claude, hub, () => settingsStore.get());
+events.on('settings.changed', ({ settings }) => restarts.settingsChanged(settings));
 claude.warm();
 registerAgentCommands(registry, hub);
 
@@ -129,11 +103,7 @@ registerProfiles(
     putAway: () => hub.putAway(),
     reset: () => claude.reset(),
     useClaudeFolder,
-    restart: () => {
-      // The spare starts with the new profile's MCP servers off, suggestions and separate tasks; its settings don't restart it.
-      ({ mcpOff, suggestions, followUps } = settingsStore.get());
-      claude.warm();
-    },
+    restart: () => restarts.profileSwitched(),
     announce: () => {
       broadcast('settings.changed', { settings: settingsStore.get() });
       void hub.announceAccounts();
@@ -164,7 +134,7 @@ async function stop(): Promise<void> {
   modules.stop();
   await server?.close();
   db.close();
-  removeInfoFileIfOurs();
+  removeServiceInfo(infoFile, process.pid);
   log('Stopped');
   process.exit(0);
 }
@@ -195,19 +165,9 @@ const info: ServiceInfo = {
   buildId,
   protocolVersion: PROTOCOL_VERSION,
 };
-writeFileSync(`${infoFile}.tmp`, JSON.stringify(info), { mode: 0o600 });
-renameSync(`${infoFile}.tmp`, infoFile);
+writeServiceInfo(infoFile, info);
 log(`Listening on ${endpoint}, build ${buildId}`);
 modules.ready();
 
 process.on('SIGTERM', () => void stop());
 process.on('SIGINT', () => void stop());
-
-function removeInfoFileIfOurs(): void {
-  try {
-    const current = JSON.parse(readFileSync(infoFile, 'utf8')) as ServiceInfo;
-    if (current.pid === process.pid) rmSync(infoFile, { force: true });
-  } catch {
-    // Already gone, or replaced by another service.
-  }
-}
