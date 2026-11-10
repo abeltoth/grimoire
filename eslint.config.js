@@ -17,7 +17,12 @@ const projects = [
 ];
 const sources = ['contract/src', 'service/src', 'app/src', 'ui/src', 'modules', 'scripts'];
 const ui = ['ui/src', 'modules/*/ui'];
-const tests = sources.flatMap((root) => [`${root}/**/*.spec.ts`, `${root}/**/*.test.ts`]);
+// What the specs of a part share, in its *-testing.ts, is test code too.
+const tests = sources.flatMap((root) => [
+  `${root}/**/*.spec.ts`,
+  `${root}/**/*.test.ts`,
+  `${root}/**/*-testing.ts`,
+]);
 
 // What a module may import from the service: its exports map (ADR-012), testing/* in tests only.
 const exported = Object.entries(
@@ -42,10 +47,12 @@ const onTheRealClock = [
   'modules/chat/ui/transcript.spec.ts',
   'modules/files/service/files.test.ts',
   'modules/git/ui/git.spec.ts',
-  'modules/kanban/ui/kanban.spec.ts',
-  'modules/memories/ui/memories.spec.ts',
+  'modules/kanban/ui/kanban-testing.ts',
+  'modules/memories/ui/memories-page.spec.ts',
+  'modules/memories/ui/memory-editor.spec.ts',
+  'modules/memories/ui/memory-list.spec.ts',
   'modules/schedules/ui/schedules.spec.ts',
-  'modules/settings/ui/settings.spec.ts',
+  'modules/settings/ui/general-settings.spec.ts',
   'modules/terminal/service/terminals.test.ts',
   'modules/usage/service/usage.test.ts',
   'modules/workflow-setup/service/setup-files.test.ts',

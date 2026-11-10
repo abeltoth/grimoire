@@ -12,6 +12,7 @@
   "exclude": [
     "src/**/*.spec.ts",
     "src/testing/**",
-    "../modules/*/ui/**/*.spec.ts"
+    "../modules/*/ui/**/*.spec.ts",
+    "../modules/*/ui/**/*-testing.ts"
   ]
 }
