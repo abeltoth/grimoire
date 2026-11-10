@@ -4,17 +4,49 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type { EventName, EventPayload } from '@grimoire/contract';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { ModuleContext } from '@grimoire/service/core/module';
 import { CommandRegistry } from '@grimoire/service/core/registry';
-import { git as gitModule } from '../../git/service';
 import { Files } from './files';
 import { reposThrough } from '.';
 
 let repo: string;
 let files: Files;
 let told: EventPayload<EventName>[];
-const git = (...args: string[]) =>
-  execFileSync('git', args, { cwd: repo, encoding: 'utf8', windowsHide: true });
+const gitIn = (cwd: string, ...args: string[]) =>
+  execFileSync('git', args, { cwd, encoding: 'utf8', windowsHide: true, stdio: 'pipe' });
+const git = (...args: string[]) => gitIn(repo, ...args);
+
+/** The git module's commands, as plainly as git gives them, so this test doesn't need that module. */
+function registerGit(registry: CommandRegistry): void {
+  const root = (cwd: string) => {
+    try {
+      return path.resolve(gitIn(cwd, 'rev-parse', '--show-toplevel').trim());
+    } catch {
+      return null;
+    }
+  };
+  registry.register('git.root', async ({ cwd }) => root(cwd));
+  registry.register('git.files', async ({ root }) =>
+    gitIn(root, 'ls-files', '-z', '--cached', '--others', '--exclude-standard')
+      .split('\0')
+      .filter(Boolean),
+  );
+  registry.register('git.ignored', async ({ root, paths }) => {
+    try {
+      return gitIn(root, 'check-ignore', '--', ...paths)
+        .split(/\r?\n/)
+        .filter(Boolean);
+    } catch {
+      return [];
+    }
+  });
+  registry.register('git.committed', async ({ cwd, path: file }) => {
+    const top = root(cwd);
+    const status = top && gitIn(top, 'status', '--porcelain', '--untracked-files=all', '--', file);
+    if (!top || !status) return undefined;
+    if (status.startsWith('??') || status.startsWith('A')) return null;
+    return gitIn(top, 'show', `HEAD:${file}`);
+  });
+}
 const write = (file: string, text: string | Buffer) => {
   mkdirSync(path.dirname(path.join(repo, file)), { recursive: true });
   writeFileSync(path.join(repo, file), text);
@@ -42,7 +74,7 @@ beforeEach(() => {
   write('dist/out.js', '');
   told = [];
   const registry = new CommandRegistry();
-  gitModule.start({ registry } as ModuleContext);
+  registerGit(registry);
   files = new Files(reposThrough(registry), (_event, payload) => told.push(payload));
 });
 

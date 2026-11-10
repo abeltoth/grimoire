@@ -128,7 +128,7 @@ export default defineConfig(
     rules: {
       // Later policies win over earlier ones.
       'boundaries/dependencies': [
-        'warn',
+        'error',
         {
           default: 'allow',
           policies: [
