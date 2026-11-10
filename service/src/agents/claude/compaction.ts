@@ -1,6 +1,10 @@
 import type { CompactionEntry, Entry } from '@grimoire/contract';
 import type { ApiMessage, ClaudeMessage } from './messages';
 
+/** Where the summary begins and ends in Claude Code's wording around it. */
+const SUMMARY_START = 'Summary:\n';
+const SUMMARY_END = '\nIf you need specific details from before compaction';
+
 /** Claude Code's word on a compaction, live: where it cut the chat, or that it failed. */
 export interface CompactMessage {
   subtype?: string;
@@ -50,7 +54,13 @@ export class SavedCompactions {
   ): CompactionEntry | boolean {
     if (message.isCompactSummary) {
       const known = at !== undefined && Number.isFinite(at) ? { at } : {};
-      return { kind: 'compaction', id: message.uuid ?? id, ...known };
+      const summary = summaryOf(message.message as ApiMessage);
+      return {
+        kind: 'compaction',
+        id: message.uuid ?? id,
+        ...known,
+        ...(summary ? { summary } : {}),
+      };
     }
     const command = message.isCompletedLocalCommand
       ? localCommandOf(message.message as ApiMessage)
@@ -64,6 +74,40 @@ export class SavedCompactions {
     }
     return command === 'output' && ran;
   }
+}
+
+/**
+ * The compaction a live message gives its summary to, filled in: Claude
+ * Code sends the summary right after the boundary, as a message of its own.
+ */
+export function withLiveSummary(
+  message: ClaudeMessage,
+  entries: Entry[],
+): CompactionEntry | undefined {
+  const last = entries.at(-1);
+  if (!message.isSynthetic || last?.kind !== 'compaction' || last.error || last.summary)
+    return undefined;
+  const summary = summaryOf(message.message as ApiMessage);
+  if (!summary) return undefined;
+  last.summary = summary;
+  return last;
+}
+
+/**
+ * The summary in the message that stands for the chat before a compaction,
+ * without what Claude Code wraps it in for the agent, when it's worded as expected.
+ */
+function summaryOf(message: ApiMessage | undefined): string | undefined {
+  const content = message?.content;
+  const text = (
+    typeof content === 'string'
+      ? content
+      : (content ?? []).map((block) => (block.type === 'text' ? (block.text ?? '') : '')).join('')
+  ).trim();
+  const begins = text.indexOf(SUMMARY_START);
+  const body = begins < 0 ? text : text.slice(begins + SUMMARY_START.length);
+  const ends = body.indexOf(SUMMARY_END);
+  return (ends < 0 ? body : body.slice(0, ends)).trim() || undefined;
 }
 
 /** What a saved local command's message says: the command you ran, or what it printed. */

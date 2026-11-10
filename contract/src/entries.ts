@@ -85,6 +85,8 @@ export interface CompactionEntry {
   before?: number;
   /** The tokens it holds after, when the agent says. */
   after?: number;
+  /** What the agent wrote of the chat before, which stands for it now, when the agent says. */
+  summary?: string;
   /** Why it failed; missing when it worked. */
   error?: string;
 }

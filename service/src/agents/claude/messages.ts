@@ -14,6 +14,8 @@ export interface ClaudeMessage {
   isCompactSummary?: boolean;
   /** A local command you ran, such as /compact, or what it printed. */
   isCompletedLocalCommand?: boolean;
+  /** A message Claude Code wrote into the chat itself, such as a compaction's summary live. */
+  isSynthetic?: boolean;
   /** Who sent a message into a run: the agent that asked a subagent is its "coordinator". */
   origin?: { kind?: string };
 }

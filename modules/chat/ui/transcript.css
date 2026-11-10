@@ -212,6 +212,11 @@ p {
   color: var(--gr-ink-soft);
 }
 
+.summary {
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
 .error {
   font-style: italic;
   font-size: var(--gr-size-aside);

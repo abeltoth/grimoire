@@ -294,4 +294,27 @@ describe('transcript', () => {
     await fixture.whenStable();
     expect(el.querySelector('gr-output')).toBeNull();
   });
+
+  it("opens a compaction's summary, and puts it away", async () => {
+    const { bridge, emit } = fakeBridge();
+    const { fixture, el, texts } = await render(bridge);
+    await write(fixture, el, 'u1');
+    emit('agents.entry', {
+      chatId: 'chat-1',
+      entry: { kind: 'compaction', id: 'c1', before: 92_000, summary: '1. **Intent**: say hi' },
+    });
+    await fixture.whenStable();
+    const toggle = el.querySelector<HTMLButtonElement>('.compaction button')!;
+    expect(toggle.textContent!.trim()).toBe('Read the summary');
+    expect(el.querySelector('.summary')).toBeNull();
+
+    toggle.click();
+    await fixture.whenStable();
+    expect(texts('.summary')).toEqual(['Intent: say hi']);
+    expect(toggle.textContent!.trim()).toBe('Put the summary away');
+
+    toggle.click();
+    await fixture.whenStable();
+    expect(el.querySelector('.summary')).toBeNull();
+  });
 });

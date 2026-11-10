@@ -170,8 +170,18 @@
           @if (row.at) {
             &ngsp;<span class="time">{{ time(row.at) }}</span>
           }
+          @if (row.summary) {
+            &ngsp;<button type="button" class="gr-link" (click)="toggle(row.key)">
+              {{ isOpen(row.key) ? 'Put the summary away' : 'Read the summary' }}
+            </button>
+          }
         </p>
       </div>
+      @if (row.summary && isOpen(row.key)) {
+        <div class="row tight">
+          <div class="summary"><gr-markdown [text]="row.summary" /></div>
+        </div>
+      }
     }
     @case ('notes') {
       <div class="row">
