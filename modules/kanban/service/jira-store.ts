@@ -1,6 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { Card, CardColumn, JiraSync } from '@grimoire/contract';
-import type { FetchedIssue } from './jira';
+import type { FetchedIssue } from './jira-fields';
 
 interface JiraRow {
   id: string;

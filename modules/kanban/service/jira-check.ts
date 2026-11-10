@@ -18,16 +18,9 @@ import {
   type ToolResult,
   openConnectors,
 } from '@grimoire/service/claude/connectors';
-import {
-  JIRA_ALLOWED,
-  JIRA_READ_ONLY,
-  JIRA_TOOLS,
-  atlassianIn,
-  jsonOf,
-  readSearch,
-  readSite,
-  readTransitions,
-} from './jira';
+import { atlassianIn } from './jira';
+import { jsonOf, readSearch, readSite, readTransitions } from './jira-fields';
+import { JIRA_ALLOWED, JIRA_READ_ONLY, JIRA_TOOLS } from './jira-tools';
 
 const { values } = parseArgs({
   options: {
