@@ -1,0 +1,34 @@
+/* The asides every part of the Memories page writes: notes in italics, folders, flags and the dots between. */
+
+.sub,
+.none {
+  margin: var(--gr-aside-gap) 0 var(--gr-plan-sub-gap);
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.folder {
+  font-style: normal;
+  color: var(--gr-ink);
+}
+
+.dot {
+  margin: 0 var(--gr-space-1);
+}
+
+.alert {
+  color: var(--gr-rubric);
+}
+
+.label {
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-label);
+  letter-spacing: var(--gr-tracking-label);
+  color: var(--gr-ink-soft);
+}
+
+.flag {
+  font-style: italic;
+  color: var(--gr-rubric);
+}

@@ -1,0 +1,39 @@
+@let near = related();
+<gr-file-editor
+  [file]="edit().file"
+  [from]="edit().kind"
+  backLabel="Back to the map"
+  [write]="writeMemory"
+  (saved)="saved.emit($event)"
+  (back)="back.emit()"
+>
+  <p class="links">
+    <span class="label">Links to</span>
+    @for (memory of near.to; track memory.path) {
+      <button type="button" class="to" (click)="turn(memory)">{{ memory.name }}</button>
+    }
+    @for (link of near.missing; track link) {
+      <span class="flag">[[{{ link }}]] missing</span>
+    }
+    @if (!near.to.length && !near.missing.length) {
+      <span class="nothing">none</span>
+    }
+    <span class="dot" aria-hidden="true">·</span>
+    <span class="label">Linked from</span>
+    @for (memory of near.from; track memory.path) {
+      <button type="button" class="to" (click)="turn(memory)">{{ memory.name }}</button>
+    } @empty {
+      <span class="nothing">none</span>
+    }
+  </p>
+  <span class="delete" actions>
+    <span class="dot" aria-hidden="true">·</span>
+    @if (deleting()) {
+      <span class="ask">Delete it? Its file goes, and its line in the index.</span>
+      <button type="button" class="gr-link danger" (click)="remove()">Delete</button>
+      <button type="button" class="gr-link" (click)="deleting.set(false)">Keep it</button>
+    } @else {
+      <button type="button" class="gr-link" (click)="deleting.set(true)">Delete</button>
+    }
+  </span>
+</gr-file-editor>

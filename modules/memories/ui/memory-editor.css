@@ -1,0 +1,52 @@
+:host {
+  display: contents;
+}
+
+/* The open memory's links, either way, each a turn to that memory. */
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--gr-memory-card-line-gap);
+  margin: 0 0 var(--gr-plan-sub-gap);
+  font-size: var(--gr-size-aside);
+}
+
+.links .dot {
+  margin: 0;
+}
+
+.to {
+  padding: 0;
+  font-family: var(--gr-font-text);
+  color: var(--gr-ink);
+}
+
+.to:hover {
+  color: var(--gr-lapis);
+  text-decoration: underline;
+}
+
+.nothing {
+  font-style: italic;
+  color: var(--gr-ink-soft);
+}
+
+/* Deleting sits beside Save, and asks first. */
+.delete {
+  display: contents;
+}
+
+.delete .dot {
+  margin: 0;
+}
+
+.ask {
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink);
+}
+
+.danger {
+  color: var(--gr-rubric);
+}
