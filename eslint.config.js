@@ -42,7 +42,6 @@ const oversized = [
   'modules/usage/ui/usage-page.ts',
   'service/src/agents/claude/claude-adapter.ts',
   'service/src/agents/claude/transcript.ts',
-  'ui/src/app/core/chats.ts',
 ];
 const onTheRealClock = [
   'app/src/service-launcher.test.ts',
