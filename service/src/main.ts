@@ -29,6 +29,7 @@ import { useClaudeFolder } from './agents/claude/config-dir';
 import { registerAgentCommands } from './agents/commands';
 import { AgentHub } from './agents/hub';
 import { hubStore } from './agents/chat-table';
+import { AgentTools } from './agents/tools';
 import { LayoutStore, registerLayout } from './core/layout';
 import { PresetStore, registerPresets } from './core/presets';
 import { ProfileStore, registerProfiles } from './core/profiles';
@@ -109,10 +110,12 @@ registerSettings(registry, settingsStore, (event, payload) => {
 });
 
 const hub = new AgentHub(broadcast, 50, hubStore(db));
+const tools = new AgentTools();
 const claude = new ClaudeAdapter(
   () => settingsStore.get().mcpOff,
   () => settingsStore.get().suggestions,
   () => settingsStore.get().followUps,
+  () => tools.all(),
 );
 hub.addAdapter(claude);
 claude.warm();
@@ -150,7 +153,7 @@ modules.start({
   settings: settingsStore,
   profiles,
   hub,
-  claude,
+  registerTool: (tool) => tools.register(tool),
 });
 
 const token = randomBytes(32).toString('hex');

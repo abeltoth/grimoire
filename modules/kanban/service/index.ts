@@ -1,5 +1,6 @@
 import { openConnectors } from '@grimoire/service/agents/claude/connectors';
 import type { ServiceModule } from '@grimoire/service/module';
+import { addTodoTool } from './add-todo';
 import { registerJira, registerKanban } from './commands';
 import { JiraMoves } from './jira-moves';
 import { JiraSyncer } from './jira-sync';
@@ -10,7 +11,7 @@ import { CardStore } from './store';
 export const kanban: ServiceModule = {
   id: 'kanban',
   migrations: MIGRATIONS,
-  start({ registry, db, events, settings, claude, log }) {
+  start({ registry, db, events, settings, log, registerTool }) {
     const cards = new CardStore(db);
     registerKanban(registry, cards, events.emit);
     // Your Jira issues come through your claude.ai Atlassian connector, on a Claude Code process of their own;
@@ -25,8 +26,10 @@ export const kanban: ServiceModule = {
     const moves = new JiraMoves(cards, openConnectors, events.emit, log);
     registerJira(registry, jira, moves);
     // A task the agent adds goes on the board in use, which every window is told of.
-    claude.addTodosWith((draft, madeIn) =>
-      events.emit('kanban.changed', { cards: cards.save(draft, madeIn) }),
+    registerTool(
+      addTodoTool((draft, madeIn) =>
+        events.emit('kanban.changed', { cards: cards.save(draft, madeIn) }),
+      ),
     );
     return {
       // The board's Jira issues are synced every hour, as well as when the board opens.

@@ -10,8 +10,9 @@ A feature is one folder, `modules/<name>/`, with up to three parts:
 - `contract.ts`: the module's types, and its commands and events added to the core's maps with
   `declare module '@grimoire/contract' { interface CommandMap { ... } }` (and `EventMap`).
 - `service/index.ts`: one exported `ServiceModule` (`service/src/module.ts`): `id` is the folder
-  name, `migrations` its tables' SQL, and `start(context)` registers its commands and may return
-  `ModuleHooks` (`ready`, `profileSwitched`, `profileRemoved`, `stop`).
+  name, `migrations` its tables' SQL, and `start(context)` registers its commands (and any tool
+  for the agent, with `context.registerTool`) and may return `ModuleHooks` (`ready`,
+  `profileSwitched`, `profileRemoved`, `stop`).
 - `ui/<name>.providers.ts`: `provideX()` calling `provideShellEntries((shell) => ...)`, which adds
   pages, commands and indicators to the `ShellRegistry` slots (`ui/src/app/shell/shell-registry.ts`).
 

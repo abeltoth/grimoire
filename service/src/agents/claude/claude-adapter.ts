@@ -23,10 +23,11 @@ import type {
   SubagentRun,
 } from '@grimoire/contract';
 import type { AgentAdapter, ChatEvents, ChatHistory, LiveChat, SignInRun } from '../adapter';
+import type { AgentTool } from '../tools';
 import { CacheTracker, type ReplyUsage } from './cache';
 import { readUserSettings } from './effort';
 import { FollowUpsKept, savedFollowUps } from './follow-ups';
-import { GRIMOIRE_SERVER, grimoireOptions } from './grimoire-tools';
+import { GRIMOIRE_SERVER, ProcessChat, grimoireOptions } from './grimoire-tools';
 import { mcpOff, mcpSettings } from './mcp';
 import { MessageQueue } from './message-queue';
 import { toAgentModels } from './models';
@@ -43,7 +44,6 @@ import {
 } from './subagents';
 import { AUTO_PROMPT, autoPick, messageForRater } from './auto-model';
 import { readAccount, signIn } from './sign-in';
-import { type AddTodo, TodoChat } from './todos';
 import {
   type ClaudeMessage,
   ClaudeTranscript,
@@ -83,8 +83,8 @@ interface Spare {
   mcpOff: string[];
   /** Where its tool keeps the separate tasks offered, for the chat that claims it. */
   followUps: FollowUpsKept;
-  /** The chat its tool adds cards to the board in: the one that claims it. */
-  todoChat: TodoChat;
+  /** The chat its tools work in: the one that claims it. */
+  chat: ProcessChat;
 }
 
 /**
@@ -100,23 +100,15 @@ export class ClaudeAdapter implements AgentAdapter {
   /**
    * `mcpOffEverywhere` names the MCP servers turned off in every chat,
    * `suggestions` says whether Claude Code suggests your next message, and
-   * `followUps` whether the agent may offer separate tasks, as they are
-   * when a process starts.
+   * `followUps` whether the agent may offer separate tasks, and `tools` the
+   * modules' tools, as they are when a process starts.
    */
   constructor(
     private readonly mcpOffEverywhere: () => readonly string[] = () => [],
     private readonly suggestions: () => boolean = () => true,
     private readonly followUps: () => boolean = () => true,
+    private readonly tools: () => readonly AgentTool[] = () => [],
   ) {}
-
-  private addTodo: AddTodo = () => {
-    throw new Error('There is no Kanban board here');
-  };
-
-  /** Puts each task the agent adds on the Kanban board with `add`, from processes started before as well. */
-  addTodosWith(add: AddTodo): void {
-    this.addTodo = add;
-  }
 
   readonly info: AgentInfo = {
     id: 'claude-code',
@@ -335,8 +327,8 @@ export class ClaudeAdapter implements AgentAdapter {
     const input = new MessageQueue<SDKUserMessage>();
     const picking = new Deferred<PickerSources>();
     const followUps = new FollowUpsKept();
-    const todoChat = new TodoChat();
-    todoChat.set({ chatId, agent: this.info.id, cwd: settings.cwd });
+    const chat = new ProcessChat();
+    chat.set({ chatId, agent: this.info.id, cwd: settings.cwd });
     const off = this.mcpOff(settings);
     const offered = this.followUps();
     const started: Promise<Query> = sdk().then((made) =>
@@ -361,7 +353,8 @@ export class ClaudeAdapter implements AgentAdapter {
           ...(resume ? { resume: chatId } : { sessionId: chatId, ...(title ? { title } : {}) }),
           ...grimoireOptions(made, {
             ...(offered ? { followUps } : {}),
-            todos: { chat: todoChat, add: (draft, madeIn) => this.addTodo(draft, madeIn) },
+            tools: this.tools(),
+            chat,
           }),
           canUseTool: approvalsTo(async () => events),
           hooks: chatHooks(
@@ -414,7 +407,7 @@ export class ClaudeAdapter implements AgentAdapter {
     const claimedBy = new Deferred<ChatEvents>();
     const picking = new Deferred<PickerSources>();
     const followUps = new FollowUpsKept();
-    const todoChat = new TodoChat();
+    const chat = new ProcessChat();
     const off = this.mcpOff();
     const offered = this.followUps();
     const spare: Spare = {
@@ -422,7 +415,7 @@ export class ClaudeAdapter implements AgentAdapter {
       picking,
       mcpOff: off,
       followUps,
-      todoChat,
+      chat,
       process: sdk().then((made) =>
         made.prewarm({
           options: {
@@ -439,7 +432,8 @@ export class ClaudeAdapter implements AgentAdapter {
             // Its tools' calls go to the chat that claims it: its separate tasks once its turn ends.
             ...grimoireOptions(made, {
               ...(offered ? { followUps } : {}),
-              todos: { chat: todoChat, add: (draft, madeIn) => this.addTodo(draft, madeIn) },
+              tools: this.tools(),
+              chat,
             }),
             canUseTool: approvalsTo(() => claimedBy.promise),
             hooks: chatHooks(
@@ -517,7 +511,7 @@ export class ClaudeAdapter implements AgentAdapter {
       chatId = claim.sessionId;
     }
     const events = bind(chatId);
-    spare.todoChat.set({ chatId, agent: this.info.id, cwd: settings.cwd });
+    spare.chat.set({ chatId, agent: this.info.id, cwd: settings.cwd });
     spare.claimedBy.resolve(events);
     return this.drive(
       chatId,

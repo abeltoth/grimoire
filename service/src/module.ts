@@ -1,11 +1,13 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { AgentHub } from './agents/hub';
-import type { ClaudeAdapter } from './agents/claude/claude-adapter';
+import type { AgentTool } from './agents/tools';
 import type { ProfileStore } from './core/profiles';
 import type { SettingsStore } from './core/settings';
 import type { ServiceEvents } from './events';
 import type { CommandRegistry } from './registry';
 import { migrate } from './storage/database';
+
+export type { AgentTool, ToolChat } from './agents/tools';
 
 /** A feature's backend part (ADR-008); service/src/modules.ts lists them all. */
 export interface ServiceModule {
@@ -45,7 +47,8 @@ export interface ModuleContext {
   readonly settings: SettingsStore;
   readonly profiles: ProfileStore;
   readonly hub: AgentHub;
-  readonly claude: ClaudeAdapter;
+  /** Gives the agent a tool in every chat whose process starts after (ADR-011). */
+  registerTool(tool: AgentTool): void;
 }
 
 /** The modules running, each started with its tables migrated. */

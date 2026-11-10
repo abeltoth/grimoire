@@ -7,8 +7,7 @@ import {
   savedFollowUps,
   toFollowUps,
 } from './follow-ups';
-import { GRIMOIRE_SERVER, type ServerMaker, grimoireOptions } from './grimoire-tools';
-import { ADD_TODO_PROMPT, ADD_TODO_TOOL, TodoChat } from './todos';
+import { GRIMOIRE_SERVER, ProcessChat, type ServerMaker, grimoireOptions } from './grimoire-tools';
 import { type ClaudeMessage, ClaudeTranscript, FOLLOW_UPS_TOOL } from './transcript';
 
 const docs = { title: 'Docs', prompt: 'Write the docs' };
@@ -30,7 +29,10 @@ function maker() {
   return { sdk, made };
 }
 
-const todos = { chat: new TodoChat(), add: () => {} };
+/** A module's tool beside it. */
+const tools = [
+  { name: 'echo', description: 'Says it back', prompt: 'You have echo.', input: {}, run: () => '' },
+];
 
 const call = (id: string, tasks: unknown, parent: string | null = null): ClaudeMessage => ({
   type: 'assistant',
@@ -78,12 +80,12 @@ describe('the follow-ups tool', () => {
   it('is allowed without asking, and its calls kept until the turn ends, answered shortly', async () => {
     const { sdk, made } = maker();
     const kept = new FollowUpsKept();
-    const options = grimoireOptions(sdk, { followUps: kept, todos });
-    expect(options.allowedTools).toEqual([FOLLOW_UPS_TOOL, ADD_TODO_TOOL]);
+    const options = grimoireOptions(sdk, { followUps: kept, tools, chat: new ProcessChat() });
+    expect(options.allowedTools).toEqual([FOLLOW_UPS_TOOL, 'mcp__grimoire__echo']);
     expect(Object.keys(options.mcpServers!)).toEqual([GRIMOIRE_SERVER]);
     expect(options.systemPrompt).toBe(`${FOLLOW_UPS_PROMPT}
 
-${ADD_TODO_PROMPT}`);
+You have echo.`);
 
     await expect(
       made.handler!({ tasks: [{ title: ' Docs ', prompt: ' Write the docs\n' }] }),
