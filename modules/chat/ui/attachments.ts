@@ -1,7 +1,17 @@
-import { Component, booleanAttribute, computed, inject, input, output } from '@angular/core';
-import type { Attachment } from '@grimoire/contract';
+import {
+  Component,
+  type PendingTasks,
+  type WritableSignal,
+  booleanAttribute,
+  computed,
+  inject,
+  input,
+  output,
+} from '@angular/core';
+import type { Attachment, GrimoireBridge } from '@grimoire/contract';
 import { Icon } from '@ui/design-system/icon';
 import { AgentCatalog } from '@ui/app/core/agent-catalog';
+import { readPicture } from './pictures';
 
 type Shown =
   | { kind: 'plate'; attachment: Attachment; number: string; src: string; caption: string }
@@ -48,6 +58,70 @@ export class Attachments {
       };
     });
   });
+}
+
+/**
+ * What goes with a message as you pick, paste and drop it: files as
+ * references, pictures as plates, each file once.
+ */
+export class Enclosing {
+  constructor(
+    private readonly attachments: WritableSignal<readonly Attachment[]>,
+    private readonly bridge: GrimoireBridge,
+    private readonly pending: PendingTasks,
+  ) {}
+
+  /** Asks for files with the system's picker. */
+  async attach(): Promise<void> {
+    const paths = await this.bridge.chooseFiles().catch(() => []);
+    this.add(paths.map((path): Attachment => ({ kind: 'file', path })));
+  }
+
+  /** A pasted picture comes in as a plate; anything else pastes as usual. */
+  paste(event: ClipboardEvent): void {
+    const pictures = [...(event.clipboardData?.files ?? [])].filter((file) =>
+      file.type.startsWith('image/'),
+    );
+    if (!pictures.length) return;
+    event.preventDefault();
+    for (const picture of pictures) this.addPicture(picture, `Screenshot, pasted at ${now()}`);
+  }
+
+  /** Files dropped on the page come in as references; pictures from elsewhere, as plates. */
+  drop(event: DragEvent): void {
+    const files = [...(event.dataTransfer?.files ?? [])];
+    if (!files.length) return;
+    event.preventDefault();
+    for (const file of files) {
+      const path = this.bridge.pathOf(file);
+      if (path) this.add([{ kind: 'file', path }]);
+      else if (file.type.startsWith('image/'))
+        this.addPicture(file, `Picture, dropped at ${now()}`);
+    }
+  }
+
+  /** Adds to what goes with the message; a file already there isn't added twice. */
+  add(added: readonly Attachment[]): void {
+    this.attachments.update((all) => [
+      ...all,
+      ...added.filter(
+        (attachment) =>
+          attachment.kind !== 'file' ||
+          !all.some((kept) => kept.kind === 'file' && kept.path === attachment.path),
+      ),
+    ]);
+  }
+
+  private addPicture(file: Blob, caption: string): void {
+    this.pending.run(async () => {
+      const picture = await readPicture(file);
+      this.add([{ kind: 'picture', ...picture, caption }]);
+    });
+  }
+}
+
+function now(): string {
+  return new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }
 
 /** A path inside the folder, from the folder, with forward slashes; undefined when it's outside. */

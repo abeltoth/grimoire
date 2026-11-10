@@ -31,8 +31,8 @@ import { Wording } from '@ui/app/core/wording';
 import { AgentCommands } from '@ui/app/shell/agent-commands';
 import { Focus } from '@ui/app/shell/focus';
 import { Drafts } from './drafts';
-import { Attachments } from './attachments';
-import { readPicture } from './pictures';
+import { Attachments, Enclosing } from './attachments';
+import { Recall } from './recall';
 
 /**
  * The next page, tucked under the transcript: where you write the next
@@ -131,8 +131,8 @@ export class Composer {
     return { ago: ago(now - cache.until), tokens: tokens(cache.tokens) };
   });
 
-  /** Which of your messages Up brought back, counted back from the last, and its text. */
-  private recalled: { back: number; text: string } | null = null;
+  /** Your messages, brought back with Up and Down. */
+  private readonly recalls = new Recall();
 
   /** The share of the allowance used, in percent; missing until the agent reports it. */
   protected readonly used = computed(() => {
@@ -161,6 +161,8 @@ export class Composer {
     source: this.chatId,
     computation: (id) => this.drafts.of(id).attachments,
   });
+  /** What you pick, paste and drop, as it goes with the message. */
+  private readonly enclosing = new Enclosing(this.attachments, this.bridge, this.pending);
 
   /** Whether you wrote since the agent made its suggestion: it's gone until the next. */
   private readonly dismissed = linkedSignal({
@@ -203,7 +205,7 @@ export class Composer {
     // Another chat's entries to bring back.
     effect(() => {
       this.chatId();
-      this.recalled = null;
+      this.recalls.reset();
     });
     const minute = setInterval(() => this.now.set(Date.now()), 60_000);
     // Read again the moment the cache runs out, not up to a minute later.
@@ -276,32 +278,18 @@ export class Composer {
   }
 
   /**
-   * Up in an empty field brings back your last one, and again the one
-   * before; Down goes the other way, back to an empty field. Once you change
-   * what came back, the keys move the caret again. Whether it took the key.
+   * Up in an empty field brings back your last one, and Down goes the other
+   * way (see Recall). Whether it took the key.
    */
   private recall(step: 1 | -1, field: HTMLTextAreaElement): boolean {
-    const sent = this.sent();
-    const value = field.value;
-    const recalled = value !== '' && value === this.recalled?.text ? this.recalled : null;
-    if (value !== '' && !recalled) return false;
-    // In a message of several lines, only from its first line up or its last line down.
-    const caret = field.selectionStart ?? 0;
-    if (recalled && step === 1 && value.lastIndexOf('\n', caret - 1) !== -1) return false;
-    if (recalled && step === -1 && value.indexOf('\n', caret) !== -1) return false;
-    const back = (recalled?.back ?? 0) + step;
-    if (back < 1) {
-      if (!recalled) return false;
-      this.recalled = null;
-      this.fill(field, '');
-      return true;
-    }
-    const text = sent[sent.length - back];
-    // Already at your first message: Up stays on it.
-    if (text === undefined) return !!recalled;
-    this.recalled = { back, text };
-    this.fill(field, text);
-    return true;
+    const { took, write } = this.recalls.step(
+      step,
+      this.sent(),
+      field.value,
+      field.selectionStart ?? 0,
+    );
+    if (write !== undefined) this.fill(field, write);
+    return took;
   }
 
   private fill(field: HTMLTextAreaElement, text: string): void {
@@ -359,56 +347,21 @@ export class Composer {
   }
 
   /** Asks for files with the system's picker. */
-  protected async attach(): Promise<void> {
-    const paths = await this.bridge.chooseFiles().catch(() => []);
-    this.enclose(paths.map((path): Attachment => ({ kind: 'file', path })));
+  protected attach(): Promise<void> {
+    return this.enclosing.attach();
   }
 
-  /** A pasted picture comes in as a plate; anything else pastes as usual. */
   protected paste(event: ClipboardEvent): void {
-    const pictures = [...(event.clipboardData?.files ?? [])].filter((file) =>
-      file.type.startsWith('image/'),
-    );
-    if (!pictures.length) return;
-    event.preventDefault();
-    for (const picture of pictures) this.addPicture(picture, `Screenshot, pasted at ${now()}`);
+    this.enclosing.paste(event);
   }
 
-  /** Files dropped on the page come in as references; pictures from elsewhere, as plates. */
   drop(event: DragEvent): void {
-    const files = [...(event.dataTransfer?.files ?? [])];
-    if (!files.length) return;
-    event.preventDefault();
-    for (const file of files) {
-      const path = this.bridge.pathOf(file);
-      if (path) this.enclose([{ kind: 'file', path }]);
-      else if (file.type.startsWith('image/'))
-        this.addPicture(file, `Picture, dropped at ${now()}`);
-    }
+    this.enclosing.drop(event);
   }
 
   protected unenclose(attachment: Attachment): void {
     this.attachments.update((all) => all.filter((kept) => kept !== attachment));
     this.messageField().nativeElement.focus();
-  }
-
-  private addPicture(file: Blob, caption: string): void {
-    this.pending.run(async () => {
-      const picture = await readPicture(file);
-      this.enclose([{ kind: 'picture', ...picture, caption }]);
-    });
-  }
-
-  /** Adds to what goes with the message; a file already there isn't added twice. */
-  private enclose(added: readonly Attachment[]): void {
-    this.attachments.update((all) => [
-      ...all,
-      ...added.filter(
-        (attachment) =>
-          attachment.kind !== 'file' ||
-          !all.some((kept) => kept.kind === 'file' && kept.path === attachment.path),
-      ),
-    ]);
   }
 
   /** Puts messages back on the page, after what you're writing, to edit or send again. */
@@ -417,7 +370,7 @@ export class Composer {
     this.draft.update((draft) =>
       [draft.trim(), ...messages.map((queued) => queued.text)].filter(Boolean).join('\n\n'),
     );
-    this.enclose(messages.flatMap((queued) => queued.attachments ?? []));
+    this.enclosing.add(messages.flatMap((queued) => queued.attachments ?? []));
     const field = this.messageField().nativeElement;
     field.value = this.draft();
     field.focus();
@@ -431,10 +384,6 @@ export class Composer {
   protected remove(queued: QueuedEntry): void {
     void this.actions.unqueue(this.chatId(), queued.id);
   }
-}
-
-function now(): string {
-  return new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }
 
 /** How long ago, in words: "20 minutes ago", "3 hours ago", "2 days ago". */

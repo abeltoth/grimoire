@@ -1,4 +1,7 @@
+import { type PendingTasks, signal } from '@angular/core';
+import type { Attachment } from '@grimoire/contract';
 import { fakeBridge, picture, render, withFiles, write } from '@ui/testing/app-harness';
+import { Enclosing } from './attachments';
 
 describe('attachments', () => {
   it('attaches files, and pasted or dropped pictures, and sends them with the message', async () => {
@@ -99,5 +102,48 @@ describe('attachments', () => {
     await fixture.whenStable();
     expect(el.querySelector<HTMLTextAreaElement>('#gr-next-message')!.value).toBe('And this.');
     expect(texts('gr-composer .ref code')).toEqual(['notes.txt']);
+  });
+});
+
+describe('Enclosing', () => {
+  const enclosing = (paths: Record<string, string> = {}) => {
+    const attachments = signal<readonly Attachment[]>([]);
+    const { bridge } = fakeBridge({ pathOf: (file: File) => paths[file.name] ?? '' });
+    return { attachments, enclosing: new Enclosing(attachments, bridge, {} as PendingTasks) };
+  };
+
+  it('adds each file once', () => {
+    const { attachments, enclosing: files } = enclosing();
+    files.add([{ kind: 'file', path: 'C:/a.txt' }]);
+    files.add([
+      { kind: 'file', path: 'C:/a.txt' },
+      { kind: 'file', path: 'C:/b.txt' },
+    ]);
+    expect(attachments()).toEqual([
+      { kind: 'file', path: 'C:/a.txt' },
+      { kind: 'file', path: 'C:/b.txt' },
+    ]);
+  });
+
+  it('takes files dropped from the disk by their path, and leaves anything else', () => {
+    const { attachments, enclosing: files } = enclosing({ 'a.txt': 'C:/a.txt' });
+    const dropped = [new File([''], 'a.txt'), new File([''], 'b.bin')];
+    const event = {
+      dataTransfer: { files: dropped },
+      preventDefault: vi.fn(),
+    } as unknown as DragEvent;
+    files.drop(event);
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(attachments()).toEqual([{ kind: 'file', path: 'C:/a.txt' }]);
+  });
+
+  it('pastes anything but a picture as usual', () => {
+    const { enclosing: files } = enclosing();
+    const event = {
+      clipboardData: { files: [] },
+      preventDefault: vi.fn(),
+    } as unknown as ClipboardEvent;
+    files.paste(event);
+    expect(event.preventDefault).not.toHaveBeenCalled();
   });
 });
