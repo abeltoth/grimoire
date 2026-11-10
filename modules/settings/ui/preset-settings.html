@@ -1,0 +1,77 @@
+<section class="presets" aria-labelledby="gr-settings-presets">
+  <h2 id="gr-settings-presets">Presets</h2>
+  <p class="lead">
+    {{
+      wording.say(
+        'Settings saved under a name, to begin chapters with. Save one on a chapter’s settings card, and save it again under its name to change its settings.',
+        'Settings saved under a name, to start chats with. Save one in a chat’s settings, and save it again under its name to change them.'
+      )
+    }}
+  </p>
+
+  @if (presets.failed(); as error) {
+    <p class="error" role="alert">{{ error }}</p>
+  }
+
+  @for (preset of presets.all(); track preset.name; let i = $index) {
+    <article class="preset">
+      @if (renaming() === preset.name) {
+        <input
+          #nameField
+          class="line name-field"
+          autocomplete="off"
+          [attr.aria-label]="'New name for ' + preset.name"
+          [value]="preset.name"
+          (keydown.enter)="rename(preset.name, nameField.value)"
+          (keydown.escape)="$event.preventDefault(); renaming.set(null)"
+          (blur)="rename(preset.name, nameField.value)"
+        />
+      } @else {
+        <h3>{{ preset.name }}</h3>
+      }
+      <p class="sub">
+        {{ described.describe(preset) }} ·
+        <code>{{ catalog.folderName(preset.settings.cwd) }}</code>
+      </p>
+
+      <label class="label" [for]="'gr-preset-prompt-' + i">{{
+        wording.say('First entry', 'First message')
+      }}</label>
+      <textarea
+        class="line prompt"
+        rows="2"
+        [id]="'gr-preset-prompt-' + i"
+        [placeholder]="
+          wording.say('None: its chapters begin on a blank page', 'None: its chats start empty')
+        "
+        [value]="preset.prompt ?? ''"
+        (change)="setPrompt(preset, $any($event.target).value)"
+      ></textarea>
+
+      <div class="actions">
+        @if (removing() === preset.name) {
+          <span class="ask">{{
+            wording.say(
+              'Remove “' + preset.name + '”? Chapters begun with it keep their settings.',
+              'Remove “' + preset.name + '”? Chats started with it keep their settings.'
+            )
+          }}</span>
+          <button type="button" class="gr-link danger" (click)="remove(preset.name)">Remove</button>
+          <button type="button" class="gr-link" (click)="removing.set(null)">Keep it</button>
+        } @else {
+          <button type="button" class="gr-link" (click)="startRenaming(preset.name)">Rename</button>
+          <button type="button" class="gr-link" (click)="removing.set(preset.name)">Remove</button>
+        }
+      </div>
+    </article>
+  } @empty {
+    <p class="none">
+      {{
+        wording.say(
+          'No presets yet. Save one on a chapter’s settings card.',
+          'No presets yet. Save one in a chat’s settings.'
+        )
+      }}
+    </p>
+  }
+</section>

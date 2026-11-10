@@ -1,0 +1,93 @@
+:host {
+  display: contents;
+}
+
+/* Each setting's name in small capitals down the left, the words it takes beside it. */
+.form {
+  display: grid;
+  grid-template-columns: var(--gr-settings-label-col) minmax(0, 1fr);
+  align-items: baseline;
+  row-gap: var(--gr-settings-row-gap);
+  column-gap: var(--gr-settings-col-gap);
+}
+
+/* Words to pick from, the picked one underlined in rubric. */
+.words {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--gr-settings-word-gap);
+}
+
+.word {
+  padding: var(--gr-settings-word-pad);
+  border-bottom: var(--gr-settings-word-rule-off);
+  font-size: var(--gr-size-settings-word);
+  color: var(--gr-ink-soft);
+}
+
+.word:hover {
+  color: var(--gr-ink);
+}
+
+.word[aria-checked='true'] {
+  color: var(--gr-ink);
+  border-bottom: var(--gr-settings-word-rule);
+}
+
+/* A note on the setting above, drawn up close to it. */
+.note {
+  grid-column: 2;
+  margin: calc(var(--gr-settings-note-pull) * -1) 0 0;
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+/* An account to sign in as, with a mark to forget it beside it. */
+.account {
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.forget {
+  padding: var(--gr-settings-word-pad);
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.forget:hover {
+  color: var(--gr-rubric);
+}
+
+.word:disabled {
+  cursor: default;
+}
+
+.account-field {
+  width: var(--gr-settings-account-field-width);
+  font-size: var(--gr-size-settings-word);
+}
+
+.note .actions {
+  display: inline-flex;
+  gap: var(--gr-settings-actions-gap);
+  margin-left: var(--gr-settings-word-gap);
+  font-style: normal;
+}
+
+.note.code {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-settings-word-gap);
+  margin-top: 0;
+}
+
+.code-field {
+  flex: 1;
+  font-style: normal;
+}
+
+.note.failed {
+  color: var(--gr-rubric);
+}

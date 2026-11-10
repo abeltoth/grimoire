@@ -1,0 +1,324 @@
+@let all = settings.all();
+<section aria-labelledby="gr-settings-general">
+  <h2 id="gr-settings-general">Settings</h2>
+  <p class="lead">Kept as soon as they’re picked, and the same in every window.</p>
+
+  @if (settings.failed(); as error) {
+    <p class="error" role="alert">That setting couldn’t be kept: {{ error }}</p>
+  }
+
+  <div class="form">
+    <span class="label" id="gr-settings-names">Names</span>
+    <span class="words" role="radiogroup" aria-labelledby="gr-settings-names">
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="all.wording === 'book'"
+        (click)="set({ wording: 'book' })"
+      >
+        The book’s
+      </button>
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="all.wording === 'plain'"
+        (click)="set({ wording: 'plain' })"
+      >
+        Plain
+      </button>
+    </span>
+    <p class="note">
+      @if (all.wording === 'book') {
+        The Colophon, the Ledger, chapters and seals.
+      } @else {
+        Settings, Usage, chats and approvals.
+      }
+    </p>
+
+    <span class="label" id="gr-settings-drawings">Drawings</span>
+    <span class="words" role="radiogroup" aria-labelledby="gr-settings-drawings">
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="all.drawings"
+        (click)="set({ drawings: true })"
+      >
+        Drawn
+      </button>
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="!all.drawings"
+        (click)="set({ drawings: false })"
+      >
+        Left out
+      </button>
+    </span>
+    <p class="note">
+      The sigils on the pages. Those that say something, such as the thought mark, stay.
+    </p>
+
+    <span class="label" id="gr-settings-agent">{{
+      wording.say('Default agent for new chapters', 'Default agent for new chats')
+    }}</span>
+    <span class="words" role="radiogroup" aria-labelledby="gr-settings-agent">
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="all.defaultAgent === null"
+        (click)="pickAgent(null)"
+      >
+        The one used last
+      </button>
+      @for (agent of catalog.agents(); track agent.id) {
+        <button
+          type="button"
+          class="word"
+          role="radio"
+          [attr.aria-checked]="all.defaultAgent === agent.id"
+          (click)="pickAgent(agent.id)"
+        >
+          {{ agent.name }}
+        </button>
+      }
+    </span>
+
+    <span class="label" id="gr-settings-start">{{
+      wording.say('New chapters begin with', 'New chats start with')
+    }}</span>
+    <span class="words" role="radiogroup" aria-labelledby="gr-settings-start">
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="startPreset() === null"
+        (click)="pickStart(null)"
+      >
+        Your last settings
+      </button>
+      @for (preset of presets.all(); track preset.name) {
+        <button
+          type="button"
+          class="word"
+          role="radio"
+          [attr.aria-checked]="startPreset() === preset.name"
+          (click)="pickStart(preset.name)"
+        >
+          {{ preset.name }}
+        </button>
+      }
+    </span>
+    @if (!presets.all().length) {
+      <p class="note">
+        {{
+          wording.say(
+            'Save a preset on a chapter’s settings card to begin new chapters with it.',
+            'Save a preset in a chat’s settings to start new chats with it.'
+          )
+        }}
+      </p>
+    }
+
+    <span class="label" id="gr-settings-suggestions">{{
+      wording.say('Suggest the next entry', 'Suggest the next message')
+    }}</span>
+    <span class="words" role="radiogroup" aria-labelledby="gr-settings-suggestions">
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="all.suggestions"
+        (click)="set({ suggestions: true })"
+      >
+        On
+      </button>
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="!all.suggestions"
+        (click)="set({ suggestions: false })"
+      >
+        Off
+      </button>
+    </span>
+    <p class="note">
+      {{
+        wording.say(
+          'After a reply, what you might write next shows in grey on the empty page; Tab writes it in.',
+          'After a reply, what you might send next shows in grey in the empty message box; Tab uses it.'
+        )
+      }}
+    </p>
+
+    <span class="label" id="gr-settings-follow-ups">{{
+      wording.say('Suggest separate chapters', 'Suggest separate tasks')
+    }}</span>
+    <span class="words" role="radiogroup" aria-labelledby="gr-settings-follow-ups">
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="all.followUps"
+        (click)="set({ followUps: true })"
+      >
+        On
+      </button>
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="!all.followUps"
+        (click)="set({ followUps: false })"
+      >
+        Off
+      </button>
+    </span>
+    <p class="note">
+      {{
+        wording.say(
+          'Now and then, when a reply turns up separate work, it is offered as a card under it; opening one begins a new chapter with it written in.',
+          'Now and then, when a reply turns up separate work, it shows as a card under it; clicking one opens a new chat with it written in.'
+        )
+      }}
+    </p>
+
+    <span class="label" id="gr-settings-mcp">{{
+      wording.say('MCP servers in every chapter', 'MCP servers in every chat')
+    }}</span>
+    <span class="words" role="group" aria-labelledby="gr-settings-mcp">
+      @for (name of mcpServers(); track name) {
+        <button
+          type="button"
+          class="word"
+          role="checkbox"
+          [attr.aria-checked]="!all.mcpOff.includes(name)"
+          (click)="toggleMcp(name)"
+        >
+          {{ name }}
+        </button>
+      } @empty {
+        <span class="none">{{ mcpRead() ? 'None' : 'Asking your agents…' }}</span>
+      }
+    </span>
+    <p class="note">
+      {{
+        wording.say(
+          'Those underlined start in every chapter. One turned off takes no room in the context; open chapters change at their next entry. Turn one off for a single chapter on its settings card.',
+          'Those underlined start in every chat. One turned off takes no room in the context; open chats change at their next message. Turn one off for a single chat in its settings.'
+        )
+      }}
+    </p>
+
+    <label class="label" for="gr-settings-jira">Jira issues on the Kanban board</label>
+    <textarea
+      #jiraField
+      id="gr-settings-jira"
+      class="line prompt"
+      rows="2"
+      spellcheck="false"
+      [value]="all.jiraQuery"
+      (change)="setJiraQuery(jiraField)"
+    ></textarea>
+    <p class="note">
+      Those this Jira query finds, through your claude.ai Atlassian connector. Emptied, it finds
+      yours not done, and those done in the last two weeks.
+    </p>
+
+    @if (accounts.agent(); as agent) {
+      @let signIn = accounts.state();
+      <span class="label" id="gr-settings-account">{{ agent.name }} signs in as</span>
+      <span class="words" role="radiogroup" aria-labelledby="gr-settings-account">
+        @for (email of accounts.emails(); track email) {
+          <span class="account">
+            <button
+              type="button"
+              class="word"
+              role="radio"
+              [attr.aria-checked]="accounts.isCurrent(email)"
+              [disabled]="!!signIn?.pending"
+              (click)="accounts.isCurrent(email) || accounts.signIn(email)"
+            >
+              {{ email }}
+            </button>
+            @if (!accounts.isCurrent(email) && !signIn?.pending) {
+              <button
+                type="button"
+                class="forget"
+                [attr.aria-label]="'Forget ' + email"
+                [title]="'Forget ' + email"
+                (click)="accounts.forget(email)"
+              >
+                ×
+              </button>
+            }
+          </span>
+        }
+        @if (addingAccount()) {
+          <input
+            #accountField
+            class="line account-field"
+            type="email"
+            autocomplete="off"
+            aria-label="Email of the account to sign in to"
+            placeholder="Their email"
+            (keydown.enter)="addAccount(accountField.value)"
+            (keydown.escape)="$event.preventDefault(); addingAccount.set(false)"
+            (blur)="addAccount(accountField.value)"
+          />
+        } @else if (!signIn?.pending) {
+          <button type="button" class="gr-link" (click)="startAddingAccount()">
+            Another account
+          </button>
+        }
+      </span>
+      @if (signIn?.pending; as pending) {
+        <p class="note" role="status">
+          Waiting for you to sign in as {{ pending.email }} in the browser.
+          <span class="actions">
+            @if (pending.url) {
+              <button type="button" class="gr-link" (click)="copyPage(pending.url)">
+                {{ copiedPage() === pending.url ? 'Link copied' : 'Copy the sign-in link' }}
+              </button>
+            }
+            <button type="button" class="gr-link" (click)="accounts.cancel()">Cancel</button>
+          </span>
+        </p>
+        <label class="note code" for="gr-settings-sign-in-code">
+          If the page shows a code, paste it here:
+          <input
+            #codeField
+            id="gr-settings-sign-in-code"
+            class="line code-field"
+            autocomplete="off"
+            (keydown.enter)="accounts.code(codeField.value); codeField.value = ''"
+          />
+        </label>
+      } @else if (signIn) {
+        <p class="note">
+          @if (signIn.account; as account) {
+            @if (planName(account.plan); as plan) {
+              {{ plan }}{{ account.expiresAt ? ', until ' + day(account.expiresAt) : '' }}.
+            }
+            {{
+              wording.say(
+                'Every chapter uses it, as does Claude Code in a terminal; open chapters switch at their next entry.',
+                'Every chat uses it, as does Claude Code in a terminal; open chats switch at their next message.'
+              )
+            }}
+          } @else {
+            Not signed in.
+          }
+        </p>
+      }
+      @if (accounts.failed(); as error) {
+        <p class="note failed" role="alert">{{ error }}</p>
+      }
+    }
+  </div>
+</section>

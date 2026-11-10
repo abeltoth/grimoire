@@ -1,0 +1,22 @@
+:host {
+  display: contents;
+}
+
+/* The profile in use, said beside its name. */
+.in-use {
+  margin-left: var(--gr-settings-word-gap);
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-label);
+  letter-spacing: var(--gr-tracking-label);
+  color: var(--gr-rubric);
+}
+
+.copy {
+  margin-left: var(--gr-settings-word-gap);
+  font-style: normal;
+}
+
+.profile-field {
+  width: var(--gr-settings-profile-field-width);
+  font-size: var(--gr-size-settings-word);
+}

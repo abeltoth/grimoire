@@ -34,10 +34,7 @@ const registrations = [
   'contract/src/index.ts',
 ];
 
-// Files already past a limit, only warned about until they're split or fixed (REFACTOR.md 3, 4.2).
-const oversized = [
-  'modules/settings/ui/settings-page.html',
-];
+// Tests still on the real clock, only warned about until they're fixed (REFACTOR.md 4.2).
 const onTheRealClock = [
   'app/src/service-launcher.test.ts',
   'modules/chat/ui/composer.spec.ts',
@@ -104,7 +101,6 @@ export default defineConfig(
     ignores: tests,
     rules: { 'max-lines': ['error', maxLines] },
   },
-  { files: oversized, rules: { 'max-lines': ['warn', maxLines] } },
   { files: tests, rules: { 'no-restricted-syntax': ['error', ...realClock] } },
   { files: onTheRealClock, rules: { 'no-restricted-syntax': ['warn', ...realClock] } },
   {
