@@ -1,4 +1,5 @@
-import type { AgentId, ChatId, NewChatSettings } from './agents';
+import type { AgentId, ChatId } from './agents';
+import type { NewChatSettings } from './chat-settings';
 
 /** How you left the main window, so it opens the same way (ADR-009: Grimoire's own data). */
 export interface Layout {

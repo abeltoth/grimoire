@@ -2,7 +2,6 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { fitEffort } from '@grimoire/contract';
 import { canonicalModel, defaultEffort, readUserSettings } from './effort';
 
 describe('canonicalModel', () => {
@@ -41,14 +40,6 @@ describe('defaultEffort', () => {
     expect(
       defaultEffort('claude-opus-5-5', {}, { CLAUDE_CODE_EFFORT_LEVEL: 'unset' }),
     ).toBeUndefined();
-  });
-});
-
-describe('fitEffort', () => {
-  it('keeps a level the model takes, and steps down to one it does', () => {
-    expect(fitEffort('xhigh', ['low', 'medium', 'high', 'xhigh', 'max'])).toBe('xhigh');
-    expect(fitEffort('xhigh', ['low', 'medium', 'high', 'max'])).toBe('high');
-    expect(fitEffort(undefined, ['low'])).toBeUndefined();
   });
 });
 
