@@ -6,7 +6,7 @@ import type {
   JiraTransition,
 } from '@grimoire/contract';
 import { CARD_COLUMNS } from '@grimoire/contract';
-import { fakeBridge } from '@ui/testing/app-harness';
+import { fakeBridge } from '@ui/testing/app-testing';
 
 /** What the Kanban page's specs share: a board the fake service keeps, and ways to read and work it. */
 export const card = (

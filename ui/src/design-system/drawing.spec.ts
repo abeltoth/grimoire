@@ -1,6 +1,5 @@
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { DesignSettings } from './design-settings';
 import { Drawing } from './drawing';
 
 @Component({
@@ -20,16 +19,5 @@ describe('Drawing', () => {
     expect(spine.getAttribute('aria-hidden')).toBe('true');
     expect(spine.classList.contains('essential')).toBe(false);
     expect(thought.classList.contains('essential')).toBe(true);
-  });
-});
-
-describe('DesignSettings', () => {
-  it('marks the document when drawings are turned off and on', async () => {
-    const settings = TestBed.inject(DesignSettings);
-    TestBed.tick();
-    expect(document.documentElement.dataset['drawings']).toBe('on');
-    settings.drawings.set(false);
-    TestBed.tick();
-    expect(document.documentElement.dataset['drawings']).toBe('off');
   });
 });

@@ -1,6 +1,6 @@
 import type { AgentSignIn, GrimoireSettings } from '@grimoire/contract';
 import { DEFAULT_SETTINGS } from '@grimoire/contract';
-import { fakeBridge, render } from '@ui/testing/app-harness';
+import { fakeBridge, render } from '@ui/testing/app-testing';
 
 describe('accounts', () => {
   it('switches the account Claude Code signs in as in Settings, for every chat', async () => {

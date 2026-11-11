@@ -1,8 +1,8 @@
 import type { GitBranches, GitStatus, PullRequest } from '@grimoire/contract';
-import { fakeBridge, render } from '@ui/testing/app-harness';
+import { fakeBridge, render } from '@ui/testing/app-testing';
 
 describe('git', () => {
-  it("shows the chat's branch and header badges, and its repository on the Git page", async () => {
+  it("shows the chat's repository on the Git page, opened from its branch", async () => {
     const { bridge, calls, answers } = fakeBridge();
     const now = new Date(2026, 10, 9, 15, 30).getTime();
     answers['git.status'] = (): GitStatus => ({
@@ -60,16 +60,7 @@ describe('git', () => {
     });
     const { fixture, el, texts } = await render(bridge);
 
-    expect(texts('gr-status-indicators button')).toEqual(['feature/context-meter']);
     const branch = el.querySelector<HTMLButtonElement>('gr-status-indicators button')!;
-    expect(branch.getAttribute('title')).toBe(
-      '2 files not committed · 2 ahead of origin/feature/context-meter',
-    );
-    expect(texts('gr-header-badges button')).toEqual(['PR #12: in review', 'CI: 1 check failing']);
-    expect(el.querySelector('gr-header-badges .alert')!.textContent!.trim()).toBe(
-      'CI: 1 check failing',
-    );
-    expect(calls.find((c) => c.command === 'git.status')!.request).toEqual({ cwd: 'C:/Users/me' });
 
     branch.click();
     await fixture.whenStable();

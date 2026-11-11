@@ -1,4 +1,4 @@
-import { fakeBridge, render, write } from '@ui/testing/app-harness';
+import { fakeBridge, render, write } from '@ui/testing/app-testing';
 
 describe('subagent-page', () => {
   it('turns the right page to what a subagent did, from its note, and keeps it current as it works', async () => {

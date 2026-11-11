@@ -1,4 +1,4 @@
-import { fakeBridge, render, write } from '@ui/testing/app-harness';
+import { fakeBridge, render, write } from '@ui/testing/app-testing';
 
 describe('questions-form', () => {
   it('prints the agent’s questions as a form and sends your answers', async () => {

@@ -1,10 +1,7 @@
-import { mkdtempSync, realpathSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import type { EventName, EventPayload } from '@grimoire/contract';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { defaultShell, shellEnv, spawnPty, type Pty, type Shell } from './shell';
+import { describe, expect, it } from 'vitest';
+import type { Pty, Shell } from './shell';
 import { Terminals } from './terminals';
 
 type Sent = { event: EventName; payload: unknown };
@@ -132,76 +129,4 @@ describe('Terminals', () => {
     expect(ptys[0]!.killed).toBe(true);
     expect(sent).toEqual([{ event: 'terminal.exited', payload: { id, exitCode: 0 } }]);
   });
-});
-
-describe('defaultShell', () => {
-  it('uses PowerShell on Windows', () => {
-    expect(defaultShell('win32', { PATH: '' })).toEqual({
-      file: 'powershell.exe',
-      args: ['-NoLogo'],
-      name: 'powershell',
-    });
-  });
-
-  it('uses your login shell elsewhere', () => {
-    expect(defaultShell('darwin', { SHELL: '/opt/homebrew/bin/fish' })).toEqual({
-      file: '/opt/homebrew/bin/fish',
-      args: ['-l'],
-      name: 'fish',
-    });
-    expect(defaultShell('darwin', {}).file).toBe('/bin/zsh');
-    expect(defaultShell('linux', {}).file).toBe('/bin/bash');
-  });
-});
-
-describe('shellEnv', () => {
-  it("drops Electron's Node switch and says what the terminal can draw", () => {
-    const env = shellEnv({ ELECTRON_RUN_AS_NODE: '1', HOME: '/me' }, 'darwin');
-    expect(env).toEqual({
-      HOME: '/me',
-      TERM: 'xterm-256color',
-      COLORTERM: 'truecolor',
-      TERM_PROGRAM: 'Grimoire',
-      LANG: 'en_US.UTF-8',
-    });
-    expect(shellEnv({ LANG: 'de_DE.UTF-8' }, 'darwin')['LANG']).toBe('de_DE.UTF-8');
-    expect(shellEnv({}, 'win32')['LANG']).toBeUndefined();
-  });
-});
-
-describe('a real shell', () => {
-  let folder: string | undefined;
-  afterEach(() => folder && rmSync(folder, { recursive: true, force: true }));
-
-  it('runs in a pseudo-terminal, in the folder given', async () => {
-    folder = realpathSync(mkdtempSync(path.join(tmpdir(), 'grimoire-terminal-')));
-    const sent: Sent[] = [];
-    // Node stands in for the shell, the same on every system.
-    const node: Shell = {
-      file: process.execPath,
-      args: ['-e', 'process.stdout.write("cwd=" + process.cwd() + " tty=" + process.stdout.isTTY)'],
-      name: 'node',
-    };
-    const terminals = new Terminals(
-      <K extends EventName>(event: K, payload: EventPayload<K>) => sent.push({ event, payload }),
-      { shell: () => node, spawn: spawnPty, batchMs: 1 },
-    );
-    terminals.open({ cwd: folder, cols: 200, rows: 10 });
-    // Gives up quietly at the timeout, so the expect below says what never came.
-    await vi
-      .waitFor(
-        () => {
-          if (!sent.some((s) => s.event === 'terminal.exited')) throw new Error('Not yet');
-        },
-        { timeout: 15_000, interval: 50 },
-      )
-      .catch(() => {});
-    terminals.closeAll();
-
-    const text = outputs(sent)
-      .map((o) => o.data)
-      .join('')
-      .replace(/\x1b\[[0-9;?]*[A-Za-z]|\x1b\][^\x07]*\x07|[\r\n]/g, '');
-    expect(text.toLowerCase()).toContain(`cwd=${folder} tty=true`.toLowerCase());
-  }, 20_000);
 });

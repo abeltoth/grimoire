@@ -1,5 +1,3 @@
-import type { Approval } from '@grimoire/contract';
-import { askOf } from './asks';
 import { diffLines, fileChange } from './diff';
 
 const kinds = (lines: { kind: string; text: string }[]) =>
@@ -48,44 +46,5 @@ describe('fileChange', () => {
       })!.lines.map((l) => l.kind),
     ).toEqual(['removed', 'inserted', 'same', 'inserted']);
     expect(fileChange('Bash', { command: 'ls' })).toBeUndefined();
-  });
-});
-
-describe('askOf', () => {
-  const approval = (tool: string, input: unknown, title?: string): Approval => ({
-    id: 'a1',
-    chatId: 'c1',
-    tool,
-    input,
-    ...(title ? { title } : {}),
-  });
-
-  it('shows a command with what it does', () => {
-    expect(
-      askOf(approval('Bash', { command: 'git push', description: 'Pushes the branch' }, 'Run?')),
-    ).toEqual({
-      kind: 'command',
-      asks: 'asks to run this command',
-      command: 'git push',
-      about: 'Pushes the branch',
-    });
-  });
-
-  it('shows a file change relative to the chat folder', () => {
-    expect(
-      askOf(
-        approval('Edit', { file_path: 'C:\\repo\\src\\a.ts', old_string: 'a', new_string: 'b' }),
-        'C:/repo',
-      ),
-    ).toMatchObject({ kind: 'file', asks: 'asks to correct this file', file: 'src/a.ts' });
-  });
-
-  it('shows any other tool with its input', () => {
-    expect(askOf(approval('WebFetch', { url: 'https://x' }, 'Fetch x'))).toEqual({
-      kind: 'tool',
-      asks: 'asks to use WebFetch',
-      detail: '{\n  "url": "https://x"\n}',
-      about: 'Fetch x',
-    });
   });
 });

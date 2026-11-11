@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { FakeAdapter } from './fake-adapter';
+import { FakeAdapter } from './fake-adapter-testing';
 import { AgentHub } from './hub';
 import { type Sent, SigningAdapter, settings, settle } from './hub-testing';
 

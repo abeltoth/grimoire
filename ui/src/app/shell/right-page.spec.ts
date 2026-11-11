@@ -1,4 +1,4 @@
-import { fakeBridge, render } from '../../testing/app-harness';
+import { fakeBridge, render } from '../../testing/app-testing';
 
 describe('right-page', () => {
   it('shows the first right page that can be picked', async () => {

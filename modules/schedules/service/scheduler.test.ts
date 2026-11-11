@@ -72,12 +72,6 @@ describe('Scheduler', () => {
     expect(scheduler.save({ ...draft, id: schedule.id, enabled: false })[0]!.nextAt).toBeNull();
   });
 
-  it('turns away a schedule without a name, a message or a time', () => {
-    expect(() => save({ name: ' ' })).toThrow('A schedule needs a name');
-    expect(() => save({ prompt: '' })).toThrow('A schedule needs a first message');
-    expect(() => save({ time: '8:00' })).toThrow('"8:00" isn\'t a time such as 08:00');
-  });
-
   it('begins a new chat with Full access when one is due, and only once', async () => {
     const { id } = save();
     await scheduler.check();
@@ -163,24 +157,6 @@ describe('Scheduler', () => {
     });
     expect(begun[0]![3]).toBe(runTitle('Morning repo summary', now));
     await expect(scheduler.run('nope')).rejects.toThrow('There is no such schedule');
-  });
-
-  it('removes a schedule with the record of its runs', async () => {
-    const { id } = save();
-    await scheduler.run(id);
-    expect(scheduler.remove(id)).toEqual([]);
-    save();
-    expect(runs()).toEqual([]);
-  });
-
-  it("deletes a profile's schedules and their runs, and no other's", async () => {
-    const { id } = save();
-    await scheduler.run(id);
-    setActiveProfile(db, 'work');
-    save({ name: 'Work' });
-    new ScheduleStore(db).removeProfile('personal');
-    expect(scheduler.list().map((schedule) => schedule.name)).toEqual(['Work']);
-    expect(db.prepare('SELECT COUNT(*) AS n FROM schedule_runs').get()).toEqual({ n: 0 });
   });
 
   it('skips a time due in a profile not in use, and doesn’t run it when that profile is back', async () => {

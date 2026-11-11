@@ -1,5 +1,5 @@
 import type { Card, CommandRequest, OpenChat } from '@grimoire/contract';
-import { fakeBridge, render, write } from '@ui/testing/app-harness';
+import { fakeBridge, render, write } from '@ui/testing/app-testing';
 import {
   card,
   withBoard,
@@ -124,17 +124,10 @@ describe('kanban-page', () => {
     expect(texts('[data-card="a"] .chats li')).toEqual(['Context meter waiting for you']);
     expect(el.querySelector('[data-card="a"] .status gr-icon')!.classList).toContain('breathe');
 
-    // The chat bears its card's badge.
-    expect(texts('gr-header-badges button')).toEqual(['Context meter']);
-    expect(el.querySelector('gr-header-badges button')!.getAttribute('title')).toBe(
-      'This chapter’s card on the Kanban board, in In progress: Context meter',
-    );
-
     // Closed, it's opened again from the card.
     button(el.querySelector('gr-chat-page gr-page-header')!, 'Close').click();
     await fixture.whenStable();
     expect(texts('[data-card="a"] .chats li')).toEqual(['Context meter not open']);
-    expect(texts('gr-header-badges button')).toEqual([]);
     el.querySelector<HTMLButtonElement>('[data-card="a"] .chat')!.click();
     await fixture.whenStable();
     expect(calls.find((c) => c.command === 'agents.open')!.request).toEqual({
@@ -143,7 +136,6 @@ describe('kanban-page', () => {
       settings: { cwd: 'C:/Users/me/git/grimoire' },
     });
     expect(texts('[data-card="a"] .chats li')).toEqual(['Context meter idle']);
-    expect(texts('gr-header-badges button')).toEqual(['Context meter']);
   });
 
   it('closes a card, keeping it under the board, and opens it again', async () => {

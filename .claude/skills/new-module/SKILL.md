@@ -33,7 +33,7 @@ need; a module with no UI has no `ui/`.
    `provideShellEntries((shell) => { shell.pageTabs.add({ id, label, plainLabel, order, component }) })`
    or whichever `ShellRegistry` slot fits. Components call the service with
    `inject(GRIMOIRE_BRIDGE).invoke('<name>.list', ...)`. Add one `*.spec.ts` per component,
-   rendered with `fakeBridge()` and `render()` from `@ui/testing/app-harness`.
+   rendered with `fakeBridge()` and `render()` from `@ui/testing/app-testing`.
 4. Register each part (the first two lists are alphabetical):
    - `contract/src/index.ts`: `export * from '../../modules/<name>/contract';`
    - `service/src/modules.ts`: import the `ServiceModule` and add it to `MODULES`.

@@ -1,5 +1,5 @@
 import type { AgentSetup, CommandRequest, SetupFile } from '@grimoire/contract';
-import { fakeBridge, render } from '@ui/testing/app-harness';
+import { fakeBridge, render } from '@ui/testing/app-testing';
 
 describe('workflow-setup', () => {
   it("shows on the Workflow setup page what Claude Code loads in the chat's folder, and where each piece comes from", async () => {

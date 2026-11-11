@@ -1,5 +1,5 @@
 import type { AgentMemories, CommandRequest, Memory } from '@grimoire/contract';
-import { fakeBridge, render } from '@ui/testing/app-harness';
+import { fakeBridge, render } from '@ui/testing/app-testing';
 
 describe('memory-list', () => {
   it('draws the memories on the Memories page in columns by kind, with their links and errata', async () => {

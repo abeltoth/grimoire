@@ -1,7 +1,7 @@
 import { ApplicationRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import type { OpenChat } from '@grimoire/contract';
-import { fakeBridge } from '../../testing/app-harness';
+import { fakeBridge } from '../../testing/app-testing';
 import { GRIMOIRE_BRIDGE } from './bridge';
 import { ChatList } from './chat-list';
 import { POPOUT } from './popout';

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { Entry, HookRun } from '@grimoire/contract';
 import type { ClaudeMessage } from './messages';
 import { ClaudeTranscript } from './transcript';
@@ -568,150 +568,42 @@ describe('ClaudeTranscript', () => {
     });
   });
 
-  describe('hooks', () => {
-    beforeEach(() => vi.useFakeTimers());
-    afterEach(() => vi.useRealTimers());
-
-    const hook = (subtype: string, id: string, name: string, fields: object = {}): ClaudeMessage =>
-      ({
+  it("passes on the turn's hooks as they run, and starts afresh after the turn", () => {
+    const reported: HookRun[][] = [];
+    const transcript = new ClaudeTranscript(true, {
+      entry: () => {},
+      text: () => {},
+      status: () => {},
+      plan: () => {},
+      hooks: (runs) => reported.push(runs),
+    });
+    const hook = (subtype: string, id: string, fields: object = {}) =>
+      transcript.apply({
         type: 'system',
         subtype,
         hook_id: id,
-        hook_name: name,
-        hook_event: name.split(':')[0],
+        hook_name: 'Stop',
+        hook_event: 'Stop',
         ...fields,
-      }) as ClaudeMessage;
-    const response = (id: string, name: string, fields: object = {}) =>
-      hook('hook_response', id, name, {
-        output: '',
-        stdout: '',
-        stderr: '',
-        outcome: 'success',
-        ...fields,
-      });
-    const following = () => {
-      const reported: HookRun[][] = [];
-      const transcript = new ClaudeTranscript(true, {
-        entry: () => {},
-        text: () => {},
-        status: () => {},
-        plan: () => {},
-        hooks: (runs) => reported.push(runs),
-      });
-      return { transcript, reported };
-    };
+      } as ClaudeMessage);
+    hook('hook_started', 'h1');
+    hook('hook_response', 'h1', { outcome: 'success' });
+    hook('hook_started', 'h2');
+    transcript.apply({ type: 'result' });
+    hook('hook_started', 'h3');
 
-    it('follows each hook from when it begins to how it went, timed, with what it printed so far', () => {
-      const { transcript, reported } = following();
-      transcript.apply(hook('hook_started', 'h1', 'PostToolUse:Edit'));
-      vi.advanceTimersByTime(150);
-      transcript.apply(
-        hook('hook_progress', 'h1', 'PostToolUse:Edit', {
-          stdout: 'Lint',
-          stderr: '',
-          output: 'Lint',
-        }),
-      );
-      vi.advanceTimersByTime(250);
-      transcript.apply(
-        response('h1', 'PostToolUse:Edit', {
-          output: 'Lint ok\n',
-          stdout: 'Lint ok\n',
-          exit_code: 0,
-        }),
-      );
-      transcript.apply(hook('hook_started', 'h2', 'Stop'));
-      transcript.apply(response('h2', 'Stop', { exit_code: 0 }));
-
-      const edit = { id: 'h1', name: 'PostToolUse:Edit', event: 'PostToolUse', tool: 'Edit' };
-      expect(reported).toEqual([
-        [{ ...edit, outcome: 'running' }],
-        [{ ...edit, outcome: 'running', output: 'Lint' }],
-        [{ ...edit, outcome: 'passed', output: 'Lint ok\n', took: 400 }],
-        [
-          { ...edit, outcome: 'passed', output: 'Lint ok\n', took: 400 },
-          { id: 'h2', name: 'Stop', event: 'Stop', outcome: 'running' },
-        ],
-        [
-          { ...edit, outcome: 'passed', output: 'Lint ok\n', took: 400 },
-          // It passed and printed nothing, and is still listed.
-          { id: 'h2', name: 'Stop', event: 'Stop', outcome: 'passed', took: 0 },
-        ],
-      ]);
-      expect(transcript.entries).toEqual([]);
-    });
-
-    it('tells a hook that blocked, by its exit code or its JSON, from one that failed or was cancelled', () => {
-      const { transcript, reported } = following();
-      transcript.apply(
-        response('h1', 'PreToolUse:PowerShell', {
-          stderr: 'No rm -rf',
-          exit_code: 2,
-          outcome: 'error',
-        }),
-      );
-      transcript.apply(
-        response('h2', 'Stop', { stdout: '{"decision": "block", "reason": "Tests fail"}' }),
-      );
-      transcript.apply(response('h3', 'UserPromptSubmit', { stdout: ' {"continue": false}\n' }));
-      transcript.apply(
-        response('h4', 'PostToolUse:Write', { stderr: 'boom', exit_code: 1, outcome: 'error' }),
-      );
-      transcript.apply(
-        response('h5', 'PostToolUse:Read', { output: 'Hook cancelled', outcome: 'cancelled' }),
-      );
-      transcript.apply(response('h6', 'PostToolUse:Read', { stdout: '{"decision": "approve"}' }));
-
-      expect(reported.at(-1)!.map((run) => [run.id, run.outcome, run.output])).toEqual([
-        ['h1', 'blocked', 'No rm -rf'],
-        ['h2', 'blocked', '{"decision": "block", "reason": "Tests fail"}'],
-        ['h3', 'blocked', ' {"continue": false}\n'],
-        ['h4', 'failed', 'boom'],
-        ['h5', 'cancelled', 'Hook cancelled'],
-        ['h6', 'passed', '{"decision": "approve"}'],
-      ]);
-      // Only hooks it saw begin are timed; a tool's name is read off only a tool's events.
-      expect(reported.at(-1)!.every((run) => run.took === undefined)).toBe(true);
-      expect(reported.at(-1)!.map((run) => run.tool)).toEqual([
-        'PowerShell',
-        undefined,
-        undefined,
-        'Write',
-        'Read',
-        'Read',
-      ]);
-    });
-
-    it('starts afresh after the turn, but for a hook still running', () => {
-      const { transcript, reported } = following();
-      transcript.apply(hook('hook_started', 'h1', 'Stop'));
-      transcript.apply(response('h1', 'Stop'));
-      transcript.apply(hook('hook_started', 'h2', 'PostToolUse:Bash'));
-      transcript.apply({ type: 'result' });
-      transcript.apply(hook('hook_started', 'h3', 'UserPromptSubmit'));
-
-      expect(reported.at(-1)!.map((run) => [run.id, run.outcome])).toEqual([
+    expect(reported.map((runs) => runs.map((run) => [run.id, run.outcome]))).toEqual([
+      [['h1', 'running']],
+      [['h1', 'passed']],
+      [
+        ['h1', 'passed'],
+        ['h2', 'running'],
+      ],
+      [
         ['h2', 'running'],
         ['h3', 'running'],
-      ]);
-    });
-
-    it("hears only Claude Code's word on its hooks: Grimoire's own callback says none", () => {
-      const { transcript, reported } = following();
-      // What a turn that asks a subagent says, with Grimoire's PreToolUse callback on Agent picking its model.
-      transcript.apply({
-        type: 'system',
-        subtype: 'task_started',
-        task_id: 'a1',
-        tool_use_id: 'toolu_1',
-      } as ClaudeMessage);
-      transcript.apply({
-        type: 'system',
-        subtype: 'hook_callback',
-        callback_id: 'c1',
-      } as ClaudeMessage);
-      transcript.apply({ type: 'system', subtype: 'init' } as ClaudeMessage);
-      expect(reported).toEqual([]);
-    });
+      ],
+    ]);
+    expect(transcript.entries).toEqual([]);
   });
 });

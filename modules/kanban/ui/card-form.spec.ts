@@ -1,4 +1,4 @@
-import { render } from '@ui/testing/app-harness';
+import { render } from '@ui/testing/app-testing';
 import { card, withBoard, openBoard, cardEl, button, board, field } from './kanban-testing';
 
 describe('card-form', () => {

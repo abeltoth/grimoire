@@ -1,7 +1,7 @@
 import { ApplicationRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import type { ChatSummary } from '@grimoire/contract';
-import { fakeBridge } from '../../testing/app-harness';
+import { fakeBridge } from '../../testing/app-testing';
 import { AgentCatalog } from './agent-catalog';
 import { GRIMOIRE_BRIDGE } from './bridge';
 

@@ -1,4 +1,4 @@
-import { fakeBridge, render, write } from '@ui/testing/app-harness';
+import { fakeBridge, render, write } from '@ui/testing/app-testing';
 
 describe('approval-card', () => {
   it('tucks an approval into the page and approves it', async () => {

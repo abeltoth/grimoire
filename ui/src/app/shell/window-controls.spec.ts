@@ -1,4 +1,4 @@
-import { fakeBridge, render } from '../../testing/app-harness';
+import { fakeBridge, render } from '../../testing/app-testing';
 
 describe('window-controls', () => {
   it('draws window controls on Windows and wires them', async () => {

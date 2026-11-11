@@ -1,5 +1,5 @@
 import type { UsageReading } from '@grimoire/contract';
-import { fakeBridge, render } from '@ui/testing/app-harness';
+import { fakeBridge, render } from '@ui/testing/app-testing';
 
 describe('usage-limits', () => {
   // The page counts days and hours back from now, so the tests fix it.
@@ -113,19 +113,7 @@ describe('usage-limits', () => {
     // Two sessions, each at its peak.
     const sessions = el.querySelectorAll('gr-usage-page .plan gr-usage-columns rect.hit');
     expect(sessions).toHaveLength(2);
-    sessions[0]!.dispatchEvent(new MouseEvent('mouseenter'));
-    await fixture.whenStable();
-    expect(texts('gr-usage-page .plan gr-usage-columns .tip strong')).toEqual(['60%']);
-
-    // Focus puts the crosshair on the latest reading; the arrow keys step back.
-    const plot = el.querySelector<SVGRectElement>('gr-usage-page .plan gr-usage-lines rect.hit')!;
-    plot.dispatchEvent(new FocusEvent('focus'));
-    await fixture.whenStable();
-    expect(texts('gr-usage-page .plan gr-usage-lines .tip strong')).toEqual(['20%']);
-    plot.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' }));
-    await fixture.whenStable();
-    expect(texts('gr-usage-page .plan gr-usage-lines .tip strong')).toEqual(['15%']);
-    expect(plot.getAttribute('aria-label')).toMatch(/This week, all models 15%$/);
+    expect(sessions[0]!.getAttribute('aria-label')).toMatch(/: 60%; /);
   });
 
   it("shows an organization's monthly allowance in the Usage page, with no session or week limits", async () => {

@@ -16,7 +16,7 @@ paths:
   skips them.
 - Code uses plain names. UI text in the book's words goes through `wording.say(book, plain)`;
   shell entries carry `label` and `plainLabel`.
-- One `*.spec.ts` per component, next to it. Render through `ui/src/testing/app-harness.ts`:
+- One `*.spec.ts` per component, next to it. Render through `ui/src/testing/app-testing.ts`:
   `fakeBridge()` stands in for the service (`answers[command]`, `emit`, `calls`) and `render()`
   starts the app on it.
 - Specs never read the real clock: `vi.useFakeTimers({ toFake: ['Date'] })` and

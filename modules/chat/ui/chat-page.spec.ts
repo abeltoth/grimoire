@@ -1,5 +1,5 @@
 import type { CommandName, GrimoireBridge, OpenChat } from '@grimoire/contract';
-import { fakeBridge, pick, render, write } from '@ui/testing/app-harness';
+import { fakeBridge, pick, render, write } from '@ui/testing/app-testing';
 
 describe('chat-page', () => {
   it('opens on a blank chat', async () => {

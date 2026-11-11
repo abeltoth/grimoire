@@ -1,5 +1,5 @@
 import type { CommandRequest, OpenChat } from '@grimoire/contract';
-import { fakeBridge, render } from '@ui/testing/app-harness';
+import { fakeBridge, render } from '@ui/testing/app-testing';
 
 describe('history', () => {
   it('lists every chat in the History, in parts by project, narrowed and tagged there', async () => {

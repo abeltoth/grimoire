@@ -1,5 +1,5 @@
 import type { AgentMemories, CommandRequest, Memory, SetupFile } from '@grimoire/contract';
-import { fakeBridge, render } from '@ui/testing/app-harness';
+import { fakeBridge, render } from '@ui/testing/app-testing';
 
 describe('memory-editor', () => {
   it('opens a memory from the Memories page to change, turn to its links, or delete', async () => {
@@ -153,61 +153,5 @@ describe('memory-editor', () => {
     expect(
       [...el.querySelectorAll('gr-memories-page .card .name')].map((n) => n.textContent!.trim()),
     ).toEqual(['design-tokens', 'testing-strategy']);
-  });
-
-  it('keeps an open memory with changes from being left by turning the right page away', async () => {
-    const { bridge, answers } = fakeBridge();
-    const folder = 'C:/Users/me/.claude/projects/C--Users-me/memory';
-    answers['memories.list'] = (): AgentMemories => ({
-      cwd: 'C:/Users/me',
-      folder,
-      index: { path: `${folder}/MEMORY.md`, exists: false },
-      enabled: true,
-      memories: [
-        {
-          name: 'tone',
-          path: `${folder}/tone.md`,
-          type: 'feedback',
-          changedAt: 100,
-          links: [],
-          indexed: false,
-        },
-      ],
-      problems: [],
-      elsewhere: [],
-      at: new Date(2026, 10, 9, 15, 30).getTime(),
-    });
-    answers['memories.open'] = (request: CommandRequest<'memories.open'>): SetupFile => ({
-      path: request.path,
-      text: 'Short answers.',
-      exists: true,
-      changedAt: 100,
-      editable: true,
-    });
-    const { fixture, el, texts } = await render(bridge);
-    [...el.querySelectorAll<HTMLButtonElement>('gr-page-tabs .page-tab')]
-      .find((tab) => tab.textContent!.trim() === 'Memory map')!
-      .click();
-    await fixture.whenStable();
-    el.querySelector<HTMLButtonElement>('gr-memories-page .name button')!.click();
-    await new Promise((resolve) => setTimeout(resolve));
-    await fixture.whenStable();
-    const editor = el.querySelector<HTMLTextAreaElement>('gr-memories-page textarea')!;
-    editor.value = 'Shorter answers.';
-    editor.dispatchEvent(new Event('input'));
-    await fixture.whenStable();
-
-    el.querySelector<HTMLButtonElement>('gr-tab-page .row .gr-link')!.click();
-    await fixture.whenStable();
-    expect(el.querySelector('gr-memories-page textarea')).not.toBeNull();
-    expect(texts('gr-memories-page .note.alert')).toEqual([
-      'Save your changes, or discard them, first.',
-    ]);
-
-    editor.dispatchEvent(
-      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
-    );
-    await fixture.whenStable();
-    expect(el.querySelector('gr-memories-page textarea')).not.toBeNull();
   });
 });

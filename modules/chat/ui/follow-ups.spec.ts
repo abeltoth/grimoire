@@ -1,6 +1,6 @@
 import type { CommandRequest, GrimoireSettings } from '@grimoire/contract';
 import { DEFAULT_SETTINGS } from '@grimoire/contract';
-import { fakeBridge, render, write } from '@ui/testing/app-harness';
+import { fakeBridge, render, write } from '@ui/testing/app-testing';
 
 describe('follow-ups', () => {
   it('offers separate tasks as cards under the last reply, each opening a new chat with it written in', async () => {

@@ -1,5 +1,5 @@
 import type { Preset } from '@grimoire/contract';
-import { fakeBridge, render } from '@ui/testing/app-harness';
+import { fakeBridge, render } from '@ui/testing/app-testing';
 
 describe('preset-settings', () => {
   it('keeps presets in Settings, to rename, remove, and give a first message new chats begin with', async () => {

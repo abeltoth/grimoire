@@ -91,4 +91,20 @@ describe('presets', () => {
     expect(settings.get().newChat).toEqual({ from: 'last-used' });
     expect(emit).toHaveBeenCalledTimes(2);
   });
+
+  it('keeps presets in the order first saved, one per name', () => {
+    const presets = new PresetStore(openDatabase(':memory:'));
+    expect(presets.list()).toEqual([]);
+    presets.save({ name: ' Bug fix ', agent: 'codex', settings: { mode: 'accept-edits' } });
+    presets.save({ name: 'Plan a feature', agent: 'claude-code', settings: { mode: 'plan' } });
+    expect(
+      presets.save({ name: 'bug FIX', agent: 'claude-code', settings: { cwd: '/w' } }),
+    ).toEqual([
+      { name: 'bug FIX', agent: 'claude-code', settings: { cwd: '/w' } },
+      { name: 'Plan a feature', agent: 'claude-code', settings: { mode: 'plan' } },
+    ]);
+    expect(() => presets.save({ name: '  ', agent: 'codex', settings: {} })).toThrow(
+      'A preset needs a name',
+    );
+  });
 });

@@ -44,26 +44,6 @@ describe('files-page', () => {
     expect(calls.filter((c) => c.command === 'files.list')).toHaveLength(3);
   });
 
-  it('reads a file open on the page again when it changes on disk, over changes not saved', async () => {
-    const { bridge, emit, disk } = repository();
-    const { fixture, texts, button, editor, type } = await openFiles(bridge);
-    button('.entry', 'README.md').click();
-    await fixture.whenStable();
-    await type('# Mine\n');
-
-    disk['README.md'] = { path: 'README.md', text: '# Grimoire, by the agent\n', changedAt: 3 };
-    emit('files.changed', { root: 'C:/Users/me/git/grimoire', path: 'README.md' });
-    await fixture.whenStable();
-    expect(editor()!.value).toBe('# Grimoire, by the agent\n');
-    expect(texts('gr-files-page .note')).toEqual(['It changed on disk, and was read again.']);
-    expect(button('.gr-link', 'Save Ctrl+S').getAttribute('aria-disabled')).toBe('true');
-
-    // Another folder's file of the same name isn't this one.
-    emit('files.changed', { root: 'C:/Users/me/git/other', path: 'README.md' });
-    await fixture.whenStable();
-    expect(editor()!.value).toBe('# Grimoire, by the agent\n');
-  });
-
   it("won't turn back to the folder with changes not saved, until they're discarded", async () => {
     const { bridge, calls } = repository();
     const { fixture, el, texts, button, type } = await openFiles(bridge);

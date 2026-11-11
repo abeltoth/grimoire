@@ -6,7 +6,7 @@ import type {
   OpenFile,
 } from '@grimoire/contract';
 import { MONACO, type MonacoApi } from './monaco';
-import { fakeBridge, render } from '@ui/testing/app-harness';
+import { fakeBridge, render } from '@ui/testing/app-testing';
 
 /** What the Files specs share, first the VS Code editor, faked as a text box for each side it shows. */
 export function fakeMonaco() {

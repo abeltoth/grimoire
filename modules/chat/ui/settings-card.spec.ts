@@ -1,6 +1,6 @@
 import type { AgentSetup, CommandRequest, OpenChat, Preset } from '@grimoire/contract';
 import { DEFAULT_SETTINGS } from '@grimoire/contract';
-import { fakeBridge, pick, render, write } from '@ui/testing/app-harness';
+import { fakeBridge, pick, render, write } from '@ui/testing/app-testing';
 
 describe('settings-card', () => {
   it("changes a blank chat's settings on its settings card", async () => {

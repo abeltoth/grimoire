@@ -25,7 +25,7 @@ import {
   toBlock,
   toolResult,
 } from './messages';
-import { hookOutcome, hookRun } from './hook-runs';
+import { HookRuns } from './hook-runs';
 import { splitReferences } from './references';
 
 export interface TranscriptListener {
@@ -49,12 +49,6 @@ const TASK_END: Record<string, SubagentState> = {
   failed: 'failed',
   stopped: 'stopped',
 };
-
-/** A hook running or run, and when it began, in ms since the epoch, when known. */
-interface HookTimed {
-  run: HookRun;
-  began?: number;
-}
 
 /** A turn's replies' tokens by API message ID; Claude Code repeats a reply's on each of its blocks. */
 type Spent = Map<string, TokenUse>;
@@ -88,7 +82,7 @@ export class ClaudeTranscript {
   /** What the live turn has spent so far. */
   private spent: Spent = new Map();
   /** The hooks run on the live turn, and those still running from before it, by Claude Code's ID. */
-  private readonly hookRuns = new Map<string, HookTimed>();
+  private readonly hookRuns = new HookRuns();
   /** The runs of the subagents the chat's tool calls started, by tool call. */
   private readonly subagents = new Map<string, ClaudeTranscript>();
   private readonly savedCompactions = new SavedCompactions();
@@ -112,7 +106,8 @@ export class ClaudeTranscript {
   apply(message: ClaudeMessage, at?: number): void {
     if (message.type === 'system') {
       this.applyTask(message as ClaudeMessage & TaskMessage);
-      this.applyHook(message as ClaudeMessage & HookMessage);
+      const hooks = this.hookRuns.apply(message as ClaudeMessage & HookMessage);
+      if (hooks) this.listener?.hooks?.(hooks);
     } else if (message.type === 'assistant')
       this.count(message.message as ApiMessage, !!message.parent_tool_use_id, this.turn);
     else if (message.type === 'result' && this.live) this.endTurn();
@@ -143,29 +138,7 @@ export class ClaudeTranscript {
   /** The live turn ended: the next starts afresh, but for the hooks still running. */
   private endTurn(): void {
     this.spent = new Map();
-    for (const [id, { run }] of this.hookRuns)
-      if (run.outcome !== 'running') this.hookRuns.delete(id);
-  }
-
-  /** A hook began, printed something, or ended; the turn's hooks are passed on as they stand. */
-  private applyHook(message: HookMessage): void {
-    const id = message.hook_id;
-    const kind = message.subtype;
-    if (!id || (kind !== 'hook_started' && kind !== 'hook_progress' && kind !== 'hook_response'))
-      return;
-    const now = Date.now();
-    let timed = this.hookRuns.get(id);
-    if (!timed) {
-      timed = { run: hookRun(id, message), ...(kind === 'hook_started' ? { began: now } : {}) };
-      this.hookRuns.set(id, timed);
-    }
-    const output = message.output || [message.stdout, message.stderr].filter(Boolean).join('\n');
-    if (output.trim()) timed.run.output = output;
-    if (kind === 'hook_response') {
-      timed.run.outcome = hookOutcome(message);
-      if (timed.began !== undefined) timed.run.took = now - timed.began;
-    }
-    this.listener?.hooks?.([...this.hookRuns.values()].map(({ run }) => ({ ...run })));
+    this.hookRuns.endTurn();
   }
 
   /** The transcript of the subagent the tool call `toolId` started, its entries passed on as the subagent's. */

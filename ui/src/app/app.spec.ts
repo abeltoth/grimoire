@@ -1,4 +1,4 @@
-import { fakeBridge, render } from '../testing/app-harness';
+import { fakeBridge, render } from '../testing/app-testing';
 
 describe('App', () => {
   it('marks the background service connected once it answers', async () => {

@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { DEFAULT_SETTINGS, type GrimoireSettings } from '@grimoire/contract';
-import { fakeBridge } from '../../testing/app-harness';
+import { fakeBridge } from '../../testing/app-testing';
 import { GRIMOIRE_BRIDGE } from './bridge';
 import { NewChats } from './new-chats';
 

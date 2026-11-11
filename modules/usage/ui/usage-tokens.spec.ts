@@ -1,5 +1,5 @@
 import type { CommandRequest, TokenTotals, UsageBreakdown, UsageSpan } from '@grimoire/contract';
-import { fakeBridge, render } from '@ui/testing/app-harness';
+import { fakeBridge, render } from '@ui/testing/app-testing';
 
 describe('usage-tokens', () => {
   // The page counts days and hours back from now, so the tests fix it.
@@ -76,16 +76,6 @@ describe('usage-tokens', () => {
     expect(rows[rows.length - 2]).toEqual(['0', '0', '0', '0', '0']);
     expect(rows[rows.length - 3]).toEqual(['300', '0', '1K', '0', '1.3K']);
     expect(texts('gr-usage-page gr-usage-lines tbody td')).toEqual(['75%', '95%']);
-
-    columns[columns.length - 1]!.dispatchEvent(new MouseEvent('mouseenter'));
-    await fixture.whenStable();
-    expect(texts('gr-usage-page gr-usage-columns .tip strong')).toEqual([
-      '1.4K',
-      '600',
-      '0',
-      '300',
-      '500',
-    ]);
 
     [...el.querySelectorAll<HTMLButtonElement>('gr-usage-page .spans button')]
       .find((button) => button.textContent!.trim() === 'Last 24 hours')!

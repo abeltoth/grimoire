@@ -75,7 +75,9 @@ export class FakeAdapter implements AgentAdapter {
     const next = entries.findIndex((entry, i) => i > at && entry.kind === 'user');
     const id = `fork-${this.chats.length + 1}`;
     this.transcripts.set(id, entries.slice(0, next === -1 ? undefined : next));
-    this.chats.push({ id, agent: this.info.id, title, cwd, updatedAt: Date.now() });
+    // Newer than every chat before it, without reading the clock.
+    const updatedAt = Math.max(0, ...this.chats.map((chat) => chat.updatedAt)) + 1;
+    this.chats.push({ id, agent: this.info.id, title, cwd, updatedAt });
     return id;
   }
 

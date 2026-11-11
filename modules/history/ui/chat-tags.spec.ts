@@ -1,4 +1,4 @@
-import { fakeBridge, render, write } from '@ui/testing/app-harness';
+import { fakeBridge, render, write } from '@ui/testing/app-testing';
 
 describe('chat-tags', () => {
   it('tags a chat in its page header, and takes tags off again', async () => {

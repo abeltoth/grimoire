@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import type { OpenChat } from '@grimoire/contract';
 import { POPOUT } from '../core/popout';
-import { fakeBridge, render } from '../../testing/app-harness';
+import { fakeBridge, render } from '../../testing/app-testing';
 
 describe('popouts', () => {
   const chat = (id: string, title: string): OpenChat => ({

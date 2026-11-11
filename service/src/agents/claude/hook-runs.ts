@@ -43,3 +43,45 @@ function saysBlock(stdout: string | undefined): boolean {
     return false;
   }
 }
+
+/** A hook running or run, and when it began, in ms since the epoch, when known. */
+interface HookTimed {
+  run: HookRun;
+  began?: number;
+}
+
+/** The hooks run on the live turn, and those still running from before it, by Claude Code's ID. */
+export class HookRuns {
+  private readonly runs = new Map<string, HookTimed>();
+
+  constructor(private readonly now: () => number = Date.now) {}
+
+  /**
+   * A hook began, printed something, or ended: the turn's hooks as they
+   * stand; undefined for a message about anything else.
+   */
+  apply(message: HookMessage): HookRun[] | undefined {
+    const id = message.hook_id;
+    const kind = message.subtype;
+    if (!id || (kind !== 'hook_started' && kind !== 'hook_progress' && kind !== 'hook_response'))
+      return undefined;
+    const now = this.now();
+    let timed = this.runs.get(id);
+    if (!timed) {
+      timed = { run: hookRun(id, message), ...(kind === 'hook_started' ? { began: now } : {}) };
+      this.runs.set(id, timed);
+    }
+    const output = message.output || [message.stdout, message.stderr].filter(Boolean).join('\n');
+    if (output.trim()) timed.run.output = output;
+    if (kind === 'hook_response') {
+      timed.run.outcome = hookOutcome(message);
+      if (timed.began !== undefined) timed.run.took = now - timed.began;
+    }
+    return [...this.runs.values()].map(({ run }) => ({ ...run }));
+  }
+
+  /** The live turn ended: the next starts afresh, but for the hooks still running. */
+  endTurn(): void {
+    for (const [id, { run }] of this.runs) if (run.outcome !== 'running') this.runs.delete(id);
+  }
+}

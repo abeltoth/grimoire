@@ -1,6 +1,6 @@
 import type { TokenUse } from '@grimoire/contract';
 import { Diagrams } from './markdown/diagrams';
-import { fakeBridge, render, write } from '@ui/testing/app-harness';
+import { fakeBridge, render, write } from '@ui/testing/app-testing';
 
 describe('transcript', () => {
   it('times the running turn by Stop, and shows how long each turn took once it ended', async () => {

@@ -6,7 +6,7 @@ import type {
   Preset,
 } from '@grimoire/contract';
 import { DEFAULT_SETTINGS } from '@grimoire/contract';
-import { fakeBridge, render } from '@ui/testing/app-harness';
+import { fakeBridge, render } from '@ui/testing/app-testing';
 
 describe('general-settings', () => {
   it('keeps the settings with the service, and the book follows them', async () => {

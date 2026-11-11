@@ -1,7 +1,7 @@
 import type { GrimoireSettings } from '@grimoire/contract';
 import { DEFAULT_SETTINGS } from '@grimoire/contract';
 import { DENSITIES, TEXT_FONTS } from './theme';
-import { fakeBridge, render } from '@ui/testing/app-harness';
+import { fakeBridge, render } from '@ui/testing/app-testing';
 
 describe('theme-editor', () => {
   it('changes the theme’s tokens in Settings, the book showing each change at once', async () => {

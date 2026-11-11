@@ -1,6 +1,6 @@
 import { type PendingTasks, signal } from '@angular/core';
 import type { Attachment } from '@grimoire/contract';
-import { fakeBridge, picture, render, withFiles, write } from '@ui/testing/app-harness';
+import { fakeBridge, picture, render, withFiles, write } from '@ui/testing/app-testing';
 import { Enclosing } from './attachments';
 
 describe('attachments', () => {

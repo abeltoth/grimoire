@@ -1,6 +1,6 @@
 // The boundary lint: what may import what between the core and the modules, how long a file may
 // grow, and the house rules a typecheck can't see.
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { defineConfig } from 'eslint/config';
 import tseslint from 'typescript-eslint';
@@ -40,6 +40,50 @@ const registrations = [
 ];
 
 const maxLines = { max: 400, skipBlankLines: true, skipComments: true };
+const maxTestLines = { ...maxLines, max: 600 };
+
+const code = [
+  'FunctionDeclaration',
+  'FunctionExpression',
+  'ArrowFunctionExpression',
+  'ClassDeclaration',
+  'ClassExpression',
+];
+
+/** Whether a statement exports code that runs: a function or a class, not only types or values. */
+const exportsCode = (statement) => {
+  const declared =
+    statement.type === 'ExportNamedDeclaration' || statement.type === 'ExportDefaultDeclaration'
+      ? statement.declaration
+      : undefined;
+  const runs = (node) => code.includes(node?.type);
+  if (declared?.type === 'VariableDeclaration')
+    return declared.declarations.some((declaration) => runs(declaration.init));
+  return runs(declared);
+};
+
+// Each file of code has its own test beside it, so code moved to a new file takes its tests along.
+const ownTest = {
+  meta: {
+    type: 'problem',
+    schema: [],
+    messages: {
+      missing: 'No test of its own: add {{name}}.test.ts or {{name}}.spec.ts beside it.',
+    },
+  },
+  create: (context) => ({
+    Program(program) {
+      if (!program.body.some(exportsCode)) return;
+      const base = context.physicalFilename.replace(/\.ts$/, '');
+      if (existsSync(`${base}.test.ts`) || existsSync(`${base}.spec.ts`)) return;
+      context.report({
+        loc: { line: 1, column: 0 },
+        messageId: 'missing',
+        data: { name: path.basename(base) },
+      });
+    },
+  }),
+};
 const clockMessage =
   'Tests never read the real clock: use vi.setSystemTime() or pass in a fixed now.';
 const realClock = [
@@ -88,7 +132,19 @@ export default defineConfig(
     ignores: tests,
     rules: { 'max-lines': ['error', maxLines] },
   },
-  { files: tests, rules: { 'no-restricted-syntax': ['error', ...realClock] } },
+  {
+    files: sources.map((root) => `${root}/**/*.ts`),
+    ignores: [...tests, '**/*.d.ts'],
+    plugins: { house: { rules: { 'own-test': ownTest } } },
+    rules: { 'house/own-test': 'error' },
+  },
+  {
+    files: tests,
+    rules: {
+      'no-restricted-syntax': ['error', ...realClock],
+      'max-lines': ['error', maxTestLines],
+    },
+  },
   {
     files: sources.map((root) => `${root}/**/*.ts`),
     plugins: { boundaries },

@@ -2,7 +2,7 @@ import type { ChatSettings } from '@grimoire/contract';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { openDatabase } from '../storage/database';
 import { hubStore } from './chat-table';
-import { FakeAdapter } from './fake-adapter';
+import { FakeAdapter } from './fake-adapter-testing';
 import { AgentHub } from './hub';
 import { type Sent, PickingAdapter, reply, settings } from './hub-testing';
 

@@ -1,6 +1,6 @@
 import type { GrimoireBridge } from '@grimoire/contract';
 import { MONACO } from './monaco';
-import { render, write } from '@ui/testing/app-harness';
+import { render, write } from '@ui/testing/app-testing';
 import { fakeMonaco, repository } from './files-testing';
 
 describe('files.providers', () => {

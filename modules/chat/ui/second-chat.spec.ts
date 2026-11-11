@@ -1,5 +1,5 @@
 import type { CommandRequest, OpenChat } from '@grimoire/contract';
-import { fakeBridge, render } from '@ui/testing/app-harness';
+import { fakeBridge, render } from '@ui/testing/app-testing';
 
 describe('second-chat', () => {
   describe('a second chat on the right page', () => {

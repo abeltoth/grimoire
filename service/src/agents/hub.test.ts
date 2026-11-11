@@ -2,7 +2,7 @@ import { homedir } from 'node:os';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { openDatabase } from '../storage/database';
 import { hubStore } from './chat-table';
-import { FakeAdapter } from './fake-adapter';
+import { FakeAdapter } from './fake-adapter-testing';
 import { AgentHub } from './hub';
 import { type Sent, reply, settings } from './hub-testing';
 

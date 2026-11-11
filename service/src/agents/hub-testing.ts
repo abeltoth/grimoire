@@ -1,7 +1,7 @@
 import type { AgentEntry, EventName, EventPayload, SettingsChange } from '@grimoire/contract';
 import { vi } from 'vitest';
 import type { ChatEvents, LiveChat } from './adapter';
-import { FakeAdapter } from './fake-adapter';
+import { FakeAdapter } from './fake-adapter-testing';
 
 /** What the hub's tests share: an event the hub sent, the agents they drive, and their settings. */
 export type Sent = { [K in EventName]: { event: K; payload: EventPayload<K> } }[EventName];

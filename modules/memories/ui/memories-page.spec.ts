@@ -1,5 +1,5 @@
 import type { AgentMemories, CommandRequest, Memory, SetupFile } from '@grimoire/contract';
-import { fakeBridge, render } from '@ui/testing/app-harness';
+import { fakeBridge, render } from '@ui/testing/app-testing';
 
 describe('memories-page', () => {
   it('reads the Memories page again when the memories of its folder change, and the open one unless changed', async () => {

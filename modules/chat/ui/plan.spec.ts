@@ -1,4 +1,4 @@
-import { fakeBridge, render, write } from '@ui/testing/app-harness';
+import { fakeBridge, render, write } from '@ui/testing/app-testing';
 
 describe('plan', () => {
   it("keeps the chat's plan in the Plan, and its tools out of the margin", async () => {

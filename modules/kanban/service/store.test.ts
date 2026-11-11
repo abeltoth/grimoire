@@ -2,12 +2,10 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { CARD_COLUMNS, type Card, type CardColumn } from '@grimoire/contract';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { CommandRegistry } from '@grimoire/service/core/registry';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { setActiveProfile } from '@grimoire/service/core/app-state';
 import { migrate, openDatabase } from '@grimoire/service/testing/database';
 import { MIGRATIONS } from './migrations';
-import { registerKanban } from './commands';
 import { CardStore } from './store';
 
 /** Grimoire's database with the board's tables. */
@@ -196,28 +194,5 @@ describe('Kanban cards', () => {
     expect(again.list()).toEqual(before);
     expect(board(again.list())).toEqual({ todo: ['A'], doing: ['B'], done: [] });
     againDb.close();
-  });
-
-  it('tells every window of each change, but not of a listing', async () => {
-    const registry = new CommandRegistry();
-    const emit = vi.fn();
-    registerKanban(registry, cards, emit);
-    const [card] = (await registry.dispatch('kanban.save', {
-      title: 'A',
-      notes: '',
-      cwd: '/git',
-    })) as Card[];
-    await registry.dispatch('kanban.move', { id: card!.id, column: 'done' });
-    await registry.dispatch('kanban.close', { id: card!.id, closed: true });
-    const linked = (await registry.dispatch('kanban.link', {
-      id: card!.id,
-      chatId: 'chat-1',
-      agent: 'claude-code',
-      cwd: '/git',
-    })) as Card[];
-    await registry.dispatch('kanban.list', {});
-    expect(emit.mock.calls.map(([event]) => event)).toEqual(Array(4).fill('kanban.changed'));
-    expect(emit.mock.calls.at(-1)![1]).toEqual({ cards: linked });
-    expect(linked[0]!.chats.map((chat) => chat.chatId)).toEqual(['chat-1']);
   });
 });

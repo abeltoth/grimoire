@@ -1,5 +1,5 @@
 import type { CommandRequest, OpenChat, Preset } from '@grimoire/contract';
-import { fakeBridge, render } from '../../testing/app-harness';
+import { fakeBridge, render } from '../../testing/app-testing';
 
 describe('command-palette', () => {
   it('searches actions and chats in the command palette, turned to with Ctrl+K', async () => {

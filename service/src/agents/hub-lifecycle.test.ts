@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setActiveProfile } from '../core/app-state';
 import { openDatabase } from '../storage/database';
 import { hubStore } from './chat-table';
-import { FakeAdapter } from './fake-adapter';
+import { FakeAdapter } from './fake-adapter-testing';
 import { AgentHub } from './hub';
 import { settings } from './hub-testing';
 

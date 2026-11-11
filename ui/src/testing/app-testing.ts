@@ -101,6 +101,15 @@ export function fakeBridge(overrides: Partial<GrimoireBridge> = {}) {
   return { bridge, calls, emit, answers, closePopout };
 }
 
+/** A fake service behind the bridge, for a component or service tested on its own, without the app. */
+export function useFakeBridge(overrides: Partial<GrimoireBridge> = {}) {
+  const fake = fakeBridge(overrides);
+  TestBed.configureTestingModule({
+    providers: [{ provide: GRIMOIRE_BRIDGE, useValue: fake.bridge }],
+  });
+  return fake;
+}
+
 export async function render(
   bridge: GrimoireBridge,
   providers: (Provider | EnvironmentProviders)[] = [],
@@ -118,6 +127,18 @@ export async function render(
   const texts = (selector: string) =>
     [...el.querySelectorAll(selector)].map((node) => node.textContent!.replace(/\s+/g, ' ').trim());
   return { fixture, el, texts };
+}
+
+/** Turns the right page to the page tab with this label. */
+export async function openPageTab(
+  fixture: { whenStable(): Promise<unknown> },
+  el: HTMLElement,
+  label: string,
+) {
+  [...el.querySelectorAll<HTMLButtonElement>('gr-page-tabs .page-tab')]
+    .find((tab) => tab.textContent!.trim() === label)!
+    .click();
+  await fixture.whenStable();
 }
 
 /** Clicks the settings card's choice with this text. */

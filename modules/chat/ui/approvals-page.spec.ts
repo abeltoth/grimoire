@@ -1,5 +1,5 @@
 import type { OpenChat } from '@grimoire/contract';
-import { fakeBridge, render } from '@ui/testing/app-harness';
+import { fakeBridge, render } from '@ui/testing/app-testing';
 
 describe('approvals-page', () => {
   it('turns the right page to every waiting approval, oldest first', async () => {

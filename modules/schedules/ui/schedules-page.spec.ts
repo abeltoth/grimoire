@@ -1,10 +1,10 @@
 import type { ScheduleInfo, ScheduleRun } from '@grimoire/contract';
 import { DEFAULT_SETTINGS } from '@grimoire/contract';
-import { clock, dateline, upcoming, when } from './wording';
-import { fakeBridge, render } from '@ui/testing/app-harness';
+import { clock, dateline, when } from './wording';
+import { fakeBridge, render } from '@ui/testing/app-testing';
 
 describe('schedules', () => {
-  it("keeps scheduled chats as journal entries, names the next run, and adds a run's chat to the book", async () => {
+  it("keeps scheduled chats as journal entries, and adds a run's chat to the book", async () => {
     // The next run is named from today, so the test fixes today.
     const now = new Date(2026, 10, 9, 15, 30).getTime();
     vi.useFakeTimers({ toFake: ['Date'] });
@@ -12,7 +12,7 @@ describe('schedules', () => {
     onTestFinished(() => {
       vi.useRealTimers();
     });
-    const { bridge, calls, answers, emit } = fakeBridge();
+    const { bridge, answers, emit } = fakeBridge();
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
     const nextAt = tomorrow.setHours(8, 0, 0, 0);
@@ -62,10 +62,9 @@ describe('schedules', () => {
     };
     const { fixture, el, texts } = await render(bridge);
 
-    const indicator = `Morning repo summary ${upcoming(nextAt, now)}`;
-    expect(indicator).toMatch(/^Morning repo summary tomorrow at /);
-    expect(texts('gr-status-indicators button')).toEqual([indicator]);
-    el.querySelector<HTMLButtonElement>('gr-status-indicators button')!.click();
+    [...el.querySelectorAll<HTMLButtonElement>('gr-page-tabs .page-tab')]
+      .find((tab) => tab.textContent!.trim() === 'Scheduled chats')!
+      .click();
     await fixture.whenStable();
 
     expect(texts('gr-tab-page .title')).toEqual(['Scheduled chats']);
@@ -94,41 +93,5 @@ describe('schedules', () => {
     expect(texts('.spine gr-chat-tab b')).toContain('Morning repo summary · today');
     expect(texts('gr-page-header h1')).toEqual(['Morning repo summary · today']);
     expect(texts('.meta button')).toContain('Full access');
-
-    // A new schedule is written out in place.
-    el.querySelector<HTMLButtonElement>('gr-schedules-page .add')!.click();
-    await fixture.whenStable();
-    const field = (id: string, value: string) => {
-      const input = el.querySelector<HTMLInputElement | HTMLTextAreaElement>(`#${id}`)!;
-      input.value = value;
-      input.dispatchEvent(new Event('input'));
-    };
-    field('gr-schedule-name', 'Dependency check');
-    field('gr-schedule-prompt', 'Check for outdated dependencies.');
-    field('gr-schedule-time', '09:00');
-    const word = (text: string) =>
-      [...el.querySelectorAll<HTMLButtonElement>('gr-schedule-form .word')].find(
-        (b) => b.textContent!.trim() === text,
-      )!;
-    for (const day of ['Tue', 'Wed', 'Thu', 'Fri']) word(day).click();
-    word('Sonnet 5.5').click();
-    await fixture.whenStable();
-    word('Low').click();
-    await fixture.whenStable();
-    expect(texts('gr-schedule-form .note')).toEqual([
-      'Each run begins a new chapter with Full access: it edits files and runs commands without asking, as no one is there to approve.',
-    ]);
-    el.querySelector<HTMLButtonElement>('gr-schedule-form .send')!.click();
-    await fixture.whenStable();
-    expect(calls.find((c) => c.command === 'schedules.save')!.request).toEqual({
-      name: 'Dependency check',
-      agent: 'claude-code',
-      settings: { cwd: 'C:/Users/me/git/grimoire', model: 'sonnet', effort: 'low' },
-      prompt: 'Check for outdated dependencies.',
-      days: [1],
-      time: '09:00',
-      enabled: true,
-    });
-    expect(el.querySelector('gr-schedule-form')).toBeNull();
   });
 });
