@@ -41,7 +41,10 @@ export class QuestionsForm {
     return this.chosen()[index]?.includes(label) ?? false;
   }
 
-  protected tick(index: number, label: string, many: boolean, on: boolean): void {
+  /** A click flips the option; a radio can't untick natively, so a single choice is handled here. */
+  protected toggle(index: number, label: string, many: boolean, input: HTMLInputElement): void {
+    const on = !this.isChosen(index, label);
+    input.checked = on;
     this.chosen.update((all) =>
       all.map((chosen, i) => {
         if (i !== index) return chosen;

@@ -69,4 +69,42 @@ describe('questions-form', () => {
       },
     ]);
   });
+
+  it('lets you untick a single choice and answer in your own words', async () => {
+    const { bridge, calls, emit } = fakeBridge();
+    const { fixture, el, texts } = await render(bridge);
+    await write(fixture, el, 'Build the meter');
+    emit('agents.approval', {
+      approval: {
+        id: 'q2',
+        chatId: 'chat-1',
+        tool: 'AskUserQuestion',
+        input: {},
+        questions: [
+          {
+            question: 'Where should the meter appear?',
+            options: [{ label: 'In the composer' }, { label: 'In the running head' }],
+            multiSelect: false,
+          },
+        ],
+      },
+    });
+    emit('agents.status', { chatId: 'chat-1', status: 'waiting' });
+    await fixture.whenStable();
+
+    const option = el.querySelector<HTMLInputElement>('gr-questions-form .option input')!;
+    option.click();
+    option.click();
+    const ownWords = el.querySelector<HTMLInputElement>('gr-questions-form .own-words input')!;
+    ownWords.value = 'Somewhere else';
+    ownWords.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    expect(texts('gr-questions-form .option.on')).toEqual([]);
+    expect(option.checked).toBe(false);
+
+    el.querySelector<HTMLButtonElement>('gr-questions-form .send')!.click();
+    expect(calls.filter((c) => c.command === 'agents.answer').map((c) => c.request)).toEqual([
+      { approvalId: 'q2', answers: [{ chosen: [], ownWords: 'Somewhere else' }] },
+    ]);
+  });
 });

@@ -25,7 +25,7 @@
             [name]="group(i)"
             [checked]="isChosen(i, option.label)"
             [attr.aria-description]="option.description ?? null"
-            (change)="tick(i, option.label, question.multiSelect, $any($event.target).checked)"
+            (click)="toggle(i, option.label, question.multiSelect, $any($event.target))"
           />
           <span>{{ option.label }}</span>
           @if (option.recommended) {
