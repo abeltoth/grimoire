@@ -215,7 +215,30 @@
       }}
     </p>
 
-    <label class="label" for="gr-settings-jira">Jira issues on the Kanban board</label>
+    <span class="label" id="gr-settings-jira-on">Jira issues on the Kanban board</span>
+    <span class="words" role="radiogroup" aria-labelledby="gr-settings-jira-on">
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="all.jira"
+        (click)="set({ jira: true })"
+      >
+        On
+      </button>
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="!all.jira"
+        (click)="set({ jira: false })"
+      >
+        Off
+      </button>
+    </span>
+    <p class="note">Turned off, they're never fetched, which spends no tokens.</p>
+
+    <label class="label" for="gr-settings-jira">Jira query</label>
     <textarea
       #jiraField
       id="gr-settings-jira"

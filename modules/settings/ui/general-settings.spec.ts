@@ -36,12 +36,14 @@ describe('general-settings', () => {
       'Suggest separate chapters',
       'MCP servers in every chapter',
       'Jira issues on the Kanban board',
+      'Jira query',
     ]);
     expect(checked()).toEqual([
       'The book’s',
       'Drawn',
       'The one used last',
       'Your last settings',
+      'On',
       'On',
       'On',
     ]);
@@ -88,6 +90,15 @@ describe('general-settings', () => {
         .map((c) => c.request),
     ).toEqual([{ jiraQuery: 'project = GRIM' }, { jiraQuery: DEFAULT_SETTINGS.jiraQuery }]);
     expect(jql.value).toBe(DEFAULT_SETTINGS.jiraQuery);
+
+    // Jira turned off is never fetched.
+    [...el.querySelectorAll<HTMLButtonElement>('[aria-labelledby="gr-settings-jira-on"] .word')]
+      .find((button) => button.textContent!.trim() === 'Off')!
+      .click();
+    await fixture.whenStable();
+    expect(calls.filter((c) => c.command === 'settings.set').at(-1)!.request).toEqual({
+      jira: false,
+    });
 
     // Another window changed them back.
     kept = { ...DEFAULT_SETTINGS };

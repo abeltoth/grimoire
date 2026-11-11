@@ -126,6 +126,16 @@ describe('Jira cards on the board', () => {
     expect(titles()).toEqual(['todo Context meter']);
   });
 
+  it('fetches nothing while Jira is turned off in the settings', async () => {
+    const open = vi.fn(fakeConnectors({}, pages).open);
+    const off = new JiraSyncer(cards, () => null, open, emit);
+    pages.push({ issues: [issue('GRIM-1', 'Context meter', 'new')] });
+    expect(await off.sync()).toEqual({ status: 'none', syncing: false });
+    expect(open).not.toHaveBeenCalled();
+    expect(emit).not.toHaveBeenCalled();
+    expect(cards.list()).toEqual([]);
+  });
+
   it('runs one sync at a time, skips one asked for soon after the last, and keeps each profile’s apart', async () => {
     pages.push({ issues: [issue('GRIM-1', 'Context meter', 'new')] });
     const [first, second] = await Promise.all([syncer.sync(), syncer.sync()]);

@@ -12,6 +12,7 @@ import {
 import type { Card, CardChat, CardColumn, JiraTransition } from '@grimoire/contract';
 import { type Chat } from '@ui/app/core/chat';
 import { ChatList } from '@ui/app/core/chat-list';
+import { Settings } from '@ui/app/core/settings';
 import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { Wording } from '@ui/app/core/wording';
 import { Icon, type IconName } from '@ui/design-system/icon';
@@ -54,7 +55,8 @@ interface ListedChat {
  * and a link to it in Jira. They belong to no
  * folder, so show whichever is picked, and their chats begin in it.
  * Opening the board syncs them, unless that was done a minute ago; it
- * says when they were synced, or why they couldn't be.
+ * says when they were synced, or why they couldn't be. While Jira is
+ * turned off in the settings, they and their tab don't show.
  *
  * A Jira card moves in Jira, dragged or with Move to, into another column
  * only: it goes there at once while Jira is asked which statuses there its
@@ -74,6 +76,7 @@ export class KanbanPage {
   protected readonly list = inject(ChatList);
   protected readonly catalog = inject(AgentCatalog);
   protected readonly wording = inject(Wording);
+  private readonly settings = inject(Settings);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly injector = inject(Injector);
   protected readonly columns = COLUMNS;
@@ -115,13 +118,16 @@ export class KanbanPage {
   /** Where the Jira issues stand, said once there's a connector, or issues from one. */
   protected readonly jira = computed(() => {
     const jira = this.board.jira();
+    if (!this.settings.all().jira) return undefined;
     return jira && (jira.status !== 'none' || this.anyJira()) ? jira : undefined;
   });
   private readonly anyJira = computed(() =>
     (this.board.all() ?? []).some((card) => card.kind === 'jira'),
   );
-  /** Whether the board has a Jira tab: once there's a connector, or issues from one. */
-  protected readonly jiraTab = computed(() => !!this.jira() || this.anyJira());
+  /** Whether the board has a Jira tab: while Jira's on, once there's a connector, or issues from one. */
+  protected readonly jiraTab = computed(
+    () => this.settings.all().jira && (!!this.jira() || this.anyJira()),
+  );
   /** The tab that shows: your tasks, unless Jira's is picked while there's a Jira tab. */
   protected readonly view = computed(() => (this.jiraTab() ? this.tab() : 'tasks'));
   private readonly shown = computed(() => {
@@ -146,7 +152,10 @@ export class KanbanPage {
 
   constructor() {
     void this.board.load();
-    void this.board.syncJira(JIRA_FRESH_MS);
+    // Opening the board, or turning Jira on, syncs the issues.
+    effect(() => {
+      if (this.settings.all().jira) untracked(() => void this.board.syncJira(JIRA_FRESH_MS));
+    });
     void this.loadTitles();
     // A chat closed while the board shows keeps the title it had.
     effect(() => {

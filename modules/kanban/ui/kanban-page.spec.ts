@@ -1,4 +1,9 @@
-import type { Card, CommandRequest, OpenChat } from '@grimoire/contract';
+import {
+  type Card,
+  type CommandRequest,
+  DEFAULT_SETTINGS,
+  type OpenChat,
+} from '@grimoire/contract';
 import { fakeBridge, render, write } from '@ui/testing/app-testing';
 import {
   card,
@@ -539,6 +544,20 @@ describe('kanban-page', () => {
     await fixture.whenStable();
     expect(board(texts).done).toEqual(['Context meter']);
     expect(el.querySelector('[data-card="j1"] .jira-note')).toBeNull();
+  });
+
+  it('shows no Jira issues, nor their tab, and syncs none, while Jira is turned off', async () => {
+    const { bridge, calls, answers } = withBoard([
+      card('a', 'Mine', 'todo'),
+      issue('j1', 'GRIM-12', 'Context meter', 'todo'),
+    ]);
+    answers['settings.get'] = () => ({ ...DEFAULT_SETTINGS, jira: false });
+    const { fixture, el, texts } = await render(bridge);
+    await openBoard(fixture, el);
+    expect(board(texts).todo).toEqual(['Mine']);
+    expect(el.querySelector('gr-kanban-page .tabs')).toBeNull();
+    expect(el.querySelector('gr-kanban-page .jira-sync')).toBeNull();
+    expect(calls.filter((c) => c.command === 'kanban.syncJira')).toEqual([]);
   });
 
   it('says quietly when Jira can’t be reached, and nothing where there’s no Atlassian connector', async () => {

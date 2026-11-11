@@ -28,6 +28,7 @@ describe('SettingsStore', () => {
       mcpOff: [],
       suggestions: true,
       followUps: true,
+      jira: true,
       jiraQuery:
         'assignee = currentUser() AND (statusCategory != Done OR statusCategoryChangedDate >= -14d) ORDER BY updated DESC',
     });
@@ -44,6 +45,8 @@ describe('SettingsStore', () => {
     expect(() => settings.set({ suggestions: 'no' } as never)).toThrow('"suggestions"');
     settings.set({ followUps: false });
     expect(() => settings.set({ followUps: 'rarely' } as never)).toThrow('"followUps"');
+    settings.set({ jira: false });
+    expect(() => settings.set({ jira: 'maybe' } as never)).toThrow('"jira"');
     settings.set({ jiraQuery: 'project = GRIM ORDER BY rank' });
     expect(() => settings.set({ jiraQuery: ' ' })).toThrow('"jiraQuery"');
     expect(() => settings.set({ wording: 'fancy' } as never)).toThrow(`"wording" can't be "fancy"`);
@@ -75,6 +78,7 @@ describe('SettingsStore', () => {
       mcpOff: ['github', 'claude.ai Gmail'],
       suggestions: false,
       followUps: false,
+      jira: false,
       jiraQuery: 'project = GRIM ORDER BY rank',
     });
     again.close();

@@ -35,6 +35,11 @@ export interface GrimoireSettings {
    */
   followUps: boolean;
   /**
+   * Whether your Jira issues show on the Kanban board; turned off, they're
+   * never fetched, which spends no tokens.
+   */
+  jira: boolean;
+  /**
    * The Jira query (JQL) whose issues show on the Kanban board, fetched
    * through your claude.ai Atlassian connector.
    */
@@ -56,6 +61,7 @@ export const DEFAULT_SETTINGS: GrimoireSettings = {
   mcpOff: [],
   suggestions: true,
   followUps: true,
+  jira: true,
   jiraQuery: DEFAULT_JIRA_QUERY,
 };
 

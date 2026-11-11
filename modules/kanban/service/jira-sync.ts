@@ -11,7 +11,8 @@ type Emit = <K extends EventName>(event: K, payload: EventPayload<K>) => void;
  * connector, in place of those there. One sync runs at a time, for the
  * profile in use as it begins; what it finds goes to that profile's board,
  * and every window is told while that profile is still in use. When it
- * can't fetch them, the issues last fetched stay.
+ * can't fetch them, the issues last fetched stay. While Jira is turned off
+ * in the settings, nothing is fetched.
  */
 export class JiraSyncer {
   private running: { profile: string; done: Promise<void> } | undefined;
@@ -20,7 +21,8 @@ export class JiraSyncer {
 
   constructor(
     private readonly cards: CardStore,
-    private readonly query: () => string,
+    /** The Jira query in the settings; null while Jira is turned off. */
+    private readonly query: () => string | null,
     private readonly open: (allowed: ReadonlySet<string>) => Promise<Connectors>,
     private readonly emit: Emit,
     private readonly log: (message: string) => void = () => {},
@@ -38,6 +40,7 @@ export class JiraSyncer {
    * it; skipped when its last sync began less than `ifOlderThan` ms ago.
    */
   async sync({ ifOlderThan }: { ifOlderThan?: number } = {}): Promise<JiraSync> {
+    if (this.query() === null) return this.state();
     const profile = this.cards.profile();
     if (this.running) {
       const { profile: runningFor, done } = this.running;
@@ -69,7 +72,9 @@ export class JiraSyncer {
 
   private async run(profile: string): Promise<void> {
     const began = this.now();
-    const fetched = await fetchJira(this.open, this.query());
+    const query = this.query();
+    if (query === null) return;
+    const fetched = await fetchJira(this.open, query);
     try {
       if (fetched.outcome === 'synced') {
         // A card moved in Jira meanwhile keeps what Jira said of it then.

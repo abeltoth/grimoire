@@ -18,7 +18,7 @@ export const kanban: ServiceModule = {
     // moving one in Jira, on another, the one that may change Jira.
     const jira = new JiraSyncer(
       cards,
-      () => settings.get().jiraQuery,
+      () => (settings.get().jira ? settings.get().jiraQuery : null),
       openConnectors,
       events.emit,
       log,

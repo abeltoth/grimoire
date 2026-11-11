@@ -56,6 +56,7 @@ const VALID: { [K in keyof GrimoireSettings]: (value: unknown) => boolean } = {
   mcpOff: (value) => mcpNames(value),
   suggestions: (value) => typeof value === 'boolean',
   followUps: (value) => typeof value === 'boolean',
+  jira: (value) => typeof value === 'boolean',
   jiraQuery: (value) =>
     typeof value === 'string' && value.trim() !== '' && value.length <= MAX_JIRA_QUERY,
 };
