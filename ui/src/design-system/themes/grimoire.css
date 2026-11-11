@@ -275,7 +275,6 @@
   --gr-ref-pad: 10px 16px 10px 12px;
   --gr-ref-rule-top: 3px double var(--gr-form-rule);
   --gr-ref-rule: 1px solid var(--gr-form-rule);
-  --gr-size-drop-hint: 13.5px;
   --gr-radius-control: 3px;
   --gr-leading-meta: 1.25;
 
@@ -365,9 +364,6 @@
   --gr-size-card-code: 12.5px;
   --gr-size-card-action: 14.5px;
   --gr-card-none-pad: 5px 0;
-  --gr-card-foot-gap: 18px;
-  --gr-card-foot-margin: 10px;
-  --gr-card-foot-pad: 9px;
 
   /* Chat: the facing page turned to the slips awaiting your seal */
   --gr-approvals-pad-top: 30px;
@@ -869,7 +865,6 @@
   --gr-size-form-head: 17px;
   --gr-tracking-form-head: 0.16em;
   --gr-form-rule-h: 4px;
-  --gr-form-sub-margin: 7px 0 2px;
   --gr-size-form-aside: 14.5px;
   --gr-form-question-pad: 14px 0 2px;
   --gr-form-legend-pull: -2px;

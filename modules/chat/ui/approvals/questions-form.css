@@ -32,14 +32,6 @@
   color: var(--gr-rubric);
 }
 
-.sub {
-  margin: var(--gr-form-sub-margin);
-  text-align: center;
-  font-style: italic;
-  font-size: var(--gr-size-form-aside);
-  color: var(--gr-ink-soft);
-}
-
 fieldset {
   margin: 0;
   padding: var(--gr-form-question-pad);

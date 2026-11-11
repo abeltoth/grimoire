@@ -3,13 +3,9 @@
   <h2 id="gr-settings-card-heading">
     {{ wording.say('Settings for this chapter', 'Settings for this chat') }}
   </h2>
-  <span>
-    @if (begun()) {
-      Its agent and folder stay as it began. Pick to change the rest.
-    } @else {
-      Your last-used settings, carried over. Pick to change.
-    }
-  </span>
+  @if (!begun()) {
+    <span>Your last-used settings, carried over. Pick to change.</span>
+  }
 </header>
 
 <div class="columns">
@@ -252,14 +248,3 @@
     <p class="none">Asking {{ agentName() }}…</p>
   }
 </div>
-
-<footer class="card-foot">
-  <span>{{
-    wording.say(
-      'Right-click any ribbon to open these for its chapter.',
-      'Right-click any chat’s tab to open these for it.'
-    )
-  }}</span>
-  <span class="spacer"></span>
-  <span>Esc closes</span>
-</footer>

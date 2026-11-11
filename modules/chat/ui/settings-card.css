@@ -62,12 +62,6 @@
   margin-left: 0;
 }
 
-.card-foot {
-  font-style: italic;
-  font-size: var(--gr-size-card-aside);
-  color: var(--gr-ink-soft);
-}
-
 .columns {
   display: grid;
   grid-template-columns: var(--gr-card-columns);
@@ -180,16 +174,4 @@ h3 i {
   font-size: var(--gr-size-card-aside);
   color: var(--gr-ink-soft);
   padding: var(--gr-card-none-pad);
-}
-
-.card-foot {
-  display: flex;
-  gap: var(--gr-card-foot-gap);
-  margin-top: var(--gr-card-foot-margin);
-  padding-top: var(--gr-card-foot-pad);
-  border-top: 1px solid var(--gr-hairline);
-}
-
-.spacer {
-  flex: 1;
 }
