@@ -16,7 +16,8 @@
   color: var(--gr-ink-soft);
 }
 
-/* The folders to show the cards of, the picked one underlined in rubric. */
+/* Your tasks or your Jira issues, and the folders to show the cards of, the picked one underlined in rubric. */
+.tabs,
 .folders {
   display: flex;
   flex-wrap: wrap;
@@ -45,7 +46,8 @@ h3 {
   color: var(--gr-ink);
 }
 
-.word[aria-checked='true'] {
+.word[aria-checked='true'],
+.word[aria-selected='true'] {
   color: var(--gr-ink);
   border-bottom: var(--gr-schedule-word-rule);
 }

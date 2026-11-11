@@ -124,6 +124,22 @@ export async function openBoard(fixture: { whenStable(): Promise<unknown> }, el:
   await fixture.whenStable();
 }
 
+/** Turns to the board's tab of your tasks or of your Jira issues. */
+export async function showTab(
+  fixture: { whenStable(): Promise<unknown> },
+  el: HTMLElement,
+  name: 'My tasks' | 'Jira',
+) {
+  button(el.querySelector('gr-kanban-page .tabs')!, name).click();
+  await fixture.whenStable();
+}
+
+/** Opens the board on its tab of your Jira issues. */
+export async function openJira(fixture: { whenStable(): Promise<unknown> }, el: HTMLElement) {
+  await openBoard(fixture, el);
+  await showTab(fixture, el, 'Jira');
+}
+
 export const cardEl = (el: HTMLElement, title: string) =>
   [...el.querySelectorAll<HTMLElement>('gr-kanban-page .card[data-card]')].find(
     (c) => c.querySelector('.name')?.textContent!.trim() === title,

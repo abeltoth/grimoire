@@ -3,6 +3,29 @@
 }
 
 @if (board.all()) {
+  @if (jiraTab()) {
+    <p class="tabs" role="tablist" aria-label="Cards">
+      <button
+        type="button"
+        class="word"
+        role="tab"
+        [attr.aria-selected]="view() === 'tasks'"
+        (click)="show('tasks')"
+      >
+        My tasks
+      </button>
+      <button
+        type="button"
+        class="word"
+        role="tab"
+        [attr.aria-selected]="view() === 'jira'"
+        (click)="show('jira')"
+      >
+        Jira
+      </button>
+    </p>
+  }
+
   @if (folders().length > 1) {
     <p class="folders" role="radiogroup" aria-label="Folder">
       <span class="label" aria-hidden="true">Folder</span>
@@ -29,7 +52,7 @@
     </p>
   }
 
-  @if (jira(); as sync) {
+  @if (view() === 'jira' && jira(); as sync) {
     <p class="jira-sync" role="status">
       <span class="label">Jira</span>
       @if (sync.syncing) {
@@ -242,7 +265,7 @@
               }
             </li>
           }
-          @if (c.column === 'todo') {
+          @if (c.column === 'todo' && view() === 'tasks') {
             <li class="card new">
               @if (editing() === 'new') {
                 <gr-card-form (done)="editing.set(null)" />

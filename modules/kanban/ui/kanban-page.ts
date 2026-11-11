@@ -48,9 +48,10 @@ interface ListedChat {
  * card at the foot of To do writes a new one. The board can show one
  * folder's cards only.
  *
- * Your Jira issues are cards too, after your own in each column, as Jira's
- * status categories place them: each with its key, type, priority and
- * status, an edge of its own, and a link to it in Jira. They belong to no
+ * Your Jira issues are cards too, on a Jira tab of their own beside your
+ * tasks, which show first, in columns as Jira's status categories place
+ * them: each with its key, type, priority and status, an edge of its own,
+ * and a link to it in Jira. They belong to no
  * folder, so show whichever is picked, and their chats begin in it.
  * Opening the board syncs them, unless that was done a minute ago; it
  * says when they were synced, or why they couldn't be.
@@ -97,6 +98,8 @@ export class KanbanPage {
   /** The folder whose cards show; all when null. */
   private readonly picked = signal<string | null>(null);
   protected readonly showClosed = signal(false);
+  /** The tab picked: your own tasks, or your Jira issues. */
+  private readonly tab = signal<'tasks' | 'jira'>('tasks');
   /** The titles of chats that aren't open: as the agents list them, or as they were while open. */
   private readonly titles = signal<ReadonlyMap<string, string>>(new Map());
 
@@ -109,15 +112,24 @@ export class KanbanPage {
     const picked = this.picked();
     return picked && this.folders().includes(picked) ? picked : null;
   });
-  private readonly shown = computed(() => {
-    const folder = this.folder();
-    return (this.board.all() ?? []).filter((card) => !folder || !card.cwd || card.cwd === folder);
-  });
   /** Where the Jira issues stand, said once there's a connector, or issues from one. */
   protected readonly jira = computed(() => {
     const jira = this.board.jira();
-    const any = (this.board.all() ?? []).some((card) => card.kind === 'jira');
-    return jira && (jira.status !== 'none' || any) ? jira : undefined;
+    return jira && (jira.status !== 'none' || this.anyJira()) ? jira : undefined;
+  });
+  private readonly anyJira = computed(() =>
+    (this.board.all() ?? []).some((card) => card.kind === 'jira'),
+  );
+  /** Whether the board has a Jira tab: once there's a connector, or issues from one. */
+  protected readonly jiraTab = computed(() => !!this.jira() || this.anyJira());
+  /** The tab that shows: your tasks, unless Jira's is picked while there's a Jira tab. */
+  protected readonly view = computed(() => (this.jiraTab() ? this.tab() : 'tasks'));
+  private readonly shown = computed(() => {
+    const folder = this.folder();
+    const jira = this.view() === 'jira';
+    return (this.board.all() ?? []).filter(
+      (card) => (card.kind === 'jira') === jira && (!folder || !card.cwd || card.cwd === folder),
+    );
   });
   protected readonly byColumn = computed(() => {
     const open = this.shown().filter((card) => card.closedAt === undefined);
@@ -150,6 +162,12 @@ export class KanbanPage {
 
   protected pick(folder: string | null): void {
     this.picked.set(folder);
+  }
+
+  protected show(tab: 'tasks' | 'jira'): void {
+    this.tab.set(tab);
+    this.editing.set(null);
+    this.moving.set(null);
   }
 
   protected columnName(column: CardColumn): string {
