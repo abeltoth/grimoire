@@ -1,0 +1,74 @@
+/* A note written out on its slip: the text on a dotted line, in pen, and when to be reminded under it. */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-notes-form-gap);
+}
+
+.line {
+  padding: 0;
+  border: 0;
+  border-bottom: var(--gr-rename-rule);
+  background: transparent;
+  font: inherit;
+  font-size: var(--gr-size-aside);
+  line-height: var(--gr-notes-leading);
+  color: var(--gr-pen);
+  caret-color: var(--gr-pen);
+  outline: none;
+}
+
+.line.text {
+  width: 100%;
+  resize: vertical;
+}
+
+.line::placeholder {
+  font-style: italic;
+  color: var(--gr-ink-placeholder);
+}
+
+.line:focus-visible {
+  border-bottom-color: var(--gr-pen);
+}
+
+.words {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--gr-notes-word-gap);
+  font-size: var(--gr-size-label);
+}
+
+.label {
+  font-family: var(--gr-font-sc);
+  letter-spacing: var(--gr-tracking-label);
+  color: var(--gr-ink-soft);
+}
+
+.line.when {
+  font-size: var(--gr-size-label);
+}
+
+.actions {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-notes-actions-gap);
+  font-size: var(--gr-size-label);
+}
+
+.send {
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-control);
+  font-weight: 500;
+  letter-spacing: var(--gr-tracking-label);
+  color: var(--gr-rubric);
+}
+
+.send:hover:not([aria-disabled]) {
+  color: var(--gr-ink);
+}
+
+.send[aria-disabled] {
+  color: var(--gr-ink-faint);
+}

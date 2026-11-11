@@ -52,6 +52,7 @@ describe('command-palette', () => {
       'New chapter',
       'New chapter from preset',
       'Close chapter',
+      'New note',
       'Single page',
       'Old notes',
       'New onboarding flow',
@@ -66,20 +67,28 @@ describe('command-palette', () => {
     expect(texts('gr-command-palette .entry .label')).toEqual([
       'New chapter',
       'New chapter from preset',
+      'New note',
       'New onboarding flow',
     ]);
-    expect(texts('gr-command-palette .entry b')).toEqual(['New', 'New', 'New']);
-    expect(texts('gr-command-palette .count')).toEqual(['3 entries']);
+    expect(texts('gr-command-palette .entry b')).toEqual(['New', 'New', 'New', 'New']);
+    expect(texts('gr-command-palette .count')).toEqual(['4 entries']);
     expect(texts('gr-command-palette .entry .gloss')).toEqual([
       'with your last settings',
       'pick a preset first',
       'Claude Code · ~/git/breeder',
     ]);
-    expect(texts('gr-command-palette .entry .where .gr-kbd')).toEqual(['Ctrl', 'N']);
+    expect(texts('gr-command-palette .entry .where .gr-kbd')).toEqual([
+      'Ctrl',
+      'N',
+      'Ctrl',
+      'Shift',
+      'N',
+    ]);
     expect(texts('gr-command-palette .entry[aria-selected="true"] .label')).toEqual([
       'New chapter',
     ]);
 
+    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
     field.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
     field.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
     field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));

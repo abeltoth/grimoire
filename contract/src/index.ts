@@ -20,6 +20,7 @@ export * from '../../modules/git/contract';
 export * from '../../modules/history/contract';
 export * from '../../modules/kanban/contract';
 export * from '../../modules/memories/contract';
+export * from '../../modules/notes/contract';
 export * from '../../modules/schedules/contract';
 export * from '../../modules/search/contract';
 export * from '../../modules/terminal/contract';

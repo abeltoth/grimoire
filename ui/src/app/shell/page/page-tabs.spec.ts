@@ -9,6 +9,7 @@ describe('page-tabs', () => {
       'Table of contents',
       'Front matter',
       'Kanban',
+      'Marginalia',
       'Memory map',
       'Scheduled chats',
       'Ledger',

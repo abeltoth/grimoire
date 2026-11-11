@@ -9,8 +9,6 @@ A custom UI for Claude Code, built on the Claude Agent SDK.
 - Long run: many features, custom style, animations
 
 ## To-do
-Option to disable JIRA tasks
-Notetaker for short random notes
 Show agent websearch details
 Create better ai workflow for home development
 Rework history to resume tasks easier
@@ -32,6 +30,9 @@ Thinking animation: the thinking text as words coming out of a symbol.
 Focus mode as a papyrus roll, like an ancient text, instead of a book, so it fits the screen better.
 
 ## Maybe
+Notes: save selected transcript text as a note
+Notes: search indexes notes
+Notes: notes tied to a project folder show when chatting in that folder
 Post mortem automation if ai fails some guidelines
 Pull request and CI status for each chat, with auto-fix
 Auto-archive chats when their pull request is merged

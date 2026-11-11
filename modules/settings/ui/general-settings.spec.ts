@@ -58,6 +58,7 @@ describe('general-settings', () => {
       'History',
       'Workflow setup',
       'Kanban',
+      'Notes',
       'Memories',
       'Scheduled chats',
       'Usage',

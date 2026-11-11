@@ -1,0 +1,99 @@
+@if (notes.failed(); as error) {
+  <p class="error" role="alert">{{ error }}</p>
+}
+
+@if (notes.all()) {
+  <ul class="notes">
+    <li class="note new">
+      @if (notes.composing()) {
+        <gr-note-form (done)="notes.composing.set(false)" />
+      } @else {
+        <button type="button" class="add" (click)="notes.composing.set(true)">A new note…</button>
+      }
+    </li>
+
+    @for (note of notes.open(); track note.id) {
+      <li
+        class="note"
+        [attr.data-note]="note.id"
+        [class.due]="note.due"
+        [class.pinned]="note.pinned && !note.due"
+      >
+        @if (editing() === note.id) {
+          <gr-note-form [note]="note" (done)="editing.set(null)" />
+        } @else {
+          <p class="text">{{ note.text }}</p>
+          @if (note.remindAt !== undefined || note.madeIn) {
+            <p class="meta">
+              @if (note.remindAt !== undefined) {
+                <span class="when" [class.alert]="note.due">{{ reminderLine(note) }}</span>
+              }
+              @if (note.madeIn; as chat) {
+                <button type="button" class="gr-link" (click)="notes.openChat(chat)">
+                  {{ wording.say('From a chapter', 'From a chat') }}
+                </button>
+              }
+            </p>
+          }
+          <div class="actions">
+            @if (note.due) {
+              <span class="ask">Snooze</span>
+              <button type="button" class="gr-link" (click)="snooze(note, 'hour')">An hour</button>
+              <button type="button" class="gr-link" (click)="snooze(note, 'tomorrow')">
+                Till tomorrow
+              </button>
+            }
+            <button type="button" class="gr-link done" (click)="notes.markDone(note.id, true)">
+              Done
+            </button>
+            <button type="button" class="gr-link" (click)="notes.pin(note, !note.pinned)">
+              {{ note.pinned ? 'Unpin' : 'Pin' }}
+            </button>
+            <button type="button" class="gr-link" (click)="editing.set(note.id)">Change</button>
+            <button type="button" class="gr-link" (click)="notes.newChat(note)">
+              {{ wording.say('New chapter', 'New chat') }}
+            </button>
+            <button type="button" class="gr-link" (click)="notes.toKanban(note)">To Kanban</button>
+            <button type="button" class="gr-link" (click)="notes.remove(note.id)">Delete</button>
+          </div>
+        }
+      </li>
+    }
+  </ul>
+
+  @if (notes.done().length) {
+    <section class="finished" aria-labelledby="gr-notes-done">
+      <button
+        type="button"
+        class="gr-link"
+        id="gr-notes-done"
+        [attr.aria-expanded]="showDone()"
+        (click)="showDone.set(!showDone())"
+      >
+        {{
+          showDone()
+            ? 'Hide the done notes'
+            : notes.done().length === 1
+              ? 'Show the done note'
+              : 'Show the ' + notes.done().length + ' done notes'
+        }}
+      </button>
+      @if (showDone()) {
+        <ul>
+          @for (note of notes.done(); track note.id) {
+            <li>
+              <span class="done-text">{{ note.text }}</span
+              >&ngsp;
+              <button type="button" class="gr-link" (click)="notes.markDone(note.id, false)">
+                Reopen
+              </button>
+              <button type="button" class="gr-link" (click)="notes.remove(note.id)">Delete</button>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  }
+} @else {
+  <p class="none">Asking the service…</p>
+}

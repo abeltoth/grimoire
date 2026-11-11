@@ -6,6 +6,7 @@ import { provideWorkflowSetup } from '../../../modules/workflow-setup/ui/workflo
 import { provideGit } from '../../../modules/git/ui/git.providers';
 import { provideHistory } from '../../../modules/history/ui/history.providers';
 import { provideKanban } from '../../../modules/kanban/ui/kanban.providers';
+import { provideNotes } from '../../../modules/notes/ui/notes.providers';
 import { provideUsage } from '../../../modules/usage/ui/usage.providers';
 import { provideMemories } from '../../../modules/memories/ui/memories.providers';
 import { provideScheduledChats } from '../../../modules/schedules/ui/schedules.providers';
@@ -23,6 +24,7 @@ export const appConfig: ApplicationConfig = {
     provideHistory(),
     provideWorkflowSetup(),
     provideKanban(),
+    provideNotes(),
     provideMemories(),
     provideUsage(),
     provideScheduledChats(),

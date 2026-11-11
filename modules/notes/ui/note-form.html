@@ -1,0 +1,38 @@
+<form
+  class="form"
+  (submit)="$event.preventDefault(); save()"
+  (keydown.escape)="$event.preventDefault(); done.emit()"
+>
+  <textarea
+    class="line text"
+    rows="3"
+    aria-label="Note"
+    placeholder="A note"
+    [value]="text()"
+    (input)="text.set($any($event.target).value)"
+    (keydown)="saveOnShortcut($event)"
+  ></textarea>
+
+  <span class="words" role="group" aria-label="Reminder">
+    <span class="label" aria-hidden="true">Remind me</span>
+    <button type="button" class="gr-link" (click)="inAnHour()">In an hour</button>
+    <button type="button" class="gr-link" (click)="tomorrow()">Tomorrow morning</button>
+    <input
+      class="line when"
+      type="datetime-local"
+      aria-label="Reminder time"
+      [value]="remindAt()"
+      (input)="remindAt.set($any($event.target).value)"
+    />
+    @if (remindAt()) {
+      <button type="button" class="gr-link" (click)="remindAt.set('')">No reminder</button>
+    }
+  </span>
+
+  <div class="actions">
+    <button type="submit" class="send" [attr.aria-disabled]="!complete() || saving() || null">
+      {{ note() ? 'Save' : 'Add the note' }}
+    </button>
+    <button type="button" class="gr-link" (click)="done.emit()">Cancel</button>
+  </div>
+</form>

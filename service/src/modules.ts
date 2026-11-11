@@ -5,6 +5,7 @@ import { git } from '../../modules/git/service';
 import { history } from '../../modules/history/service';
 import { kanban } from '../../modules/kanban/service';
 import { memories } from '../../modules/memories/service';
+import { notes } from '../../modules/notes/service';
 import { schedules } from '../../modules/schedules/service';
 import { search } from '../../modules/search/service';
 import { terminal } from '../../modules/terminal/service';
@@ -17,6 +18,7 @@ export const MODULES: readonly ServiceModule[] = [
   history,
   kanban,
   memories,
+  notes,
   schedules,
   search,
   terminal,

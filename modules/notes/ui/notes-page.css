@@ -1,0 +1,136 @@
+:host {
+  display: block;
+  max-width: var(--gr-notes-width);
+}
+
+.error {
+  margin: 0 0 var(--gr-notes-section-gap);
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-rubric);
+}
+
+.none {
+  margin: 0;
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.notes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-notes-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Each note a slip on the page. */
+.note {
+  padding: var(--gr-notes-pad);
+  border: var(--gr-notes-rule);
+  border-radius: var(--gr-notes-radius);
+  background: var(--gr-notes-paper);
+  font-size: var(--gr-size-aside);
+  line-height: var(--gr-notes-leading);
+  color: var(--gr-ink);
+}
+
+.note.pinned {
+  border-left: var(--gr-notes-pinned-edge);
+}
+
+/* A note whose reminder is due: edged in rubric. */
+.note.due {
+  border-left: var(--gr-notes-due-edge);
+}
+
+.text,
+.meta {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.text {
+  white-space: pre-line;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--gr-notes-actions-gap);
+  margin-top: var(--gr-aside-gap);
+  font-size: var(--gr-size-label);
+}
+
+.when {
+  font-style: italic;
+  color: var(--gr-ink-soft);
+}
+
+.when.alert {
+  font-style: normal;
+  color: var(--gr-rubric);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--gr-notes-actions-gap);
+  margin-top: var(--gr-aside-gap);
+  font-size: var(--gr-size-label);
+}
+
+.ask {
+  font-style: italic;
+  color: var(--gr-ink-soft);
+}
+
+/* The empty slip at the head of the notes, that writes a new one. */
+.note.new {
+  border: var(--gr-notes-new-rule);
+  background: transparent;
+}
+
+.add {
+  width: 100%;
+  padding: 0;
+  text-align: start;
+  font-style: italic;
+  color: var(--gr-ink-soft);
+}
+
+.add:hover {
+  color: var(--gr-ink);
+}
+
+/* The done notes, kept under the others to open again. */
+.finished {
+  margin-top: var(--gr-notes-section-gap);
+  padding-bottom: var(--gr-notes-section-gap);
+  font-size: var(--gr-size-aside);
+}
+
+.finished ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-aside-gap);
+  margin: var(--gr-aside-gap) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.finished li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--gr-notes-actions-gap);
+}
+
+.done-text {
+  color: var(--gr-ink-soft);
+  white-space: pre-line;
+}

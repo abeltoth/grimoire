@@ -512,6 +512,22 @@
   --gr-kanban-jira-mark: var(--gr-lapis);
   --gr-kanban-jira-marks-gap: 6px;
 
+  /* Marginalia: your notes, each a slip on the page, one due edged in rubric */
+  --gr-notes-width: 620px;
+  --gr-notes-section-gap: 18px;
+  --gr-notes-gap: 10px;
+  --gr-notes-pad: 9px 11px 8px;
+  --gr-notes-rule: 1px solid var(--gr-hairline);
+  --gr-notes-radius: var(--gr-radius-control);
+  --gr-notes-paper: var(--gr-page-next);
+  --gr-notes-leading: 1.35;
+  --gr-notes-due-edge: 3px solid var(--gr-rubric);
+  --gr-notes-pinned-edge: 3px solid var(--gr-hairline);
+  --gr-notes-new-rule: 1.5px dashed var(--gr-hairline);
+  --gr-notes-word-gap: 10px;
+  --gr-notes-actions-gap: 10px;
+  --gr-notes-form-gap: 8px;
+
   /* The Colophon: Grimoire's settings, written out as words to pick */
   --gr-settings-width: 640px;
   --gr-settings-lead-gap: 20px;
