@@ -11,7 +11,7 @@
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "build": "npm run build -w @grimoire/ui && node scripts/build.mjs",
-    "start": "electron app",
+    "start": "npm run build && electron app",
     "smoke": "npm run build && electron app --smoke",
     "test": "vitest run && npm test -w @grimoire/ui -- --watch=false",
     "typecheck": "tsc -p contract && tsc -p service && tsc -p app && tsc -p ui/tsconfig.app.json && tsc -p ui/tsconfig.spec.json",
