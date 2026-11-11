@@ -3,7 +3,7 @@ import type { Entry, SubagentRun, SubagentState, ToolBlock } from '@grimoire/con
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { ChatList } from '@ui/app/core/chat-list';
 import { POPOUT } from '@ui/app/core/popout';
-import { RightPageState } from '@ui/app/shell/right-page-state';
+import { RightPageState } from '@ui/app/shell/right-page/right-page-state';
 import { Focus } from '@ui/app/shell/focus';
 
 /** The right page's own page that shows what a subagent did. */

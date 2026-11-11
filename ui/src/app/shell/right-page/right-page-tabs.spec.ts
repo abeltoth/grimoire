@@ -1,11 +1,11 @@
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Settings } from '../core/settings';
-import { useFakeBridge } from '../../testing/app-testing';
-import { Focus } from './focus';
+import { Settings } from '../../core/settings';
+import { useFakeBridge } from '../../../testing/app-testing';
+import { Focus } from '../focus';
 import { RightPageState } from './right-page-state';
 import { RightPageTabs } from './right-page-tabs';
-import { ShellRegistry } from './shell-registry';
+import { ShellRegistry } from '../shell-registry';
 
 @Component({ template: '' })
 class Outline {}

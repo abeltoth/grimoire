@@ -5,8 +5,8 @@ import { ChatList } from '../core/chat-list';
 import { AgentCatalog } from '../core/agent-catalog';
 import { Wording } from '../core/wording';
 import { AgentCommands, type ListedCommand } from './agent-commands';
-import { PageFooter } from './page-footer';
-import { PageHeader } from './page-header';
+import { PageFooter } from './page/page-footer';
+import { PageHeader } from './page/page-header';
 
 interface Section {
   title: string;

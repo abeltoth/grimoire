@@ -1,18 +1,18 @@
 import { NgComponentOutlet } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
-import { Drawing } from '../../design-system/drawing';
-import { ChatList } from '../core/chat-list';
-import { Wording } from '../core/wording';
-import { SlashCommands } from './slash-commands';
-import { CommandPalette } from './command-palette';
-import { Page } from './page';
-import { PageFooter } from './page-footer';
-import { PageHeader } from './page-header';
+import { Drawing } from '../../../design-system/drawing';
+import { ChatList } from '../../core/chat-list';
+import { Wording } from '../../core/wording';
+import { SlashCommands } from '../slash-commands';
+import { CommandPalette } from '../command-palette';
+import { Page } from '../page/page';
+import { PageFooter } from '../page/page-footer';
+import { PageHeader } from '../page/page-header';
 import { RightPageState } from './right-page-state';
 import { RightPageTabs } from './right-page-tabs';
-import { Focus } from './focus';
-import { TabPage } from './tab-page';
-import { type RightPageEntry, ShellRegistry } from './shell-registry';
+import { Focus } from '../focus';
+import { TabPage } from '../page/tab-page';
+import { type RightPageEntry, ShellRegistry } from '../shell-registry';
 
 /**
  * The right-hand page. Its page header lists what it can show, as

@@ -1,6 +1,6 @@
 import type { AlwaysAllow, Approval } from '@grimoire/contract';
-import { type DiffLine, fileChange } from './diff';
-import { relativeTo } from './rows';
+import { type DiffLine, fileChange } from '../transcript/diff';
+import { relativeTo } from '../transcript/rows';
 
 /** What an approval asks for, as the approval card shows it. */
 export type Ask =

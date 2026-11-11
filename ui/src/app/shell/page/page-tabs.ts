@@ -1,9 +1,9 @@
 import { Component, ElementRef, afterRenderEffect, computed, inject, signal } from '@angular/core';
-import { GRIMOIRE_BRIDGE } from '../core/bridge';
-import { Wording } from '../core/wording';
-import { RightPageState } from './right-page-state';
-import { ShellRegistry } from './shell-registry';
-import { ShortcutPipe } from './shortcut';
+import { GRIMOIRE_BRIDGE } from '../../core/bridge';
+import { Wording } from '../../core/wording';
+import { RightPageState } from '../right-page/right-page-state';
+import { ShellRegistry } from '../shell-registry';
+import { ShortcutPipe } from '../shortcut';
 
 /** How close the tabs may be drawn, as a share of their full spacing. */
 const CLOSEST = 0.25;

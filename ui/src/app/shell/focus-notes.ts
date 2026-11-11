@@ -2,7 +2,7 @@ import { computed, effect, inject } from '@angular/core';
 import { type Chat } from '../core/chat';
 import { ChatList } from '../core/chat-list';
 import { Wording } from '../core/wording';
-import { RightPageState } from './right-page-state';
+import { RightPageState } from './right-page/right-page-state';
 import { Focus } from './focus';
 import type { ShellRegistry } from './shell-registry';
 

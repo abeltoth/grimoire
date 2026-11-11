@@ -1,5 +1,5 @@
 import type { OpenChat } from '@grimoire/contract';
-import { fakeBridge, pick, render, write } from '../../testing/app-testing';
+import { fakeBridge, pick, render, write } from '../../../testing/app-testing';
 
 describe('chat-tabs', () => {
   it('opens a new blank chat from the New chat tab', async () => {

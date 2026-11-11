@@ -12,7 +12,7 @@ import {
 import type { SetupFile } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { AgentCatalog } from '@ui/app/core/agent-catalog';
-import { RightPageState } from './right-page-state';
+import { RightPageState } from './right-page/right-page-state';
 import { type Shortcut, ShortcutPipe, matchesShortcut } from './shortcut';
 
 const SAVE: Shortcut = 'Mod+S';

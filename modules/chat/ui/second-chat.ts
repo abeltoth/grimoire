@@ -3,9 +3,9 @@ import { type Chat } from '@ui/app/core/chat';
 import { ChatList } from '@ui/app/core/chat-list';
 import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { Wording } from '@ui/app/core/wording';
-import { RightPageTabs } from '@ui/app/shell/right-page-tabs';
-import { PageFooter } from '@ui/app/shell/page-footer';
-import { PageHeader } from '@ui/app/shell/page-header';
+import { RightPageTabs } from '@ui/app/shell/right-page/right-page-tabs';
+import { PageFooter } from '@ui/app/shell/page/page-footer';
+import { PageHeader } from '@ui/app/shell/page/page-header';
 import { ChatPage, SECOND_CHAT } from './chat-page';
 
 /**

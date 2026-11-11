@@ -1,6 +1,6 @@
 import { type EnvironmentProviders, effect, inject } from '@angular/core';
 import { Profiles } from '@ui/app/core/profiles';
-import { RightPageState } from '@ui/app/shell/right-page-state';
+import { RightPageState } from '@ui/app/shell/right-page/right-page-state';
 import { provideShellEntries } from '@ui/app/shell/shell-registry';
 import { SettingsPage } from './settings-page';
 

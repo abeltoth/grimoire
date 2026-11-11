@@ -1,7 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import type { Approval } from '@grimoire/contract';
-import { RightPageState } from '@ui/app/shell/right-page-state';
+import { RightPageState } from '@ui/app/shell/right-page/right-page-state';
 import { useFakeBridge } from '@ui/testing/app-testing';
 import { ApprovalStub } from './approval-stub';
 

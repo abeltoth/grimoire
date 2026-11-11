@@ -1,6 +1,6 @@
 import { type EnvironmentProviders, effect, inject } from '@angular/core';
 import { POPOUT } from '@ui/app/core/popout';
-import { RightPageState } from '@ui/app/shell/right-page-state';
+import { RightPageState } from '@ui/app/shell/right-page/right-page-state';
 import { Focus } from '@ui/app/shell/focus';
 import { provideShellEntries } from '@ui/app/shell/shell-registry';
 import { FilesPage } from './files-page';

@@ -17,10 +17,10 @@ import { ChatList } from '../core/chat-list';
 import { AgentCatalog } from '../core/agent-catalog';
 import { Presets } from '../core/presets';
 import { Wording } from '../core/wording';
-import { RightPageState } from './right-page-state';
+import { RightPageState } from './right-page/right-page-state';
 import { Focus } from './focus';
-import { PageFooter } from './page-footer';
-import { PageHeader } from './page-header';
+import { PageFooter } from './page/page-footer';
+import { PageHeader } from './page/page-header';
 import { ShellRegistry } from './shell-registry';
 import { type Shortcut, formatShortcut } from './shortcut';
 

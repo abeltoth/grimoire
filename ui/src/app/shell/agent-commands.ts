@@ -1,7 +1,7 @@
 import { Injectable, PendingTasks, computed, inject, linkedSignal, signal } from '@angular/core';
 import type { AgentCommand } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '../core/bridge';
-import { type CommandSearch, RightPageState } from './right-page-state';
+import { type CommandSearch, RightPageState } from './right-page/right-page-state';
 
 /** A command as listed: its name as you'd write it, split around what you searched for. */
 export interface ListedCommand extends AgentCommand {

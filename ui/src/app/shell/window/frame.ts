@@ -1,5 +1,5 @@
 import { Component, input } from '@angular/core';
-import { Drawing } from '../../design-system/drawing';
+import { Drawing } from '../../../design-system/drawing';
 
 /**
  * The open book: the cover with its gilt line and spine ornament, and the

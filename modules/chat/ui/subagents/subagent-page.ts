@@ -4,11 +4,11 @@ import { type Chat } from '@ui/app/core/chat';
 import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { modelLabel } from '@ui/app/core/tokens';
 import { Wording } from '@ui/app/core/wording';
-import { RightPageTabs } from '@ui/app/shell/right-page-tabs';
-import { PageFooter } from '@ui/app/shell/page-footer';
-import { PageHeader } from '@ui/app/shell/page-header';
+import { RightPageTabs } from '@ui/app/shell/right-page/right-page-tabs';
+import { PageFooter } from '@ui/app/shell/page/page-footer';
+import { PageHeader } from '@ui/app/shell/page/page-header';
 import { SUBAGENT_PAGE, Subagents } from './subagents';
-import { Transcript } from './transcript';
+import { Transcript } from '../transcript/transcript';
 
 /**
  * The right page's Subagent: what a subagent did with the task one of a

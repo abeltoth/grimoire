@@ -1,12 +1,12 @@
 import { type EnvironmentProviders, effect, inject, untracked } from '@angular/core';
 import { ChatList } from '@ui/app/core/chat-list';
-import { RightPageState } from '@ui/app/shell/right-page-state';
+import { RightPageState } from '@ui/app/shell/right-page/right-page-state';
 import { provideShellEntries } from '@ui/app/shell/shell-registry';
 import { ChatPage, SECOND_CHAT } from './chat-page';
-import { SubagentPage } from './subagent-page';
-import { SUBAGENT_PAGE, Subagents } from './subagents';
-import { Plan, planFoot } from './plan';
-import { ApprovalsPage } from './approvals-page';
+import { SubagentPage } from './subagents/subagent-page';
+import { SUBAGENT_PAGE, Subagents } from './subagents/subagents';
+import { Plan, planFoot } from './transcript/plan';
+import { ApprovalsPage } from './approvals/approvals-page';
 import { SecondChat } from './second-chat';
 
 /**

@@ -7,10 +7,10 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { Icon } from '../../design-system/icon';
-import { Profiles } from '../core/profiles';
-import { Wording } from '../core/wording';
-import { RightPageState } from './right-page-state';
+import { Icon } from '../../../design-system/icon';
+import { Profiles } from '../../core/profiles';
+import { Wording } from '../../core/wording';
+import { RightPageState } from '../right-page/right-page-state';
 import { WindowControls } from './window-controls';
 
 /**

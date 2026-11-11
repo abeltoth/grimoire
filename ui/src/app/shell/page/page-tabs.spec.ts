@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
-import { provideShellEntries } from './shell-registry';
-import { fakeBridge, render } from '../../testing/app-testing';
+import { provideShellEntries } from '../shell-registry';
+import { fakeBridge, render } from '../../../testing/app-testing';
 
 describe('page-tabs', () => {
   it('shows the registered page tabs, then the command palette', async () => {

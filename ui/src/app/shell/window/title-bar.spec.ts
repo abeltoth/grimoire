@@ -1,5 +1,5 @@
 import type { Profiles } from '@grimoire/contract';
-import { fakeBridge, render } from '../../testing/app-testing';
+import { fakeBridge, render } from '../../../testing/app-testing';
 
 const personal = { id: 'personal', name: 'Personal', claudeFolder: null };
 const work = {

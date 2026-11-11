@@ -1,9 +1,9 @@
 import { Component, inject, input } from '@angular/core';
-import { Icon } from '../../design-system/icon';
-import { Wording } from '../core/wording';
+import { Icon } from '../../../design-system/icon';
+import { Wording } from '../../core/wording';
 import { RightPageState } from './right-page-state';
-import { Focus } from './focus';
-import { type RightPageEntry, ShellRegistry } from './shell-registry';
+import { Focus } from '../focus';
+import { type RightPageEntry, ShellRegistry } from '../shell-registry';
 
 /**
  * The first line of the right page's page header: the tabs of what it

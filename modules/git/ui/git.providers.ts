@@ -1,5 +1,5 @@
 import { type EnvironmentProviders, effect, inject } from '@angular/core';
-import { RightPageState } from '@ui/app/shell/right-page-state';
+import { RightPageState } from '@ui/app/shell/right-page/right-page-state';
 import { provideShellEntries } from '@ui/app/shell/shell-registry';
 import { GitPage } from './git-page';
 import { GitState, branchLabel, badgesOf, statusDetail } from './git-state';

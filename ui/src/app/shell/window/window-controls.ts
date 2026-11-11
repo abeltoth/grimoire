@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
-import { Icon } from '../../design-system/icon';
-import { GRIMOIRE_BRIDGE } from '../core/bridge';
+import { Icon } from '../../../design-system/icon';
+import { GRIMOIRE_BRIDGE } from '../../core/bridge';
 
 /**
  * The window's minimize, maximize and close buttons, drawn on Windows;

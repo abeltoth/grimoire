@@ -5,9 +5,9 @@ import { ChatList } from '@ui/app/core/chat-list';
 import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { ChatActions } from '@ui/app/core/chat-actions';
 import { Wording } from '@ui/app/core/wording';
-import { RightPageState } from '@ui/app/shell/right-page-state';
-import { PageFooter } from '@ui/app/shell/page-footer';
-import { PageHeader } from '@ui/app/shell/page-header';
+import { RightPageState } from '@ui/app/shell/right-page/right-page-state';
+import { PageFooter } from '@ui/app/shell/page/page-footer';
+import { PageHeader } from '@ui/app/shell/page/page-header';
 import { ApprovalCard } from './approval-card';
 
 interface Waiting {

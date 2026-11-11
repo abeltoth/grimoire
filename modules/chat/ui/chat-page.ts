@@ -26,19 +26,19 @@ import { Presets } from '@ui/app/core/presets';
 import { Wording } from '@ui/app/core/wording';
 import { AgentCommands } from '@ui/app/shell/agent-commands';
 import { SlashCommands } from '@ui/app/shell/slash-commands';
-import { RightPageState } from '@ui/app/shell/right-page-state';
-import { RightPageTabs } from '@ui/app/shell/right-page-tabs';
+import { RightPageState } from '@ui/app/shell/right-page/right-page-state';
+import { RightPageTabs } from '@ui/app/shell/right-page/right-page-tabs';
 import { Focus } from '@ui/app/shell/focus';
-import { PageFooter } from '@ui/app/shell/page-footer';
+import { PageFooter } from '@ui/app/shell/page/page-footer';
 import { HeaderBadges } from '@ui/app/shell/header-badges';
-import { PageHeader } from '@ui/app/shell/page-header';
+import { PageHeader } from '@ui/app/shell/page/page-header';
 import { ShellRegistry } from '@ui/app/shell/shell-registry';
 import { StatusIndicators } from '@ui/app/shell/status-indicators';
 import { ChatIntro } from './chat-intro';
-import { Composer } from './composer';
-import { FollowUps } from './follow-ups';
+import { Composer } from './composer/composer';
+import { FollowUps } from './transcript/follow-ups';
 import { SettingsCard } from './settings-card';
-import { Transcript } from './transcript';
+import { Transcript } from './transcript/transcript';
 
 /** The right page's own page that shows a second chat. */
 export const SECOND_CHAT = 'second-chat';

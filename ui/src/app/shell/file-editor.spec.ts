@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import type { SetupFile } from '@grimoire/contract';
 import { useFakeBridge } from '../../testing/app-testing';
 import { FileEditor } from './file-editor';
-import { RightPageState } from './right-page-state';
+import { RightPageState } from './right-page/right-page-state';
 
 const opened: SetupFile = {
   path: 'C:/Users/me/.claude/CLAUDE.md',

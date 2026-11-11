@@ -2,8 +2,8 @@ import { TestBed } from '@angular/core/testing';
 import { ShellRegistry } from '@ui/app/shell/shell-registry';
 import { fakeBridge, render, write } from '@ui/testing/app-testing';
 import { ChatPage } from './chat-page';
-import { ApprovalsPage } from './approvals-page';
-import { Subagents } from './subagents';
+import { ApprovalsPage } from './approvals/approvals-page';
+import { Subagents } from './subagents/subagents';
 
 describe('chat.providers', () => {
   it('fills the left page with the chat, and the right with its Plan, a second chat and a helper', async () => {

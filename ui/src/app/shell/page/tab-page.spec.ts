@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
-import { fakeBridge, render } from '../../testing/app-testing';
-import { RightPageState } from './right-page-state';
-import { provideShellEntries } from './shell-registry';
+import { fakeBridge, render } from '../../../testing/app-testing';
+import { RightPageState } from '../right-page/right-page-state';
+import { provideShellEntries } from '../shell-registry';
 
 describe('TabPage', () => {
   it('heads a page tab’s page with its label, blank until its feature is written, and turns back with Back or Esc', async () => {

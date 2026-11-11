@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import type { AgentCommand } from '@grimoire/contract';
 import { useFakeBridge } from '../../testing/app-testing';
 import { AgentCommands } from './agent-commands';
-import type { CommandSearch } from './right-page-state';
+import type { CommandSearch } from './right-page/right-page-state';
 
 const COMMANDS: AgentCommand[] = [
   { name: 'compact', description: 'Free up context', kind: 'command' },

@@ -1,5 +1,5 @@
 import type { TokenUse } from '@grimoire/contract';
-import { Diagrams } from './markdown/diagrams';
+import { Diagrams } from '../markdown/diagrams';
 import { fakeBridge, render, write } from '@ui/testing/app-testing';
 
 describe('transcript', () => {

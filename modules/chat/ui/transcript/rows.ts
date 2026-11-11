@@ -1,6 +1,6 @@
 import type { Entry, HookRun, ToolBlock } from '@grimoire/contract';
 import { weightOf } from '@ui/app/core/tokens';
-import { deedOf } from './commands';
+import { deedOf } from '../composer/commands';
 import { type DiffLine, type FileChange, fileChange } from './diff';
 import type { Deed, HookLog, Note, Row } from './row';
 import { margin } from './summary';

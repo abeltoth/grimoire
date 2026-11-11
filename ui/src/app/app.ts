@@ -6,20 +6,20 @@ import { ChatList } from './core/chat-list';
 import { POPOUT } from './core/popout';
 import { ServiceStatus } from './core/service-status';
 import { Wording } from './core/wording';
-import { Frame } from './shell/frame';
+import { Frame } from './shell/window/frame';
 import { SlashCommands } from './shell/slash-commands';
-import { RightPage } from './shell/right-page';
-import { RightPageState } from './shell/right-page-state';
+import { RightPage } from './shell/right-page/right-page';
+import { RightPageState } from './shell/right-page/right-page-state';
 import { Focus } from './shell/focus';
-import { Page } from './shell/page';
-import { ChatTabs } from './shell/chat-tabs';
-import { PageFooter } from './shell/page-footer';
+import { Page } from './shell/page/page';
+import { ChatTabs } from './shell/tabs/chat-tabs';
+import { PageFooter } from './shell/page/page-footer';
 import { ShellRegistry } from './shell/shell-registry';
 import { matchesShortcut } from './shell/shortcut';
 import { StatusIndicators } from './shell/status-indicators';
-import { PageTabs } from './shell/page-tabs';
-import { TitleBar } from './shell/title-bar';
-import { WindowControls } from './shell/window-controls';
+import { PageTabs } from './shell/page/page-tabs';
+import { TitleBar } from './shell/window/title-bar';
+import { WindowControls } from './shell/window/window-controls';
 
 /**
  * The window: the title bar, and the open book on the desk with its

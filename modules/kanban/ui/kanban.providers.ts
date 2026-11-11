@@ -1,6 +1,6 @@
 import { type EnvironmentProviders, effect, inject } from '@angular/core';
 import { Wording } from '@ui/app/core/wording';
-import { RightPageState } from '@ui/app/shell/right-page-state';
+import { RightPageState } from '@ui/app/shell/right-page/right-page-state';
 import { provideShellEntries } from '@ui/app/shell/shell-registry';
 import { Board, COLUMNS } from './board';
 import { KanbanPage } from './kanban-page';

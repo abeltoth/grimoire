@@ -1,7 +1,7 @@
 import { Component, computed, inject, input } from '@angular/core';
 import type { Approval } from '@grimoire/contract';
 import { Wording } from '@ui/app/core/wording';
-import { RightPageState } from '@ui/app/shell/right-page-state';
+import { RightPageState } from '@ui/app/shell/right-page/right-page-state';
 import { askOf } from './asks';
 
 /**

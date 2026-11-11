@@ -1,14 +1,14 @@
 import { Component, computed, inject } from '@angular/core';
-import { Icon, type IconName } from '../../design-system/icon';
-import { type Chat } from '../core/chat';
-import { ChatList } from '../core/chat-list';
-import { AgentCatalog } from '../core/agent-catalog';
-import { NewChats } from '../core/new-chats';
-import { Wording } from '../core/wording';
-import { RightPageState } from './right-page-state';
+import { Icon, type IconName } from '../../../design-system/icon';
+import { type Chat } from '../../core/chat';
+import { ChatList } from '../../core/chat-list';
+import { AgentCatalog } from '../../core/agent-catalog';
+import { NewChats } from '../../core/new-chats';
+import { Wording } from '../../core/wording';
+import { RightPageState } from '../right-page/right-page-state';
 import { ChatTab, type ChatTabTone } from './chat-tab';
-import { ShellRegistry } from './shell-registry';
-import { ShortcutPipe } from './shortcut';
+import { ShellRegistry } from '../shell-registry';
+import { ShortcutPipe } from '../shortcut';
 
 const STATUS_TEXT: Record<Chat['status'], string> = {
   writing: 'writing',

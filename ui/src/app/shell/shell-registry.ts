@@ -15,7 +15,7 @@ import { ChatList } from '../core/chat-list';
 import { NewChats } from '../core/new-chats';
 import { Profiles } from '../core/profiles';
 import { Wording } from '../core/wording';
-import { RightPageState } from './right-page-state';
+import { RightPageState } from './right-page/right-page-state';
 import { Focus } from './focus';
 import { noteWaitingChats } from './focus-notes';
 import type { Shortcut } from './shortcut';

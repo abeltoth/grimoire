@@ -1,9 +1,9 @@
 import { NgComponentOutlet } from '@angular/common';
 import { Component, inject, input } from '@angular/core';
-import { Wording } from '../core/wording';
-import { RightPageState } from './right-page-state';
+import { Wording } from '../../core/wording';
+import { RightPageState } from '../right-page/right-page-state';
 import { PageHeader } from './page-header';
-import type { PageTab } from './shell-registry';
+import type { PageTab } from '../shell-registry';
 
 /**
  * A page tab's page on the right page: its feature's own page, or a blank
