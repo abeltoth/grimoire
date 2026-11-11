@@ -22,7 +22,7 @@ export class AgentCatalog {
 
   readonly agents = signal<readonly AgentInfo[]>([]);
   /** Each agent's models, once it has listed them. */
-  readonly models = signal<Readonly<Record<AgentId, AgentModels>>>({});
+  readonly models = signal<Readonly<Partial<Record<AgentId, AgentModels>>>>({});
   readonly folders = signal<RecentFolders>({ home: '', recent: [] });
 
   constructor() {

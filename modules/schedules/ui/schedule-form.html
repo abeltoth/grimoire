@@ -61,7 +61,7 @@
     <button type="button" class="gr-link" (click)="chooseFolder()">Choose another…</button>
   </span>
 
-  @if (models()?.models?.length) {
+  @if (models()?.models.length) {
     <span class="label" id="gr-schedule-model">Model</span>
     <span class="words" role="radiogroup" aria-labelledby="gr-schedule-model">
       @for (m of models()!.models; track m.id) {
