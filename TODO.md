@@ -9,11 +9,9 @@ A custom UI for Claude Code, built on the Claude Agent SDK.
 - Long run: many features, custom style, animations
 
 ## To-do
-Form untick when typing is an option
-Plan may not work currently
-Separate tab for self/JIRA tasks
 Option to disable JIRA tasks
 Notetaker for short random notes
+Show agent websearch details
 Create better ai workflow for home development
 Rework history to resume tasks easier
 Show code changes properly when edited
