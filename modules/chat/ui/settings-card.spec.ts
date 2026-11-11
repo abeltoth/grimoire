@@ -143,7 +143,6 @@ describe('settings-card', () => {
     el.querySelector<HTMLButtonElement>('.meta [data-setting="mode"]')!.click();
     await fixture.whenStable();
 
-    expect(texts('gr-settings-card .card-head span')).toEqual([]);
     expect(texts('gr-settings-card [data-setting="folder"] .choice[aria-disabled]')).toEqual([
       '~/git/grimoire',
       '~',

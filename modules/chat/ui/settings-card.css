@@ -41,7 +41,6 @@
   color: var(--gr-ink);
 }
 
-.card-head span,
 /* The folder's MCP servers, in a strip under the columns: as many as it has. */
 .strip {
   display: flex;
