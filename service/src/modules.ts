@@ -1,5 +1,6 @@
 /** Every feature module's backend part: the one place the core imports a module from. */
 import type { ServiceModule } from './module';
+import { autoCompact } from '../../modules/auto-compact/service';
 import { files } from '../../modules/files/service';
 import { git } from '../../modules/git/service';
 import { history } from '../../modules/history/service';
@@ -13,6 +14,7 @@ import { usage } from '../../modules/usage/service';
 import { workflowSetup } from '../../modules/workflow-setup/service';
 
 export const MODULES: readonly ServiceModule[] = [
+  autoCompact,
   files,
   git,
   history,

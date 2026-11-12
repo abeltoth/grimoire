@@ -35,6 +35,11 @@ export interface GrimoireSettings {
    */
   followUps: boolean;
   /**
+   * Whether an idle open chat is compacted shortly before its prompt cache
+   * runs out, so going on later re-reads the summary instead of the whole chat.
+   */
+  autoCompact: boolean;
+  /**
    * Whether your Jira issues show on the Kanban board; turned off, they're
    * never fetched, which spends no tokens.
    */
@@ -61,6 +66,7 @@ export const DEFAULT_SETTINGS: GrimoireSettings = {
   mcpOff: [],
   suggestions: true,
   followUps: true,
+  autoCompact: false,
   jira: true,
   jiraQuery: DEFAULT_JIRA_QUERY,
 };

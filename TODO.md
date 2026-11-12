@@ -9,7 +9,6 @@ A custom UI for Claude Code, built on the Claude Agent SDK.
 - Long run: many features, custom style, animations
 
 ## To-do
-Auto compact before cache expires
 Show agent websearch details
 Create better ai workflow for home development
 Rework history to resume tasks easier

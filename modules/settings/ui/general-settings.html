@@ -188,6 +188,38 @@
       }}
     </p>
 
+    <span class="label" id="gr-settings-auto-compact">{{
+      wording.say('Sum up before the cache runs out', 'Compact before the cache runs out')
+    }}</span>
+    <span class="words" role="radiogroup" aria-labelledby="gr-settings-auto-compact">
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="all.autoCompact"
+        (click)="set({ autoCompact: true })"
+      >
+        On
+      </button>
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="!all.autoCompact"
+        (click)="set({ autoCompact: false })"
+      >
+        Off
+      </button>
+    </span>
+    <p class="note">
+      {{
+        wording.say(
+          'An open chapter left idle is summed up a minute and a half before its prompt cache runs out, while summing up still reads from the cache; chapters under 40K tokens are left whole.',
+          'An open chat left idle is compacted a minute and a half before its prompt cache runs out, while compacting still reads from the cache; chats under 40K tokens are left whole.'
+        )
+      }}
+    </p>
+
     <span class="label" id="gr-settings-mcp">{{
       wording.say('MCP servers in every chapter', 'MCP servers in every chat')
     }}</span>

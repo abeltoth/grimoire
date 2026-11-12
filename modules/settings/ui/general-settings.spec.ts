@@ -34,6 +34,7 @@ describe('general-settings', () => {
       'New chapters begin with',
       'Suggest the next entry',
       'Suggest separate chapters',
+      'Sum up before the cache runs out',
       'MCP servers in every chapter',
       'Jira issues on the Kanban board',
       'Jira query',
@@ -45,6 +46,7 @@ describe('general-settings', () => {
       'Your last settings',
       'On',
       'On',
+      'Off',
       'On',
     ]);
     expect(texts('gr-settings-page [aria-labelledby="gr-settings-mcp"] .none')).toEqual(['None']);
@@ -99,6 +101,18 @@ describe('general-settings', () => {
     await fixture.whenStable();
     expect(calls.filter((c) => c.command === 'settings.set').at(-1)!.request).toEqual({
       jira: false,
+    });
+
+    [
+      ...el.querySelectorAll<HTMLButtonElement>(
+        '[aria-labelledby="gr-settings-auto-compact"] .word',
+      ),
+    ]
+      .find((button) => button.textContent!.trim() === 'On')!
+      .click();
+    await fixture.whenStable();
+    expect(calls.filter((c) => c.command === 'settings.set').at(-1)!.request).toEqual({
+      autoCompact: true,
     });
 
     // Another window changed them back.

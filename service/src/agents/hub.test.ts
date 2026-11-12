@@ -289,4 +289,18 @@ describe('AgentHub', () => {
       until: 1_000,
     });
   });
+
+  it("glances at an open chat's status, cache and agent, and at nothing once it's closed", async () => {
+    fake.transcripts.set('c1', []);
+    fake.caches.set('c1', { tokens: 50_000, until: 1_000 });
+    await hub.open('fake', 'c1', settings);
+
+    expect(hub.glance('c1')).toEqual({
+      status: 'idle',
+      capabilities: [],
+      cache: { tokens: 50_000, until: 1_000 },
+    });
+    hub.close('c1');
+    expect(hub.glance('c1')).toBeUndefined();
+  });
 });

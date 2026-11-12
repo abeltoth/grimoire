@@ -1,5 +1,6 @@
 import { homedir } from 'node:os';
 import type {
+  AgentCapability,
   AgentCommand,
   AgentId,
   AgentInfo,
@@ -10,10 +11,12 @@ import type {
   Attachment,
   ChatId,
   ChatSettings,
+  ChatStatus,
   ChatSummary,
   NewChatSettings,
   OpenChat,
   ParallelFrom,
+  PromptCache,
   QueuedEntry,
   RecentFolders,
   SettingsChange,
@@ -30,6 +33,13 @@ import { ChatUpdates } from './chat-updates';
 import { Editors } from './editors';
 import { HubLifecycle } from './hub-lifecycle';
 import { NewChats } from './new-chats';
+
+/** What `AgentHub.glance` tells of an open chat. */
+export interface ChatGlance {
+  status: ChatStatus;
+  capabilities: readonly AgentCapability[];
+  cache?: PromptCache;
+}
 
 /**
  * The agent hub (ADR-007): the open chats, their transcripts and pending
@@ -190,6 +200,14 @@ export class AgentHub {
 
   fork(chatId: ChatId, entryId: string): Promise<OpenChat> {
     return this.newChats.fork(chatId, entryId);
+  }
+
+  /** An open chat's status, cache and what its agent can do, without copying its transcript; undefined once it's closed. */
+  glance(chatId: ChatId): ChatGlance | undefined {
+    const chat = this.table.chats.get(chatId);
+    if (!chat) return undefined;
+    const { status, cache } = chat;
+    return { status, capabilities: chat.agent.info.capabilities, ...(cache ? { cache } : {}) };
   }
 
   /** Sends a message, or queues it while a turn runs. */
