@@ -107,6 +107,14 @@
   display: block;
 }
 
+/* A plan to start on, read in full as the page's text. */
+.plan {
+  display: block;
+  padding: var(--gr-approval-card-command-pad);
+  border-top: 1px solid var(--gr-hairline);
+  border-bottom: 1px solid var(--gr-hairline);
+}
+
 /* What the agent says it's for: what you decide on, so it reads first. */
 .about {
   margin: 0;

@@ -4,6 +4,7 @@ import { deedOf } from '../composer/commands';
 import { type DiffLine, type FileChange, fileChange } from './diff';
 import type { Deed, HookLog, Note, Row } from './row';
 import { margin } from './summary';
+import { inputText } from './tool-input';
 import { parseWebSearch } from './web-search';
 
 /** How many of a chat's turns are marked its costliest, once it has more than that. */
@@ -260,14 +261,6 @@ function detailsOf(
         },
       }
     : {};
-}
-
-/** A tool's input a line each, as `name: value`; what isn't text, as JSON. */
-function inputText(input: unknown): string {
-  if (!input || typeof input !== 'object') return '';
-  return Object.entries(input)
-    .map(([name, value]) => `${name}: ${typeof value === 'string' ? value : JSON.stringify(value)}`)
-    .join('\n');
 }
 
 /**

@@ -10,6 +10,13 @@
     <button type="button" class="gr-link" (click)="opened.emit()">
       {{ wording.say('Open the chapter', 'Open the chat') }} →
     </button>
+  } @else if (a.kind === 'plan') {
+    <b>{{
+      wording.say(
+        '¶ ' + agentName() + ' has drawn up a plan. Begin on it?',
+        agentName() + ' has a plan. Start on it?'
+      )
+    }}</b>
   } @else {
     <b>{{
       wording.say(
@@ -48,11 +55,15 @@
   @case ('tool') {
     <div class="well detail">{{ a.detail }}</div>
   }
+  @case ('plan') {
+    <gr-markdown class="plan" [text]="a.plan" />
+  }
 }
 
 <div class="choices">
   <button #allow type="button" class="approve-button" (click)="decided.emit('allow-once')">
-    <span class="wax" aria-hidden="true"><gr-icon name="approval" /></span>Allow once
+    <span class="wax" aria-hidden="true"><gr-icon name="approval" /></span
+    >{{ a.kind === 'plan' ? 'Start on it' : 'Allow once' }}
     <span class="gr-kbd">⏎</span>
   </button>
   @if (always(); as always) {
@@ -70,6 +81,6 @@
     </button>
   }
   <button type="button" class="choice deny" (click)="decided.emit('deny')">
-    Deny <span class="gr-kbd">Esc</span>
+    {{ a.kind === 'plan' ? 'Keep planning' : 'Deny' }} <span class="gr-kbd">Esc</span>
   </button>
 </div>

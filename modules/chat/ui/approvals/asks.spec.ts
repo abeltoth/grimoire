@@ -34,9 +34,15 @@ describe('askOf', () => {
     expect(askOf(approval('WebFetch', { url: 'https://x' }, 'Fetch x'))).toEqual({
       kind: 'tool',
       asks: 'use WebFetch',
-      detail: '{\n  "url": "https://x"\n}',
+      detail: 'url: https://x',
       about: 'Fetch x',
     });
+  });
+
+  it('shows a plan to start on as its markdown', () => {
+    expect(askOf(approval('ExitPlanMode', { plan: '# Plan\n\n- one' }, 'Exit plan mode?'))).toEqual(
+      { kind: 'plan', asks: 'start on this plan', plan: '# Plan\n\n- one' },
+    );
   });
 
   it('takes the approval’s title when the tool says nothing of what it does', () => {

@@ -1,12 +1,17 @@
 import type { AlwaysAllow, Approval } from '@grimoire/contract';
 import { type DiffLine, fileChange } from '../transcript/diff';
 import { relativeTo } from '../transcript/rows';
+import { inputText } from '../transcript/tool-input';
 
 /** What an approval asks for, as the approval card shows it; `asks` is the bare deed, such as "run a command". */
 export type Ask =
   | { kind: 'command'; asks: string; command: string; about?: string }
   | { kind: 'file'; asks: string; file: string; path: string; lines: DiffLine[]; about?: string }
-  | { kind: 'tool'; asks: string; detail: string; about?: string };
+  | { kind: 'tool'; asks: string; detail: string; about?: string }
+  | { kind: 'plan'; asks: string; plan: string; about?: string };
+
+/** The tool the agent ends planning with; its input's `plan` is the plan, in markdown. */
+const PLAN_TOOL = 'ExitPlanMode';
 
 const FILE_ASKS: Record<string, string> = {
   Edit: 'correct this file',
@@ -15,7 +20,7 @@ const FILE_ASKS: Record<string, string> = {
   NotebookEdit: 'correct this notebook',
 };
 
-/** Reads an approval: a command to run, a file to change, or another tool to use. */
+/** Reads an approval: a command to run, a file to change, a plan to start on, or another tool to use. */
 export function askOf(approval: Approval, cwd?: string): Ask {
   const input = (approval.input ?? {}) as Record<string, unknown>;
   const description = typeof input['description'] === 'string' ? input['description'] : undefined;
@@ -44,10 +49,13 @@ export function askOf(approval: Approval, cwd?: string): Ask {
       ...(approval.title ? { about: approval.title } : {}),
     };
   }
+  if (approval.tool === PLAN_TOOL && typeof input['plan'] === 'string') {
+    return { kind: 'plan', asks: 'start on this plan', plan: input['plan'] };
+  }
   return {
     kind: 'tool',
     asks: `use ${approval.tool}`,
-    detail: JSON.stringify(input, null, 2),
+    detail: inputText(input),
     ...withAbout,
   };
 }

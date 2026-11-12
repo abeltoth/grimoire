@@ -71,6 +71,57 @@ describe('approval-card', () => {
     expect(el.querySelector('gr-approval-card .about')).toBeNull();
   });
 
+  it('reads a plan as its markdown, to start on or keep planning', async () => {
+    const { bridge, calls, emit } = fakeBridge();
+    const { fixture, el, texts } = await render(bridge);
+    await write(fixture, el, 'Plan it');
+    emit('agents.approval', {
+      approval: {
+        id: 'ap4',
+        chatId: 'chat-1',
+        tool: 'ExitPlanMode',
+        input: { plan: '# Plan: the meter\n\n- Count the tokens\n- Show "used"' },
+        alwaysAllow: { scope: 'project' },
+      },
+    });
+    await fixture.whenStable();
+    expect(texts('gr-approval-card .head > *')).toEqual([
+      '¶ Claude Code has drawn up a plan. Begin on it?',
+    ]);
+    expect(texts('gr-approval-card .plan .heading')).toEqual(['Plan: the meter']);
+    expect(texts('gr-approval-card .plan li')).toEqual(['Count the tokens', 'Show "used"']);
+    expect(el.querySelector('gr-approval-card .well')).toBeNull();
+    expect(texts('gr-approval-card .approve-button')).toEqual(['Start on it ⏎']);
+    expect(texts('gr-approval-card .choice')).toEqual(['Keep planning Esc']);
+
+    // Shift+Enter has no Always allow to take.
+    el.querySelector('gr-approval-card')!.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true }),
+    );
+    expect(calls.some((c) => c.command === 'agents.decide')).toBe(false);
+  });
+
+  it("shows another tool's input a line each", async () => {
+    const { bridge, emit } = fakeBridge();
+    const { fixture, el, texts } = await render(bridge);
+    await write(fixture, el, 'Fetch it');
+    emit('agents.approval', {
+      approval: {
+        id: 'ap5',
+        chatId: 'chat-1',
+        tool: 'WebFetch',
+        input: { url: 'https://angular.dev', prompt: 'Find "signals"' },
+      },
+    });
+    await fixture.whenStable();
+    expect(texts('gr-approval-card .head > *')).toEqual([
+      '¶ Claude Code seeks your seal to use WebFetch',
+    ]);
+    expect(el.querySelector('gr-approval-card .well.detail')!.textContent).toBe(
+      'url: https://angular.dev\nprompt: Find "signals"',
+    );
+  });
+
   it('shows a file change as a diff on the approval card', async () => {
     const { bridge, emit } = fakeBridge();
     const { fixture, el, texts } = await render(bridge);

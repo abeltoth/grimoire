@@ -132,8 +132,8 @@ describe('chat-page', () => {
       ];
       answers['layout.get'] = () => ({ current: 'c2' });
       const { fixture, el, texts } = await render(bridge);
-      expect(texts('gr-approval-card .approve-button')).toEqual(['Allow once ⏎']);
-      expect(texts('gr-approval-card .deny')).toEqual(['Deny Esc']);
+      expect(texts('gr-approval-card .approve-button')).toEqual(['Start on it ⏎']);
+      expect(texts('gr-approval-card .deny')).toEqual(['Keep planning Esc']);
 
       el.querySelector<HTMLButtonElement>('gr-approval-card .approve-button')!.click();
       await fixture.whenStable();

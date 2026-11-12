@@ -15,16 +15,18 @@ import type { Approval, ApprovalDecision } from '@grimoire/contract';
 import { Icon } from '@ui/design-system/icon';
 import { alwaysText, askOf } from './asks';
 import { DiffView } from '@ui/design-system/diff-view';
+import { MarkdownView } from '../markdown/markdown-view';
 
 /**
  * An approval as a card tucked into the page, waiting for you: it
  * shows exactly what the agent wants to do, then Allow once (Enter), Always
- * allow (Shift+Enter) or Deny (Esc, see the chat page). On the right
- * page it says which chat it's from, and Esc turns back instead.
+ * allow (Shift+Enter) or Deny (Esc, see the chat page). A plan reads as
+ * its markdown, with Start on it and Keep planning. On the right page it
+ * says which chat it's from, and Esc turns back instead.
  */
 @Component({
   selector: 'gr-approval-card',
-  imports: [DiffView, Icon],
+  imports: [DiffView, Icon, MarkdownView],
   templateUrl: './approval-card.html',
   styleUrl: './approval-card.css',
   host: {
@@ -55,10 +57,14 @@ export class ApprovalCard {
   protected readonly wording = inject(Wording);
   protected readonly folder = computed(() => this.catalog.folderName(this.cwd()));
   protected readonly headId = computed(() => `gr-approval-card-${this.approval().id}`);
-  /** What Always allow covers, when the agent offers it. */
+  /** What Always allow covers, when the agent offers it; never for a plan, which is started once. */
   protected readonly always = computed(() => {
     const always = this.approval().alwaysAllow;
-    return always && alwaysText(always, this.ask(), this.approval().tool, this.wording.say);
+    return (
+      always &&
+      this.ask().kind !== 'plan' &&
+      alwaysText(always, this.ask(), this.approval().tool, this.wording.say)
+    );
   });
 
   constructor() {
@@ -75,7 +81,7 @@ export class ApprovalCard {
   }
 
   protected decideAlways(event: Event): void {
-    if (!this.approval().alwaysAllow) return;
+    if (!this.always()) return;
     event.preventDefault();
     this.decided.emit('allow-always');
   }
