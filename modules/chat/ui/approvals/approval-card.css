@@ -93,8 +93,10 @@
   background: var(--gr-approval-card-well);
   border-top: 1px solid var(--gr-hairline);
   border-bottom: 1px solid var(--gr-hairline);
+  max-height: var(--gr-expandable-body-max);
+  overflow: auto;
   font-family: var(--gr-font-mono);
-  font-size: var(--gr-size-approval-card-command);
+  font-size: var(--gr-size-code);
   line-height: var(--gr-leading-approval-card-command);
   color: var(--gr-ink);
   white-space: pre-wrap;
@@ -103,9 +105,13 @@
 
 .well.detail {
   display: block;
-  font-size: var(--gr-size-code);
-  max-height: var(--gr-expandable-body-max);
-  overflow: auto;
+}
+
+/* What the agent says it's for: what you decide on, so it reads first. */
+.about {
+  margin: 0;
+  font-size: var(--gr-size-text);
+  color: var(--gr-ink);
 }
 
 .prompt {
@@ -135,6 +141,7 @@ gr-diff-view {
 
 .choices {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--gr-approval-card-choices-gap);
   margin-top: var(--gr-approval-card-choices-lift);
@@ -205,7 +212,12 @@ gr-diff-view {
   background: var(--gr-approval-card-choice-hover);
 }
 
+/* A long rule is cut short; the whole of it shows when you point at it. */
 .choice small {
+  max-width: var(--gr-approval-card-rule-max);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-family: var(--gr-font-text);
   font-style: italic;
   font-size: var(--gr-size-approval-card-choice-detail);

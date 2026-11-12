@@ -23,6 +23,7 @@ function mergeEdits(notes: readonly Note[]): Note[] {
       ...last,
       times: (last.times ?? 1) + 1,
       running: last.running || note.running,
+      ...(last.waiting || note.waiting ? { waiting: true as const } : {}),
       counts: `+${added} −${removed}`,
       added,
       removed,
@@ -87,6 +88,7 @@ export function summarize(notes: readonly Note[]): Summary {
     text: text.charAt(0).toUpperCase() + text.slice(1),
     ...(standing.length ? { counts: `+${total('added')} −${total('removed')}` } : {}),
     running: notes.some((note) => note.running),
+    ...(notes.some((note) => note.waiting) ? { waiting: true as const } : {}),
     failed: notes.filter((note) => note.failed).length,
     withdrawn: changes.length > 0 && !standing.length,
   };

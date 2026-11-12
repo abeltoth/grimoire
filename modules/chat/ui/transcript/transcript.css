@@ -51,6 +51,38 @@
   margin-top: var(--gr-space-2);
 }
 
+/* A reply's byline and text are placed in its row's grid, so what you expand of its notes opens under them, above the text. */
+.row.said > .reply {
+  display: contents;
+}
+
+.row.said > .reply > .by {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.row.said > .reply > gr-markdown {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.row.said > .notes {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+.row.said.opened > .notes {
+  grid-row: 1;
+}
+
+.row.said.opened > .wide {
+  grid-row: 2;
+}
+
+.row.said.opened > .reply > gr-markdown {
+  grid-row: 3;
+}
+
 .by {
   display: flex;
   align-items: baseline;

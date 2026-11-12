@@ -1,0 +1,23 @@
+<div class="head">
+  <b>{{ query() }}</b>
+  <span class="detail"
+    >{{ sources().length }} {{ sources().length === 1 ? 'page' : 'pages' }} found</span
+  >
+</div>
+<div class="body" tabindex="0">
+  @if (sources().length) {
+    <ol class="sources">
+      @for (source of sources(); track source.url) {
+        <li>
+          <button type="button" class="source" [attr.title]="source.url" (click)="open(source.url)">
+            <span class="title">{{ source.title }}</span>
+            <span class="site">{{ site(source.url) }}</span>
+          </button>
+        </li>
+      }
+    </ol>
+  }
+  @if (summary()) {
+    <gr-markdown class="summary" [text]="summary()" />
+  }
+</div>

@@ -118,7 +118,70 @@ describe('toRows', () => {
       { counts: undefined, details: { kind: 'output', title: 'b.ts', text: 'String not found.' } },
       { counts: undefined, details: { kind: 'output', title: '*.ts', text: 'a.ts\nb.ts' } },
       { counts: undefined, details: undefined },
-      { counts: undefined, details: undefined },
+      {
+        counts: undefined,
+        details: { kind: 'output', title: 'npm test', text: '', running: true },
+      },
+    ]);
+  });
+
+  it('marks a tool waiting for your approval, and the run of notes it is in', () => {
+    const rows = toRows(
+      [
+        agent(
+          'a1',
+          tool('Read', { file_path: '/a.ts' }, { text: '', isError: false }),
+          tool('Bash', { command: 'git push' }),
+        ),
+      ],
+      undefined,
+      { waiting: new Set(['Bash-id']) },
+    );
+    const row = rows[0]!;
+    if (row.kind !== 'notes') throw new Error('expected notes');
+    expect(row.notes.map((note) => note.waiting)).toEqual([undefined, true]);
+    expect(row.summary?.waiting).toBe(true);
+  });
+
+  it('opens a running tool to what it was asked, its output still to come', () => {
+    const rows = toRows([
+      agent('a1', tool('WebSearch', { query: 'signals', allowed_domains: ['angular.dev'] })),
+    ]);
+    const notes = rows[0]!.kind === 'notes' ? rows[0]!.notes : [];
+    expect(notes[0]!.details).toEqual({
+      kind: 'output',
+      title: 'signals',
+      text: 'query: signals\nallowed_domains: ["angular.dev"]',
+      running: true,
+    });
+  });
+
+  it('expands a web search as the pages it found and its summary, or as it came when unread', () => {
+    const found = [
+      'Web search results for query: "signals"',
+      '',
+      'Links: [{"title":"Signals","url":"https://angular.dev/guide/signals"}]',
+      '',
+      'Signals hold state.',
+    ].join('\n');
+    const rows = toRows([
+      agent(
+        'a1',
+        tool('WebSearch', { query: 'signals' }, { text: found, isError: false }),
+        tool('WebSearch', { query: 'signals' }, { text: found, isError: true }),
+        tool('WebSearch', { query: 'signals' }, { text: 'No results', isError: false }),
+      ),
+    ]);
+    const notes = rows[0]!.kind === 'notes' ? rows[0]!.notes : [];
+    expect(notes.map(({ details }) => details)).toEqual([
+      {
+        kind: 'web',
+        query: 'signals',
+        sources: [{ title: 'Signals', url: 'https://angular.dev/guide/signals' }],
+        summary: 'Signals hold state.',
+      },
+      { kind: 'output', title: 'signals', text: found },
+      { kind: 'output', title: 'signals', text: 'No results' },
     ]);
   });
 

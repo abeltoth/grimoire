@@ -84,7 +84,7 @@
       }
     }
     @case ('reply') {
-      <div class="row" [class.tight]="row.byline">
+      <div class="row said" [class.tight]="row.byline" [class.opened]="opensIn(row)">
         <div class="reply">
           @if (row.byline) {
             <header class="by">
@@ -243,7 +243,7 @@
       >
         <span class="note-head">{{ summary.text }}</span>
         @if (summary.running) {
-          <span class="detail">running…</span>
+          <span class="detail">{{ runningText(summary) }}</span>
         } @else {
           @if (summary.counts) {
             <span class="detail">{{ summary.counts }}</span>
@@ -296,7 +296,7 @@
     @if (note.failed) {
       <span class="detail failed">failed</span>
     } @else if (note.running) {
-      <span class="detail">running…</span>
+      <span class="detail">{{ runningText(note) }}</span>
     } @else if (note.withdrawn) {
       <span class="detail">withdrawn</span>
     } @else if (note.counts) {
@@ -354,12 +354,20 @@
           [openable]="!!shell.openFile()"
           (open)="shell.openFile()?.(note.details.path)"
         />
+      } @else if (note.details.kind === 'web') {
+        <gr-web-results
+          class="wide"
+          [query]="note.details.query"
+          [sources]="note.details.sources"
+          [summary]="note.details.summary"
+        />
       } @else {
         <gr-output
           class="wide"
           [title]="note.details.title"
           [text]="note.details.text"
           [command]="note.details.command ?? ''"
+          [running]="note.details.running ?? false"
         />
       }
     }

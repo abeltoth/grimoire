@@ -1,0 +1,73 @@
+/* The leaf look of the design system's expandables, which this one is. */
+:host {
+  display: block;
+  margin-top: var(--gr-expandable-margin-top);
+  background: var(--gr-expandable);
+  border-radius: var(--gr-radius-surface);
+  box-shadow: var(--gr-shadow-surface);
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-expandable-head-gap);
+  padding: var(--gr-expandable-head-pad);
+  font-size: var(--gr-size-expandable-head);
+  border-bottom: 1px solid var(--gr-hairline);
+}
+
+.head b {
+  font-family: var(--gr-font-mono);
+  font-weight: 500;
+  font-size: var(--gr-size-expandable-file);
+  overflow-wrap: anywhere;
+}
+
+.detail {
+  font-style: italic;
+  color: var(--gr-ink-soft);
+  white-space: nowrap;
+}
+
+.body {
+  max-height: var(--gr-expandable-body-max);
+  overflow: auto;
+  padding: var(--gr-expandable-body-pad);
+  outline: none;
+}
+
+.sources {
+  margin: 0;
+  padding: 0 0 0 var(--gr-space-5);
+}
+
+.sources li + li {
+  margin-top: var(--gr-space-1);
+}
+
+.source {
+  display: inline;
+}
+
+.title {
+  color: var(--gr-link);
+}
+
+.source:hover .title {
+  color: var(--gr-link-hover);
+  text-decoration: underline;
+}
+
+.site {
+  margin-left: var(--gr-space-2);
+  font-style: italic;
+  font-size: var(--gr-size-expandable-mark);
+  color: var(--gr-ink-soft);
+}
+
+.sources + .summary {
+  display: block;
+  margin-top: var(--gr-space-3);
+  padding-top: var(--gr-space-3);
+  border-top: 1px solid var(--gr-hairline);
+}

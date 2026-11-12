@@ -17,15 +17,13 @@ describe('approval-card', () => {
     emit('agents.status', { chatId: 'chat-1', status: 'waiting' });
     await fixture.whenStable();
 
+    // One heading, then what it's for; the chat's own folder goes unsaid.
     expect(texts('gr-approval-card .head > *')).toEqual([
-      '¶ Awaiting your seal',
-      'Claude Code asks to run this command',
+      '¶ Claude Code seeks your seal to run a command',
     ]);
+    expect(texts('gr-approval-card .about')).toEqual(['Pushes the branch']);
     expect(texts('gr-approval-card .well')).toEqual(['$git push origin main']);
-    expect(texts('gr-approval-card .meta span')).toEqual([
-      'Runs in C:/work/grimoire',
-      'Pushes the branch',
-    ]);
+    expect(el.querySelector('gr-approval-card .meta')).toBeNull();
     expect(texts('gr-approval-card .choice')).toEqual([
       'Always allow git push in this project ⇧⏎',
       'Deny Esc',
@@ -50,6 +48,27 @@ describe('approval-card', () => {
     await fixture.whenStable();
     expect(el.querySelector('gr-approval-card')).toBeNull();
     expect(texts('gr-chat-tab .approval')).toEqual([]);
+  });
+
+  it('calls a rule that is the command itself "this command"', async () => {
+    const { bridge, emit } = fakeBridge();
+    const { fixture, el, texts } = await render(bridge);
+    await write(fixture, el, 'Look');
+    emit('agents.approval', {
+      approval: {
+        id: 'ap3',
+        chatId: 'chat-1',
+        tool: 'Bash',
+        input: { command: 'grep -n well approval-card.html | head -60' },
+        alwaysAllow: { rule: 'grep -n well approval-card.html | head -60', scope: 'project' },
+      },
+    });
+    await fixture.whenStable();
+    expect(texts('gr-approval-card .choice')).toEqual([
+      'Always allow this command in this project ⇧⏎',
+      'Deny Esc',
+    ]);
+    expect(el.querySelector('gr-approval-card .about')).toBeNull();
   });
 
   it('shows a file change as a diff on the approval card', async () => {

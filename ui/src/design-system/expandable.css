@@ -130,3 +130,10 @@
   font-style: italic;
   color: var(--gr-ink-soft);
 }
+
+/* Where a running tool's output will come. */
+.code.running {
+  font-family: var(--gr-font-text);
+  font-style: italic;
+  color: var(--gr-ink-soft);
+}

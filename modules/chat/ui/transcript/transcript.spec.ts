@@ -281,6 +281,8 @@ describe('transcript', () => {
     expect(notes[0]!.getAttribute('aria-expanded')).toBe('true');
     expect(texts('gr-diff-view .head b')).toEqual(['src/meter.ts']);
     expect(texts('gr-diff-view .head .detail')[0]).toBe('corrections, as marked by Claude Code');
+    // The details open between the reply's notes and its text, not after it.
+    expect(el.querySelector('.row.said.opened gr-diff-view')).not.toBeNull();
 
     // Opening another note closes the one you had open.
     notes[1]!.click();
@@ -293,6 +295,7 @@ describe('transcript', () => {
     notes[1]!.click();
     await fixture.whenStable();
     expect(el.querySelector('gr-output')).toBeNull();
+    expect(el.querySelector('.row.said.opened')).toBeNull();
   });
 
   it("opens a compaction's summary, and puts it away", async () => {

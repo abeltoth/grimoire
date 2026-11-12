@@ -2,11 +2,12 @@ import { TestBed } from '@angular/core/testing';
 import { Output } from './output';
 
 describe('Output', () => {
-  async function output(text: string, command = '') {
+  async function output(text: string, command = '', running = false) {
     const fixture = TestBed.createComponent(Output);
     fixture.componentRef.setInput('title', 'Runs the tests');
     fixture.componentRef.setInput('text', text);
     fixture.componentRef.setInput('command', command);
+    fixture.componentRef.setInput('running', running);
     await fixture.whenStable();
     const el = fixture.nativeElement as HTMLElement;
     const texts = (selector: string) =>
@@ -25,5 +26,12 @@ describe('Output', () => {
     const { texts } = await output('ok', 'npm test \\\n  --watch=false');
     expect(texts('.command .code')).toEqual(['npm test \\', '--watch=false']);
     expect(texts('.command .number')).toEqual(['$', '']);
+  });
+
+  it('while the tool runs, shows what it was asked and that its output is to come', async () => {
+    const { texts } = await output('query: signals', '', true);
+    expect(texts('.head .detail')).toEqual(['what it was asked']);
+    expect(texts('.body .code')).toEqual(['query: signals', 'running…']);
+    expect((await output('', 'npm test', true)).texts('.body .code')).toEqual(['running…']);
   });
 });

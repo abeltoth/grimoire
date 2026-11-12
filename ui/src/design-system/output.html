@@ -1,6 +1,6 @@
 <div class="head">
   <b>{{ title() }}</b>
-  <span class="detail">output</span>
+  <span class="detail">{{ running() ? 'what it was asked' : 'output' }}</span>
 </div>
 @if (commandLines().length) {
   <div class="command" tabindex="0" aria-label="Command">
@@ -18,6 +18,13 @@
     <div class="line">
       <span class="number"></span>
       <span class="code">{{ line }}</span>
+      <span class="mark"></span>
+    </div>
+  }
+  @if (running()) {
+    <div class="line">
+      <span class="number"></span>
+      <span class="code running">running…</span>
       <span class="mark"></span>
     </div>
   }

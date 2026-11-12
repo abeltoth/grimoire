@@ -1,7 +1,8 @@
 import type { Attachment, CompactionEntry, HookRun, TokenUse, ToolBlock } from '@grimoire/contract';
 import type { DiffLine } from './diff';
+import type { WebSearch } from './web-search';
 
-/** What a tool note expands: a file's diff or what a tool printed. */
+/** What a tool note expands: a file's diff, a web search's pages and summary, or what a tool printed. */
 export type NoteDetails =
   | {
       kind: 'diff';
@@ -11,12 +12,15 @@ export type NoteDetails =
       /** Where each edit after the first begins, when edits in a row to the file are merged. */
       breaks?: number[];
     }
+  | ({ kind: 'web' } & WebSearch)
   | {
       kind: 'output';
       title: string;
       text: string;
       /** The command in full, when the title doesn't show it all. */
       command?: string;
+      /** The tool still runs: `text` is what it was asked, and the output is still to come. */
+      running?: true;
     };
 
 /** What a tool did, to sum up a run of notes. */
@@ -48,6 +52,8 @@ export interface Note {
   times?: number;
   did: Deed;
   running: boolean;
+  /** The tool waits for your approval before it runs. */
+  waiting?: true;
   failed: boolean;
   /** Lines added and removed, such as "+24 −3", when the tool changed a file. */
   counts?: string;
@@ -69,6 +75,8 @@ export interface Summary {
   /** Lines added and removed across the changes still standing. */
   counts?: string;
   running: boolean;
+  /** One of the notes waits for your approval. */
+  waiting?: true;
   failed: number;
   /** Every change in the run was undone. */
   withdrawn: boolean;

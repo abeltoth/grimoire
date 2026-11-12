@@ -29,9 +29,10 @@ import { QuestionsForm } from '../approvals/questions-form';
 import { ApprovalStub } from '../approvals/approval-stub';
 import { duration } from './duration';
 import { Subagents } from '../subagents/subagents';
-import type { Note, TurnSpent } from './row';
+import type { Margin, Note, TurnSpent } from './row';
 import { toRows } from './rows';
 import { hookOutcome, hookTook, hookWhen, hooksRan } from './hook-log';
+import { WebResults } from './web-results';
 import { tokenCount, usesInWords } from '@ui/app/core/tokens';
 import { Wording } from '@ui/app/core/wording';
 
@@ -62,6 +63,7 @@ const BOARD = 'kanban';
     Output,
     QuestionsForm,
     ApprovalStub,
+    WebResults,
   ],
   templateUrl: './transcript.html',
   styleUrl: './transcript.css',
@@ -89,6 +91,7 @@ export class Transcript {
     toRows(this.chat().entries, this.chat().settings.cwd, {
       withdrawn: new Set(this.chat().withdrawn),
       copied: new Set(this.chat().copied),
+      waiting: new Set(this.chat().approvals.map((approval) => approval.id)),
     }),
   );
   protected readonly agentName = computed(
@@ -256,6 +259,19 @@ export class Transcript {
 
   protected isExpanded(note: Note): boolean {
     return this.expandedNote() === note.key;
+  }
+
+  /** A running tool's word: it may still wait for your approval. */
+  protected runningText({ waiting }: { waiting?: true }): string {
+    return waiting ? this.wording.say('awaiting your seal', 'waiting for you') : 'running…';
+  }
+
+  /** Whether the details of a note beside the row are open, which then go between its notes and its text. */
+  protected opensIn(row: Margin): boolean {
+    return (
+      (!row.summary || this.isOpen(row.summary.key)) &&
+      row.notes.some((note) => note.details && this.isExpanded(note) && !this.turnsPage(note))
+    );
   }
 
   protected isOpen(key: string): boolean {

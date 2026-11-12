@@ -4,6 +4,7 @@ import { deedOf } from '../composer/commands';
 import { type DiffLine, type FileChange, fileChange } from './diff';
 import type { Deed, HookLog, Note, Row } from './row';
 import { margin } from './summary';
+import { parseWebSearch } from './web-search';
 
 /** How many of a chat's turns are marked its costliest, once it has more than that. */
 const COSTLIEST = 3;
@@ -30,10 +31,11 @@ function handbackOf(block: ToolBlock): string | undefined {
   return block.tool === HANDBACK_TOOL && typeof message === 'string' ? message : undefined;
 }
 
-/** Your messages whose edits were undone, and those a fork copied, which can't be. */
+/** Your messages whose edits were undone, and those a fork copied, which can't be; and the tool calls waiting for your approval. */
 export interface UndoMarks {
   withdrawn?: ReadonlySet<string>;
   copied?: ReadonlySet<string>;
+  waiting?: ReadonlySet<string>;
 }
 
 /**
@@ -43,7 +45,7 @@ export interface UndoMarks {
 export function toRows(
   entries: readonly Entry[],
   cwd?: string,
-  { withdrawn = new Set(), copied = new Set() }: UndoMarks = {},
+  { withdrawn = new Set(), copied = new Set(), waiting = new Set() }: UndoMarks = {},
 ): Row[] {
   const rows: Row[] = [];
   let pending: Note[] = [];
@@ -110,7 +112,11 @@ export function toRows(
       if (block.kind === 'tool' && report === undefined) {
         if (UNNOTED_TOOLS.has(block.tool)) return;
         const note = toNote(key, block, cwd);
-        pending.push(undone && note.counts ? { ...note, withdrawn: true } : note);
+        pending.push({
+          ...note,
+          ...(undone && note.counts ? { withdrawn: true } : {}),
+          ...(note.running && waiting.has(block.id) ? { waiting: true as const } : {}),
+        });
       } else if (block.kind === 'thinking') {
         rows.push({ kind: 'thinking', key, text: block.text });
       } else {
@@ -228,6 +234,22 @@ function detailsOf(
       },
     };
   }
+  // Claude Code sends no output until a tool ends, so until then its note opens to what it was asked.
+  if (!block.result)
+    return {
+      details: {
+        kind: 'output',
+        title,
+        text: SHELL_TOOLS.has(block.tool) ? '' : inputText(block.input),
+        ...(command ? { command } : {}),
+        running: true,
+      },
+    };
+  const search =
+    block.tool === 'WebSearch' && !block.result.isError
+      ? parseWebSearch(block.result.text)
+      : undefined;
+  if (search) return { details: { kind: 'web', ...search } };
   return block.result?.text
     ? {
         details: {
@@ -238,6 +260,14 @@ function detailsOf(
         },
       }
     : {};
+}
+
+/** A tool's input a line each, as `name: value`; what isn't text, as JSON. */
+function inputText(input: unknown): string {
+  if (!input || typeof input !== 'object') return '';
+  return Object.entries(input)
+    .map(([name, value]) => `${name}: ${typeof value === 'string' ? value : JSON.stringify(value)}`)
+    .join('\n');
 }
 
 /**

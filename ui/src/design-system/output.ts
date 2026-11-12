@@ -16,14 +16,18 @@ export class Output {
   readonly text = input.required<string>();
   /** The command in full, set above its output, when the title doesn't show it all. */
   readonly command = input('');
+  /** The tool still runs: `text` is what it was asked, and its output is still to come. */
+  readonly running = input(false);
 
   protected readonly commandLines = computed(() =>
     this.command() ? this.command().split(/\r?\n/) : [],
   );
   protected readonly lines = computed(() =>
-    this.text()
-      .replace(ESCAPES, '')
-      .replace(/\r?\n$/, '')
-      .split(/\r?\n/),
+    this.running() && !this.text()
+      ? []
+      : this.text()
+          .replace(ESCAPES, '')
+          .replace(/\r?\n$/, '')
+          .split(/\r?\n/),
   );
 }

@@ -5,32 +5,36 @@
 <div class="head" [id]="headId()">
   @if (from(); as from) {
     <b>{{ from }}</b>
-    <span class="asks">{{ agentName() }} {{ a.asks }}</span>
+    <span class="asks">{{ agentName() }} asks to {{ a.asks }}</span>
     <span class="spacer"></span>
     <button type="button" class="gr-link" (click)="opened.emit()">
       {{ wording.say('Open the chapter', 'Open the chat') }} →
     </button>
   } @else {
-    <b>{{ wording.say('¶ Awaiting your seal', 'Waiting for approval') }}</b>
-    <span>{{ agentName() }} {{ a.asks }}</span>
+    <b>{{
+      wording.say(
+        '¶ ' + agentName() + ' seeks your seal to ' + a.asks,
+        'Allow ' + agentName() + ' to ' + a.asks + '?'
+      )
+    }}</b>
   }
 </div>
+@if (a.about) {
+  <p class="about">{{ a.about }}</p>
+}
 
 @switch (a.kind) {
   @case ('command') {
     <div class="well">
       <span class="prompt" aria-hidden="true">$</span><span>{{ a.command }}</span>
     </div>
-    <div class="meta">
-      @if (cwd()) {
+    @if (from() && cwd()) {
+      <div class="meta">
         <span
           >Runs in <code>{{ folder() }}</code></span
         >
-      }
-      @if (a.about) {
-        <span>{{ a.about }}</span>
-      }
-    </div>
+      </div>
+    }
   }
   @case ('file') {
     <gr-diff-view
@@ -40,19 +44,9 @@
       [openable]="!!shell.openFile()"
       (open)="shell.openFile()?.(a.path)"
     />
-    @if (a.about) {
-      <div class="meta">
-        <span>{{ a.about }}</span>
-      </div>
-    }
   }
   @case ('tool') {
     <div class="well detail">{{ a.detail }}</div>
-    @if (a.about) {
-      <div class="meta">
-        <span>{{ a.about }}</span>
-      </div>
-    }
   }
 }
 
@@ -61,21 +55,20 @@
     <span class="wax" aria-hidden="true"><gr-icon name="approval" /></span>Allow once
     <span class="gr-kbd">⏎</span>
   </button>
-  @if (approval().alwaysAllow; as always) {
+  @if (always(); as always) {
     <button type="button" class="choice" (click)="decided.emit('allow-always')">
       Always allow
-      <small>
+      <small [attr.title]="always.rule ?? null">
         @if (always.rule) {
           <code>{{ always.rule }}</code>
         } @else {
-          {{ a.kind === 'file' ? 'edits' : approval().tool }}
+          {{ always.what }}
         }
-        {{ scopeText(always.scope) }}
+        {{ always.scope }}
       </small>
       <span class="gr-kbd">⇧⏎</span>
     </button>
   }
-  <span class="spacer"></span>
   <button type="button" class="choice deny" (click)="decided.emit('deny')">
     Deny <span class="gr-kbd">Esc</span>
   </button>

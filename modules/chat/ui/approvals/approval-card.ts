@@ -11,9 +11,9 @@ import {
 import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { Wording } from '@ui/app/core/wording';
 import { ShellRegistry } from '@ui/app/shell/shell-registry';
-import type { AlwaysAllow, Approval, ApprovalDecision } from '@grimoire/contract';
+import type { Approval, ApprovalDecision } from '@grimoire/contract';
 import { Icon } from '@ui/design-system/icon';
-import { askOf, scopeText } from './asks';
+import { alwaysText, askOf } from './asks';
 import { DiffView } from '@ui/design-system/diff-view';
 
 /**
@@ -55,8 +55,11 @@ export class ApprovalCard {
   protected readonly wording = inject(Wording);
   protected readonly folder = computed(() => this.catalog.folderName(this.cwd()));
   protected readonly headId = computed(() => `gr-approval-card-${this.approval().id}`);
-  protected readonly scopeText = (scope: AlwaysAllow['scope']) =>
-    scopeText(scope, this.wording.say);
+  /** What Always allow covers, when the agent offers it. */
+  protected readonly always = computed(() => {
+    const always = this.approval().alwaysAllow;
+    return always && alwaysText(always, this.ask(), this.approval().tool, this.wording.say);
+  });
 
   constructor() {
     // Ready for Enter, unless you're writing somewhere.
