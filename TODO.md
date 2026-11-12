@@ -9,7 +9,6 @@ A custom UI for Claude Code, built on the Claude Agent SDK.
 - Long run: many features, custom style, animations
 
 ## To-do
-Show agent websearch details
 Create better ai workflow for home development
 Rework history to resume tasks easier
 Show code changes properly when edited
@@ -18,11 +17,13 @@ Proper git history viewer
 Rework command palette
 Subagent effort level
 Better file viewer
+Text size setting to work everywhere
 Remove not needed explanations
 Ability to see full pasted picture
 Estimate progress on a task: what % of completion we're at.
 Release notes scraper for new Claude Code features
 Plugin browser to install and turn plugins on or off from marketplaces
+Settings side menu selector
 
 ## Design
 Two design directions: a magic one, and one for company work that is more solid, with fewer effects and animations.
@@ -37,3 +38,4 @@ Post mortem automation if ai fails some guidelines
 Pull request and CI status for each chat, with auto-fix
 Auto-archive chats when their pull request is merged
 Chat to route message between multiple chats
+Check opencode for ideas
