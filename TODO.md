@@ -15,7 +15,6 @@ Show code changes properly when edited
 Token statistics and optimizer: show where most of the resources are spent and help optimize it.
 Proper git history viewer
 Rework command palette
-Subagent effort level
 Better file viewer
 Text size setting to work everywhere
 Remove not needed explanations

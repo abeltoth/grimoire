@@ -263,11 +263,24 @@ export class AgentHub {
   async subagent(chatId: ChatId, toolId: string): Promise<SubagentRun> {
     const chat = this.table.chat(chatId);
     const live = chat.subagents.get(toolId);
-    if (live?.entries.length) return structuredClone(live);
+    if (live?.entries.length) {
+      // What came live leaves out what only its saved files say, such as its effort.
+      const saved = await chat.agent
+        .subagentStats?.(chat.id, chat.settings.cwd, toolId)
+        .catch(() => undefined);
+      const run = structuredClone(live);
+      const stats = { ...saved, ...run.stats };
+      return Object.keys(stats).length ? { ...run, stats } : run;
+    }
     const saved = chat.agent.subagent
       ? await chat.agent.subagent(chat.id, chat.settings.cwd, toolId)
       : { entries: [] };
-    return live?.state ? { ...saved, state: live.state } : saved;
+    const stats = { ...saved.stats, ...live?.stats };
+    return {
+      ...saved,
+      ...(live?.state ? { state: live.state } : {}),
+      ...(Object.keys(stats).length ? { stats } : {}),
+    };
   }
 
   /**

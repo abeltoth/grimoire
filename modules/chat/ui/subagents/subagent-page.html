@@ -53,6 +53,9 @@
   </div>
 }
 <gr-page-footer>
+  @if (run() && took()) {
+    <span class="took" [attr.title]="tools() || null">{{ took() }}</span>
+  }
   <span class="spacer"></span>
   <span>{{ state() }}</span>
 </gr-page-footer>

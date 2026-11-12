@@ -91,6 +91,9 @@ export class ChatRuns {
       subagentState: (toolId, state) => {
         if (current()) this.updates.setSubagentState(chat, toolId, state);
       },
+      subagentStats: (toolId, stats) => {
+        if (current()) this.updates.addSubagentStats(chat, toolId, stats);
+      },
       approval: (request, signal) =>
         current() ? this.approvals.ask(chat, request, signal) : Promise.resolve<Verdict>('deny'),
       readOnly: () =>

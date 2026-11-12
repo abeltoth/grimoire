@@ -5,6 +5,7 @@ import type {
   CompactionEntry,
   Entry,
   SubagentState,
+  SubagentStats,
   HookRun,
   PictureAttachment,
   PlanStep,
@@ -27,6 +28,7 @@ import {
 } from './messages';
 import { HookRuns } from './hook-runs';
 import { splitReferences } from './references';
+import { statsFromResult, statsFromUsage } from './subagent-stats';
 
 export interface TranscriptListener {
   entry(entry: Entry): void;
@@ -39,6 +41,8 @@ export interface TranscriptListener {
   subagentEntry?(toolId: string, entry: Entry): void;
   /** The subagent the tool call `toolId` started began, or ended its task. */
   subagentState?(toolId: string, state: SubagentState): void;
+  /** What the agent said of how the subagent the tool call `toolId` started runs and what it took. */
+  subagentStats?(toolId: string, stats: SubagentStats): void;
   /** The hooks that ran on the live turn so far, and any begun before it that still run. */
   hooks?(runs: HookRun[]): void;
 }
@@ -111,6 +115,7 @@ export class ClaudeTranscript {
     } else if (message.type === 'assistant')
       this.count(message.message as ApiMessage, !!message.parent_tool_use_id, this.turn);
     else if (message.type === 'result' && this.live) this.endTurn();
+    else if (message.type === 'user' && message.tool_use_result) this.applyRunTotals(message);
     // Messages inside a subagent's run belong to its tool call's subagent, not the chat.
     if (message.parent_tool_use_id)
       return this.subagentRun(message.parent_tool_use_id).take(message);
@@ -133,6 +138,25 @@ export class ClaudeTranscript {
           ? TASK_END[message.status ?? '']
           : undefined;
     if (state) this.listener?.subagentState?.(toolId, state);
+    const stats: SubagentStats = {
+      ...statsFromUsage(message.usage),
+      ...(typeof message.is_backgrounded === 'boolean'
+        ? { background: message.is_backgrounded }
+        : {}),
+      ...(typeof message.spawn_depth === 'number' ? { depth: message.spawn_depth } : {}),
+    };
+    if (Object.keys(stats).length) this.listener?.subagentStats?.(toolId, stats);
+  }
+
+  /** The result of a tool call that started a subagent, whose output says what its run took. */
+  private applyRunTotals(message: ClaudeMessage): void {
+    const stats = statsFromResult(message.tool_use_result);
+    if (!Object.keys(stats).length) return;
+    const content = (message.message as ApiMessage | undefined)?.content;
+    const result = Array.isArray(content)
+      ? content.find((block) => block.type === 'tool_result' && block.tool_use_id)
+      : undefined;
+    if (result) this.listener?.subagentStats?.(result.tool_use_id!, stats);
   }
 
   /** The live turn ended: the next starts afresh, but for the hooks still running. */

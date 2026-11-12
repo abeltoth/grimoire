@@ -1,5 +1,11 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import type { Entry, SubagentRun, SubagentState, ToolBlock } from '@grimoire/contract';
+import type {
+  Entry,
+  SubagentRun,
+  SubagentState,
+  SubagentStats,
+  ToolBlock,
+} from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { ChatList } from '@ui/app/core/chat-list';
 import { POPOUT } from '@ui/app/core/popout';
@@ -41,6 +47,8 @@ export class Subagents {
   private readonly said = signal<SubagentState | undefined>(undefined);
   /** Whether the agent said where it is while what it did was read, which is newer than what was read. */
   private saidEarly = false;
+  /** How the subagent shown runs and what it took, as far as the agent said. */
+  readonly stats = signal<SubagentStats>({});
   /** Whether any of what it did came as it went; a subagent a message resumed may not pass it on. */
   private cameLive = false;
 
@@ -108,6 +116,11 @@ export class Subagents {
       if (this.loading()) this.early.push(entry);
       else this.entries.update((entries) => upsert(entries, entry));
     });
+    this.bridge.on('agents.subagentStats', ({ chatId, toolId, stats }) => {
+      const shown = this.shown();
+      if (shown?.chatId !== chatId || shown.toolId !== toolId) return;
+      this.stats.update((known) => ({ ...known, ...stats }));
+    });
     this.bridge.on('agents.subagentState', ({ chatId, toolId, state }) => {
       const shown = this.shown();
       if (shown?.chatId !== chatId || shown.toolId !== toolId) return;
@@ -132,6 +145,7 @@ export class Subagents {
     this.entries.set([]);
     this.early = [];
     this.said.set(undefined);
+    this.stats.set({});
     this.saidEarly = false;
     this.cameLive = false;
     this.read(chatId, block.id);
@@ -150,6 +164,8 @@ export class Subagents {
     if (this.shown()?.toolId !== toolId) return;
     this.entries.set(this.early.reduce(upsert, run.entries as readonly Entry[]));
     if (!this.saidEarly) this.said.set(run.state);
+    // What the agent said as it was read is newer than what was read.
+    this.stats.update((said) => ({ ...run.stats, ...said }));
     this.early = [];
     this.saidEarly = false;
     this.loading.set(false);

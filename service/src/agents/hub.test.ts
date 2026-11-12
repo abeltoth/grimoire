@@ -61,6 +61,28 @@ describe('AgentHub', () => {
     });
   });
 
+  it("keeps what's said live of how a subagent runs, with what only its saved files say", async () => {
+    const { id } = await hub.start('fake', settings, 'Hello');
+    fake.subagents.set('toolu_l', { entries: [], stats: { effort: 'low', tokens: 1 } });
+    const events = fake.runOf(id).events;
+    events.subagentStats('toolu_l', { background: true, depth: 1 });
+    events.subagentStats('toolu_l', { tokens: 900, durationMs: 4_000 });
+    events.subagentEntry('toolu_l', reply('h1', 'Looking'));
+
+    expect(sent.filter((s) => s.event === 'agents.subagentStats').at(-1)?.payload).toEqual({
+      chatId: id,
+      toolId: 'toolu_l',
+      stats: { background: true, depth: 1, tokens: 900, durationMs: 4_000 },
+    });
+    expect((await hub.subagent(id, 'toolu_l')).stats).toEqual({
+      effort: 'low',
+      background: true,
+      depth: 1,
+      tokens: 900,
+      durationMs: 4_000,
+    });
+  });
+
   it('opens a saved chat once, and continues it when you send', async () => {
     fake.transcripts.set('c1', [{ kind: 'user', id: 'u1', text: 'Earlier' }]);
 

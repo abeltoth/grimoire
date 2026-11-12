@@ -188,4 +188,55 @@ describe('subagent-page', () => {
     expect(texts('gr-subagent-page .meta')).toEqual(['sonnet · Working…']);
     expect(texts('gr-subagent-page .line')).toEqual(['The helper has only just begun.']);
   });
+
+  it('heads with its effort and how it runs, and foots with what its run took', async () => {
+    const { bridge, emit, answers } = fakeBridge();
+    answers['agents.subagent'] = () => ({
+      entries: [],
+      stats: { effort: 'medium', background: true, depth: 2 },
+    });
+    const { fixture, el, texts } = await render(bridge);
+    await write(fixture, el, 'Find the meter');
+    emit('agents.entry', {
+      chatId: 'chat-1',
+      entry: {
+        kind: 'agent',
+        id: 'a1',
+        blocks: [
+          {
+            kind: 'tool',
+            id: 't1',
+            tool: 'Agent',
+            input: { description: 'Look', prompt: 'Look.', effort: 'low' },
+          },
+        ],
+      },
+    });
+    await fixture.whenStable();
+    [...el.querySelectorAll<HTMLButtonElement>('gr-chat-page .note')]
+      .find((n) => n.textContent!.includes('Asked a helper'))!
+      .click();
+    await fixture.whenStable();
+    expect(texts('gr-subagent-page .meta')).toEqual([
+      'Medium effort · Off the page · A helper’s helper · Working…',
+    ]);
+    expect(texts('gr-subagent-page .took')).toEqual([]);
+
+    emit('agents.subagentStats', {
+      chatId: 'chat-1',
+      toolId: 't1',
+      stats: {
+        durationMs: 75_000,
+        tokens: 12_000,
+        toolUses: 6,
+        tools: { read: 4, search: 0, shell: 2, edit: 0, other: 0 },
+        lines: { added: 0, removed: 0 },
+      },
+    });
+    await fixture.whenStable();
+    expect(texts('gr-subagent-page .took')).toEqual(['1m 15s · 12K tokens · 6 tool calls']);
+    expect(el.querySelector('gr-subagent-page .took')!.getAttribute('title')).toBe(
+      '4 reads, 2 shell commands',
+    );
+  });
 });

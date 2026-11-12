@@ -17,6 +17,7 @@ import type {
   FollowUp,
   SubagentRun,
   SubagentState,
+  SubagentStats,
   HookRun,
   PlanStep,
   SettingsChange,
@@ -44,6 +45,8 @@ export interface AgentAdapter {
    * when there's no record of it. Agents without subagents leave it out.
    */
   subagent?(chatId: ChatId, cwd: string, toolId: string): Promise<SubagentRun>;
+  /** What the agent saved of how the subagent the chat's tool call `toolId` started ran and what it took. */
+  subagentStats?(chatId: ChatId, cwd: string, toolId: string): Promise<SubagentStats>;
   /** The chat's title; empty until the agent names it. */
   title(chatId: ChatId, cwd: string): Promise<string>;
   models(): Promise<AgentModels>;
@@ -142,6 +145,8 @@ export interface ChatEvents {
   subagentEntry(toolId: string, entry: Entry): void;
   /** The subagent the tool call `toolId` started began, or ended its task. */
   subagentState(toolId: string, state: SubagentState): void;
+  /** What the agent said of how the subagent the tool call `toolId` started runs and what it took. */
+  subagentStats(toolId: string, stats: SubagentStats): void;
   /** Asks for a decision. `signal` aborts when the agent stops waiting for it. */
   approval(request: ApprovalRequest, signal: AbortSignal): Promise<Verdict>;
   /**

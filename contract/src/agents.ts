@@ -113,6 +113,24 @@ export interface SubagentRun {
   entries: Entry[];
   /** Missing while the agent hasn't said. */
   state?: SubagentState;
+  /** How it ran and what it took; missing while the agent hasn't said. */
+  stats?: SubagentStats;
+}
+
+/** How a subagent ran and what its run took; each part missing until the agent says. */
+export interface SubagentStats {
+  effort?: EffortLevel;
+  /** Whether it ran in the background, the agent going on without waiting for it. */
+  background?: boolean;
+  /** 1 for a subagent the chat's agent started, 2 for one its subagent started, and so on. */
+  depth?: number;
+  durationMs?: number;
+  tokens?: number;
+  toolUses?: number;
+  /** Its tool calls by kind, once it ended. */
+  tools?: { read: number; search: number; shell: number; edit: number; other: number };
+  /** The lines its edits added and removed, once it ended. */
+  lines?: { added: number; removed: number };
 }
 
 /** One step of the agent's plan for the chat, which it keeps up to date as it works. */

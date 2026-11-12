@@ -10,6 +10,7 @@ import type {
   ChatSummary,
   Attachment,
   SubagentRun,
+  SubagentStats,
 } from '@grimoire/contract';
 import type { AgentAdapter, ChatEvents, ChatHistory, LiveChat, SignInRun } from '../adapter';
 import type { AgentTool } from '../tools';
@@ -29,6 +30,7 @@ import { FollowUpsKept } from './follow-ups';
 import { GRIMOIRE_SERVER, ProcessChat, grimoireOptions } from './grimoire-tools';
 import { mcpOff, mcpSettings } from './mcp';
 import { MessageQueue } from './message-queue';
+import { savedSubagentStats } from './subagent-stats';
 import { toAgentModels } from './models';
 import { claudeEnv as env, sdk } from './probe';
 import * as saved from './saved-chats';
@@ -87,6 +89,10 @@ export class ClaudeAdapter implements AgentAdapter {
 
   subagent(chatId: ChatId, cwd: string, toolId: string): Promise<SubagentRun> {
     return saved.subagent(chatId, cwd, toolId);
+  }
+
+  subagentStats(chatId: ChatId, _cwd: string, toolId: string): Promise<SubagentStats> {
+    return savedSubagentStats(chatId, toolId);
   }
 
   fork(chatId: ChatId, cwd: string, entryId: string, title: string): Promise<ChatId> {

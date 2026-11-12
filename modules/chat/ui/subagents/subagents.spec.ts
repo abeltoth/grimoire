@@ -39,6 +39,23 @@ describe('Subagents', () => {
     expect(subagents.running()).toBe(false);
   });
 
+  it('keeps how it runs and what it took, as read and as the agent says after', async () => {
+    let answer!: (run: SubagentRun) => void;
+    const { fixture, emit, subagents } = await withSubagent(
+      () => new Promise((resolve) => (answer = resolve)),
+    );
+    subagents.show('chat-1', call);
+    const stats = (tokens: number) => ({ chatId: 'chat-1', toolId: 't1', stats: { tokens } });
+    emit('agents.subagentStats', stats(200));
+    emit('agents.subagentStats', { ...stats(9), toolId: 'other' });
+    answer({ entries: [], stats: { effort: 'low', tokens: 100 } });
+    await fixture.whenStable();
+    expect(subagents.stats()).toEqual({ effort: 'low', tokens: 200 });
+
+    emit('agents.subagentStats', stats(300));
+    expect(subagents.stats()).toEqual({ effort: 'low', tokens: 300 });
+  });
+
   it('tells where it is from its tool call until the agent says', async () => {
     const { fixture, emit, subagents } = await withSubagent(async () => ({ entries: [] }));
     subagents.show('chat-1', call);

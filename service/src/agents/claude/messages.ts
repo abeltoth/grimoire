@@ -1,5 +1,6 @@
 import type { Block, ToolResult } from '@grimoire/contract';
 import type { ReplyUsage } from './cache';
+import type { TaskUsage } from './subagent-stats';
 
 /** The parts of Claude Code's messages the transcript reads; live and saved messages share them. */
 export interface ClaudeMessage {
@@ -18,6 +19,8 @@ export interface ClaudeMessage {
   isSynthetic?: boolean;
   /** Who sent a message into a run: the agent that asked a subagent is its "coordinator". */
   origin?: { kind?: string };
+  /** A live tool result's structured output: for the tool that started a subagent, what its run took. */
+  tool_use_result?: unknown;
 }
 
 export interface ApiMessage {
@@ -54,6 +57,12 @@ export interface TaskMessage {
   subtype?: string;
   tool_use_id?: string;
   status?: string;
+  /** What the run took so far, on its progress and its end. */
+  usage?: TaskUsage;
+  /** On its start, whether it runs in the background. */
+  is_backgrounded?: boolean;
+  /** On its start, 1 for a subagent the chat's agent started, one more for each subagent between. */
+  spawn_depth?: number;
 }
 
 /**

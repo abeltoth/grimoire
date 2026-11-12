@@ -17,6 +17,7 @@ import type {
   RecentFolders,
   SubagentRun,
   SubagentState,
+  SubagentStats,
 } from './agents';
 import type { Answer, Approval, ApprovalDecision } from './approvals';
 import type { ChatSettings, NewChatSettings, ParallelFrom, SettingsChange } from './chat-settings';
@@ -157,6 +158,8 @@ declare module './events' {
     'agents.subagentEntry': { chatId: ChatId; toolId: string; entry: Entry };
     /** A subagent the chat's tool call `toolId` started began, or ended its task. */
     'agents.subagentState': { chatId: ChatId; toolId: string; state: SubagentState };
+    /** How a subagent the chat's tool call `toolId` runs and what it took so far, all the agent said. */
+    'agents.subagentStats': { chatId: ChatId; toolId: string; stats: SubagentStats };
     /** Text streamed into a block of an entry since the last event, batched. */
     'agents.text': { chatId: ChatId; entryId: string; block: number; text: string };
     'agents.approval': { approval: Approval };

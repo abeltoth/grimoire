@@ -1,19 +1,22 @@
 import { Component, computed, inject } from '@angular/core';
-import type { Entry } from '@grimoire/contract';
+import { EFFORT_LEVELS, type EffortLevel, type Entry } from '@grimoire/contract';
 import { type Chat } from '@ui/app/core/chat';
 import { AgentCatalog } from '@ui/app/core/agent-catalog';
+import { effortName } from '@ui/app/core/efforts';
 import { modelLabel } from '@ui/app/core/tokens';
 import { Wording } from '@ui/app/core/wording';
 import { RightPageTabs } from '@ui/app/shell/right-page/right-page-tabs';
 import { PageFooter } from '@ui/app/shell/page/page-footer';
 import { PageHeader } from '@ui/app/shell/page/page-header';
+import { statsLine, toolsInWords } from './stats-line';
 import { SUBAGENT_PAGE, Subagents } from './subagents';
 import { Transcript } from '../transcript/transcript';
 
 /**
  * The right page's Subagent: what a subagent did with the task one of a
  * chat's tool calls handed it, as it goes. It heads with what the task
- * is for, the kind of subagent, its model and where it is with the task;
+ * is for, the kind of subagent, its model and effort, how it runs and
+ * where it is with the task, and foots with what its run took;
  * then reads as a chat that only reads: the task, signed by who asked,
  * the subagent's replies and tools, and the report it hands back. Until you
  * pick a subagent in a chat's margin, it says how to.
@@ -39,6 +42,7 @@ export class SubagentPage {
       prompt: text('prompt') || text('message'),
       kind: text('subagent_type'),
       model: text('model'),
+      effort: text('effort'),
     };
   });
 
@@ -51,10 +55,33 @@ export class SubagentPage {
     return model ? modelLabel(model) : '';
   });
 
-  /** What kind of subagent, its model, and where it is with its task. */
+  /** The effort the subagent works at: the one it ran at, else the one it was asked to. */
+  protected readonly effort = computed(() => {
+    const level = this.subagents.stats().effort ?? this.task().effort;
+    return EFFORT_LEVELS.includes(level as EffortLevel) ? effortName(level as EffortLevel) : '';
+  });
+
+  /** How it runs: in the background, and started by another subagent. */
+  protected readonly how = computed(() => {
+    const { background, depth } = this.subagents.stats();
+    return [
+      background ? this.wording.say('Off the page', 'In the background') : '',
+      depth && depth > 1 ? this.wording.say('A helper’s helper', 'Started by a subagent') : '',
+    ];
+  });
+
+  /** What kind of subagent, its model and effort, how it runs, and where it is with its task. */
   protected readonly meta = computed(() =>
-    [this.task().kind, this.model(), this.state()].filter(Boolean).join(' · '),
+    [this.task().kind, this.model(), this.effort(), ...this.how(), this.state()]
+      .filter(Boolean)
+      .join(' · '),
   );
+
+  /** What its run took, for the foot. */
+  protected readonly took = computed(() => statsLine(this.subagents.stats()));
+
+  /** Its tool calls by kind, for the foot's title. */
+  protected readonly tools = computed(() => toolsInWords(this.subagents.stats()));
 
   /** Who asked: the chat's agent, or the subagent that started this one. */
   protected readonly askedBy = computed(() => {

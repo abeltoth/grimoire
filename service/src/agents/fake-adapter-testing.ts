@@ -9,6 +9,7 @@ import type {
   Entry,
   FollowUp,
   SubagentRun,
+  SubagentStats,
   PlanStep,
   PromptCache,
   SettingsChange,
@@ -66,6 +67,10 @@ export class FakeAdapter implements AgentAdapter {
 
   async subagent(_chatId: ChatId, _cwd: string, toolId: string): Promise<SubagentRun> {
     return structuredClone(this.subagents.get(toolId) ?? { entries: [] });
+  }
+
+  async subagentStats(_chatId: ChatId, _cwd: string, toolId: string): Promise<SubagentStats> {
+    return structuredClone(this.subagents.get(toolId)?.stats ?? {});
   }
 
   /** Copies the chat up to and with your message, as the new chat `fork-n`. */

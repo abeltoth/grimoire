@@ -5,6 +5,7 @@ import { savedFollowUps } from './follow-ups';
 import { sdk } from './probe';
 import { turnEnd, wholeRun } from './entries';
 import { runBeganWith, savedSubagentState, subagentAgentId, subagentCallIn } from './subagent-runs';
+import { savedSubagentStats } from './subagent-stats';
 import type { ClaudeMessage } from './messages';
 import { ClaudeTranscript } from './transcript';
 
@@ -53,8 +54,17 @@ export async function history(chatId: ChatId, cwd: string): Promise<ChatHistory>
   };
 }
 
-/** The run of the subagent a tool call started, found among the chat's saved runs. */
+/** The run of the subagent a tool call started, and how it ran and what it took, as saved. */
 export async function subagent(chatId: ChatId, cwd: string, toolId: string): Promise<SubagentRun> {
+  const [run, stats] = await Promise.all([
+    savedRun(chatId, cwd, toolId),
+    savedSubagentStats(chatId, toolId).catch(() => ({})),
+  ]);
+  return Object.keys(stats).length ? { ...run, stats } : run;
+}
+
+/** The run of the subagent a tool call started, found among the chat's saved runs. */
+async function savedRun(chatId: ChatId, cwd: string, toolId: string): Promise<SubagentRun> {
   const { getSessionMessages, getSubagentMessages, listSubagents } = await sdk();
   const saved = await savedIn(chatId, cwd);
   const ids = await listSubagents(chatId, saved);

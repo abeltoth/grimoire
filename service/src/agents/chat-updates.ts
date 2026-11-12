@@ -4,6 +4,7 @@ import type {
   HookRun,
   SubagentRun,
   SubagentState,
+  SubagentStats,
   UserEntry,
 } from '@grimoire/contract';
 import type { Emit } from '../events';
@@ -137,6 +138,13 @@ export class ChatUpdates {
   setSubagentState(chat: ChatState, toolId: string, state: SubagentState): void {
     this.subagentRun(chat, toolId).state = state;
     this.emit('agents.subagentState', { chatId: chat.id, toolId, state });
+  }
+
+  /** Adds what the agent said of how a subagent runs to what it said before. */
+  addSubagentStats(chat: ChatState, toolId: string, stats: SubagentStats): void {
+    const run = this.subagentRun(chat, toolId);
+    run.stats = { ...run.stats, ...stats };
+    this.emit('agents.subagentStats', { chatId: chat.id, toolId, stats: { ...run.stats } });
   }
 
   /** The run of the subagent the chat's tool call `toolId` started, kept from its first word. */
