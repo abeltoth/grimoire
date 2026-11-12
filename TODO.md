@@ -9,6 +9,7 @@ A custom UI for Claude Code, built on the Claude Agent SDK.
 - Long run: many features, custom style, animations
 
 ## To-do
+Auto compact before cache expires
 Show agent websearch details
 Create better ai workflow for home development
 Rework history to resume tasks easier
@@ -36,3 +37,4 @@ Notes: notes tied to a project folder show when chatting in that folder
 Post mortem automation if ai fails some guidelines
 Pull request and CI status for each chat, with auto-fix
 Auto-archive chats when their pull request is merged
+Chat to route message between multiple chats
