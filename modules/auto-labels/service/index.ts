@@ -18,7 +18,7 @@ export const autoLabels: ServiceModule = {
       {
         transcript: (agent, chatId, cwd) => hub.transcript(agent, chatId, cwd),
         ask: (agent, instructions, text, signal) => hub.ask(agent, instructions, text, signal),
-        rename: (chatId, title) => registry.call('agents.rename', { chatId, title }),
+        rename: (chatId, title) => hub.rename(chatId, title, 'grimoire'),
         tagsOf: async (chatId) =>
           (await registry.call('history.pinsAndTags', {})).tags[chatId] ?? [],
         setTags: (chatId, tags) => registry.call('history.tag', { chatId, tags: [...tags] }),
@@ -46,6 +46,10 @@ export const autoLabels: ServiceModule = {
       labeller.turnEnded({ id: chatId, agent: chat.agent, cwd: chat.cwd, title: chat.title });
     });
     events.on('history.tags', ({ chatId, tags }) => labeller.tagsNow(chatId, tags));
+    // Kept whether or not labels are on, so a chat you named is never renamed later.
+    events.on('agents.title', ({ chatId, by }) => {
+      if (by === 'you') store.namedByYou(chatId);
+    });
 
     registry.register('labels.pastCount', () => past.count());
     registry.register('labels.labelPast', () => {

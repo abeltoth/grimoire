@@ -19,6 +19,7 @@ import type {
   PromptCache,
   QueuedEntry,
   Entry,
+  TitledBy,
   RecentFolders,
   SettingsChange,
   SubagentRun,
@@ -191,14 +192,17 @@ export class AgentHub {
     return this.snapshot(chat);
   }
 
-  start(
+  /** Starts a chat with your first message; a title given is yours, as if you'd named it. */
+  async start(
     agent: AgentId,
     settings: NewChatSettings,
     text: string,
     title?: string,
     attachments: Attachment[] = [],
   ): Promise<OpenChat> {
-    return this.newChats.start(agent, settings, text, title, attachments);
+    const chat = await this.newChats.start(agent, settings, text, title, attachments);
+    if (title?.trim()) this.emit('agents.title', { chatId: chat.id, title: chat.title, by: 'you' });
+    return chat;
   }
 
   parallel(
@@ -338,15 +342,15 @@ export class AgentHub {
     this.emit('agents.withdrawn', { chatId, withdrawn: [...chat.withdrawn] });
   }
 
-  /** Renames a chat with its agent. */
-  async rename(chatId: ChatId, title: string): Promise<void> {
+  /** Renames a chat with its agent; `by` says who named it, you unless Grimoire did on your behalf. */
+  async rename(chatId: ChatId, title: string, by: TitledBy = 'you'): Promise<void> {
     const chat = this.table.chat(chatId);
     const named = title.trim();
     if (!named) throw new Error('A chat needs a title');
     if (!chat.agent.rename) throw new Error(`${chat.agent.info.name} can't rename chats`);
     await chat.agent.rename(chatId, chat.settings.cwd, named);
     chat.title = named;
-    this.emit('agents.title', { chatId, title: named });
+    this.emit('agents.title', { chatId, title: named, by });
     this.editors.retitled(chat);
   }
 

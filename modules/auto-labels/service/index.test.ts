@@ -13,7 +13,6 @@ function started() {
   const sent: { event: string; payload: unknown }[] = [];
   events.toWindows((event, payload) => sent.push({ event, payload }));
   const renamed: unknown[] = [];
-  registry.register('agents.rename', (request) => void renamed.push(request));
   registry.register('history.pinsAndTags', () => ({ pins: {}, tags: {}, summaries: {} }));
   registry.register('history.tagList', () => []);
   const entries: Entry[] = [{ kind: 'user', id: 'u1', text: 'Add a context meter' }];
@@ -26,6 +25,8 @@ function started() {
         : undefined,
     transcript: async () => entries,
     ask: async () => '{"title": "Context meter"}',
+    rename: async (chatId: string, title: string, by: string) =>
+      void renamed.push({ chatId, title, by }),
   };
   const hooks = new Modules([autoLabels]);
   hooks.start({
@@ -49,7 +50,17 @@ describe('auto-labels', () => {
     events.emit('agents.turnEnded', { chatId: 'c1', error: 'stopped' });
     events.emit('agents.turnEnded', { chatId: 'gone' });
     await tick();
-    expect(renamed).toEqual([{ chatId: 'c1', title: 'Context meter' }]);
+    expect(renamed).toEqual([{ chatId: 'c1', title: 'Context meter', by: 'grimoire' }]);
+  });
+
+  it('never renames a chat you named, even before it was first labelled', async () => {
+    const { events, renamed } = started();
+    events.emit('agents.title', { chatId: 'c1', title: 'My own name', by: 'you' });
+    // Titles the agent or Grimoire gave don't count as yours.
+    events.emit('agents.title', { chatId: 'old', title: 'Agent name', by: 'agent' });
+    events.emit('agents.turnEnded', { chatId: 'c1' });
+    await tick();
+    expect(renamed).toEqual([]);
   });
 
   it('labels past chats when asked, telling the windows how far it’s come', async () => {
@@ -57,7 +68,7 @@ describe('auto-labels', () => {
     expect(await registry.call('labels.pastCount', {})).toBe(1);
     await registry.call('labels.labelPast', {});
     await tick();
-    expect(renamed).toEqual([{ chatId: 'old', title: 'Context meter' }]);
+    expect(renamed).toEqual([{ chatId: 'old', title: 'Context meter', by: 'grimoire' }]);
     expect(sent.at(-1)).toEqual({
       event: 'labels.progress',
       payload: { done: 1, total: 1, running: false },

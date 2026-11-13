@@ -79,6 +79,9 @@ export interface RecentFolders {
   recent: string[];
 }
 
+/** Who gave a chat its title: you, its agent, or Grimoire on your behalf. */
+export type TitledBy = 'you' | 'agent' | 'grimoire';
+
 /** A chat as the agent lists it, open or not. */
 export interface ChatSummary {
   id: ChatId;

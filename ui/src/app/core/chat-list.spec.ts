@@ -61,7 +61,7 @@ describe('ChatList', () => {
       answers['agents.openChats'] = () => [chat('c1')];
       answers['layout.get'] = () => ({ current: 'c1' });
     });
-    fake.emit('agents.title', { chatId: 'c1', title: 'Meter' });
+    fake.emit('agents.title', { chatId: 'c1', title: 'Meter', by: 'agent' });
     fake.emit('agents.status', { chatId: 'c1', status: 'thinking' });
     fake.emit('agents.suggestion', { chatId: 'c1', suggestion: 'Run the tests' });
     expect(chats.current()).toMatchObject({

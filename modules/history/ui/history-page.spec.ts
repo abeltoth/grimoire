@@ -117,7 +117,7 @@ describe('history', () => {
 
     // Tags and titles changed on a chat itself show here too.
     emit('history.tags', { chatId: 'c2', tags: ['bug', 'login'] });
-    emit('agents.title', { chatId: 'c4', title: 'Morning summary' });
+    emit('agents.title', { chatId: 'c4', title: 'Morning summary', by: 'agent' });
     await fixture.whenStable();
     expect(texts('gr-history-page li[data-chat="c2"] .tag')).toEqual(['bug', 'login']);
     expect(texts('gr-history-page li[data-chat="c4"] .chat')).toEqual(['Morning summary']);

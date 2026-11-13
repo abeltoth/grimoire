@@ -7,16 +7,16 @@ describe('ServiceEvents', () => {
     const heard: unknown[] = [];
     const windows: unknown[] = [];
     events.on('agents.title', (payload) => heard.push(payload));
-    events.emit('agents.title', { chatId: 'a', title: 'First' });
+    events.emit('agents.title', { chatId: 'a', title: 'First', by: 'agent' });
     events.toWindows((event, payload) => windows.push([event, payload]));
-    events.emit('agents.title', { chatId: 'a', title: 'Second' });
+    events.emit('agents.title', { chatId: 'a', title: 'Second', by: 'agent' });
     events.emit('agents.turnEnded', { chatId: 'a' });
     expect(heard).toEqual([
-      { chatId: 'a', title: 'First' },
-      { chatId: 'a', title: 'Second' },
+      { chatId: 'a', title: 'First', by: 'agent' },
+      { chatId: 'a', title: 'Second', by: 'agent' },
     ]);
     expect(windows).toEqual([
-      ['agents.title', { chatId: 'a', title: 'Second' }],
+      ['agents.title', { chatId: 'a', title: 'Second', by: 'agent' }],
       ['agents.turnEnded', { chatId: 'a' }],
     ]);
   });

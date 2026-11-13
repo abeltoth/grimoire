@@ -85,13 +85,14 @@ describe('Labeller', () => {
     expect(w.state.asked).toHaveLength(1);
   });
 
-  it('keeps a title given after its own, and never adds back a tag you took off', async () => {
+  it('never renames a chat you named, nor adds back a tag you took off', async () => {
     w.labeller.turnEnded(chat());
     await settle(w.labeller);
     w.labeller.tagsNow('c1', ['ui']);
     w.state.tags.set('c1', ['ui']);
     w.state.done = [];
 
+    w.store.namedByYou('c1');
     w.state.entries = you(5);
     w.state.answer = '{"title": "Meter", "summary": "Now in the footer.", "tags": ["bug", "ui"]}';
     w.labeller.turnEnded(chat('My own name'));

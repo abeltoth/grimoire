@@ -118,7 +118,7 @@ describe('AgentHub', () => {
     agent.title('Renamed');
     agent.title('Renamed');
     expect(sent.filter((s) => s.event === 'agents.title')).toEqual([
-      { event: 'agents.title', payload: { chatId: 'c1', title: 'Renamed' } },
+      { event: 'agents.title', payload: { chatId: 'c1', title: 'Renamed', by: 'agent' } },
     ]);
   });
 
@@ -291,13 +291,17 @@ describe('AgentHub', () => {
   it('renames chats with the agent, and starts them with a title', async () => {
     const { id } = await hub.start('fake', settings, 'Hello', '  Login bug ');
     expect(fake.runOf(id).title).toBe('Login bug');
+    // A title a chat begins with is yours.
+    expect(sent.filter((s) => s.event === 'agents.title')).toEqual([
+      { event: 'agents.title', payload: { chatId: id, title: 'Login bug', by: 'you' } },
+    ]);
     expect((await hub.open('fake', id, settings)).title).toBe('Login bug');
     sent = [];
 
     await hub.rename(id, ' Flaky login test ');
     expect(fake.renamed.get(id)).toBe('Flaky login test');
     expect(sent).toEqual([
-      { event: 'agents.title', payload: { chatId: id, title: 'Flaky login test' } },
+      { event: 'agents.title', payload: { chatId: id, title: 'Flaky login test', by: 'you' } },
     ]);
     expect((await hub.open('fake', id, settings)).title).toBe('Flaky login test');
     await expect(hub.rename(id, '  ')).rejects.toThrow('A chat needs a title');

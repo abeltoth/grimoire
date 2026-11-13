@@ -39,7 +39,7 @@ describe('composer', () => {
     });
     emit('agents.text', { chatId: 'chat-1', entryId: 'a2', block: 0, text: 'races the timer.' });
     emit('agents.status', { chatId: 'chat-1', status: 'writing' });
-    emit('agents.title', { chatId: 'chat-1', title: 'Fix flaky login test' });
+    emit('agents.title', { chatId: 'chat-1', title: 'Fix flaky login test', by: 'agent' });
     await fixture.whenStable();
 
     expect(texts('.reply .who')).toEqual(['Claude Code']);

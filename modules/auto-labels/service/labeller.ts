@@ -40,8 +40,8 @@ export function due(turns: number): boolean {
 
 /**
  * Labels chats on the agent's model for quick jobs, as Settings asks: a
- * title, never over one given after the last given here; tags from your
- * tag list, never one you took off; and a summary. One chat at a time.
+ * title, never over one you gave; tags from your tag list, never one you
+ * took off; and a summary. One chat at a time.
  */
 export class Labeller {
   private queue: Promise<void> = Promise.resolve();
@@ -110,11 +110,9 @@ export class Labeller {
     const turns = entries.filter((entry) => entry.kind === 'user').length;
     const before = this.store.labelled(chat.id);
     if (!turns || (past ? before : !due(turns) || (before && before.turns >= turns))) return;
-    // Once a title is given here, one you or the agent gave after it stays.
-    const mayTitle =
-      settings.autoTitles && (before?.title === undefined || before.title === chat.title);
     const wanted: Wanted = {
-      title: mayTitle,
+      // A title you gave stays.
+      title: settings.autoTitles && !this.store.isNamedByYou(chat.id),
       summary: settings.autoSummaries,
       tags: settings.autoTags ? await this.sources.tagList() : [],
     };

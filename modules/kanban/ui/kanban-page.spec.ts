@@ -125,7 +125,7 @@ describe('kanban-page', () => {
     ]);
     expect(board(texts)).toEqual({ todo: [], doing: ['Context meter'], done: [] });
     expect(texts('[data-card="a"] .chats li')).toEqual(['Untitled chapter thinking']);
-    emit('agents.title', { chatId: 'chat-1', title: 'Context meter' });
+    emit('agents.title', { chatId: 'chat-1', title: 'Context meter', by: 'agent' });
     emit('agents.status', { chatId: 'chat-1', status: 'waiting' });
     await fixture.whenStable();
     expect(texts('[data-card="a"] .chats li')).toEqual(['Context meter waiting for you']);
@@ -221,7 +221,7 @@ describe('kanban-page', () => {
     });
     const { fixture, el, texts } = await render(bridge);
     await write(fixture, el, 'Put the context meter on the board');
-    emit('agents.title', { chatId: 'chat-1', title: 'Track the meter' });
+    emit('agents.title', { chatId: 'chat-1', title: 'Track the meter', by: 'agent' });
     emit('agents.entry', {
       chatId: 'chat-1',
       entry: {

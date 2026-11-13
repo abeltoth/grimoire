@@ -18,6 +18,7 @@ import type {
   SubagentRun,
   SubagentState,
   SubagentStats,
+  TitledBy,
 } from './agents';
 import type { Answer, Approval, ApprovalDecision } from './approvals';
 import type { ChatSettings, NewChatSettings, ParallelFrom, SettingsChange } from './chat-settings';
@@ -166,7 +167,8 @@ declare module './events' {
     /** An approval was decided, or dropped because the turn stopped. */
     'agents.approvalSettled': { chatId: ChatId; approvalId: string };
     'agents.turnEnded': { chatId: ChatId; error?: string };
-    'agents.title': { chatId: ChatId; title: string };
+    /** The chat has a new title, given by you, by its agent, or by Grimoire on your behalf, such as auto labels. */
+    'agents.title': { chatId: ChatId; title: string; by: TitledBy };
     /** The queue changed: the messages now waiting for the turn to end. */
     'agents.queued': { chatId: ChatId; queued: QueuedEntry[] };
     /** How much of the context window the chat now fills. */

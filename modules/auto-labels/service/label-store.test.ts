@@ -21,6 +21,14 @@ describe('LabelStore', () => {
     expect(labels.all()).toEqual(new Set(['a', 'b']));
   });
 
+  it('remembers the chats you named', () => {
+    const labels = store();
+    labels.namedByYou('a');
+    labels.namedByYou('a');
+    expect(labels.isNamedByYou('a')).toBe(true);
+    expect(labels.isNamedByYou('b')).toBe(false);
+  });
+
   it('refuses a tag it added once you take it off, whatever its case', () => {
     const labels = store();
     labels.added('a', ['bug', 'ui']);

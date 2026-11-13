@@ -127,7 +127,7 @@ export class ChatRuns {
       title: (title) => {
         if (!current() || title === chat.title) return;
         chat.title = title;
-        this.emit('agents.title', { chatId: chat.id, title });
+        this.emit('agents.title', { chatId: chat.id, title, by: 'agent' });
         this.editors.retitled(chat);
       },
       suggestion: (text) => {

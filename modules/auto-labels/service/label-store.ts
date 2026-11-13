@@ -8,7 +8,7 @@ export interface Labelled {
   title?: string;
 }
 
-/** What labelling chats remembers: which were labelled, and the tags it added and you took off. */
+/** What labelling chats remembers: which were labelled, the tags it added and you took off, and the chats you named. */
 export class LabelStore {
   constructor(private readonly db: DatabaseSync) {}
 
@@ -35,6 +35,15 @@ export class LabelStore {
            title = COALESCE(excluded.title, labelled.title)`,
       )
       .run(chatId, turns, title ?? null);
+  }
+
+  /** You named the chat: it's never renamed here. */
+  namedByYou(chatId: ChatId): void {
+    this.db.prepare('INSERT OR IGNORE INTO named_by_you (chat_id) VALUES (?)').run(chatId);
+  }
+
+  isNamedByYou(chatId: ChatId): boolean {
+    return !!this.db.prepare('SELECT 1 FROM named_by_you WHERE chat_id = ?').get(chatId);
   }
 
   /** These tags were added to the chat here. */
