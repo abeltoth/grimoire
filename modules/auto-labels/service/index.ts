@@ -2,12 +2,12 @@ import type { ServiceModule } from '@grimoire/service/core/module';
 import { LabelStore } from './label-store';
 import { Labeller } from './labeller';
 import { MIGRATIONS } from './migrations';
-import { PastChats } from './past-chats';
+import { suggestTags } from './suggest';
 
 /**
  * Names, tags and sums up chats on each agent's model for quick jobs, as
- * Settings asks (ADR-013): after a chat's turns, and for past chats when
- * you ask. What it gives goes through the agent and the History's commands.
+ * Settings asks (ADR-013), after a chat's turns; and suggests tags for
+ * your tag list. What it gives goes through the agent and the History's commands.
  */
 export const autoLabels: ServiceModule = {
   id: 'auto-labels',
@@ -29,16 +29,6 @@ export const autoLabels: ServiceModule = {
       () => settings.get(),
       log,
     );
-    const past = new PastChats(
-      {
-        agents: () => hub.agents(),
-        listChats: (agent) => hub.listChats(agent),
-        ask: (agent, instructions, text, signal) => hub.ask(agent, instructions, text, signal),
-      },
-      labeller,
-      store,
-      (progress) => events.emit('labels.progress', progress),
-    );
 
     events.on('agents.turnEnded', ({ chatId, error }) => {
       const chat = hub.glance(chatId);
@@ -51,18 +41,13 @@ export const autoLabels: ServiceModule = {
       if (by === 'you') store.namedByYou(chatId);
     });
 
-    registry.register('labels.pastCount', () => past.count());
-    registry.register('labels.labelPast', () => {
-      void past.start();
-    });
-    registry.register('labels.stopPast', () => past.stop());
-    registry.register('labels.progress', () => past.where());
-    registry.register('labels.suggestTags', () => past.suggest());
-    return {
-      stop: () => {
-        past.stop();
-        labeller.stop();
-      },
-    };
+    registry.register('labels.suggestTags', () =>
+      suggestTags({
+        agents: () => hub.agents(),
+        listChats: (agent) => hub.listChats(agent),
+        ask: (agent, instructions, text, signal) => hub.ask(agent, instructions, text, signal),
+      }),
+    );
+    return { stop: () => labeller.stop() };
   },
 };

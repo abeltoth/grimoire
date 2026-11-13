@@ -19,12 +19,6 @@ export class LabelStore {
     return row && { turns: row.turns, ...(row.title !== null ? { title: row.title } : {}) };
   }
 
-  /** Every chat ever labelled. */
-  all(): Set<ChatId> {
-    const rows = this.db.prepare('SELECT chat_id FROM labelled').all() as { chat_id: ChatId }[];
-    return new Set(rows.map((row) => row.chat_id));
-  }
-
   /** The chat was labelled at this many of your messages; a title given replaces the one before. */
   label(chatId: ChatId, turns: number, title?: string): void {
     this.db

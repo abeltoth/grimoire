@@ -10,8 +10,6 @@ import { autoLabels } from '.';
 function started() {
   const registry = new CommandRegistry();
   const events = new ServiceEvents();
-  const sent: { event: string; payload: unknown }[] = [];
-  events.toWindows((event, payload) => sent.push({ event, payload }));
   const renamed: unknown[] = [];
   registry.register('history.pinsAndTags', () => ({ pins: {}, tags: {}, summaries: {} }));
   registry.register('history.tagList', () => []);
@@ -24,7 +22,8 @@ function started() {
         ? { agent: 'fake', title: '', cwd: '/work', status: 'idle', capabilities: ['ask'] }
         : undefined,
     transcript: async () => entries,
-    ask: async () => '{"title": "Context meter"}',
+    ask: async (_agent: string, instructions: string) =>
+      instructions.includes('suggest') ? '["Meter"]' : '{"title": "Context meter"}',
     rename: async (chatId: string, title: string, by: string) =>
       void renamed.push({ chatId, title, by }),
   };
@@ -37,7 +36,7 @@ function started() {
     settings: { get: () => ({ ...DEFAULT_SETTINGS, autoTitles: true }) },
     log: () => {},
   } as unknown as ModuleContext);
-  return { registry, events, sent, renamed, hooks };
+  return { registry, events, renamed, hooks };
 }
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -63,20 +62,8 @@ describe('auto-labels', () => {
     expect(renamed).toEqual([]);
   });
 
-  it('labels past chats when asked, telling the windows how far it’s come', async () => {
-    const { registry, sent, renamed } = started();
-    expect(await registry.call('labels.pastCount', {})).toBe(1);
-    await registry.call('labels.labelPast', {});
-    await tick();
-    expect(renamed).toEqual([{ chatId: 'old', title: 'Context meter', by: 'grimoire' }]);
-    expect(sent.at(-1)).toEqual({
-      event: 'labels.progress',
-      payload: { done: 1, total: 1, running: false },
-    });
-    expect(await registry.call('labels.progress', {})).toEqual({
-      done: 1,
-      total: 1,
-      running: false,
-    });
+  it('suggests tags from the titles of the agents’ chats', async () => {
+    const { registry } = started();
+    expect(await registry.call('labels.suggestTags', {})).toEqual(['meter']);
   });
 });

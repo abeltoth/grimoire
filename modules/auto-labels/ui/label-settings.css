@@ -67,6 +67,13 @@ h2 {
   border-bottom: var(--gr-settings-word-rule);
 }
 
+.tag {
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-control);
+  letter-spacing: var(--gr-tracking-control);
+  color: var(--gr-ink);
+}
+
 .state {
   font-size: var(--gr-size-settings-word);
   color: var(--gr-ink);

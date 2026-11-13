@@ -65,15 +65,10 @@ export class Labeller {
   turnEnded(chat: ChatToLabel): void {
     if (!this.on() || this.waiting.has(chat.id)) return;
     this.waiting.add(chat.id);
-    void this.enqueue(async () => {
+    this.enqueue(async () => {
       this.waiting.delete(chat.id);
-      await this.label(chat, false);
+      await this.label(chat);
     });
-  }
-
-  /** Labels a past chat never labelled, whatever its count of messages; settles once it's done. */
-  labelPast(chat: ChatToLabel): Promise<void> {
-    return this.enqueue(() => this.label(chat, true));
   }
 
   /** The chat's tags changed: any added here that are gone, you took off. */
@@ -91,8 +86,8 @@ export class Labeller {
     this.stopping.abort();
   }
 
-  private enqueue(job: () => Promise<void>): Promise<void> {
-    const run = this.queue.then(async () => {
+  private enqueue(job: () => Promise<void>): void {
+    this.queue = this.queue.then(async () => {
       if (this.stopping.signal.aborted) return;
       await job().catch((error: unknown) =>
         this.log(
@@ -100,16 +95,14 @@ export class Labeller {
         ),
       );
     });
-    this.queue = run;
-    return run;
   }
 
-  private async label(chat: ChatToLabel, past: boolean): Promise<void> {
+  private async label(chat: ChatToLabel): Promise<void> {
     const settings = this.settings();
     const entries = await this.sources.transcript(chat.agent, chat.id, chat.cwd);
     const turns = entries.filter((entry) => entry.kind === 'user').length;
     const before = this.store.labelled(chat.id);
-    if (!turns || (past ? before : !due(turns) || (before && before.turns >= turns))) return;
+    if (!due(turns) || (before && before.turns >= turns)) return;
     const wanted: Wanted = {
       // A title you gave stays.
       title: settings.autoTitles && !this.store.isNamedByYou(chat.id),

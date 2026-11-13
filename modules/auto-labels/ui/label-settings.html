@@ -2,8 +2,8 @@
   <section aria-labelledby="gr-settings-labels">
     <h2 id="gr-settings-labels">Labels</h2>
     <p class="lead">
-      Chats named, tagged and summed up on the model for quick tasks, after your first message and
-      every fifth. Each uses tokens on your account.
+      New chats named, tagged and summed up on the model for quick tasks, after your first message
+      and every fifth. Each uses tokens on your account.
     </p>
 
     @if (failed(); as error) {
@@ -38,11 +38,19 @@
 
       <span class="label">Tag list</span>
       <span class="words">
+        @for (tag of tagList(); track tag) {
+          <span class="tag">{{ tag }}</span>
+        } @empty {
+          <span class="state">None yet.</span>
+        }
+      </span>
+      <p class="note">
+        Tag chats picks only from these; change them from the History’s Tag list.
         <button type="button" class="gr-link" [disabled]="suggesting()" (click)="suggest()">
           {{ suggesting() ? 'Reading your chats…' : 'Suggest tags from my chats' }}
         </button>
-      </span>
-      @if (suggested(); as tags) {
+      </p>
+      @if (fresh(); as tags) {
         <p class="note suggestions">
           @if (tags.length) {
             @for (tag of tags; track tag) {
@@ -57,39 +65,10 @@
             }
             <button type="button" class="gr-link" (click)="keep(tags)">Add them all</button>
           } @else {
-            No more tags to suggest.
+            Every suggested tag is on your list.
           }
         </p>
       }
-
-      <span class="label">Past chats</span>
-      <span class="words">
-        @if (progress().running) {
-          <span class="state" aria-live="polite"
-            >{{ progress().done }} of {{ progress().total }} labelled</span
-          >
-          <button type="button" class="gr-link" (click)="stopPast()">Stop</button>
-        } @else if (confirming() !== null) {
-          @if (confirming(); as count) {
-            <span class="state">Label {{ count }} past {{ count === 1 ? 'chat' : 'chats' }}?</span>
-            <button type="button" class="gr-link" [disabled]="!anyOn()" (click)="labelPast()">
-              Label them
-            </button>
-          } @else {
-            <span class="state">Every past chat is labelled.</span>
-          }
-          <button type="button" class="gr-link" (click)="confirming.set(null)">Cancel</button>
-        } @else {
-          <button type="button" class="gr-link" (click)="askPast()">Label past chats</button>
-        }
-      </span>
-      <p class="note">
-        @if (anyOn()) {
-          Labels the chats never labelled, as set above, one at a time.
-        } @else {
-          Turn on a label above first.
-        }
-      </p>
     </div>
   </section>
 }

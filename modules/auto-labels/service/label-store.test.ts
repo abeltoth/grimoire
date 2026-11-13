@@ -18,7 +18,6 @@ describe('LabelStore', () => {
     labels.label('b', 2);
     expect(labels.labelled('a')).toEqual({ turns: 5, title: 'Context meter' });
     expect(labels.labelled('b')).toEqual({ turns: 2 });
-    expect(labels.all()).toEqual(new Set(['a', 'b']));
   });
 
   it('remembers the chats you named', () => {

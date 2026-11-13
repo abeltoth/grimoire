@@ -117,14 +117,6 @@ describe('Labeller', () => {
     expect(w.store.labelled('c2')).toBeUndefined();
   });
 
-  it('labels a past chat whatever its count of messages, but only once', async () => {
-    w.state.entries = you(3);
-    await w.labeller.labelPast(chat());
-    await w.labeller.labelPast(chat());
-    expect(w.state.asked).toHaveLength(1);
-    expect(w.store.labelled('c1')).toEqual({ turns: 3, title: 'Context meter' });
-  });
-
   it('logs a chat it couldn’t label, and goes on to the next', async () => {
     w.state.answer = 'not json';
     w.labeller.turnEnded(chat());

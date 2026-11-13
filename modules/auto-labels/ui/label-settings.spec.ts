@@ -1,4 +1,3 @@
-import type { LabelProgress } from '@grimoire/contract';
 import { fakeBridge, openPageTab, render } from '@ui/testing/app-testing';
 
 async function withLabels(setUp: (fake: ReturnType<typeof fakeBridge>) => void = () => {}) {
@@ -30,7 +29,6 @@ describe('LabelSettings', () => {
       'Tag chats',
       'Sum up chats',
       'Tag list',
-      'Past chats',
     ]);
     const on = (label: string) =>
       el.querySelector(`gr-label-settings [aria-labelledby="gr-settings-${label}"] .word`)!;
@@ -41,12 +39,14 @@ describe('LabelSettings', () => {
     expect(sent('settings.set')).toEqual([{ autoTags: true }]);
   });
 
-  it('adds tags the agent suggests to the end of your tag list', async () => {
-    const { click, sent, texts } = await withLabels((fake) => {
-      fake.answers['labels.suggestTags'] = () => ['bug', 'ui', 'docs'];
+  it('shows your tag list, and adds tags the agent suggests to the end of it', async () => {
+    const { click, sent, texts, emit, fixture } = await withLabels((fake) => {
+      fake.answers['labels.suggestTags'] = () => ['bug', 'API', 'ui', 'docs'];
       fake.answers['history.tagList'] = () => ['api'];
     });
+    expect(texts('gr-label-settings .tag')).toEqual(['api']);
     await click('Suggest tags from my chats');
+    // A tag already on the list isn't suggested again.
     expect(texts('gr-label-settings .suggestions .gr-link')).toEqual([
       '+ bug',
       '+ ui',
@@ -54,38 +54,18 @@ describe('LabelSettings', () => {
       'Add them all',
     ]);
     await click('Add ui to the tag list');
+    emit('history.tagListChanged', { tags: ['api', 'ui'] });
+    await fixture.whenStable();
+    expect(texts('gr-label-settings .tag')).toEqual(['api', 'ui']);
     await click('Add them all');
     expect(sent('history.setTagList')).toEqual([
       { tags: ['api', 'ui'] },
       { tags: ['api', 'bug', 'docs'] },
     ]);
-    expect(texts('gr-label-settings .suggestions')).toEqual(['No more tags to suggest.']);
-  });
-
-  it('labels past chats once you’ve seen how many, showing how far it’s come', async () => {
-    const { click, sent, texts, emit, fixture, button, el } = await withLabels((fake) => {
-      fake.answers['labels.pastCount'] = () => 12;
-    });
-    await click('Label past chats');
-    expect(texts('gr-label-settings .state')).toEqual(['Label 12 past chats?']);
-    // With every label off there's nothing to label them with.
-    expect(button('Label them').disabled).toBe(true);
-    await click('Cancel');
-
-    el.querySelector<HTMLButtonElement>(
-      'gr-label-settings [aria-labelledby="gr-settings-autoSummaries"] .word',
-    )!.click();
+    emit('history.tagListChanged', { tags: ['api', 'ui', 'bug', 'docs'] });
     await fixture.whenStable();
-    await click('Label past chats');
-    await click('Label them');
-    expect(sent('labels.pastCount')).toHaveLength(2);
-    expect(sent('labels.labelPast')).toEqual([{}]);
-
-    const progress = (p: LabelProgress) => emit('labels.progress', p);
-    progress({ done: 3, total: 12, running: true });
-    await fixture.whenStable();
-    expect(texts('gr-label-settings .state')).toEqual(['3 of 12 labelled']);
-    await click('Stop');
-    expect(sent('labels.stopPast')).toEqual([{}]);
+    expect(texts('gr-label-settings .suggestions')).toEqual([
+      'Every suggested tag is on your list.',
+    ]);
   });
 });

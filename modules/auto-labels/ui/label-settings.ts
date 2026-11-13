@@ -1,5 +1,5 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
-import type { GrimoireSettings, LabelProgress } from '@grimoire/contract';
+import type { GrimoireSettings } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { Settings } from '@ui/app/core/settings';
@@ -9,8 +9,7 @@ type LabelSetting = 'autoTitles' | 'autoTags' | 'autoSummaries';
 /**
  * When chats are named, tagged and summed up on the model for quick tasks,
  * each off until you turn it on, since each spends tokens. Tags come from
- * your tag list, which the agent can suggest from your chats' titles. Past
- * chats are labelled when you ask, once you've seen how many there are.
+ * your tag list, shown here, which the agent can suggest from your chats' titles.
  */
 @Component({
   selector: 'gr-label-settings',
@@ -44,24 +43,23 @@ export class LabelSettings {
   protected readonly able = computed(() =>
     this.catalog.agents().some((agent) => agent.capabilities.includes('ask')),
   );
-  protected readonly anyOn = computed(() => {
-    const all = this.settings.all();
-    return all.autoTitles || all.autoTags || all.autoSummaries;
-  });
+  /** Your tag list, as the History keeps it. */
+  protected readonly tagList = signal<readonly string[]>([]);
   /** Tags the agent suggested, until you add them or ask again. */
-  protected readonly suggested = signal<readonly string[] | null>(null);
+  private readonly suggested = signal<readonly string[] | null>(null);
+  /** The suggested tags not on your list yet. */
+  protected readonly fresh = computed(() => {
+    const listed = new Set(this.tagList().map((tag) => tag.toLowerCase()));
+    return this.suggested()?.filter((tag) => !listed.has(tag.toLowerCase())) ?? null;
+  });
   protected readonly suggesting = signal(false);
-  /** How many past chats would be labelled, while you're asked to confirm. */
-  protected readonly confirming = signal<number | null>(null);
-  protected readonly progress = signal<LabelProgress>({ done: 0, total: 0, running: false });
   protected readonly failed = signal<string | null>(null);
 
   constructor() {
-    const stop = this.bridge.on('labels.progress', (progress) => this.progress.set(progress));
+    const stop = this.bridge.on('history.tagListChanged', ({ tags }) => this.tagList.set(tags));
     inject(DestroyRef).onDestroy(stop);
     void this.attempt(async () => {
-      const progress = await this.bridge.invoke('labels.progress', {});
-      if (progress) this.progress.set(progress);
+      this.tagList.set((await this.bridge.invoke('history.tagList', {})) ?? []);
     });
   }
 
@@ -85,23 +83,7 @@ export class LabelSettings {
     return this.attempt(async () => {
       const list = (await this.bridge.invoke('history.tagList', {})) ?? [];
       await this.bridge.invoke('history.setTagList', { tags: [...list, ...tags] });
-      this.suggested.update((left) => left?.filter((tag) => !tags.includes(tag)) ?? null);
     });
-  }
-
-  protected askPast(): Promise<void> {
-    return this.attempt(async () => {
-      this.confirming.set((await this.bridge.invoke('labels.pastCount', {})) ?? 0);
-    });
-  }
-
-  protected labelPast(): Promise<void> {
-    this.confirming.set(null);
-    return this.attempt(() => this.bridge.invoke('labels.labelPast', {}));
-  }
-
-  protected stopPast(): Promise<void> {
-    return this.attempt(() => this.bridge.invoke('labels.stopPast', {}));
   }
 
   private async attempt(run: () => Promise<void>): Promise<void> {
