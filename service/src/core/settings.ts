@@ -61,6 +61,13 @@ const VALID: { [K in keyof GrimoireSettings]: (value: unknown) => boolean } = {
   jiraQuery: (value) =>
     typeof value === 'string' && value.trim() !== '' && value.length <= MAX_JIRA_QUERY,
   historyGroup: (value) => value === 'date' || value === 'project',
+  quickModels: (value) =>
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value) &&
+    Object.values(value).every(
+      (model) => typeof model === 'string' && model.trim() !== '' && model.length <= 200,
+    ),
 };
 
 /** The longest Jira query kept: longer than anyone writes by hand. */

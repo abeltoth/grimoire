@@ -6,6 +6,9 @@ import { defaultEffort, type EffortSettings } from './effort';
  * Claude Code's model aliases, such as Opus 5.5, with the effort levels each
  * takes and the one it runs at by default; the dated model IDs are left out.
  */
+/** The model Claude Code recommends for Grimoire's quick jobs, unless Settings names another. */
+export const QUICK_MODEL = 'haiku';
+
 export function toAgentModels(
   all: readonly ModelInfo[],
   settings: EffortSettings,
@@ -38,5 +41,6 @@ export function toAgentModels(
       },
     ),
     ...(byDefault ? { default: byDefault.value } : {}),
+    quick: QUICK_MODEL,
   };
 }

@@ -35,6 +35,8 @@ export interface SpareSetup {
   followUps: () => boolean;
   tools: () => readonly AgentTool[];
   models: () => Promise<AgentModels>;
+  /** The model that rates a subagent's task. */
+  quickModel: () => string;
 }
 
 /** The one Claude Code process kept parked, so a new chat starts at once (ADR-010). */
@@ -162,6 +164,7 @@ export class Spares {
       picking: spare.picking,
       followUps: spare.followUps,
       models: this.setup.models,
+      quickModel: this.setup.quickModel,
     });
   }
 }

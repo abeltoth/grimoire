@@ -17,7 +17,7 @@ export type ChatId = string;
  * What an agent can do beyond chatting; "compact" sums a chat up to free its
  * context, and "sign-in" switches the account every chat uses.
  */
-export type AgentCapability = 'rename' | 'fork' | 'undo' | 'compact' | 'sign-in';
+export type AgentCapability = 'rename' | 'fork' | 'undo' | 'compact' | 'sign-in' | 'ask';
 
 export interface AgentInfo {
   id: AgentId;
@@ -41,6 +41,11 @@ export interface AgentModels {
   models: AgentModel[];
   /** The model a chat gets when its settings name none. */
   default?: string;
+  /**
+   * The model the agent recommends for Grimoire's quick jobs, such as
+   * picking a chat's model or naming it; Settings can put another in its place.
+   */
+  quick?: string;
 }
 
 /** The account an agent is signed in with. */

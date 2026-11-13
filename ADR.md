@@ -170,3 +170,18 @@ Accepted on 2026-11-10.
 **Consequences:**
 - TypeScript refuses any other import from a module, and the lint, which reads the same exports map, says why.
 - A module that needs more of the service adds it to the exports map, in the group it belongs to.
+
+## ADR-013: Quick jobs run on a model each agent recommends and you can change
+
+Accepted on 2026-11-13.
+
+**Context:** Grimoire asks a model small questions of its own: which model a new chat on Auto needs, which a subagent needs, and, with features to come, a chat's title, tags and summary. These calls named Haiku in code, which ties an agent-neutral app to one provider's model, and features that spend tokens could only be built inside the Claude adapter.
+
+**Decision:**
+- An agent answers a one-off prompt through the optional `ask` of `AgentAdapter` (ADR-006): no tools, none of your settings, nothing saved. An agent that can't leaves it out; one that can says so with the `ask` capability. Modules ask through the hub, never an agent directly.
+- Each agent names the model it recommends for quick jobs in `AgentModels.quick`, in one place in its adapter. Settings keeps one model per agent in `quickModels`, used by every quick job; an agent left out uses the one it recommends.
+- A feature that spends tokens on quick jobs, beyond those that pick models, is off until you turn it on.
+
+**Consequences:**
+- No core or module code names a model; Claude's recommended one is `QUICK_MODEL` in the Claude adapter.
+- Auto, the subagent picker and later features share the one model setting, so changing it changes them all.

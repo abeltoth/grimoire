@@ -1,0 +1,34 @@
+@if (choices().length) {
+  <section class="quick" aria-labelledby="gr-settings-quick">
+    <h2 id="gr-settings-quick">Quick tasks</h2>
+    <p class="lead">
+      The model Grimoire’s small jobs run on, such as picking a chat’s model on Auto or a
+      subagent’s. Each uses tokens on your account.
+    </p>
+    <div class="form">
+      @for (choice of choices(); track choice.agent) {
+        <span class="label" [id]="'gr-settings-quick-' + choice.agent">{{ choice.name }}</span>
+        <span
+          class="words"
+          role="radiogroup"
+          [attr.aria-labelledby]="'gr-settings-quick-' + choice.agent"
+        >
+          @for (model of choice.models; track model.id) {
+            <button
+              type="button"
+              class="word"
+              role="radio"
+              [attr.aria-checked]="model.id === choice.picked"
+              (click)="pick(choice, model.id)"
+            >
+              {{ model.name }}
+            </button>
+          }
+        </span>
+        @if (choice.recommendedName; as recommended) {
+          <p class="note">{{ choice.name }} recommends {{ recommended }}.</p>
+        }
+      }
+    </div>
+  </section>
+}

@@ -109,6 +109,13 @@ export class AgentHub {
     return this.table.adapter(agent).models();
   }
 
+  /** Answers a one-off prompt on the agent's model for quick jobs; rejects when the agent can't. */
+  ask(agent: AgentId, instructions: string, text: string, signal: AbortSignal): Promise<string> {
+    const adapter = this.table.adapter(agent);
+    if (!adapter.ask) return Promise.reject(new Error(`${adapter.info.name} can't answer prompts`));
+    return adapter.ask(instructions, text, signal);
+  }
+
   /** The agent's commands and skills in a folder; none when it has no such thing. */
   async commands(agent: AgentId, cwd?: string): Promise<AgentCommand[]> {
     return (await this.table.adapter(agent).commands?.(cwd ?? homedir())) ?? [];

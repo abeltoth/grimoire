@@ -51,6 +51,11 @@ export interface GrimoireSettings {
   jiraQuery: string;
   /** How the History lists chats: by when they were last written in, or by project. */
   historyGroup: 'date' | 'project';
+  /**
+   * The model each agent does Grimoire's quick jobs on, by agent, such as
+   * picking a chat's model or naming it; an agent left out uses the one it recommends.
+   */
+  quickModels: Readonly<Record<AgentId, string>>;
 }
 
 /** The Jira issues on the board unless you say otherwise: yours not done, and those done in the last fortnight. */
@@ -72,6 +77,7 @@ export const DEFAULT_SETTINGS: GrimoireSettings = {
   jira: true,
   jiraQuery: DEFAULT_JIRA_QUERY,
   historyGroup: 'date',
+  quickModels: {},
 };
 
 declare module './commands' {

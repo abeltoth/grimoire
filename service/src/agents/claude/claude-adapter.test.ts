@@ -16,7 +16,13 @@ const claude = {
 vi.mock('./probe', async (original) => ({
   ...(await original<typeof import('./probe')>()),
   sdk: async () => ({
-    query: ({ options }: { options: { cwd?: string } }) => {
+    query: ({
+      prompt,
+      options,
+    }: {
+      prompt: unknown;
+      options: { cwd?: string; model?: string };
+    }) => {
       const ask = (what: string, answer: () => unknown) => async () => {
         claude.asked.push({ ...(options.cwd ? { cwd: options.cwd } : {}), ask: what });
         if (claude.failNext) {
@@ -30,6 +36,14 @@ vi.mock('./probe', async (original) => ({
         supportedCommands: ask('commands', () => claude.commands),
         reloadSkills: async () => ({ skills: claude.skills.map((name) => ({ name })) }),
         close: () => claude.closed++,
+        // A one-off prompt answers once, saying what it was asked on which model.
+        async *[Symbol.asyncIterator]() {
+          yield {
+            type: 'result',
+            subtype: 'success',
+            result: `${options.model}: ${String(prompt)}`,
+          };
+        },
       };
     },
   }),
@@ -115,5 +129,16 @@ describe('ClaudeAdapter', () => {
     await expect(adapter.commands('/work')).rejects.toThrow();
     expect(await adapter.commands('/work')).toEqual([]);
     expect(claude.asked).toHaveLength(2);
+  });
+
+  it('answers one-off prompts on the model Settings names, else on the one it recommends', async () => {
+    const signal = new AbortController().signal;
+    expect(new ClaudeAdapter().info.capabilities).toContain('ask');
+    expect(await new ClaudeAdapter().ask('Name it', 'Hello', signal)).toBe('haiku: Hello');
+    expect((await new ClaudeAdapter().models()).quick).toBe('haiku');
+    const named = new ClaudeAdapter(undefined, undefined, undefined, undefined, (agent) =>
+      agent === 'claude-code' ? 'sonnet' : undefined,
+    );
+    expect(await named.ask('Name it', 'Hello', signal)).toBe('sonnet: Hello');
   });
 });

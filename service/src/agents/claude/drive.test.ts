@@ -69,6 +69,7 @@ const run = (query: ReturnType<typeof liveQuery>) =>
     picking,
     followUps,
     models: async () => ({ models: [], default: 'opus' }),
+    quickModel: () => 'haiku',
   });
 
 describe('drive', () => {

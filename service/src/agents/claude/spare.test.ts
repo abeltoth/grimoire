@@ -47,6 +47,7 @@ beforeEach(() => {
     followUps: () => true,
     tools: () => [],
     models: async () => ({ models: [], default: 'opus' }),
+    quickModel: () => 'haiku',
   });
 });
 

@@ -1,6 +1,7 @@
 import { homedir } from 'node:os';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { openDatabase } from '../storage/database';
+import type { AgentAdapter } from './adapter';
 import { hubStore } from './chat-table';
 import { FakeAdapter } from './fake-adapter-testing';
 import { AgentHub } from './hub';
@@ -324,5 +325,19 @@ describe('AgentHub', () => {
     });
     hub.close('c1');
     expect(hub.glance('c1')).toBeUndefined();
+  });
+
+  it('asks the agent a one-off prompt, and refuses for an agent that can’t answer one', async () => {
+    fake.answer = (instructions, text) => `${instructions}: ${text}`;
+    const signal = new AbortController().signal;
+    expect(await hub.ask('fake', 'Name it', 'Hello', signal)).toBe('Name it: Hello');
+    expect(fake.asked).toEqual([{ instructions: 'Name it', text: 'Hello' }]);
+
+    const mute: AgentAdapter = new FakeAdapter();
+    Object.assign(mute, { ask: undefined, info: { ...mute.info, id: 'mute', name: 'Mute agent' } });
+    hub.addAdapter(mute);
+    await expect(hub.ask('mute', 'Name it', 'Hello', signal)).rejects.toThrow(
+      "Mute agent can't answer prompts",
+    );
   });
 });

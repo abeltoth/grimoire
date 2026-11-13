@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { ModelInfo, Query, SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
 import type {
   AgentAccount,
+  AgentId,
   AgentCommand,
   AgentInfo,
   AgentModels,
@@ -31,7 +32,7 @@ import { GRIMOIRE_SERVER, ProcessChat, grimoireOptions } from './grimoire-tools'
 import { mcpOff, mcpSettings } from './mcp';
 import { MessageQueue } from './message-queue';
 import { savedSubagentStats } from './subagent-stats';
-import { toAgentModels } from './models';
+import { QUICK_MODEL, toAgentModels } from './models';
 import { claudeEnv as env, sdk } from './probe';
 import * as saved from './saved-chats';
 import { readAccount, signIn } from './sign-in';
@@ -62,6 +63,8 @@ export class ClaudeAdapter implements AgentAdapter {
     private readonly suggestions: () => boolean = () => true,
     private readonly followUps: () => boolean = () => true,
     private readonly tools: () => readonly AgentTool[] = () => [],
+    /** The model Settings names for an agent's quick jobs; undefined for the one it recommends. */
+    private readonly quickModels: (agent: AgentId) => string | undefined = () => undefined,
   ) {
     this.spares = new Spares({
       agent: this.info.id,
@@ -70,13 +73,14 @@ export class ClaudeAdapter implements AgentAdapter {
       followUps,
       tools,
       models: () => this.models(),
+      quickModel: () => this.quickModel(),
     });
   }
 
   readonly info: AgentInfo = {
     id: 'claude-code',
     name: 'Claude Code',
-    capabilities: ['rename', 'fork', 'undo', 'compact', 'sign-in'],
+    capabilities: ['rename', 'fork', 'undo', 'compact', 'sign-in', 'ask'],
   };
 
   listChats(cwd?: string): Promise<ChatSummary[]> {
@@ -121,7 +125,7 @@ export class ClaudeAdapter implements AgentAdapter {
   }
 
   /**
-   * Auto: Haiku reads a new chat's first message and says which model and
+   * Auto: the model for quick jobs reads a new chat's first message and says which model and
    * effort will do it well; undefined when it can't say in time, or names
    * a model Claude Code doesn't offer.
    */
@@ -129,10 +133,20 @@ export class ClaudeAdapter implements AgentAdapter {
     const answer = await rate(
       AUTO_PROMPT,
       messageForRater(text),
+      this.quickModel(),
       AbortSignal.timeout(PICK_TIMEOUT_S * 1000),
     );
     const rating = readRating(answer);
     return rating && autoPick(rating, await this.models());
+  }
+
+  ask(instructions: string, text: string, signal: AbortSignal): Promise<string> {
+    return rate(instructions, text, this.quickModel(), signal);
+  }
+
+  /** The model for quick jobs: the one Settings names, else the one Claude Code recommends. */
+  private quickModel(): string {
+    return this.quickModels(this.info.id) ?? QUICK_MODEL;
   }
 
   /** Claude Code's commands and skills in a folder, kept for a minute. */
@@ -236,6 +250,7 @@ export class ClaudeAdapter implements AgentAdapter {
       picking,
       followUps,
       models: () => this.models(),
+      quickModel: () => this.quickModel(),
     });
   }
 

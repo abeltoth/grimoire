@@ -55,6 +55,12 @@ export interface AgentAdapter {
    * entry; undefined when the agent can't say. Agents that can't pick leave it out.
    */
   pickModel?(text: string): Promise<Pick<ChatSettings, 'model' | 'effort'> | undefined>;
+  /**
+   * Answers a one-off prompt on the agent's model for quick jobs, the one
+   * Settings names or else the one it recommends: no tools, nothing of
+   * yours loaded, nothing saved. Agents that can't leave it out.
+   */
+  ask?(instructions: string, text: string, signal: AbortSignal): Promise<string>;
   /** The commands and skills you can use in a folder. Agents without them leave it out. */
   commands?(cwd: string): Promise<AgentCommand[]>;
   /** Who the agent is signed in as; null while it's signed out. Agents that can't switch accounts leave it out. */

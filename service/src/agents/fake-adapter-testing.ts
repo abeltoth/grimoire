@@ -97,6 +97,16 @@ export class FakeAdapter implements AgentAdapter {
     return this.picks.get(text);
   }
 
+  /** The one-off prompts asked, in order. */
+  readonly asked: { instructions: string; text: string }[] = [];
+  /** How a one-off prompt is answered. */
+  answer: (instructions: string, text: string) => string | Promise<string> = () => '';
+
+  async ask(instructions: string, text: string): Promise<string> {
+    this.asked.push({ instructions, text });
+    return this.answer(instructions, text);
+  }
+
   async models(): Promise<AgentModels> {
     return {
       models: [

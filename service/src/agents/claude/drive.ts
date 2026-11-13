@@ -60,6 +60,8 @@ export interface Drive {
   followUps: FollowUpsKept;
   /** Claude Code's models, against which a subagent's is picked. */
   models: () => Promise<AgentModels>;
+  /** The model that rates a subagent's task. */
+  quickModel: () => string;
 }
 
 /** Follows a live query: its messages become the chat's events. */
@@ -72,6 +74,7 @@ export function drive({
   picking,
   followUps,
   models,
+  quickModel,
 }: Drive): LiveChat {
   // The model and effort the chat runs at now, against which a subagent's is picked.
   const current = { model: settings.model, effort: settings.effort };
@@ -80,7 +83,7 @@ export function drive({
     settings: () => current,
     models,
     definitions: () => (definitions ??= started.then((live) => live.supportedAgents())),
-    rate: (task, signal) => rate(RATER_PROMPT, task, signal),
+    rate: (task, signal) => rate(RATER_PROMPT, task, quickModel(), signal),
     env: { ...process.env, ...userSettingsEnv() },
   });
   const transcript = new ClaudeTranscript(true, events);
@@ -209,11 +212,17 @@ export function approvalsTo(events: () => Promise<ChatEvents>): CanUseTool {
 }
 
 /**
- * Asks Haiku, as the prompt says, what a task needs: a subagent's, or a new
- * chat's first message. It runs on a Claude Code process of its own that
- * loads none of your settings, has no tools and saves nothing.
+ * Asks the model, as the prompt says, about a task: what a subagent's or a
+ * new chat's first message needs, or anything else Grimoire asks. It runs
+ * on a Claude Code process of its own that loads none of your settings,
+ * has no tools and saves nothing.
  */
-export async function rate(prompt: string, task: string, signal: AbortSignal): Promise<string> {
+export async function rate(
+  prompt: string,
+  task: string,
+  model: string,
+  signal: AbortSignal,
+): Promise<string> {
   const { query } = await sdk();
   const abortController = new AbortController();
   if (signal.aborted) abortController.abort();
@@ -221,7 +230,7 @@ export async function rate(prompt: string, task: string, signal: AbortSignal): P
   const rater = query({
     prompt: task,
     options: {
-      model: 'haiku',
+      model,
       systemPrompt: prompt,
       tools: [],
       settingSources: [],

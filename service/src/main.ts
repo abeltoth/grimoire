@@ -88,6 +88,7 @@ const claude = new ClaudeAdapter(
   () => settingsStore.get().suggestions,
   () => settingsStore.get().followUps,
   () => tools.all(),
+  (agent) => settingsStore.get().quickModels[agent],
 );
 hub.addAdapter(claude);
 const restarts = new ClaudeRestarts(claude, hub, () => settingsStore.get());
