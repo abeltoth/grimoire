@@ -24,7 +24,7 @@ import type {
   TokenUse,
 } from '@grimoire/contract';
 
-/** One agent, such as Claude Code. The hub reaches agents only through this (ADR-006). */
+/** One agent, such as Claude Code. The hub reaches agents only through this. */
 export interface AgentAdapter {
   readonly info: AgentInfo;
   /** The agent's chats, most recent first. */
@@ -85,7 +85,7 @@ export interface AgentAdapter {
   ): LiveChat;
   /**
    * Starts a new chat with its first message, when the agent picks the
-   * chat's ID itself, as it does on a spare process (ADR-010). `bind` gets
+   * chat's ID itself, as it does on a spare process. `bind` gets
    * the ID before any event. Without this, the hub picks the ID and calls run().
    */
   start?(
@@ -96,7 +96,7 @@ export interface AgentAdapter {
     title?: string,
     attachments?: Attachment[],
   ): Promise<LiveChat>;
-  /** Keeps a spare process started, so the next new chat opens at once (ADR-010). */
+  /** Keeps a spare process started, so the next new chat opens at once. */
   warm?(): void;
   /** Stops any spare process, for when the service stops. */
   dispose?(): void;
@@ -157,7 +157,7 @@ export interface ChatEvents {
   approval(request: ApprovalRequest, signal: AbortSignal): Promise<Verdict>;
   /**
    * While another chat edits the project, why this one can't edit files,
-   * as the agent is told when it tries to (ADR-011); undefined while it's
+   * as the agent is told when it tries to; undefined while it's
    * the chat that edits. Asked at each tool call, as it changes while the
    * chat runs.
    */

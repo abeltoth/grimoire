@@ -7,7 +7,7 @@ import { FilesPage } from './files-page';
 import { FilesViews } from './files-views';
 
 /**
- * The files module (ADR-008): the Files page, on the right page, and Open
+ * The files module: the Files page, on the right page, and Open
  * in Files, which turns to it with a file open, where there's a right page.
  */
 export function provideFiles(): EnvironmentProviders {

@@ -3,7 +3,7 @@ import type { ChatSettings, EffortLevel } from './chat-settings';
 import type { Attachment, Entry } from './entries';
 
 /**
- * The agent hub's contract (ADR-006): chats with any agent, in terms that
+ * The agent hub's contract: chats with any agent, in terms that
  * aren't specific to one. Each agent's adapter maps its own messages onto
  * these types.
  */
@@ -178,7 +178,7 @@ export interface FollowUp {
 
 /**
  * The chat that edits while another open chat sent the same entry in
- * parallel only reads (ADR-011). Of the chats sent in parallel, one edits:
+ * parallel only reads. Of the chats sent in parallel, one edits:
  * the first opened, until you make another the editing chat. The others
  * can't edit files. Any other chat edits.
  */

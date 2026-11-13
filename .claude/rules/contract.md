@@ -14,4 +14,4 @@ paths:
   `<module>.*`. Commands are verbs, events say what happened.
 - A module's types live in its own `contract.ts` and join the maps by augmentation;
   `contract/src/index.ts` re-exports each module's contract and nothing else of it.
-- The core contract is agent-neutral (ADR-006): no Agent SDK or other Claude-only types.
+- The core contract is agent-neutral: no Agent SDK or other Claude-only types.

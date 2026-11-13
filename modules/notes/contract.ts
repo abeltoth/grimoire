@@ -2,7 +2,7 @@ import type { AgentId, ChatId } from '@grimoire/contract';
 
 /**
  * Notes: short loose thoughts, each with an optional one-off reminder
- * (ADR-009: Grimoire's own data). Each profile has notes of its own.
+ * (Grimoire's own data). Each profile has notes of its own.
  */
 
 /** The chat a note was made in, by its agent: to open it again. */

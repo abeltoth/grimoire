@@ -1,7 +1,7 @@
 import type { AgentId } from './agents';
 import type { NewChatSettings } from './chat-settings';
 
-/** A chat's settings saved under a name, to begin chats with (ADR-009: Grimoire's own data). */
+/** A chat's settings saved under a name, to begin chats with (Grimoire's own data). */
 export interface Preset {
   name: string;
   agent: AgentId;

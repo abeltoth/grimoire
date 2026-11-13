@@ -1,7 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { ChatId } from '@grimoire/contract';
 
-/** Your tags for chats, in the order you added them (ADR-009). */
+/** Your tags for chats, in the order you added them. */
 export class Tags {
   constructor(private readonly db: DatabaseSync) {}
 

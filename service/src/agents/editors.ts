@@ -3,7 +3,7 @@ import type { Emit } from '../events';
 import type { ChatState, ChatTable, HubStore } from './chat-table';
 
 /**
- * Which of the open chats sent one entry in parallel edits (ADR-011): the
+ * Which of the open chats sent one entry in parallel edits: the
  * one kept for them while that's open, else the one opened first. The
  * others only read; a chat sent in parallel with none open edits, as does
  * any other chat.

@@ -4,7 +4,7 @@ import { PERSONAL_PROFILE } from '@grimoire/contract';
 import type { ServiceModule } from '@grimoire/service/core/module';
 import { SearchWorker, forkWorker } from './search-worker';
 
-/** Full-text search across past chats, and the token totals counted from them, in a worker of its own (ADR-010). */
+/** Full-text search across past chats, and the token totals counted from them, in a worker of its own. */
 export const search: ServiceModule = {
   id: 'search',
   start({ registry, events, profiles, dataDir, ephemeral, log }) {

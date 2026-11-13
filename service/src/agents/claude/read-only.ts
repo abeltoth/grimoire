@@ -6,7 +6,7 @@ import { claudeHome } from './config-dir';
 
 /**
  * The tools that edit files. A chat that only reads, as another chat edits
- * its project (ADR-011), never uses them, whatever its permission or
+ * its project, never uses them, whatever its permission or
  * rules allow.
  */
 export const EDITING_TOOLS = ['Edit', 'Write', 'MultiEdit', 'NotebookEdit'];

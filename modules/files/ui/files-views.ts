@@ -53,7 +53,7 @@ export class FilesView {
 
 /**
  * The Files page's folders, each as you left it, in the background service
- * (ADR-009) and the files on disk. A file open on it that changes on disk,
+ * and the files on disk. A file open on it that changes on disk,
  * as when the agent edits it, is read again over what's shown.
  */
 @Injectable({ providedIn: 'root' })

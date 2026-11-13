@@ -19,7 +19,7 @@ export function withoutEntry(index: string, file: string): string | null {
 
 /**
  * Opens, saves and deletes the memories an agent keeps for a folder, in
- * place (ADR-009). Only the memory files the agent reads in that folder's
+ * place. Only the memory files the agent reads in that folder's
  * memory folder are touched.
  */
 export class MemoryFiles {

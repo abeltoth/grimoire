@@ -1,4 +1,5 @@
 /** Every feature module's backend part: the one place the core imports a module from. */
+import { extraModules } from '@grimoire/extra-modules/service';
 import type { ServiceModule } from './module';
 import { autoCompact } from '../../modules/auto-compact/service';
 import { autoLabels } from '../../modules/auto-labels/service';
@@ -28,4 +29,6 @@ export const MODULES: readonly ServiceModule[] = [
   terminal,
   usage,
   workflowSetup,
+  // Modules kept outside this repo, such as the paid ones.
+  ...extraModules,
 ];

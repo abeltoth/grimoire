@@ -44,7 +44,7 @@ export interface Chat {
   followUps?: readonly FollowUp[];
   /**
    * While another chat edits its project: that chat. This one
-   * can't edit files until it's made the editing chat (ADR-011).
+   * can't edit files until it's made the editing chat.
    */
   readOnly?: Editor;
   /** Why the last turn failed, until the next message. */

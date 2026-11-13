@@ -18,7 +18,7 @@ import { OpenChats } from '../storage/open-chats';
 import { Parallels } from '../storage/parallels';
 import type { AgentAdapter, LiveChat } from './adapter';
 
-/** An open chat, as the hub keeps it in memory (ADR-009). */
+/** An open chat, as the hub keeps it in memory. */
 export interface ChatState {
   id: ChatId;
   agent: AgentAdapter;
@@ -41,7 +41,7 @@ export interface ChatState {
   suggestion?: string;
   /** The separate tasks the agent offered after its last reply, until a turn begins or you take each. */
   followUps?: FollowUp[];
-  /** While another chat it was sent in parallel with edits (ADR-011): that chat. This one can't edit files. */
+  /** While another chat it was sent in parallel with edits: that chat. This one can't edit files. */
   editor?: ChatId;
   /** While the agent process runs. */
   live?: LiveChat;
@@ -56,7 +56,7 @@ export interface ChatState {
   flushTimer?: NodeJS.Timeout;
 }
 
-/** What the hub keeps across restarts, in Grimoire's database (ADR-009). */
+/** What the hub keeps across restarts, in Grimoire's database. */
 export interface HubStore {
   /** The open chats, so they reopen after a restart. */
   chats: OpenChats;

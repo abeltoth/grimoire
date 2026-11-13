@@ -3,7 +3,7 @@ import type { AgentId, PlanUsage, UsageReading, UsageWindow } from '@grimoire/co
 
 /**
  * Each reading of how much of the plan's limits is used, kept so their
- * history can be drawn (ADR-009: usage stats are Grimoire's own).
+ * history can be drawn (usage stats are Grimoire's own).
  */
 export class UsageReadings {
   constructor(private readonly db: DatabaseSync) {}

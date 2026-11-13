@@ -4,7 +4,7 @@ import type { ChatId } from '@grimoire/contract';
 /** The longest summary kept: a line, with room to spare. */
 const MAX_SUMMARY = 500;
 
-/** Each chat's summary: a line on what it's about (ADR-009). */
+/** Each chat's summary: a line on what it's about. */
 export class Summaries {
   constructor(private readonly db: DatabaseSync) {}
 

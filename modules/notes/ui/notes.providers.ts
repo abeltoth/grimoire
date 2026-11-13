@@ -6,7 +6,7 @@ import { NoteList, splitNote } from './notes';
 import { NotesPage } from './notes-page';
 
 /**
- * The notes module (ADR-008): its page tab turns the right page to the
+ * The notes module: its page tab turns the right page to the
  * notes, New note writes one from anywhere, the page footer counts the
  * reminders due, and a chat whose agent made notes bears a badge for them.
  */

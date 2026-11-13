@@ -6,7 +6,7 @@ import { bundledLanguages } from 'shiki/langs';
 
 export const THEME = 'grimoire';
 
-/** The design's code colours (ADR-007): keywords in rubric, strings in verdigris, types in lapis. */
+/** The design's code colours: keywords in rubric, strings in verdigris, types in lapis. */
 const theme: ThemeRegistration = {
   name: THEME,
   type: 'light',

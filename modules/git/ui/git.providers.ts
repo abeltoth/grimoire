@@ -5,7 +5,7 @@ import { GitPage } from './git-page';
 import { GitState, branchLabel, badgesOf, statusDetail } from './git-state';
 
 /**
- * The git module (ADR-008): the open chat's branch in the page footer,
+ * The git module: the open chat's branch in the page footer,
  * its pull request's badges in the page header, and the Git page, which
  * both of them turn the right page to.
  */

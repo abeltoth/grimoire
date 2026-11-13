@@ -6,7 +6,7 @@ import { SchedulesPage } from './schedules-page';
 import { upcoming } from './wording';
 
 /**
- * The scheduled chats module (ADR-008): its page tab turns the right
+ * The scheduled chats module: its page tab turns the right
  * page to the schedules, and the page footer names the next run. A run's
  * chat joins the open chats as it begins, whichever page is open.
  */

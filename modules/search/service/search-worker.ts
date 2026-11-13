@@ -12,7 +12,7 @@ export interface WorkerProcess {
 }
 
 /**
- * The service's end of the search worker (ADR-010): it starts the worker,
+ * The service's end of the search worker: it starts the worker,
  * passes searches to it, and starts it again if it stops.
  */
 export class SearchWorker {

@@ -39,7 +39,7 @@ export interface SpareSetup {
   quickModel: () => string;
 }
 
-/** The one Claude Code process kept parked, so a new chat starts at once (ADR-010). */
+/** The one Claude Code process kept parked, so a new chat starts at once. */
 export class Spares {
   private spare: Spare | undefined;
 

@@ -111,7 +111,7 @@ const CLOSE = '\u0003';
 const MAX_HITS = 200;
 
 /**
- * The search index (ADR-009: Grimoire's, derived, and safe to delete): every
+ * The search index (Grimoire's, derived, and safe to delete): every
  * chat's passages in an SQLite full-text table. ':memory:' keeps it for this
  * run only.
  */

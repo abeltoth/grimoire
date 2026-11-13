@@ -1,7 +1,7 @@
 import type { AgentId, ChatId } from './agents';
 import type { NewChatSettings } from './chat-settings';
 
-/** How you left the main window, so it opens the same way (ADR-009: Grimoire's own data). */
+/** How you left the main window, so it opens the same way (Grimoire's own data). */
 export interface Layout {
   /** The chat you were on; null for a blank page. */
   current: ChatId | null;

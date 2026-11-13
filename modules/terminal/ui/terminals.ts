@@ -7,7 +7,7 @@ import { tabLabels } from './tab-labels';
 
 /**
  * The shells the Terminal shows as tabs. They run in the background
- * service (ADR-010), so this only mirrors them: it reads them again each
+ * service, so this only mirrors them: it reads them again each
  * time the page opens.
  */
 @Injectable({ providedIn: 'root' })

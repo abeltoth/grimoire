@@ -25,7 +25,7 @@ export interface Opening {
  * How chats begin: a new one with its first message, on the model the
  * agent picks for it when on Auto; a fork after one of your messages; and
  * one sent the same entry on a second model, which only reads while the
- * first edits (ADR-011).
+ * first edits.
  */
 export class NewChats {
   constructor(
@@ -55,7 +55,7 @@ export class NewChats {
    * chat that has begun, a copy of it, after the message goes to the chat
    * itself; from a new chat's settings, a chat begun afresh. The second
    * works in the same folder, so while the first edits, the second only
-   * reads (ADR-011).
+   * reads.
    */
   async parallel(
     from: ParallelFrom,

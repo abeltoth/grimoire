@@ -89,7 +89,7 @@ const CORE_MIGRATIONS = [
 ];
 
 /**
- * Grimoire's own data (ADR-009) in one SQLite file, with the core's tables
+ * Grimoire's own data in one SQLite file, with the core's tables
  * migrated; each module migrates its own with migrate(). ':memory:' keeps
  * it for this run only.
  */

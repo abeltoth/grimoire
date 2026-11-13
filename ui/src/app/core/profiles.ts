@@ -7,7 +7,7 @@ const SIGN_IN_NEXT = 'grimoire.signInNext';
 
 /**
  * Your profiles, such as work and personal, and the one in use, as the
- * service keeps them (ADR-009): each with its own Claude folder, settings,
+ * service keeps them: each with its own Claude folder, settings,
  * presets, schedules and chats. Switching puts the open chats away;
  * the window then opens again on the new profile's.
  */

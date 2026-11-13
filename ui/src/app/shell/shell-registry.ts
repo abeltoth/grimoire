@@ -114,7 +114,7 @@ export class Slot<T extends Entry> {
 }
 
 /**
- * The places in the shell that features fill (ADR-008): page tabs, right
+ * The places in the shell that features fill: page tabs, right
  * pages, page-footer indicators, page-header badges, parts of the chat's
  * page, sections of the Settings page and commands. The shell draws whatever is registered here and knows
  * nothing about the features themselves.

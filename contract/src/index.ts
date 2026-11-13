@@ -14,7 +14,7 @@ export * from './setup-file';
 export * from './bridge';
 export * from './protocol';
 
-// Each module's additions to the contract (ADR-008).
+// Each module's additions to the contract.
 export * from '../../modules/auto-labels/contract';
 export * from '../../modules/files/contract';
 export * from '../../modules/git/contract';
@@ -27,3 +27,6 @@ export * from '../../modules/search/contract';
 export * from '../../modules/terminal/contract';
 export * from '../../modules/usage/contract';
 export * from '../../modules/workflow-setup/contract';
+
+// Modules kept outside this repo, such as the paid ones.
+export * from '@grimoire/extra-modules/contract';

@@ -5,7 +5,7 @@ import { fileAt, samePath as same, writeUnchanged } from '@grimoire/service/core
 const READ_ONLY: readonly SetupSource[] = ['managed', 'plugin', 'built-in'];
 
 /**
- * Opens and saves the files of an agent's setup (ADR-009: Claude Code's
+ * Opens and saves the files of an agent's setup (Claude Code's
  * config is edited in place, in its own format). Only the files the
  * setup last read in the folder lists can be opened, and only those that
  * are yours or the project's can be changed.

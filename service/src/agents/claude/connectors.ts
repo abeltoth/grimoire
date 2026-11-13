@@ -54,7 +54,7 @@ const DIRECT_CALLS = 'mcp_call_result_not_for_model_v1';
 /**
  * Starts a Claude Code process that never gets a message, to reach your
  * claude.ai connectors: one of the two exceptions to Grimoire never
- * talking to MCP servers (ADR-011). It loads none of your settings or MCP
+ * talking to MCP servers. It loads none of your settings or MCP
  * servers and saves nothing, but signs in as your chats do, so your
  * claude.ai connectors load with it. A tool is called through Claude
  * Code's control channel, which asks no permission: only the tools

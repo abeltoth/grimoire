@@ -6,7 +6,7 @@ import { suggestTags } from './suggest';
 
 /**
  * Names, tags and sums up chats on each agent's model for quick jobs, as
- * Settings asks (ADR-013), after a chat's turns; and suggests tags for
+ * Settings asks, after a chat's turns; and suggests tags for
  * your tag list. What it gives goes through the agent and the History's commands.
  */
 export const autoLabels: ServiceModule = {

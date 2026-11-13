@@ -50,7 +50,7 @@ export const SECOND_CHAT = 'second-chat';
  * write on, and the page footer. The settings in the page header
  * open the chat's settings card. While another chat edits
  * its project, the page header says it only reads, and offers to make
- * it the editing chat (ADR-011). Esc closes the card, or else denies the
+ * it the editing chat. Esc closes the card, or else denies the
  * approval waiting for you, or else stops the running turn and puts the
  * queued messages back on the next page. While the right page shows the
  * approval cards, Esc is theirs. The pen beside the title rewrites it in place, for

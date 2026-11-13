@@ -10,7 +10,7 @@ import { ApprovalsPage } from './approvals/approvals-page';
 import { SecondChat } from './second-chat';
 
 /**
- * The chat module (ADR-008): it fills the left page with the open chat,
+ * The chat module: it fills the left page with the open chat,
  * the right page's Plan with its plan, its Second chat with
  * another chat beside it, its Subagent with what a subagent one of a
  * chat's tool calls started did, and the right page with the waiting

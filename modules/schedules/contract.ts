@@ -2,7 +2,7 @@ import type { AgentId, ChatId, NewChatSettings, OpenChat } from '@grimoire/contr
 
 /**
  * A chat Grimoire begins by itself, on the days and at the time set, such
- * as a morning summary of a repository's changes (ADR-009: Grimoire's own
+ * as a morning summary of a repository's changes (Grimoire's own
  * data). Each run begins a new chat, with Full access: no one is
  * there to approve.
  */

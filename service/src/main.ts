@@ -1,5 +1,5 @@
 /**
- * The background service (ADR-010). The Electron app starts it detached on
+ * The background service. The Electron app starts it detached on
  * Electron's own Node (ELECTRON_RUN_AS_NODE), and it keeps running when the
  * app quits.
  *

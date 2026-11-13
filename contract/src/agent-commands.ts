@@ -25,7 +25,7 @@ import type { ChatSettings, NewChatSettings, ParallelFrom, SettingsChange } from
 import type { Attachment, Entry } from './entries';
 
 /**
- * The agent hub's commands and events (ADR-007), which every window uses
+ * The agent hub's commands and events, which every window uses
  * to run and follow chats.
  */
 

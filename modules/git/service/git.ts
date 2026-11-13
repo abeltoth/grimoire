@@ -38,8 +38,8 @@ const PULL_REQUEST_FRESH_MS = 30_000;
 const LARGEST_NEW_FILE = 1024 * 1024;
 
 /**
- * Git and GitHub through their command-line tools (ADR-011), read live and
- * never stored (ADR-009).
+ * Git and GitHub through their command-line tools, read live and
+ * never stored.
  */
 export class Git {
   private readonly pullRequests = new Map<

@@ -3,7 +3,7 @@ import type { ChatId } from '@grimoire/contract';
 /** A mark on a chat: the page's top corner pins it, the bottom one stars it. */
 export type Mark = 'pin' | 'star';
 
-/** Every chat's pins, tags and summary, by chat; a chat with none is left out (ADR-009: Grimoire's own data). */
+/** Every chat's pins, tags and summary, by chat; a chat with none is left out (Grimoire's own data). */
 export interface PinsAndTags {
   pins: Record<ChatId, Mark[]>;
   /** Each chat's tags, in the order you added them. */

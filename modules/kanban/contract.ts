@@ -2,7 +2,7 @@ import type { AgentId, ChatId } from '@grimoire/contract';
 
 /**
  * The Kanban board: your own tasks as cards in three columns, each card
- * able to begin chats in its folder (ADR-009: Grimoire's own data), and
+ * able to begin chats in its folder (Grimoire's own data), and
  * your Jira issues beside them, as last synced. Each profile has a board
  * of its own.
  */

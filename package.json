@@ -6,7 +6,8 @@
     "contract",
     "service",
     "app",
-    "ui"
+    "ui",
+    "extra-modules"
   ],
   "scripts": {
     "dev": "node scripts/dev.mjs",
@@ -16,8 +17,8 @@
     "test": "vitest run && npm test -w @grimoire/ui -- --watch=false",
     "typecheck": "tsc -p contract && tsc -p service && tsc -p app && tsc -p ui/tsconfig.app.json && tsc -p ui/tsconfig.spec.json",
     "check": "npm run typecheck && npm run format:check && npm run lint && npm test",
-    "format": "prettier --write contract service app ui/src modules scripts",
-    "format:check": "prettier --check contract service app ui/src modules scripts",
+    "format": "prettier --write contract service app ui/src modules extra-modules scripts",
+    "format:check": "prettier --check contract service app ui/src modules extra-modules scripts",
     "lint": "eslint .",
     "service:stop": "node scripts/stop-service.mjs",
     "capture": "npm run build && electron app --capture",

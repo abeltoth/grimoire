@@ -7,7 +7,7 @@ import { keptTags, tagsOf } from './chat-groups';
 
 /**
  * Which chats are pinned or starred, your tags for them, your tag list
- * and each chat's summary, as the service keeps them (ADR-009). A blank chat's tags stay here until it
+ * and each chat's summary, as the service keeps them. A blank chat's tags stay here until it
  * begins, then go to its chat.
  */
 @Injectable({ providedIn: 'root' })

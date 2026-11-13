@@ -10,7 +10,7 @@ export interface ToolChat {
 }
 
 /**
- * A tool a module gives the agent in every chat (ADR-011). It's agent-neutral, so each adapter
+ * A tool a module gives the agent in every chat. It's agent-neutral, so each adapter
  * serves it its own way: what `run` returns the agent reads as the answer, and what it throws as
  * the tool's error.
  */

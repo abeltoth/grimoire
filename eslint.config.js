@@ -15,7 +15,15 @@ const projects = [
   'ui/tsconfig.app.json',
   'ui/tsconfig.spec.json',
 ];
-const sources = ['contract/src', 'service/src', 'app/src', 'ui/src', 'modules', 'scripts'];
+const sources = [
+  'contract/src',
+  'service/src',
+  'app/src',
+  'ui/src',
+  'modules',
+  'extra-modules',
+  'scripts',
+];
 const ui = ['ui/src', 'modules/*/ui'];
 // What the specs of a part share, in its *-testing.ts, is test code too.
 const tests = sources.flatMap((root) => [
@@ -24,7 +32,7 @@ const tests = sources.flatMap((root) => [
   `${root}/**/*-testing.ts`,
 ]);
 
-// What a module may import from the service: its exports map (ADR-012), testing/* in tests only.
+// What a module may import from the service: its exports map, testing/* in tests only.
 const exported = Object.entries(
   JSON.parse(readFileSync(new URL('service/package.json', import.meta.url), 'utf8')).exports,
 ).map(([name, file]) => ({ name, path: path.posix.join('service', file) }));
@@ -155,6 +163,7 @@ export default defineConfig(
         { type: 'service-core', pattern: 'service/src' },
         { type: 'ui-core', pattern: 'ui/src' },
         { type: 'module', pattern: 'modules/*', capture: ['name'] },
+        { type: 'extra-modules', pattern: 'extra-modules' },
       ],
     },
     rules: {
@@ -174,22 +183,22 @@ export default defineConfig(
                   },
                 },
               },
-              message: 'A module imports no other module (ADR-008): use its commands and events.',
+              message: 'A module imports no other module: use its commands and events.',
             },
             {
               from: { element: { types: ['contract', 'service-core', 'ui-core'] } },
-              disallow: { to: { element: { type: 'module' } } },
+              disallow: { to: { element: { types: ['module', 'extra-modules'] } } },
               message: `The core imports a module only from ${registrations.join(', ')}.`,
             },
             {
               from: { file: { path: registrations } },
-              allow: { to: { element: { type: 'module' } } },
+              allow: { to: { element: { types: ['module', 'extra-modules'] } } },
             },
             {
               from: { element: { type: 'module' } },
               disallow: { to: { element: { type: 'service-core' } } },
               message:
-                'A module imports the service only through @grimoire/service/core/* and claude/* (ADR-012), not {{ to.file.path }}.',
+                'A module imports the service only through @grimoire/service/core/* and claude/*, not {{ to.file.path }}.',
             },
             {
               from: { element: { type: 'module' } },

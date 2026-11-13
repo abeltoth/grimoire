@@ -7,7 +7,7 @@ import { GRIMOIRE_BRIDGE } from './bridge';
 const SOON_MS = 300;
 
 /**
- * Grimoire's settings, as the service keeps them (ADR-007): set in
+ * Grimoire's settings, as the service keeps them: set in
  * Settings, and the same in every window.
  */
 @Injectable({ providedIn: 'root' })

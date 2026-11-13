@@ -1,6 +1,6 @@
 /*
  * The Grimoire theme: every colour, face, size, space, radius, drawing and
- * timing in the app is one of these tokens (ADR-007). Components use only
+ * timing in the app is one of these tokens. Components use only
  * var(--gr-*), never literal values; a guard test enforces that. A theme
  * is a file like this one that sets the same names.
  *

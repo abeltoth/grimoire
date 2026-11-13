@@ -2,7 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import type { Preset } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from './bridge';
 
-/** The saved presets, as the service keeps them (ADR-009: Grimoire's own data). */
+/** The saved presets, as the service keeps them (Grimoire's own data). */
 @Injectable({ providedIn: 'root' })
 export class PresetList {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);

@@ -8,7 +8,7 @@ import { POPOUT } from './popout';
 
 /**
  * The open chats, as the window sees them: a mirror of the agent hub's
- * open chats (ADR-007), kept current by its events. The hub remembers
+ * open chats, kept current by its events. The hub remembers
  * which chats are open, and the layout which one you were on, so the main window
  * opens where you left it.
  */

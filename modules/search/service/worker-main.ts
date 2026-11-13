@@ -1,5 +1,5 @@
 /**
- * The search worker (ADR-010): a process of its own that keeps the search
+ * The search worker: a process of its own that keeps the search
  * index and looks through it, so reading every transcript never stalls the
  * service. The service starts it and talks to it over Node's IPC channel;
  * when the service goes, so does the worker.

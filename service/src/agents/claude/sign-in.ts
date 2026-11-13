@@ -84,7 +84,7 @@ export function failureIn(output: string): string | undefined {
  * Signs Claude Code in to the claude.ai account with this email, the way
  * `/login` does: it opens the browser on the sign-in page, the email
  * filled in, and saves the new sign-in in Claude Code's own place
- * (ADR-009: Grimoire never sees it). `page` gets the page's address, to
+ * (Grimoire never sees it). `page` gets the page's address, to
  * open by hand; when the page shows a code instead of returning by itself,
  * code() passes it on.
  */

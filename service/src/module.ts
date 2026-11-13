@@ -9,7 +9,7 @@ import { migrate } from './storage/database';
 
 export type { AgentTool, ToolChat } from './agents/tools';
 
-/** A feature's backend part (ADR-008); service/src/modules.ts lists them all. */
+/** A feature's backend part; service/src/modules.ts lists them all. */
 export interface ServiceModule {
   /** Its folder's name, under which its tables' version is kept. */
   readonly id: string;
@@ -32,7 +32,7 @@ export interface ModuleHooks {
 }
 
 /**
- * The core services a module uses (ADR-008). Modules reach each other only
+ * The core services a module uses. Modules reach each other only
  * through commands, with `registry.dispatch`, and events.
  */
 export interface ModuleContext {
@@ -47,7 +47,7 @@ export interface ModuleContext {
   readonly settings: SettingsStore;
   readonly profiles: ProfileStore;
   readonly hub: AgentHub;
-  /** Gives the agent a tool in every chat whose process starts after (ADR-011). */
+  /** Gives the agent a tool in every chat whose process starts after. */
   registerTool(tool: AgentTool): void;
 }
 

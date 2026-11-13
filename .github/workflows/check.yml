@@ -1,4 +1,4 @@
-# Runs npm run check on Mac and Windows (ADR-001) after every push, catching what a skipped hook
+# Runs npm run check on Mac and Windows after every push, catching what a skipped hook
 # lets through.
 name: Check
 on: push

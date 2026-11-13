@@ -48,14 +48,14 @@ export interface ChatGlance {
 }
 
 /**
- * The agent hub (ADR-007): the open chats, their transcripts and pending
- * approvals, kept in memory (ADR-009), with what outlasts a restart in
+ * The agent hub: the open chats, their transcripts and pending
+ * approvals, kept in memory, with what outlasts a restart in
  * `store`. Windows are views of it:
  * they get a chat's state when they open it and its changes as events.
  * Streamed text is batched, at most one event per chat every `textBatchMs`.
  *
  * Of the open chats sent one entry in parallel, one edits; the others
- * can't edit files (ADR-011). Any other chat edits.
+ * can't edit files. Any other chat edits.
  *
  * Its parts: ChatUpdates changes what a chat holds, ChatRuns runs the
  * agent processes, NewChats begins chats, Approvals waits for your

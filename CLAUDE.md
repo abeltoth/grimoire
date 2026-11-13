@@ -10,7 +10,7 @@
   have no logic.
 - Code uses plain names; book names appear only in UI text, through `Wording`.
 - Comments explain why, in one sentence, with no history (git log keeps that).
-- ADRs are never edited in place; a new ADR supersedes an old one.
+- `ADR.md` records decisions; it is not a changelog.
 - Tests never read the real clock.
 - `npm run check` must pass before a commit.
 
@@ -18,13 +18,15 @@
 
 - `contract/`: the wire types between windows and the service. Modules augment `CommandMap` and
   `EventMap` from `modules/*/contract.ts`.
-- `service/`: the background service (ADR-010). The chat's backend is the core
+- `service/`: the background service. The chat's backend is the core
   `service/src/agents`; the settings, profiles, presets and layout backends, and the helpers
   modules share, are `service/src/core`.
 - `app/`: the Electron shell only: windows, tray, preload.
 - `ui/`: the Angular shell (`ui/src/app`) and the design system (`ui/src/design-system`).
 - `modules/<name>/{contract.ts,service,ui}`: one feature each, registered in
   `contract/src/index.ts`, `service/src/modules.ts` and `ui/src/app/app.config.ts`.
+- `extra-modules/`: the lists of modules kept outside this repo, empty here; the private repo
+  replaces the package with the paid modules.
 - `scripts/`: dev, build and service scripts.
 
 ## Commands

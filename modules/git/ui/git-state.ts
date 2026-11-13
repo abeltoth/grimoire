@@ -15,9 +15,9 @@ import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import type { Badge } from '@ui/app/shell/shell-registry';
 
 /**
- * The open chat's repository, read live from the background service
- * (ADR-009): again when you open another chat, when a turn ends, and
- * when you come back to the window.
+ * The open chat's repository, read live from the background service:
+ * again when you open another chat, when a turn ends, and when you come
+ * back to the window.
  */
 @Injectable({ providedIn: 'root' })
 export class GitState {

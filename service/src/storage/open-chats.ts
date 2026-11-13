@@ -2,7 +2,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import type { AgentId, ChatId, ChatSettings } from '@grimoire/contract';
 import { activeProfile } from '../core/app-state';
 
-/** An open chat, by session ID (ADR-009). */
+/** An open chat, by session ID. */
 export interface StoredOpenChat {
   chatId: ChatId;
   agent: AgentId;

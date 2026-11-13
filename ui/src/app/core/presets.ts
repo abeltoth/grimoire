@@ -9,7 +9,7 @@ import { modeName } from './modes';
 import { PresetList } from './preset-list';
 
 /**
- * Settings saved under a name (ADR-009: Grimoire's own data). A chat is
+ * Settings saved under a name (Grimoire's own data). A chat is
  * on a preset while its settings are the preset's; change one and it's on
  * none.
  */

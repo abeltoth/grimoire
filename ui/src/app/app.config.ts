@@ -1,4 +1,5 @@
 import { type ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { extraProviders } from '@grimoire/extra-modules/ui';
 import { provideAutoLabels } from '../../../modules/auto-labels/ui/auto-labels.providers';
 import { provideChat } from '../../../modules/chat/ui/chat.providers';
 import { provideSettings } from '../../../modules/settings/ui/settings.providers';
@@ -34,5 +35,7 @@ export const appConfig: ApplicationConfig = {
     provideTerminal(),
     provideSettings(),
     provideAutoLabels(),
+    // Modules kept outside this repo, such as the paid ones.
+    ...extraProviders,
   ],
 };

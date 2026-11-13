@@ -1,7 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { ChatId, Mark } from '@grimoire/contract';
 
-/** The marks on chats: which are pinned and which starred (ADR-009). */
+/** The marks on chats: which are pinned and which starred. */
 export class Pins {
   constructor(private readonly db: DatabaseSync) {}
 

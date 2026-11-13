@@ -5,7 +5,7 @@ import { provideShellEntries } from '@ui/app/shell/shell-registry';
 import { SettingsPage } from './settings-page';
 
 /**
- * The Settings module (ADR-008): its page tab turns the right page to
+ * The Settings module: its page tab turns the right page to
  * Grimoire's settings. A profile switched to so it could be signed in
  * opens on it, to ask for the account.
  */

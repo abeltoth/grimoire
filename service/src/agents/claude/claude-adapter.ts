@@ -43,9 +43,9 @@ import { type PickerSources, readRating } from './subagents';
 const COMMANDS_FRESH_MS = 60_000;
 
 /**
- * Claude Code through the Agent SDK (ADR-005), signed in with the user's
+ * Claude Code through the Agent SDK, signed in with the user's
  * own Claude login. One Claude Code process per live chat, and one spare
- * kept parked so a new chat starts at once (ADR-010).
+ * kept parked so a new chat starts at once.
  */
 export class ClaudeAdapter implements AgentAdapter {
   private modelList: Promise<ModelInfo[]> | undefined;

@@ -7,7 +7,7 @@ export type NewChatStart = { from: 'last-used' } | { from: 'preset'; preset: str
 export const THEME_NAMES = ['grimoire', 'night', 'sepia', 'contrast'] as const;
 export type ThemeName = (typeof THEME_NAMES)[number];
 
-/** Grimoire's own settings (ADR-009), set in Settings. */
+/** Grimoire's own settings, set in Settings. */
 export interface GrimoireSettings {
   /** The book's own words, such as Colophon, chapter and seal, or plain ones: Settings, chat, approve. */
   wording: 'book' | 'plain';

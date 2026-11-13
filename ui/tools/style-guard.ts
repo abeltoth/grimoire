@@ -1,5 +1,5 @@
 /**
- * Checks that the UI styles only through design tokens (ADR-007): outside
+ * Checks that the UI styles only through design tokens: outside
  * src/design-system, CSS and inline styles may not contain literal colours,
  * timings, lengths or font names, and every var(--gr-*) must be defined
  * by the theme.

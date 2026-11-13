@@ -9,7 +9,7 @@ import { KanbanPage } from './kanban-page';
 const BADGE_LENGTH = 32;
 
 /**
- * The Kanban module (ADR-008): its page tab turns the right page to the
+ * The Kanban module: its page tab turns the right page to the
  * board, and a chat begun from a card bears that card's badge in its
  * page header, which turns there too.
  */

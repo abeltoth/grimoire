@@ -92,7 +92,7 @@ export function mcpNames(value: unknown): value is string[] {
 const known = (key: string): key is keyof GrimoireSettings => key in VALID;
 
 /**
- * Grimoire's settings (ADR-009) in the profile in use, as `profile` says,
+ * Grimoire's settings in the profile in use, as `profile` says,
  * kept in SQLite; a setting never set has its default.
  */
 export class SettingsStore {
@@ -134,7 +134,7 @@ export class SettingsStore {
   }
 }
 
-/** Every window hears of a change, so they all show the same settings (ADR-007). */
+/** Every window hears of a change, so they all show the same settings. */
 export function registerSettings(
   registry: CommandRegistry,
   settings: SettingsStore,

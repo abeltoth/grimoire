@@ -25,7 +25,7 @@ export const builds = [
     format: 'esm',
     external: ['@anthropic-ai/claude-agent-sdk'],
   },
-  // The search worker (ADR-010), a process of its own that the service starts beside it.
+  // The search worker, a process of its own that the service starts beside it.
   {
     ...common,
     entryPoints: [at('modules/search/service/worker-main.ts')],

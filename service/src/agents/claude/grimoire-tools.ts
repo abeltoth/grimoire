@@ -5,7 +5,7 @@ import { FOLLOW_UPS_TOOL } from './messages';
 
 /**
  * Grimoire's own tool server, in the service's process: the one exception
- * to Grimoire never talking to MCP servers (ADR-011). Its tools let the
+ * to Grimoire never talking to MCP servers. Its tools let the
  * agent offer separate tasks as cards that open new chats (follow-ups.ts),
  * and do what the modules' tools let it.
  */

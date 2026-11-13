@@ -1,7 +1,7 @@
 /**
  * A setup of your own, such as work or personal: its own Claude folder,
  * and its own settings, layout, presets, schedules and open chats
- * (ADR-009: Grimoire's own data).
+ * (Grimoire's own data).
  */
 export interface Profile {
   id: string;

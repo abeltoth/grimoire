@@ -1,0 +1,10 @@
+{
+  "name": "@grimoire/extra-modules",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./contract": "./contract.ts",
+    "./service": "./service.ts",
+    "./ui": "./ui.ts"
+  }
+}

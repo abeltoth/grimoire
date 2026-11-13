@@ -1,5 +1,5 @@
 /**
- * The Electron app: windows only (ADR-010). All state lives in the
+ * The Electron app: windows only. All state lives in the
  * background service, which this process starts and relays to.
  */
 import { app, BrowserWindow, protocol } from 'electron';
@@ -73,7 +73,7 @@ if (!app.requestSingleInstanceLock()) {
   app.on('second-instance', () => mainWindow.focus());
 
   app.on('window-all-closed', () => {
-    // The service keeps running (ADR-010). The tray comes later.
+    // The service keeps running. The tray comes later.
     if (process.platform !== 'darwin') app.quit();
   });
 

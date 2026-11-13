@@ -2,7 +2,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import type { ChatId } from '@grimoire/contract';
 
 /**
- * The chats sent one entry in parallel (ADR-011), kept across restarts:
+ * The chats sent one entry in parallel, kept across restarts:
  * each copy's group, named by the chat it was first sent alongside, and the
  * chat that edits each group, so the same one does once the chats reopen.
  * A chat in no group is its own.
