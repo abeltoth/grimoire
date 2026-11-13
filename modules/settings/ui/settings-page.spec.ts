@@ -12,6 +12,7 @@ describe('SettingsPage', () => {
       'gr-general-settings',
       'gr-quick-model-settings',
       'gr-label-settings',
+      'gr-optimize-settings',
       'gr-preset-settings',
       'section',
       'gr-profile-settings',

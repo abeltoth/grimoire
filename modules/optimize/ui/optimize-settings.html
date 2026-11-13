@@ -1,0 +1,40 @@
+@if (offered().length || failed()) {
+  <section aria-labelledby="gr-settings-optimize">
+    <h2 id="gr-settings-optimize">Tune-up</h2>
+    <p class="lead">
+      Checks that keep {{ agentName() }} working well, each run in a new chat in
+      <span class="folder" [attr.title]="cwd() ?? null">{{ catalog.folderName(cwd()) }}</span>
+      <span class="dot" aria-hidden="true">·</span>
+      <button type="button" class="gr-link" (click)="pickFolder()">Change folder</button>
+    </p>
+
+    @if (failed(); as error) {
+      <p class="error" role="alert">{{ agentName() }}’s checks couldn’t be listed: {{ error }}</p>
+    }
+
+    <ul>
+      @for (check of offered(); track check.id) {
+        <li [attr.data-check]="check.id">
+          <div class="what">
+            <span class="name">
+              {{ check.title }}
+              @if (check.changes; as changes) {
+                <span class="mark" [attr.title]="changes">changes files</span>
+              }
+            </span>
+            <span class="does">{{ check.does }}</span>
+          </div>
+          <button
+            type="button"
+            class="run"
+            [attr.title]="'Sends ' + slashText(check)"
+            [attr.aria-label]="'Run ' + check.title"
+            (click)="run(check)"
+          >
+            Run
+          </button>
+        </li>
+      }
+    </ul>
+  </section>
+}

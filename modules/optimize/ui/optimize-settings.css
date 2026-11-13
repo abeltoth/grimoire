@@ -1,0 +1,104 @@
+:host {
+  display: block;
+}
+
+/* The gap goes with the section, so a folder with no checks leaves none. */
+section {
+  margin-top: var(--gr-settings-section-gap);
+}
+
+h2 {
+  margin: 0;
+  font-family: var(--gr-font-display-sc);
+  font-weight: 400;
+  font-size: var(--gr-size-section-head);
+  letter-spacing: var(--gr-tracking-section-head);
+  color: var(--gr-rubric);
+}
+
+.lead {
+  margin: var(--gr-aside-gap) 0 var(--gr-settings-lead-gap);
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.folder {
+  font-style: normal;
+  color: var(--gr-ink);
+}
+
+.dot {
+  margin: 0 var(--gr-space-1);
+}
+
+.error {
+  margin: 0 0 var(--gr-space-4);
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-rubric);
+}
+
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A check per ruled row: its name and what it does, its Run at the right. */
+li {
+  display: flex;
+  align-items: center;
+  gap: var(--gr-optimize-col-gap);
+  padding: var(--gr-optimize-row-pad);
+  border-top: var(--gr-optimize-rule);
+}
+
+li:last-child {
+  border-bottom: var(--gr-optimize-rule);
+}
+
+.what {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.name {
+  font-family: var(--gr-font-display);
+  font-size: var(--gr-size-settings-preset-name);
+  line-height: var(--gr-leading-settings-preset-name);
+  color: var(--gr-ink);
+}
+
+/* Only the checks that write to disk carry it. */
+.mark {
+  margin-left: var(--gr-optimize-mark-gap);
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-label);
+  letter-spacing: var(--gr-tracking-label);
+  color: var(--gr-rubric);
+}
+
+.does {
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.run {
+  flex: none;
+  padding: var(--gr-optimize-run-pad);
+  border: var(--gr-optimize-run-rule);
+  border-radius: var(--gr-optimize-run-radius);
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-control);
+  letter-spacing: var(--gr-tracking-control);
+  color: var(--gr-rubric);
+}
+
+.run:hover {
+  color: var(--gr-page);
+  background: var(--gr-rubric);
+}
