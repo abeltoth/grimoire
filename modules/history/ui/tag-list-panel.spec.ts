@@ -13,7 +13,7 @@ describe('tag-list-panel', () => {
       .find((t) => t.textContent!.trim() === 'Table of contents')!
       .click();
     await fixture.whenStable();
-    const toggle = el.querySelector<HTMLButtonElement>('gr-history-page .list-toggle')!;
+    const toggle = el.querySelector<HTMLButtonElement>('gr-history-page .tags-toggle')!;
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
     toggle.click();
     await fixture.whenStable();

@@ -4,7 +4,6 @@ import {
   ElementRef,
   PendingTasks,
   afterNextRender,
-  afterRenderEffect,
   computed,
   effect,
   inject,
@@ -27,11 +26,11 @@ import {
   partsOf,
   projectOf,
   tagsOf,
+  timeOf,
   withTags,
 } from './chat-groups';
 import { byDate } from './date-groups';
 import { PinsAndTags } from './pins-and-tags';
-import { TagEditor } from './tag-editor';
 import { TagListPanel } from './tag-list-panel';
 
 /** How long the search field waits for you to stop writing before it searches. */
@@ -48,8 +47,10 @@ interface Section {
   title: string;
   /** After the title: the project's folder. */
   folderName?: string;
-  /** Each chat's project, when the section mixes them. */
+  /** Each chat's project, when the list mixes them. */
   projects?: ReadonlyMap<ChatId, string>;
+  /** Whether the heading names a single day, so each chat shows only its time. */
+  timeOnly?: boolean;
   chats: ListedChat[];
 }
 
@@ -58,13 +59,12 @@ interface Section {
  * or in parts by the project it ran in, each chat with its tags and the
  * day it was last written in. The list keeps up as chats are written in.
  * Searching for words narrows the list to the chats with them, each with the
- * passage that has them; tags narrow it too, and "+ Tag" on a chat adds
- * one. A chat's title, or Enter in the search field, opens it on the left
+ * passage that has them; tags narrow it too. A chat's title, or Enter in the search field, opens it on the left
  * page, and the history stays open beside it.
  */
 @Component({
   selector: 'gr-history-page',
-  imports: [TagEditor, TagListPanel],
+  imports: [TagListPanel],
   templateUrl: './history-page.html',
   styleUrl: './history-page.css',
 })
@@ -91,12 +91,8 @@ export class HistoryPage {
   );
   /** The tags the list is narrowed to. */
   private readonly picked = signal<readonly string[]>([]);
-  protected readonly failed = signal<string | null>(null);
-  /** The chat whose summary is being written anew. */
-  protected readonly editingSummary = signal<ChatId | null>(null);
-  private readonly summaryField = viewChild<ElementRef<HTMLInputElement>>('summaryField');
-  /** Whether your tag list shows, to change it. */
-  protected readonly showTagList = signal(false);
+  /** Whether the tags panel shows: the tags to narrow by, and your tag list. */
+  protected readonly showTags = signal(false);
   /** What's searched for. */
   protected readonly query = signal('');
   /** The chats with what's searched for, by chat; null while nothing is. */
@@ -138,7 +134,12 @@ export class HistoryPage {
     const projects = new Map(
       found.map((chat) => [chat.id, partTitle(projectOf(chat.cwd ?? home), home)]),
     );
-    return byDate(found, this.now()).map((group) => ({ ...group, projects }));
+    const mixed = new Set(projects.values()).size > 1;
+    return byDate(found, this.now()).map((group) => ({
+      ...group,
+      projects: mixed ? projects : undefined,
+      timeOnly: group.key === 'today' || group.key === 'yesterday',
+    }));
   });
 
   /** How many chats the list shows; narrowing it shows the first again. */
@@ -164,6 +165,7 @@ export class HistoryPage {
   });
 
   protected readonly dated = dated;
+  protected readonly timeOf = timeOf;
   /** When the list was last read, which the stretches of days count back from. */
   private readonly now = signal(Date.now());
   /** Counts the reads of the list, so an answer to an older one is dropped. */
@@ -181,7 +183,6 @@ export class HistoryPage {
     const stopTurns = this.bridge.on('agents.turnEnded', () => void this.load());
     inject(DestroyRef).onDestroy(stopTurns);
     afterNextRender(() => this.searchField().nativeElement.focus());
-    afterRenderEffect(() => this.summaryField()?.nativeElement.focus());
     inject(DestroyRef).onDestroy(() => this.stopWaiting());
   }
 
@@ -292,29 +293,6 @@ export class HistoryPage {
       this.saved.set(chats);
     } finally {
       done();
-    }
-  }
-
-  /** Keeps the summary written, unless Esc was pressed; a blank one takes it away. */
-  protected finishSummary(chat: ListedChat, field: HTMLInputElement, keep: boolean): void {
-    if (this.editingSummary() !== chat.id) return;
-    this.editingSummary.set(null);
-    const summary = field.value.trim();
-    if (!keep || summary === (chat.summary ?? '')) return;
-    this.failed.set(null);
-    this.pinsAndTags.setSummary(chat.id, summary).catch((error: unknown) => {
-      const reason = error instanceof Error ? error.message : String(error);
-      this.failed.set(`The summary couldn’t be kept: ${reason}`);
-    });
-  }
-
-  protected async tag(chat: ListedChat, tags: readonly string[]): Promise<void> {
-    this.failed.set(null);
-    try {
-      await this.pinsAndTags.tag(chat.id, tags);
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
-      this.failed.set(`The tags couldn’t be kept: ${reason}`);
     }
   }
 

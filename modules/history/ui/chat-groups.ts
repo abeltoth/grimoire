@@ -130,13 +130,16 @@ export function keptTags(tags: readonly string[]): string[] {
     .filter((tag) => tag && !seen.has(fold(tag)) && seen.add(fold(tag)));
 }
 
+/** The time of day a chat was last written in. */
+export function timeOf(at: number): string {
+  return new Date(at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
 /** When a chat was last written in: the time today, the day this year, else the day and year. */
 export function dated(at: number, now = Date.now()): string {
   const when = new Date(at);
   const today = new Date(now);
-  if (when.toDateString() === today.toDateString()) {
-    return when.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-  }
+  if (when.toDateString() === today.toDateString()) return timeOf(at);
   return when.toLocaleDateString([], {
     month: 'short',
     day: 'numeric',

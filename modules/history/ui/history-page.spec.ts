@@ -75,6 +75,11 @@ describe('history', () => {
       'Fix flaky login test',
     ]);
     expect(texts('gr-history-page li .tag')).toEqual(['ui', 'bug', 'bug']);
+    // The tags to narrow by are in the panel the bar opens; the toggle counts the picked ones.
+    expect(el.querySelector('gr-history-page .pick')).toBeNull();
+    const toggle = el.querySelector<HTMLButtonElement>('gr-history-page .tags-toggle')!;
+    toggle.click();
+    await fixture.whenStable();
     expect(texts('gr-history-page .pick')).toEqual(['bug', 'ui']);
 
     const pick = (tag: string) =>
@@ -88,32 +93,17 @@ describe('history', () => {
     pick('ui').click();
     await fixture.whenStable();
     expect(texts('gr-history-page li .chat')).toEqual(['Context meter']);
+    expect(toggle.textContent!.trim()).toBe('Tags · 2');
     el.querySelector<HTMLButtonElement>(
       'gr-history-page [aria-label="Show chapters tagged"] .gr-link',
     )!.click();
     await fixture.whenStable();
     expect(texts('gr-history-page li .chat')).toHaveLength(4);
 
-    // A tag is written in place on the chat, and kept by the service.
     const row = (id: string) =>
       el.querySelector<HTMLElement>(`gr-history-page li[data-chat="${id}"]`)!;
-    row('c3').querySelector<HTMLButtonElement>('.add')!.click();
-    await fixture.whenStable();
-    const field = row('c3').querySelector<HTMLInputElement>('.field')!;
-    expect(document.activeElement).toBe(field);
-    field.value = ' storage ';
-    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
-    await fixture.whenStable();
-    const tagCalls = () => calls.filter((c) => c.command === 'history.tag').map((c) => c.request);
-    expect(tagCalls()).toEqual([{ chatId: 'c3', tags: ['storage'] }]);
-    expect(texts('gr-history-page li[data-chat="c3"] .tag')).toEqual(['storage']);
-    expect(texts('gr-history-page .pick')).toEqual(['bug', 'storage', 'ui']);
-    expect(document.activeElement).toBe(row('c3').querySelector('.add'));
-
-    row('c1').querySelector<HTMLButtonElement>('[aria-label="Remove tag ui"]')!.click();
-    await fixture.whenStable();
-    expect(tagCalls().at(-1)).toEqual({ chatId: 'c1', tags: ['bug'] });
-    expect(texts('gr-history-page .pick')).toEqual(['bug', 'storage']);
+    // The tags are only shown here; they're changed on the chat itself.
+    expect(row('c1').querySelector('.add, .untag')).toBeNull();
 
     // Tags and titles changed on a chat itself show here too.
     emit('history.tags', { chatId: 'c2', tags: ['bug', 'login'] });
@@ -256,11 +246,12 @@ describe('history', () => {
     expect(texts('gr-history-page .none')).toEqual([
       'No chapters yet. Each chat you begin is written in here.',
     ]);
-    expect(el.querySelector('gr-history-page .narrow')).toBeNull();
+    expect(el.querySelector('gr-history-page .group')).toBeNull();
+    expect(el.querySelector('gr-history-page .tags-toggle')).toBeNull();
   });
 
-  it('shows each chat’s summary under its title, and writes it anew there', async () => {
-    const { bridge, answers, calls, emit } = fakeBridge();
+  it('shows each chat’s summary when you point at its title, else the title', async () => {
+    const { bridge, answers, emit } = fakeBridge();
     answers['agents.chats'] = () => [
       { id: 'c1', agent: 'claude-code', title: 'Context meter', updatedAt: 9 },
       { id: 'c2', agent: 'claude-code', title: 'Login test', updatedAt: 8 },
@@ -270,28 +261,22 @@ describe('history', () => {
       tags: {},
       summaries: { c1: 'Shows how full the context window is' },
     });
-    const { fixture, el, texts } = await render(bridge);
+    const { fixture, el } = await render(bridge);
     [...el.querySelectorAll<HTMLButtonElement>('gr-page-tabs .page-tab')]
       .find((t) => t.textContent!.trim() === 'Table of contents')!
       .click();
     await fixture.whenStable();
-    expect(texts('gr-history-page li .summary')).toEqual(['Shows how full the context window is']);
-
-    el.querySelector<HTMLButtonElement>('gr-history-page li .summary')!.click();
-    await fixture.whenStable();
-    const field = el.querySelector<HTMLInputElement>('gr-history-page .summary-field')!;
-    expect(document.activeElement).toBe(field);
-    field.value = ' Context meter in the footer ';
-    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
-    await fixture.whenStable();
-    expect(calls.filter((c) => c.command === 'history.setSummary').map((c) => c.request)).toEqual([
-      { chatId: 'c1', summary: 'Context meter in the footer' },
-    ]);
+    const hint = (id: string) =>
+      el.querySelector(`gr-history-page li[data-chat="${id}"] .chat`)!.getAttribute('title');
+    expect(hint('c1')).toBe('Shows how full the context window is');
+    expect(hint('c2')).toBe('Login test');
+    // Every chat is in the same project, so none names it.
+    expect(el.querySelector('gr-history-page li .project')).toBeNull();
 
     // A summary written elsewhere, such as by auto labels, shows here too.
     emit('history.summary', { chatId: 'c2', summary: 'Fixes a flaky test' });
     await fixture.whenStable();
-    expect(texts('gr-history-page li[data-chat="c2"] .summary')).toEqual(['Fixes a flaky test']);
+    expect(hint('c2')).toBe('Fixes a flaky test');
   });
 
   it('shows the first 50 chats, and 50 more each time you ask, until a search narrows it again', async () => {
@@ -375,6 +360,14 @@ describe('history', () => {
         'Fix flaky login test',
       ]);
       expect(texts('gr-history-page li .project')).toEqual(['grimoire', 'grimoire', 'breeder']);
+      // Under a single day's heading a chat shows only its time; elsewhere its day.
+      const time = (at: number) =>
+        new Date(at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      expect(texts('gr-history-page li .when')).toEqual([
+        new Date(at(2, 8)).toLocaleDateString([], { month: 'short', day: 'numeric' }),
+        time(at(13, 9)),
+        time(at(12, 18)),
+      ]);
       const choice = (label: string) =>
         [...el.querySelectorAll<HTMLButtonElement>('gr-history-page .choice')].find(
           (b) => b.textContent!.trim() === label,

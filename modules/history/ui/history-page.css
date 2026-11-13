@@ -10,8 +10,8 @@
   color: var(--gr-ink-soft);
 }
 
-/* The search field, written in pen, as the command palette's is. */
-.search {
+/* Search, grouping and tags on one line; the search is written in pen, as the command palette's is. */
+.bar {
   display: flex;
   align-items: baseline;
   gap: var(--gr-command-palette-search-gap);
@@ -20,7 +20,7 @@
   border-bottom: var(--gr-command-palette-search-rule);
 }
 
-.search label {
+.bar > label {
   font-family: var(--gr-font-sc);
   font-size: var(--gr-size-command-palette-label);
   letter-spacing: var(--gr-tracking-command-palette-label);
@@ -28,7 +28,7 @@
   white-space: nowrap;
 }
 
-.search input {
+.bar input {
   flex: 1;
   min-width: 0;
   padding: 0;
@@ -48,28 +48,35 @@
   white-space: nowrap;
 }
 
-/* The tags to narrow the list by, as a line of small capitals; picked ones are in rubric. */
-.narrow {
+.group {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--gr-tags-gap);
+  white-space: nowrap;
+}
+
+.label {
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.tags-toggle {
+  white-space: nowrap;
+}
+
+/* The tags panel, opened from the bar: the tags to narrow the list by, then your tag list. */
+.tags-panel {
+  margin-bottom: var(--gr-history-narrow-gap);
+}
+
+.picks {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   column-gap: var(--gr-tags-gap);
   row-gap: var(--gr-aside-gap);
   margin: 0 0 var(--gr-history-narrow-gap);
-  padding-bottom: var(--gr-command-palette-search-pad);
-  border-bottom: var(--gr-command-palette-search-rule);
-}
-
-/* "Tag list" sits at the line's far end. */
-.list-toggle {
-  margin-left: auto;
-  font-size: var(--gr-size-aside);
-}
-
-.narrow .label {
-  font-style: italic;
-  font-size: var(--gr-size-aside);
-  color: var(--gr-ink-soft);
 }
 
 .pick,
@@ -135,11 +142,11 @@ ol {
   gap: var(--gr-history-row-gap);
 }
 
-/* A chat: its title and tags, a dotted leader, and the day it was last written in. */
-li {
+/* A chat on one line: its title, the tags that fit, then its project and when. */
+.line {
   display: flex;
-  flex-wrap: wrap;
   align-items: baseline;
+  gap: var(--gr-tags-gap);
   min-width: 0;
   font-size: var(--gr-size-plan);
   line-height: var(--gr-leading-plan);
@@ -164,54 +171,27 @@ li[aria-current='page'] .chat {
   color: var(--gr-rubric);
 }
 
+/* The tags that fit in the room the title leaves; one that doesn't wraps onto a cut-off second line, so only whole tags show. */
 .tags {
-  margin-left: var(--gr-tags-gap);
-}
-
-.leader {
-  flex: 1;
-  min-width: var(--gr-plan-leader-min);
-  margin: 0 var(--gr-plan-leader-gap);
-  border-bottom: var(--gr-leader);
-  transform: translateY(var(--gr-plan-leader-lift));
-}
-
-/* What the chat is about, under its title, on one line. */
-.summary {
-  flex-basis: 100%;
+  flex: 1 1 0;
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--gr-tags-gap);
   min-width: 0;
+  max-height: calc(var(--gr-size-control) * var(--gr-leading-plan));
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  margin-top: var(--gr-history-excerpt-gap);
-  font-style: italic;
-  font-size: var(--gr-size-aside);
+}
+
+.tag {
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-control);
+  letter-spacing: var(--gr-tracking-control);
   color: var(--gr-ink-soft);
-  text-align: left;
-}
-
-.summary:hover {
-  color: var(--gr-ink);
-}
-
-.summary-field {
-  flex-basis: 100%;
-  margin-top: var(--gr-history-excerpt-gap);
-  padding: 0;
-  border: 0;
-  border-bottom: var(--gr-rename-rule);
-  background: transparent;
-  font: inherit;
-  font-style: italic;
-  font-size: var(--gr-size-aside);
-  color: var(--gr-pen);
-  caret-color: var(--gr-pen);
-  outline: none;
+  white-space: nowrap;
 }
 
 /* The passage with what's searched for, under its chat, cut short after two lines. */
 .excerpt {
-  flex-basis: 100%;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -238,7 +218,6 @@ li[aria-current='page'] .chat {
 
 .project {
   flex: none;
-  margin-right: var(--gr-command-palette-gloss-gap);
   font-style: italic;
   font-size: var(--gr-size-aside);
   color: var(--gr-ink-soft);

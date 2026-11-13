@@ -1,4 +1,4 @@
-<div class="search">
+<div class="bar">
   <label for="gr-history-search">{{ wording.say('Look up', 'Search') }}</label>
   <input
     #searchField
@@ -11,19 +11,9 @@
     (keydown.enter)="openFirst()"
   />
   <span class="count" aria-live="polite">{{ count() }}</span>
-</div>
-
-@if (failed(); as error) {
-  <p class="none" role="alert">{{ error }}</p>
-}
-@if (searchFailed(); as error) {
-  <p class="none" role="alert">{{ error }}</p>
-}
-
-@if (sections(); as sections) {
   @if (listed()?.length) {
-    <p class="narrow" role="group" aria-label="Group by">
-      <span class="label">Group by</span>
+    <span class="group" role="group" aria-label="Group by">
+      <span class="label">by</span>
       <button
         type="button"
         class="choice"
@@ -40,39 +30,52 @@
       >
         Project
       </button>
-      <button
-        type="button"
-        class="gr-link list-toggle"
-        [attr.aria-expanded]="showTagList()"
-        (click)="showTagList.set(!showTagList())"
-      >
-        Tag list
-      </button>
-    </p>
-  }
-
-  @if (showTagList()) {
-    <gr-tag-list-panel />
-  }
-
-  @if (tags().length) {
-    <p
-      class="narrow"
-      role="group"
-      [attr.aria-label]="wording.say('Show chapters tagged', 'Show chats tagged')"
+    </span>
+    <button
+      type="button"
+      class="choice tags-toggle"
+      [attr.aria-expanded]="showTags()"
+      [attr.aria-pressed]="narrowedTo().length > 0"
+      (click)="showTags.set(!showTags())"
     >
-      <span class="label">Tagged</span>
-      @for (tag of tags(); track tag) {
-        <button type="button" class="pick" [attr.aria-pressed]="isPicked(tag)" (click)="pick(tag)">
-          {{ tag }}
-        </button>
+      Tags{{ narrowedTo().length ? ' · ' + narrowedTo().length : '' }}
+    </button>
+  }
+</div>
+
+@if (searchFailed(); as error) {
+  <p class="none" role="alert">{{ error }}</p>
+}
+
+@if (sections(); as sections) {
+  @if (showTags() && listed()?.length) {
+    <div class="tags-panel">
+      @if (tags().length) {
+        <p
+          class="picks"
+          role="group"
+          [attr.aria-label]="wording.say('Show chapters tagged', 'Show chats tagged')"
+        >
+          <span class="label">Show only</span>
+          @for (tag of tags(); track tag) {
+            <button
+              type="button"
+              class="pick"
+              [attr.aria-pressed]="isPicked(tag)"
+              (click)="pick(tag)"
+            >
+              {{ tag }}
+            </button>
+          }
+          @if (narrowedTo().length) {
+            <button type="button" class="gr-link" (click)="showAll()">
+              {{ wording.say('Show every chapter', 'Show every chat') }}
+            </button>
+          }
+        </p>
       }
-      @if (narrowedTo().length) {
-        <button type="button" class="gr-link" (click)="showAll()">
-          {{ wording.say('Show every chapter', 'Show every chat') }}
-        </button>
-      }
-    </p>
+      <gr-tag-list-panel />
+    </div>
   }
 
   @for (part of shown(); track part.key) {
@@ -95,47 +98,27 @@
             [attr.data-chat]="chat.id"
             [attr.aria-current]="chat.id === list.currentId() ? 'page' : null"
           >
-            <button
-              type="button"
-              class="chat"
-              [attr.title]="chat.title || null"
-              (click)="open(chat)"
-            >
-              {{ chat.title || wording.untitled() }}
-            </button>
-            <gr-tag-editor
-              class="tags"
-              quiet
-              [owner]="chat.id"
-              [tags]="chat.tags"
-              (changed)="tag(chat, $event)"
-            />
-            <span class="leader" aria-hidden="true"></span>
-            @if (part.projects?.get(chat.id); as project) {
-              <span class="project">{{ project }}</span>
-            }
-            <span class="when">{{ dated(chat.updatedAt) }}</span>
-            @if (editingSummary() === chat.id) {
-              <input
-                #summaryField
-                class="summary-field"
-                aria-label="Summary"
-                autocomplete="off"
-                [value]="chat.summary ?? ''"
-                (keydown.enter)="finishSummary(chat, summaryField, true)"
-                (keydown.escape)="$event.preventDefault(); finishSummary(chat, summaryField, false)"
-                (blur)="finishSummary(chat, summaryField, true)"
-              />
-            } @else if (chat.summary && !hitOf(chat)) {
+            <div class="line">
               <button
                 type="button"
-                class="summary"
-                title="Change the summary"
-                (click)="editingSummary.set(chat.id)"
+                class="chat"
+                [attr.title]="chat.summary || chat.title || null"
+                (click)="open(chat)"
               >
-                {{ chat.summary }}
+                {{ chat.title || wording.untitled() }}
               </button>
-            }
+              <span class="tags">
+                @for (tag of chat.tags; track tag) {
+                  <span class="tag">{{ tag }}</span>
+                }
+              </span>
+              @if (part.projects?.get(chat.id); as project) {
+                <span class="project">{{ project }}</span>
+              }
+              <span class="when">{{
+                part.timeOnly ? timeOf(chat.updatedAt) : dated(chat.updatedAt)
+              }}</span>
+            </div>
             @if (hitOf(chat); as hit) {
               <p class="excerpt">
                 <span class="by">{{ byOf(hit) }}</span
