@@ -2,6 +2,7 @@
 // Electron scripts on change, and restarts Electron after each rebuild. A
 // restarted app replaces the service if its build changed.
 import { spawn } from 'node:child_process';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -16,14 +17,12 @@ const DEV_URL = `http://localhost:${PORT}`;
 // The VS Code editor's files, which the UI serves as /vs.
 await import(pathToFileURL(path.join(root, 'ui/tools/copy-monaco.mjs')).href);
 
-const ng = spawn(
-  process.execPath,
-  [path.join(root, 'node_modules/@angular/cli/bin/ng.js'), 'serve', '--port', String(PORT)],
-  {
-    cwd: path.join(root, 'ui'),
-    stdio: 'inherit',
-  },
-);
+// Resolved, not joined to root, since the private repo installs packages a folder above.
+const ngPath = createRequire(import.meta.url).resolve('@angular/cli/bin/ng.js');
+const ng = spawn(process.execPath, [ngPath, 'serve', '--port', String(PORT)], {
+  cwd: path.join(root, 'ui'),
+  stdio: 'inherit',
+});
 
 let electron;
 let restarting = false;

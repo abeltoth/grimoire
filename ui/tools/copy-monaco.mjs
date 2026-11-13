@@ -8,13 +8,16 @@
 // workers, to start each from its own file rather than a blob, and its icon
 // font as a file, which its styles carry inline.
 import { cpSync, existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ui = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-// Where npm put it: in the UI's own node_modules, or hoisted to a folder above.
-const pkg = [ui, path.dirname(ui)]
-  .map((folder) => path.join(folder, 'node_modules', 'monaco-editor', 'package.json'))
+// Searched as Node does, in every node_modules above, since the private repo installs a folder
+// higher; its exports hide package.json from require.resolve.
+const pkg = createRequire(import.meta.url)
+  .resolve.paths('monaco-editor')
+  .map((folder) => path.join(folder, 'monaco-editor', 'package.json'))
   .find((file) => existsSync(file));
 if (!pkg) throw new Error('monaco-editor isn’t installed; run npm install');
 // The editor's version, and this copy's own, for when what's written beside it changes.
