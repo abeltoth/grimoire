@@ -9,7 +9,6 @@ import { provideGit } from '../../../modules/git/ui/git.providers';
 import { provideHistory } from '../../../modules/history/ui/history.providers';
 import { provideKanban } from '../../../modules/kanban/ui/kanban.providers';
 import { provideNotes } from '../../../modules/notes/ui/notes.providers';
-import { provideOptimize } from '../../../modules/optimize/ui/optimize.providers';
 import { provideUsage } from '../../../modules/usage/ui/usage.providers';
 import { provideMemories } from '../../../modules/memories/ui/memories.providers';
 import { provideScheduledChats } from '../../../modules/schedules/ui/schedules.providers';
@@ -29,7 +28,6 @@ export const appConfig: ApplicationConfig = {
     provideKanban(),
     provideNotes(),
     provideMemories(),
-    provideOptimize(),
     provideUsage(),
     provideScheduledChats(),
     provideTerminal(),
