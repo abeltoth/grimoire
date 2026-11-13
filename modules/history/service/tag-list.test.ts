@@ -18,4 +18,12 @@ describe('TagList', () => {
     list.set([]);
     expect(list.all()).toEqual([]);
   });
+
+  it('adds tags it hasn’t at the end, whatever their case', () => {
+    const list = tagList();
+    list.set(['ui']);
+    expect(list.add(['UI', ' bug ', 'docs', 'Bug'])).toEqual(['ui', 'bug', 'docs']);
+    expect(list.add(['docs', 'UI'])).toBeNull();
+    expect(list.all()).toEqual(['ui', 'bug', 'docs']);
+  });
 });

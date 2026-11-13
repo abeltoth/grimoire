@@ -27,6 +27,9 @@ export const history: ServiceModule = {
       const kept = keptTags(given);
       tags.set(chatId, kept);
       events.emit('history.tags', { chatId, tags: kept });
+      // A tag you give a chat joins your tag list, so the list holds every tag you use.
+      const grown = list.add(kept);
+      if (grown) events.emit('history.tagListChanged', { tags: grown });
     });
     registry.register('history.setSummary', ({ chatId, summary }) => {
       events.emit('history.summary', { chatId, summary: summaries.set(chatId, summary) });

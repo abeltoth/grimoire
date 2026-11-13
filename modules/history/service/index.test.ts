@@ -50,7 +50,9 @@ describe('history', () => {
     await registry.call('history.tag', { chatId: 'b', tags: [] });
     expect(sent).toEqual([
       { event: 'history.tags', payload: { chatId: 'a', tags: ['ui', 'bug'] } },
+      { event: 'history.tagListChanged', payload: { tags: ['ui', 'bug'] } },
       { event: 'history.tags', payload: { chatId: 'b', tags: ['later'] } },
+      { event: 'history.tagListChanged', payload: { tags: ['ui', 'bug', 'later'] } },
       { event: 'history.tags', payload: { chatId: 'b', tags: [] } },
     ]);
 
@@ -59,6 +61,8 @@ describe('history', () => {
       tags: { a: ['ui', 'bug'] },
       summaries: {},
     });
+    // The tag list keeps every tag given, even once no chat has it.
+    expect(await started().call('history.tagList', {})).toEqual(['ui', 'bug', 'later']);
   });
 
   it('keeps a summary for a chat, across restarts', async () => {

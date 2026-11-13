@@ -27,4 +27,12 @@ export class TagList {
     }
     return kept;
   }
+
+  /** Puts these tags at the end of the list where it hasn't them; gives the list, or null when nothing was added. */
+  add(tags: readonly string[]): string[] | null {
+    const listed = this.all();
+    const has = new Set(listed.map((tag) => tag.toLowerCase()));
+    const fresh = keptTags(tags).filter((tag) => !has.has(tag.toLowerCase()));
+    return fresh.length ? this.set([...listed, ...fresh]) : null;
+  }
 }
