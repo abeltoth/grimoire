@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { migrate, openDatabase } from '@grimoire/service/testing/database';
 import { MIGRATIONS } from './migrations';
-import { Tags, keptTags } from './tags';
+import { Tags, keptTags, renamed } from './tags';
 
 function tags(): Tags {
   const db = openDatabase(':memory:');
@@ -32,5 +32,13 @@ describe('Tags', () => {
 describe('keptTags', () => {
   it('trims tags, drops blanks, and keeps each once whatever its case', () => {
     expect(keptTags([' ui ', 'bug', '', '  ', 'UI', 'Bug fix'])).toEqual(['ui', 'bug', 'Bug fix']);
+  });
+});
+
+describe('renamed', () => {
+  it('names a tag anew whatever its case, keeping its place, and merges it with the new name', () => {
+    expect(renamed(['ui', 'Bug', 'docs'], 'bug', 'fix')).toEqual(['ui', 'fix', 'docs']);
+    expect(renamed(['fix', 'bug'], 'BUG', 'Fix')).toEqual(['fix']);
+    expect(renamed(['ui'], 'bug', 'fix')).toEqual(['ui']);
   });
 });

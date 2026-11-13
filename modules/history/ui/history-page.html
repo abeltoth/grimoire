@@ -40,7 +40,19 @@
       >
         Project
       </button>
+      <button
+        type="button"
+        class="gr-link list-toggle"
+        [attr.aria-expanded]="showTagList()"
+        (click)="showTagList.set(!showTagList())"
+      >
+        Tag list
+      </button>
     </p>
+  }
+
+  @if (showTagList()) {
+    <gr-tag-list-panel />
   }
 
   @if (tags().length) {
@@ -91,39 +103,13 @@
             >
               {{ chat.title || wording.untitled() }}
             </button>
-            <span class="tags" role="group" aria-label="Tags">
-              @for (tag of chat.tags; track tag) {
-                <span class="tag"
-                  >{{ tag
-                  }}<button
-                    type="button"
-                    class="untag"
-                    [attr.aria-label]="'Remove tag ' + tag"
-                    (click)="untag(chat, tag)"
-                  >
-                    <gr-icon name="close" /></button
-                ></span>
-              }
-              @if (adding() === chat.id) {
-                <input
-                  #field
-                  class="field"
-                  aria-label="New tag"
-                  placeholder="tag"
-                  autocomplete="off"
-                  spellcheck="false"
-                  (keydown.enter)="finish(chat, field, true, true)"
-                  (keydown.escape)="$event.preventDefault(); finish(chat, field, false, true)"
-                  (blur)="finish(chat, field, true, false)"
-                />
-              } @else {
-                <span class="add-at">
-                  <button type="button" class="gr-link add" (click)="adding.set(chat.id)">
-                    + Tag
-                  </button>
-                </span>
-              }
-            </span>
+            <gr-tag-editor
+              class="tags"
+              quiet
+              [owner]="chat.id"
+              [tags]="chat.tags"
+              (changed)="tag(chat, $event)"
+            />
             <span class="leader" aria-hidden="true"></span>
             @if (part.projects?.get(chat.id); as project) {
               <span class="project">{{ project }}</span>

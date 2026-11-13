@@ -1,0 +1,75 @@
+<p class="note">
+  The tags you mean to use. Renaming one renames it on every chat; naming it as another tag merges
+  the two.
+</p>
+
+@if (failed(); as error) {
+  <p class="note" role="alert">{{ error }}</p>
+}
+
+<ol>
+  @for (tag of list(); track tag; let i = $index) {
+    <li>
+      @if (renaming() === tag) {
+        <input
+          #field
+          class="field"
+          [attr.aria-label]="'New name for ' + tag"
+          autocomplete="off"
+          spellcheck="false"
+          [value]="tag"
+          (keydown.enter)="finishRename(tag, field, true)"
+          (keydown.escape)="$event.preventDefault(); finishRename(tag, field, false)"
+          (blur)="finishRename(tag, field, true)"
+        />
+      } @else {
+        <span class="tag">{{ tag }}</span>
+        <button type="button" class="gr-link" (click)="renaming.set(tag)">Rename</button>
+        @if (i > 0) {
+          <button
+            type="button"
+            class="gr-link"
+            [attr.aria-label]="'Move ' + tag + ' up'"
+            (click)="up(i)"
+          >
+            Up
+          </button>
+        }
+        <button
+          type="button"
+          class="gr-link"
+          [attr.aria-label]="'Remove ' + tag + ' from the list'"
+          (click)="remove(tag)"
+        >
+          Remove
+        </button>
+      }
+    </li>
+  }
+</ol>
+
+<input
+  #newTag
+  class="field"
+  aria-label="Add a tag to the list"
+  placeholder="add a tag"
+  autocomplete="off"
+  spellcheck="false"
+  (keydown.enter)="add(newTag)"
+/>
+
+@if (others().length) {
+  <p class="others">
+    <span class="note">Also on chats:</span>
+    @for (tag of others(); track tag) {
+      <button
+        type="button"
+        class="gr-link"
+        [attr.aria-label]="'Add ' + tag + ' to the list'"
+        (click)="keep([...list(), tag])"
+      >
+        + {{ tag }}
+      </button>
+    }
+  </p>
+}

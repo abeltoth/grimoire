@@ -2,10 +2,8 @@ import {
   Component,
   DestroyRef,
   ElementRef,
-  Injector,
   PendingTasks,
   afterNextRender,
-  afterRenderEffect,
   computed,
   effect,
   inject,
@@ -19,7 +17,6 @@ import { ChatList } from '@ui/app/core/chat-list';
 import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { Settings } from '@ui/app/core/settings';
 import { Wording } from '@ui/app/core/wording';
-import { Icon } from '@ui/design-system/icon';
 import {
   type ListedChat,
   dated,
@@ -32,6 +29,8 @@ import {
 } from './chat-groups';
 import { byDate } from './date-groups';
 import { PinsAndTags } from './pins-and-tags';
+import { TagEditor } from './tag-editor';
+import { TagListPanel } from './tag-list-panel';
 
 /** How long the search field waits for you to stop writing before it searches. */
 const SEARCH_DELAY_MS = 150;
@@ -60,7 +59,7 @@ interface Section {
  */
 @Component({
   selector: 'gr-history-page',
-  imports: [Icon],
+  imports: [TagEditor, TagListPanel],
   templateUrl: './history-page.html',
   styleUrl: './history-page.css',
 })
@@ -72,9 +71,6 @@ export class HistoryPage {
   private readonly settings = inject(Settings);
   protected readonly wording = inject(Wording);
   private readonly pending = inject(PendingTasks);
-  private readonly injector = inject(Injector);
-  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
-  private readonly field = viewChild<ElementRef<HTMLInputElement>>('field');
   private readonly searchField = viewChild.required<ElementRef<HTMLInputElement>>('searchField');
 
   /** Every agent's chats; undefined until they've answered. */
@@ -89,9 +85,9 @@ export class HistoryPage {
   );
   /** The tags the list is narrowed to. */
   private readonly picked = signal<readonly string[]>([]);
-  /** The chat a new tag is being written for. */
-  protected readonly adding = signal<ChatId | null>(null);
   protected readonly failed = signal<string | null>(null);
+  /** Whether your tag list shows, to change it. */
+  protected readonly showTagList = signal(false);
   /** What's searched for. */
   protected readonly query = signal('');
   /** The chats with what's searched for, by chat; null while nothing is. */
@@ -161,7 +157,6 @@ export class HistoryPage {
     // A turn that ended moved its chat to the top, or listed it for the first time.
     const stopTurns = this.bridge.on('agents.turnEnded', () => void this.load());
     inject(DestroyRef).onDestroy(stopTurns);
-    afterRenderEffect(() => this.field()?.nativeElement.focus());
     afterNextRender(() => this.searchField().nativeElement.focus());
     inject(DestroyRef).onDestroy(() => this.stopWaiting());
   }
@@ -228,26 +223,6 @@ export class HistoryPage {
     void this.list.openChat(chat);
   }
 
-  protected finish(
-    chat: ListedChat,
-    field: HTMLInputElement,
-    keep: boolean,
-    refocus: boolean,
-  ): void {
-    if (this.adding() !== chat.id) return;
-    this.adding.set(null);
-    if (keep) void this.tag(chat, [...chat.tags, field.value]);
-    if (refocus) this.focusAdd(chat.id);
-  }
-
-  protected untag(chat: ListedChat, tag: string): void {
-    void this.tag(
-      chat,
-      chat.tags.filter((kept) => kept !== tag),
-    );
-    this.focusAdd(chat.id);
-  }
-
   private async search(query: string): Promise<void> {
     const search = this.searches;
     try {
@@ -289,7 +264,7 @@ export class HistoryPage {
     }
   }
 
-  private async tag(chat: ListedChat, tags: readonly string[]): Promise<void> {
+  protected async tag(chat: ListedChat, tags: readonly string[]): Promise<void> {
     this.failed.set(null);
     try {
       await this.pinsAndTags.tag(chat.id, tags);
@@ -302,13 +277,6 @@ export class HistoryPage {
   private retitle(chatId: ChatId, title: string): void {
     this.saved.update((saved) =>
       saved?.map((chat) => (chat.id === chatId ? { ...chat, title } : chat)),
-    );
-  }
-
-  private focusAdd(chatId: ChatId): void {
-    afterNextRender(
-      () => this.host.querySelector<HTMLButtonElement>(`[data-chat="${chatId}"] .add`)?.focus(),
-      { injector: this.injector },
     );
   }
 }

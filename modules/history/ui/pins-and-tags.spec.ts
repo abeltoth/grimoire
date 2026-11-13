@@ -63,4 +63,26 @@ describe('PinsAndTags', () => {
       { chatId: 'chat-1', tags: ['ui'] },
     ]);
   });
+
+  it('reads your tag list, and knows every tag there is: the list first, then the others', async () => {
+    const { kept, emit, calls } = await withPinsAndTags((fake) => {
+      fake.answers['history.tagList'] = () => ['bug', 'UI'];
+      fake.answers['history.pinsAndTags'] = () => ({
+        pins: {},
+        tags: { a: ['ui', 'docs'], b: ['api'] },
+      });
+    });
+    expect(kept.tagList()).toEqual(['bug', 'UI']);
+    expect(kept.known()).toEqual(['bug', 'UI', 'api', 'docs']);
+
+    emit('history.tagListChanged', { tags: ['docs'] });
+    expect(kept.known()).toEqual(['docs', 'api', 'ui']);
+
+    await kept.setList(['x']);
+    await kept.rename('docs', 'notes');
+    expect(calls.slice(-2).map((c) => [c.command, c.request])).toEqual([
+      ['history.setTagList', { tags: ['x'] }],
+      ['history.renameTag', { from: 'docs', to: 'notes' }],
+    ]);
+  });
 });

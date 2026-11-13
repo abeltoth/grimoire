@@ -1,0 +1,76 @@
+:host {
+  display: inline-flex;
+  flex: none;
+  align-items: baseline;
+  gap: var(--gr-tags-gap);
+  white-space: nowrap;
+}
+
+/* A tag is a plain-text label; its cross shows when you point at it or reach it. */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gr-untag-gap);
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-control);
+  letter-spacing: var(--gr-tracking-control);
+  color: var(--gr-ink-soft);
+}
+
+.untag {
+  display: inline-grid;
+  place-items: center;
+  color: var(--gr-ink-soft);
+  opacity: 0;
+}
+
+.tag:hover .untag,
+.untag:focus-visible {
+  opacity: 1;
+}
+
+.untag:hover {
+  color: var(--gr-ink);
+}
+
+/*
+ * On a row, "+ Tag" shows on the row you point at or reach. It takes no
+ * room, so what follows starts after the tags, and it's written over it.
+ */
+:host(.quiet) .add-at {
+  flex: none;
+  width: 0;
+  white-space: nowrap;
+}
+
+:host(.quiet) .add {
+  padding-right: var(--gr-plan-leader-gap);
+  background: var(--gr-page-right);
+  opacity: 0;
+}
+
+:host-context(li:hover) .add,
+:host-context(li:focus-within) .add {
+  opacity: 1;
+}
+
+/* The new tag, written in pen. */
+.field {
+  field-sizing: content;
+  min-width: var(--gr-tag-field-min);
+  padding: 0;
+  border: 0;
+  border-bottom: var(--gr-rename-rule);
+  background: transparent;
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-control);
+  letter-spacing: var(--gr-tracking-control);
+  color: var(--gr-pen);
+  caret-color: var(--gr-pen);
+  outline: none;
+}
+
+.field::placeholder {
+  font-style: italic;
+  color: var(--gr-ink-placeholder);
+}

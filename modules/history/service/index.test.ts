@@ -59,4 +59,41 @@ describe('history', () => {
       tags: { a: ['ui', 'bug'] },
     });
   });
+
+  it('keeps your tag list in your order, each tag once whatever its case', async () => {
+    const registry = started();
+    expect(await registry.call('history.tagList', {})).toEqual([]);
+    await registry.call('history.setTagList', { tags: [' bug ', 'ui', 'UI', ''] });
+    expect(sent).toEqual([{ event: 'history.tagListChanged', payload: { tags: ['bug', 'ui'] } }]);
+    expect(await started().call('history.tagList', {})).toEqual(['bug', 'ui']);
+  });
+
+  it('names a tag anew on every chat and in the list, merging it where both are', async () => {
+    const registry = started();
+    await registry.call('history.tag', { chatId: 'a', tags: ['Bug', 'ui'] });
+    await registry.call('history.tag', { chatId: 'b', tags: ['fix', 'bug'] });
+    await registry.call('history.tag', { chatId: 'c', tags: ['docs'] });
+    await registry.call('history.setTagList', { tags: ['bug', 'fix', 'docs'] });
+    sent = [];
+
+    await registry.call('history.renameTag', { from: 'bug', to: ' fix ' });
+    expect(sent).toEqual([
+      { event: 'history.tags', payload: { chatId: 'a', tags: ['fix', 'ui'] } },
+      { event: 'history.tags', payload: { chatId: 'b', tags: ['fix'] } },
+      { event: 'history.tagListChanged', payload: { tags: ['fix', 'docs'] } },
+    ]);
+    expect((await registry.call('history.pinsAndTags', {})).tags).toEqual({
+      a: ['fix', 'ui'],
+      b: ['fix'],
+      c: ['docs'],
+    });
+
+    // A tag nobody has changes nothing; a blank name is refused.
+    sent = [];
+    await registry.call('history.renameTag', { from: 'gone', to: 'other' });
+    expect(sent).toEqual([]);
+    await expect(registry.call('history.renameTag', { from: 'docs', to: ' ' })).rejects.toThrow(
+      'A tag needs a name',
+    );
+  });
 });

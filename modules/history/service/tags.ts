@@ -36,6 +36,14 @@ export class Tags {
   }
 }
 
+/**
+ * A tag named anew in a chat's tags, whatever its case; where the chat
+ * already has the new name, the two become one.
+ */
+export function renamed(tags: readonly string[], from: string, to: string): string[] {
+  return keptTags(tags.map((tag) => (tag.toLowerCase() === from.toLowerCase() ? to : tag)));
+}
+
 /** Tags trimmed, without blanks, and each once whatever its case. */
 export function keptTags(tags: readonly string[]): string[] {
   const seen = new Set<string>();

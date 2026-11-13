@@ -18,10 +18,18 @@
     placeholder="tag"
     autocomplete="off"
     spellcheck="false"
+    [attr.list]="listId"
     (keydown.enter)="finish(field, true, true)"
     (keydown.escape)="$event.preventDefault(); finish(field, false, true)"
     (blur)="finish(field, true, false)"
   />
+  <datalist [id]="listId">
+    @for (tag of suggestions(); track tag) {
+      <option [value]="tag"></option>
+    }
+  </datalist>
 } @else {
-  <button #addButton type="button" class="gr-link" (click)="adding.set(true)">+ Tag</button>
+  <span class="add-at">
+    <button #addButton type="button" class="gr-link add" (click)="adding.set(true)">+ Tag</button>
+  </span>
 }

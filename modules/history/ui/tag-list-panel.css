@@ -1,0 +1,69 @@
+:host {
+  display: block;
+  margin: 0 0 var(--gr-history-narrow-gap);
+  padding-bottom: var(--gr-command-palette-search-pad);
+  border-bottom: var(--gr-command-palette-search-rule);
+}
+
+.note {
+  margin: 0 0 var(--gr-aside-gap);
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+ol {
+  list-style: none;
+  margin: 0 0 var(--gr-aside-gap);
+  padding: 0;
+}
+
+li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-tags-gap);
+}
+
+.tag {
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-control);
+  letter-spacing: var(--gr-tracking-control);
+  color: var(--gr-ink);
+}
+
+li .gr-link {
+  font-size: var(--gr-size-aside);
+}
+
+/* A name being written, in pen. */
+.field {
+  field-sizing: content;
+  min-width: var(--gr-tag-field-min);
+  padding: 0;
+  border: 0;
+  border-bottom: var(--gr-rename-rule);
+  background: transparent;
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-control);
+  letter-spacing: var(--gr-tracking-control);
+  color: var(--gr-pen);
+  caret-color: var(--gr-pen);
+  outline: none;
+}
+
+.field::placeholder {
+  font-style: italic;
+  color: var(--gr-ink-placeholder);
+}
+
+.others {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--gr-tags-gap);
+  margin: var(--gr-aside-gap) 0 0;
+}
+
+.others .note {
+  margin: 0;
+}

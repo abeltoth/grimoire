@@ -88,7 +88,9 @@ describe('history', () => {
     pick('ui').click();
     await fixture.whenStable();
     expect(texts('gr-history-page li .chat')).toEqual(['Context meter']);
-    el.querySelector<HTMLButtonElement>('gr-history-page .narrow .gr-link')!.click();
+    el.querySelector<HTMLButtonElement>(
+      'gr-history-page [aria-label="Show chapters tagged"] .gr-link',
+    )!.click();
     await fixture.whenStable();
     expect(texts('gr-history-page li .chat')).toHaveLength(4);
 

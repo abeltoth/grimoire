@@ -86,7 +86,7 @@ export function numeral(n: number): string {
 const fold = (tag: string) => tag.toLowerCase();
 
 /** Every tag the chats have, each once whatever its case, in alphabetical order. */
-export function tagsOf(chats: readonly ListedChat[]): string[] {
+export function tagsOf(chats: readonly Pick<ListedChat, 'tags'>[]): string[] {
   const seen = new Map<string, string>();
   for (const tag of chats.flatMap((chat) => chat.tags)) {
     if (!seen.has(fold(tag))) seen.set(fold(tag), tag);
