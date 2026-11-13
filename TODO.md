@@ -9,8 +9,12 @@ A custom UI for Claude Code, built on the Claude Agent SDK.
 - Long run: many features, custom style, animations
 
 ## To-do
+Improve chat context window info and responsivity
+Option to restart session to load new tools
+See the /commands way to run them, e.g. /mcp
+Open links
+When auto compact happens there is no sign of it until happens
 Create better ai workflow for home development
-Rework history to resume tasks easier
 Show code changes properly when edited
 Token statistics and optimizer: show where most of the resources are spent and help optimize it.
 Proper git history viewer
