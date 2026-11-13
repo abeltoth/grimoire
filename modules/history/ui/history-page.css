@@ -92,6 +92,12 @@
   box-shadow: inset 0 calc(var(--gr-underline-active) * -1) 0 var(--gr-rubric);
 }
 
+.more {
+  display: block;
+  margin-top: var(--gr-history-part-gap);
+  font-size: var(--gr-size-aside);
+}
+
 .part + .part {
   margin-top: var(--gr-history-part-gap);
 }

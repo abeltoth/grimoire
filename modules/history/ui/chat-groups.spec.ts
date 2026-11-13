@@ -1,6 +1,7 @@
 import {
   type ListedChat,
   dated,
+  firstOf,
   keptTags,
   numeral,
   partTitle,
@@ -116,5 +117,19 @@ describe('History', () => {
         year: 'numeric',
       }),
     );
+  });
+
+  it('shows the first chats of the sections, leaving out sections with none of them', () => {
+    const sections = [
+      { key: 'a', chats: ['a1', 'a2'] },
+      { key: 'b', chats: ['b1', 'b2'] },
+      { key: 'c', chats: ['c1'] },
+    ];
+    expect(firstOf(sections, 3)).toEqual([
+      { key: 'a', chats: ['a1', 'a2'] },
+      { key: 'b', chats: ['b1'] },
+    ]);
+    expect(firstOf(sections, 2)).toEqual([{ key: 'a', chats: ['a1', 'a2'] }]);
+    expect(firstOf(sections, 10)).toEqual(sections);
   });
 });

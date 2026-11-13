@@ -21,6 +21,7 @@ import { Wording } from '@ui/app/core/wording';
 import {
   type ListedChat,
   dated,
+  firstOf,
   numeral,
   partTitle,
   partsOf,
@@ -35,6 +36,9 @@ import { TagListPanel } from './tag-list-panel';
 
 /** How long the search field waits for you to stop writing before it searches. */
 const SEARCH_DELAY_MS = 150;
+
+/** How many chats the list shows at first, and how many more each "Show more" adds. */
+export const SHOWN = 50;
 
 /** A heading's worth of the list: a project's part, or a stretch of days. */
 interface Section {
@@ -137,10 +141,24 @@ export class HistoryPage {
     return byDate(found, this.now()).map((group) => ({ ...group, projects }));
   });
 
+  /** How many chats the list shows; narrowing it shows the first again. */
+  private readonly limit = signal(SHOWN);
+  /** The sections as far as the list shows them. */
+  protected readonly shown = computed(() => firstOf(this.sections() ?? [], this.limit()));
+  /** How many chats the list leaves out, until you show more. */
+  protected readonly hidden = computed(
+    () => this.total() - this.shown().reduce((sum, part) => sum + part.chats.length, 0),
+  );
+  /** How many chats "Show more" adds. */
+  protected readonly next = computed(() => Math.min(this.hidden(), SHOWN));
+  private readonly total = computed(
+    () => this.sections()?.reduce((sum, part) => sum + part.chats.length, 0) ?? 0,
+  );
+
   /** How many chats have what's searched for, while something is. */
   protected readonly count = computed(() => {
     if (!this.hits()) return this.searching() ? 'Looking…' : '';
-    const count = this.sections()?.reduce((sum, part) => sum + part.chats.length, 0) ?? 0;
+    const count = this.total();
     const [one, many] = this.wording.plain() ? ['chat', 'chats'] : ['chapter', 'chapters'];
     return `${count} ${count === 1 ? one : many}`;
   });
@@ -180,6 +198,7 @@ export class HistoryPage {
 
   /** Searches for what's written, once you stop writing; nothing written lists every chat again. */
   protected setQuery(query: string): void {
+    this.limit.set(SHOWN);
     this.query.set(query);
     this.stopWaiting();
     this.searches++;
@@ -204,7 +223,12 @@ export class HistoryPage {
     if (first) this.open(first);
   }
 
+  protected showMore(): void {
+    this.limit.update((limit) => limit + SHOWN);
+  }
+
   protected groupBy(group: 'date' | 'project'): void {
+    this.limit.set(SHOWN);
     if (group !== this.group()) void this.settings.set({ historyGroup: group });
   }
 
@@ -214,6 +238,7 @@ export class HistoryPage {
 
   /** Narrows the list to chats with this tag too, or widens it again. */
   protected pick(tag: string): void {
+    this.limit.set(SHOWN);
     this.picked.set(
       this.isPicked(tag)
         ? this.narrowedTo().filter((picked) => picked.toLowerCase() !== tag.toLowerCase())

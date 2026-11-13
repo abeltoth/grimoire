@@ -54,6 +54,23 @@ export function partsOf(chats: readonly ListedChat[], home: string): Part[] {
     }));
 }
 
+/** The first `count` chats of the sections, in order, leaving out sections with none of them. */
+export function firstOf<T extends { chats: readonly unknown[] }>(
+  sections: readonly T[],
+  count: number,
+): T[] {
+  const shown: T[] = [];
+  let left = count;
+  for (const section of sections) {
+    if (left <= 0) break;
+    shown.push(
+      section.chats.length <= left ? section : { ...section, chats: section.chats.slice(0, left) },
+    );
+    left -= section.chats.length;
+  }
+  return shown;
+}
+
 /** A part's title: its project's folder name, or "Home folder". */
 export function partTitle(folder: string, home: string): string {
   if (!folder || keyOf(folder) === keyOf(home)) return 'Home folder';

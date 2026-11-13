@@ -75,7 +75,7 @@
     </p>
   }
 
-  @for (part of sections; track part.key) {
+  @for (part of shown(); track part.key) {
     <section
       class="part"
       [attr.aria-label]="part.over ? part.over + ', ' + part.title : part.title"
@@ -168,6 +168,11 @@
         }}
       }
     </p>
+  }
+  @if (hidden(); as hidden) {
+    <button type="button" class="gr-link more" (click)="showMore()">
+      Show {{ next() }} more ({{ hidden }} left)
+    </button>
   }
 } @else {
   <p class="none">Asking your agents…</p>

@@ -294,6 +294,38 @@ describe('history', () => {
     expect(texts('gr-history-page li[data-chat="c2"] .summary')).toEqual(['Fixes a flaky test']);
   });
 
+  it('shows the first 50 chats, and 50 more each time you ask, until a search narrows it again', async () => {
+    const { bridge, answers } = fakeBridge();
+    answers['agents.chats'] = () =>
+      Array.from({ length: 120 }, (_, i) => ({
+        id: `c${i}`,
+        agent: 'claude-code',
+        title: `Chat ${i}`,
+        updatedAt: 1000 - i,
+      }));
+    const { fixture, el, texts } = await render(bridge);
+    [...el.querySelectorAll<HTMLButtonElement>('gr-page-tabs .page-tab')]
+      .find((t) => t.textContent!.trim() === 'Table of contents')!
+      .click();
+    await fixture.whenStable();
+    expect(texts('gr-history-page li .chat')).toHaveLength(50);
+    expect(texts('gr-history-page .more')).toEqual(['Show 50 more (70 left)']);
+
+    el.querySelector<HTMLButtonElement>('gr-history-page .more')!.click();
+    await fixture.whenStable();
+    el.querySelector<HTMLButtonElement>('gr-history-page .more')!.click();
+    await fixture.whenStable();
+    expect(texts('gr-history-page li .chat')).toHaveLength(120);
+    expect(el.querySelector('gr-history-page .more')).toBeNull();
+
+    // Grouping anew starts from the first 50 again.
+    [...el.querySelectorAll<HTMLButtonElement>('gr-history-page .choice')]
+      .find((b) => b.textContent!.trim() === 'Project')!
+      .click();
+    await fixture.whenStable();
+    expect(texts('gr-history-page li .chat')).toHaveLength(50);
+  });
+
   describe('by date', () => {
     beforeEach(() => {
       vi.useFakeTimers({ toFake: ['Date'] });
