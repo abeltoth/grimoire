@@ -32,10 +32,11 @@ const tests = sources.flatMap((root) => [
   `${root}/**/*-testing.ts`,
 ]);
 
-// What a module may import from the service: its exports map, testing/* in tests only.
+// What a module may import from the service: its exports map, testing/* in tests only. The
+// paths match under any folder, since the private repo lints its modules with the core in core/.
 const exported = Object.entries(
   JSON.parse(readFileSync(new URL('service/package.json', import.meta.url), 'utf8')).exports,
-).map(([name, file]) => ({ name, path: path.posix.join('service', file) }));
+).map(([name, file]) => ({ name, path: path.posix.join('**', 'service', file) }));
 const forTests = ({ name }) => name.startsWith('./testing/');
 const surface = exported.filter((entry) => !forTests(entry)).map((entry) => entry.path);
 const testing = exported.filter(forTests).map((entry) => entry.path);
