@@ -34,6 +34,9 @@ describe('SettingsStore', () => {
         'assignee = currentUser() AND (statusCategory != Done OR statusCategoryChangedDate >= -14d) ORDER BY updated DESC',
       historyGroup: 'date',
       quickModels: {},
+      autoTitles: false,
+      autoTags: false,
+      autoSummaries: false,
     });
     settings.set({ wording: 'plain', newChat: { from: 'preset', preset: 'Bug fix' } });
     settings.set({
@@ -59,6 +62,8 @@ describe('SettingsStore', () => {
     settings.set({ quickModels: { 'claude-code': 'sonnet' } });
     expect(() => settings.set({ quickModels: { 'claude-code': ' ' } })).toThrow('"quickModels"');
     expect(() => settings.set({ quickModels: ['haiku'] } as never)).toThrow('"quickModels"');
+    settings.set({ autoTitles: true, autoTags: true, autoSummaries: true });
+    expect(() => settings.set({ autoTags: 'yes' } as never)).toThrow('"autoTags"');
     expect(() => settings.set({ wording: 'fancy' } as never)).toThrow(`"wording" can't be "fancy"`);
     expect(() => settings.set({ newChat: { from: 'preset', preset: '' } })).toThrow('"newChat"');
     expect(() => settings.set({ shelf: 'x' } as never)).toThrow(`There's no setting "shelf"`);
@@ -93,6 +98,9 @@ describe('SettingsStore', () => {
       jiraQuery: 'project = GRIM ORDER BY rank',
       historyGroup: 'project',
       quickModels: { 'claude-code': 'sonnet' },
+      autoTitles: true,
+      autoTags: true,
+      autoSummaries: true,
     });
     again.close();
   });

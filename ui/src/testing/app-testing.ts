@@ -46,7 +46,7 @@ export function fakeBridge(overrides: Partial<GrimoireBridge> = {}) {
     'agents.interrupt': () => [],
     'agents.openChats': () => [],
     'agents.chats': () => [],
-    'history.pinsAndTags': () => ({ pins: {}, tags: {} }),
+    'history.pinsAndTags': () => ({ pins: {}, tags: {}, summaries: {} }),
     'agents.models': () => ({
       models: [
         {

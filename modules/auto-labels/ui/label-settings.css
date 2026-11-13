@@ -1,0 +1,94 @@
+:host {
+  display: block;
+  margin-top: var(--gr-settings-section-gap);
+}
+
+h2 {
+  margin: 0;
+  font-family: var(--gr-font-display-sc);
+  font-weight: 400;
+  font-size: var(--gr-size-section-head);
+  letter-spacing: var(--gr-tracking-section-head);
+  color: var(--gr-rubric);
+}
+
+.lead {
+  margin: var(--gr-aside-gap) 0 var(--gr-settings-lead-gap);
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.error {
+  margin: 0 0 var(--gr-space-4);
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-rubric);
+}
+
+/* Each setting's name in small capitals down the left, the words it takes beside it. */
+.form {
+  display: grid;
+  grid-template-columns: var(--gr-settings-label-col) minmax(0, 1fr);
+  align-items: baseline;
+  row-gap: var(--gr-settings-row-gap);
+  column-gap: var(--gr-settings-col-gap);
+}
+
+.label {
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-label);
+  letter-spacing: var(--gr-tracking-label);
+  line-height: var(--gr-settings-label-leading);
+  color: var(--gr-ink-soft);
+}
+
+/* Words to pick from, the picked one underlined in rubric. */
+.words {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--gr-settings-word-gap);
+}
+
+.word {
+  padding: var(--gr-settings-word-pad);
+  border-bottom: var(--gr-settings-word-rule-off);
+  font-size: var(--gr-size-settings-word);
+  color: var(--gr-ink-soft);
+}
+
+.word:hover {
+  color: var(--gr-ink);
+}
+
+.word[aria-checked='true'] {
+  color: var(--gr-ink);
+  border-bottom: var(--gr-settings-word-rule);
+}
+
+.state {
+  font-size: var(--gr-size-settings-word);
+  color: var(--gr-ink);
+}
+
+.gr-link:disabled {
+  color: var(--gr-ink-soft);
+  cursor: default;
+}
+
+/* A note on the setting above, drawn up close to it. */
+.note {
+  grid-column: 2;
+  margin: calc(var(--gr-settings-note-pull) * -1) 0 0;
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--gr-settings-word-gap);
+  font-style: normal;
+}

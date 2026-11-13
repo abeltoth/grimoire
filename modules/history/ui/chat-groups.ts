@@ -5,6 +5,8 @@ export interface ListedChat extends ChatSummary {
   pins: readonly Mark[];
   /** In the order you added them. */
   tags: readonly string[];
+  /** A line on what it's about. */
+  summary?: string;
 }
 
 /** A part of the History: one project's chats. */

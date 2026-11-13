@@ -57,6 +57,22 @@ describe('history', () => {
     expect(await started().call('history.pinsAndTags', {})).toEqual({
       pins: {},
       tags: { a: ['ui', 'bug'] },
+      summaries: {},
+    });
+  });
+
+  it('keeps a summary for a chat, across restarts', async () => {
+    const registry = started();
+    await registry.call('history.setSummary', { chatId: 'a', summary: ' Fixes the meter ' });
+    await registry.call('history.setSummary', { chatId: 'b', summary: 'Gone soon' });
+    await registry.call('history.setSummary', { chatId: 'b', summary: '' });
+    expect(sent).toEqual([
+      { event: 'history.summary', payload: { chatId: 'a', summary: 'Fixes the meter' } },
+      { event: 'history.summary', payload: { chatId: 'b', summary: 'Gone soon' } },
+      { event: 'history.summary', payload: { chatId: 'b', summary: '' } },
+    ]);
+    expect((await started().call('history.pinsAndTags', {})).summaries).toEqual({
+      a: 'Fixes the meter',
     });
   });
 

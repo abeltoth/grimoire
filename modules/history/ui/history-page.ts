@@ -4,6 +4,7 @@ import {
   ElementRef,
   PendingTasks,
   afterNextRender,
+  afterRenderEffect,
   computed,
   effect,
   inject,
@@ -81,11 +82,15 @@ export class HistoryPage {
       ...chat,
       pins: this.pinsAndTags.pins(chat.id),
       tags: this.pinsAndTags.tags(chat.id),
+      summary: this.pinsAndTags.summary(chat.id),
     })),
   );
   /** The tags the list is narrowed to. */
   private readonly picked = signal<readonly string[]>([]);
   protected readonly failed = signal<string | null>(null);
+  /** The chat whose summary is being written anew. */
+  protected readonly editingSummary = signal<ChatId | null>(null);
+  private readonly summaryField = viewChild<ElementRef<HTMLInputElement>>('summaryField');
   /** Whether your tag list shows, to change it. */
   protected readonly showTagList = signal(false);
   /** What's searched for. */
@@ -158,6 +163,7 @@ export class HistoryPage {
     const stopTurns = this.bridge.on('agents.turnEnded', () => void this.load());
     inject(DestroyRef).onDestroy(stopTurns);
     afterNextRender(() => this.searchField().nativeElement.focus());
+    afterRenderEffect(() => this.summaryField()?.nativeElement.focus());
     inject(DestroyRef).onDestroy(() => this.stopWaiting());
   }
 
@@ -262,6 +268,19 @@ export class HistoryPage {
     } finally {
       done();
     }
+  }
+
+  /** Keeps the summary written, unless Esc was pressed; a blank one takes it away. */
+  protected finishSummary(chat: ListedChat, field: HTMLInputElement, keep: boolean): void {
+    if (this.editingSummary() !== chat.id) return;
+    this.editingSummary.set(null);
+    const summary = field.value.trim();
+    if (!keep || summary === (chat.summary ?? '')) return;
+    this.failed.set(null);
+    this.pinsAndTags.setSummary(chat.id, summary).catch((error: unknown) => {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.failed.set(`The summary couldn’t be kept: ${reason}`);
+    });
   }
 
   protected async tag(chat: ListedChat, tags: readonly string[]): Promise<void> {

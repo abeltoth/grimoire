@@ -170,6 +170,39 @@ li[aria-current='page'] .chat {
   transform: translateY(var(--gr-plan-leader-lift));
 }
 
+/* What the chat is about, under its title, on one line. */
+.summary {
+  flex-basis: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: var(--gr-history-excerpt-gap);
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+  text-align: left;
+}
+
+.summary:hover {
+  color: var(--gr-ink);
+}
+
+.summary-field {
+  flex-basis: 100%;
+  margin-top: var(--gr-history-excerpt-gap);
+  padding: 0;
+  border: 0;
+  border-bottom: var(--gr-rename-rule);
+  background: transparent;
+  font: inherit;
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-pen);
+  caret-color: var(--gr-pen);
+  outline: none;
+}
+
 /* The passage with what's searched for, under its chat, cut short after two lines. */
 .excerpt {
   flex-basis: 100%;

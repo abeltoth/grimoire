@@ -1,5 +1,8 @@
 <gr-general-settings />
 <gr-quick-model-settings />
+@for (section of shell.settingsSections.all(); track section.id) {
+  <ng-container *ngComponentOutlet="section.component" />
+}
 <gr-preset-settings />
 
 <section class="theme" aria-labelledby="gr-settings-theme">

@@ -1,4 +1,5 @@
 import { type ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { provideAutoLabels } from '../../../modules/auto-labels/ui/auto-labels.providers';
 import { provideChat } from '../../../modules/chat/ui/chat.providers';
 import { provideSettings } from '../../../modules/settings/ui/settings.providers';
 import { provideFiles } from '../../../modules/files/ui/files.providers';
@@ -30,5 +31,6 @@ export const appConfig: ApplicationConfig = {
     provideScheduledChats(),
     provideTerminal(),
     provideSettings(),
+    provideAutoLabels(),
   ],
 };

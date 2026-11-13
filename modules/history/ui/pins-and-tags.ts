@@ -6,8 +6,8 @@ import { NewChats } from '@ui/app/core/new-chats';
 import { keptTags, tagsOf } from './chat-groups';
 
 /**
- * Which chats are pinned or starred, your tags for them and your tag
- * list, as the service keeps them (ADR-009). A blank chat's tags stay here until it
+ * Which chats are pinned or starred, your tags for them, your tag list
+ * and each chat's summary, as the service keeps them (ADR-009). A blank chat's tags stay here until it
  * begins, then go to its chat.
  */
 @Injectable({ providedIn: 'root' })
@@ -17,6 +17,7 @@ export class PinsAndTags {
   private readonly newChats = inject(NewChats);
   private readonly pinned = signal<ReadonlyMap<ChatId, readonly Mark[]>>(new Map());
   private readonly tagged = signal<ReadonlyMap<ChatId, readonly string[]>>(new Map());
+  private readonly summaries = signal<ReadonlyMap<ChatId, string>>(new Map());
   /** Your tag list, in your order. */
   readonly tagList = signal<readonly string[]>([]);
   /** Every tag there is to pick: your list in its order, then the others chats have, alphabetically. */
@@ -30,6 +31,14 @@ export class PinsAndTags {
     this.bridge.on('history.pins', ({ chatId, pins }) => put(this.pinned, chatId, pins));
     this.bridge.on('history.tags', ({ chatId, tags }) => put(this.tagged, chatId, tags));
     this.bridge.on('history.tagListChanged', ({ tags }) => this.tagList.set(tags));
+    this.bridge.on('history.summary', ({ chatId, summary }) =>
+      this.summaries.update((all) => {
+        const next = new Map(all);
+        if (summary) next.set(chatId, summary);
+        else next.delete(chatId);
+        return next;
+      }),
+    );
     this.newChats.onBegun((blankId, chat) => {
       const tags = this.tags(blankId);
       put(this.tagged, blankId, []);
@@ -72,6 +81,16 @@ export class PinsAndTags {
     }
   }
 
+  /** A line on what the chat is about; undefined when it has none. */
+  summary(chatId: ChatId): string | undefined {
+    return this.summaries().get(chatId);
+  }
+
+  /** Sets a chat's summary; it shows once the service has kept it. */
+  setSummary(chatId: ChatId, summary: string): Promise<void> {
+    return this.bridge.invoke('history.setSummary', { chatId, summary });
+  }
+
   /** Sets your tag list; it shows once the service has kept it. */
   setList(tags: readonly string[]): Promise<void> {
     return this.bridge.invoke('history.setTagList', { tags: [...tags] });
@@ -82,14 +101,17 @@ export class PinsAndTags {
     return this.bridge.invoke('history.renameTag', { from, to });
   }
 
-  /** A service that can't answer leaves every chat without pins or tags, and the list empty. */
+  /** A service that can't answer leaves every chat without pins, tags or summary, and the list empty. */
   private async load(): Promise<void> {
-    const [{ pins, tags }, list] = await Promise.all([
-      this.bridge.invoke('history.pinsAndTags', {}).catch(() => ({ pins: {}, tags: {} })),
+    const [{ pins, tags, summaries }, list] = await Promise.all([
+      this.bridge
+        .invoke('history.pinsAndTags', {})
+        .catch(() => ({ pins: {}, tags: {}, summaries: {} })),
       this.bridge.invoke('history.tagList', {}).catch(() => []),
     ]);
     this.pinned.set(new Map(Object.entries(pins)));
     this.tagged.set(new Map(Object.entries(tags)));
+    this.summaries.set(new Map(Object.entries(summaries ?? {})));
     this.tagList.set(list ?? []);
   }
 }

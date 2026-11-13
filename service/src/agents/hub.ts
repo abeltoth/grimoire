@@ -18,6 +18,7 @@ import type {
   ParallelFrom,
   PromptCache,
   QueuedEntry,
+  Entry,
   RecentFolders,
   SettingsChange,
   SubagentRun,
@@ -36,6 +37,10 @@ import { NewChats } from './new-chats';
 
 /** What `AgentHub.glance` tells of an open chat. */
 export interface ChatGlance {
+  agent: AgentId;
+  title: string;
+  /** The folder it works in. */
+  cwd: string;
   status: ChatStatus;
   capabilities: readonly AgentCapability[];
   cache?: PromptCache;
@@ -213,8 +218,20 @@ export class AgentHub {
   glance(chatId: ChatId): ChatGlance | undefined {
     const chat = this.table.chats.get(chatId);
     if (!chat) return undefined;
-    const { status, cache } = chat;
-    return { status, capabilities: chat.agent.info.capabilities, ...(cache ? { cache } : {}) };
+    const { status, cache, title } = chat;
+    return {
+      agent: chat.agent.info.id,
+      title,
+      cwd: chat.settings.cwd,
+      status,
+      capabilities: chat.agent.info.capabilities,
+      ...(cache ? { cache } : {}),
+    };
+  }
+
+  /** A chat's transcript as the agent saved it, open or not. */
+  async transcript(agent: AgentId, chatId: ChatId, cwd: string): Promise<Entry[]> {
+    return (await this.table.adapter(agent).history(chatId, cwd)).entries;
   }
 
   /** Sends a message, or queues it while a turn runs. */

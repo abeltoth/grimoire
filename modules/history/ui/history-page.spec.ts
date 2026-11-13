@@ -259,6 +259,41 @@ describe('history', () => {
     expect(el.querySelector('gr-history-page .narrow')).toBeNull();
   });
 
+  it('shows each chat’s summary under its title, and writes it anew there', async () => {
+    const { bridge, answers, calls, emit } = fakeBridge();
+    answers['agents.chats'] = () => [
+      { id: 'c1', agent: 'claude-code', title: 'Context meter', updatedAt: 9 },
+      { id: 'c2', agent: 'claude-code', title: 'Login test', updatedAt: 8 },
+    ];
+    answers['history.pinsAndTags'] = () => ({
+      pins: {},
+      tags: {},
+      summaries: { c1: 'Shows how full the context window is' },
+    });
+    const { fixture, el, texts } = await render(bridge);
+    [...el.querySelectorAll<HTMLButtonElement>('gr-page-tabs .page-tab')]
+      .find((t) => t.textContent!.trim() === 'Table of contents')!
+      .click();
+    await fixture.whenStable();
+    expect(texts('gr-history-page li .summary')).toEqual(['Shows how full the context window is']);
+
+    el.querySelector<HTMLButtonElement>('gr-history-page li .summary')!.click();
+    await fixture.whenStable();
+    const field = el.querySelector<HTMLInputElement>('gr-history-page .summary-field')!;
+    expect(document.activeElement).toBe(field);
+    field.value = ' Context meter in the footer ';
+    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    await fixture.whenStable();
+    expect(calls.filter((c) => c.command === 'history.setSummary').map((c) => c.request)).toEqual([
+      { chatId: 'c1', summary: 'Context meter in the footer' },
+    ]);
+
+    // A summary written elsewhere, such as by auto labels, shows here too.
+    emit('history.summary', { chatId: 'c2', summary: 'Fixes a flaky test' });
+    await fixture.whenStable();
+    expect(texts('gr-history-page li[data-chat="c2"] .summary')).toEqual(['Fixes a flaky test']);
+  });
+
   describe('by date', () => {
     beforeEach(() => {
       vi.useFakeTimers({ toFake: ['Date'] });

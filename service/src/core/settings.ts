@@ -68,6 +68,9 @@ const VALID: { [K in keyof GrimoireSettings]: (value: unknown) => boolean } = {
     Object.values(value).every(
       (model) => typeof model === 'string' && model.trim() !== '' && model.length <= 200,
     ),
+  autoTitles: (value) => typeof value === 'boolean',
+  autoTags: (value) => typeof value === 'boolean',
+  autoSummaries: (value) => typeof value === 'boolean',
 };
 
 /** The longest Jira query kept: longer than anyone writes by hand. */

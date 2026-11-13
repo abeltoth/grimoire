@@ -56,6 +56,12 @@ export interface GrimoireSettings {
    * picking a chat's model or naming it; an agent left out uses the one it recommends.
    */
   quickModels: Readonly<Record<AgentId, string>>;
+  /** Whether a chat is named on the model for quick jobs after its first turn, and now and then after; spends tokens. */
+  autoTitles: boolean;
+  /** Whether a chat is tagged from your tag list on the model for quick jobs; spends tokens. */
+  autoTags: boolean;
+  /** Whether a chat gets a one-line summary on the model for quick jobs; spends tokens. */
+  autoSummaries: boolean;
 }
 
 /** The Jira issues on the board unless you say otherwise: yours not done, and those done in the last fortnight. */
@@ -78,6 +84,9 @@ export const DEFAULT_SETTINGS: GrimoireSettings = {
   jiraQuery: DEFAULT_JIRA_QUERY,
   historyGroup: 'date',
   quickModels: {},
+  autoTitles: false,
+  autoTags: false,
+  autoSummaries: false,
 };
 
 declare module './commands' {

@@ -115,6 +115,27 @@
               <span class="project">{{ project }}</span>
             }
             <span class="when">{{ dated(chat.updatedAt) }}</span>
+            @if (editingSummary() === chat.id) {
+              <input
+                #summaryField
+                class="summary-field"
+                aria-label="Summary"
+                autocomplete="off"
+                [value]="chat.summary ?? ''"
+                (keydown.enter)="finishSummary(chat, summaryField, true)"
+                (keydown.escape)="$event.preventDefault(); finishSummary(chat, summaryField, false)"
+                (blur)="finishSummary(chat, summaryField, true)"
+              />
+            } @else if (chat.summary && !hitOf(chat)) {
+              <button
+                type="button"
+                class="summary"
+                title="Change the summary"
+                (click)="editingSummary.set(chat.id)"
+              >
+                {{ chat.summary }}
+              </button>
+            }
             @if (hitOf(chat); as hit) {
               <p class="excerpt">
                 <span class="by">{{ byOf(hit) }}</span

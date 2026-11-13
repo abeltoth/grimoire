@@ -15,6 +15,7 @@ export * from './bridge';
 export * from './protocol';
 
 // Each module's additions to the contract (ADR-008).
+export * from '../../modules/auto-labels/contract';
 export * from '../../modules/files/contract';
 export * from '../../modules/git/contract';
 export * from '../../modules/history/contract';

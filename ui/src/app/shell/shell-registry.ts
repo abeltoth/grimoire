@@ -78,6 +78,11 @@ export interface ChatPart extends Entry {
   component: Type<unknown>;
 }
 
+/** A section of the Settings page, after the general settings, such as a feature's own. */
+export interface SettingsSection extends Entry {
+  component: Type<unknown>;
+}
+
 /** Something you can do from the command palette or with a shortcut. */
 export interface Command extends Entry, Labelled {
   /** A gloss the command palette shows after the label, such as "with your last settings". */
@@ -111,7 +116,7 @@ export class Slot<T extends Entry> {
 /**
  * The places in the shell that features fill (ADR-008): page tabs, right
  * pages, page-footer indicators, page-header badges, parts of the chat's
- * page and commands. The shell draws whatever is registered here and knows
+ * page, sections of the Settings page and commands. The shell draws whatever is registered here and knows
  * nothing about the features themselves.
  */
 @Injectable({ providedIn: 'root' })
@@ -125,6 +130,8 @@ export class ShellRegistry {
   readonly chatCorners = new Slot<ChatPart>();
   /** After the open chat's title in its page header, such as its tags; not on a chat beside it. */
   readonly afterTitle = new Slot<ChatPart>();
+  /** On the Settings page, after the model for quick tasks, such as when to label chats. */
+  readonly settingsSections = new Slot<SettingsSection>();
   /**
    * How high the command palette lists a past chat: higher first, then
    * newest. The history module's puts pinned chats first; without it,

@@ -319,12 +319,20 @@ describe('AgentHub', () => {
     await hub.open('fake', 'c1', settings);
 
     expect(hub.glance('c1')).toEqual({
+      agent: 'fake',
+      title: '',
+      cwd: '/work',
       status: 'idle',
       capabilities: [],
       cache: { tokens: 50_000, until: 1_000 },
     });
     hub.close('c1');
     expect(hub.glance('c1')).toBeUndefined();
+  });
+
+  it('reads a chat’s transcript as the agent saved it', async () => {
+    fake.transcripts.set('c2', [reply('a1', 'Done')]);
+    expect(await hub.transcript('fake', 'c2', '/work')).toEqual([reply('a1', 'Done')]);
   });
 
   it('asks the agent a one-off prompt, and refuses for an agent that can’t answer one', async () => {
