@@ -9,6 +9,7 @@ A custom UI for Claude Code, built on the Claude Agent SDK.
 - Long run: many features, custom style, animations
 
 ## To-do
+Private repo + premium modules
 Improve chat context window info and responsivity
 Option to restart session to load new tools
 See the /commands way to run them, e.g. /mcp
