@@ -20,7 +20,29 @@
   <p class="none" role="alert">{{ error }}</p>
 }
 
-@if (parts(); as parts) {
+@if (sections(); as sections) {
+  @if (listed()?.length) {
+    <p class="narrow" role="group" aria-label="Group by">
+      <span class="label">Group by</span>
+      <button
+        type="button"
+        class="choice"
+        [attr.aria-pressed]="group() === 'date'"
+        (click)="groupBy('date')"
+      >
+        Date
+      </button>
+      <button
+        type="button"
+        class="choice"
+        [attr.aria-pressed]="group() === 'project'"
+        (click)="groupBy('project')"
+      >
+        Project
+      </button>
+    </p>
+  }
+
   @if (tags().length) {
     <p
       class="narrow"
@@ -41,11 +63,19 @@
     </p>
   }
 
-  @for (part of parts; track part.folder) {
-    <section class="part" [attr.aria-label]="'Part ' + part.numeral + ', ' + part.title">
-      <h3>Part {{ part.numeral }}</h3>
+  @for (part of sections; track part.key) {
+    <section
+      class="part"
+      [attr.aria-label]="part.over ? part.over + ', ' + part.title : part.title"
+    >
+      @if (part.over) {
+        <h3>{{ part.over }}</h3>
+      }
       <h2>
-        {{ part.title }}&ngsp;<code>{{ part.folderName }}</code>
+        {{ part.title }}
+        @if (part.folderName) {
+          &ngsp;<code>{{ part.folderName }}</code>
+        }
       </h2>
       <ol>
         @for (chat of part.chats; track chat.id) {
@@ -95,6 +125,9 @@
               }
             </span>
             <span class="leader" aria-hidden="true"></span>
+            @if (part.projects?.get(chat.id); as project) {
+              <span class="project">{{ project }}</span>
+            }
             <span class="when">{{ dated(chat.updatedAt) }}</span>
             @if (hitOf(chat); as hit) {
               <p class="excerpt">

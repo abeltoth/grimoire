@@ -49,6 +49,8 @@ export interface GrimoireSettings {
    * through your claude.ai Atlassian connector.
    */
   jiraQuery: string;
+  /** How the History lists chats: by when they were last written in, or by project. */
+  historyGroup: 'date' | 'project';
 }
 
 /** The Jira issues on the board unless you say otherwise: yours not done, and those done in the last fortnight. */
@@ -69,6 +71,7 @@ export const DEFAULT_SETTINGS: GrimoireSettings = {
   autoCompact: false,
   jira: true,
   jiraQuery: DEFAULT_JIRA_QUERY,
+  historyGroup: 'date',
 };
 
 declare module './commands' {

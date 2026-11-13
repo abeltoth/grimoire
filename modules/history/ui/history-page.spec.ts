@@ -1,9 +1,12 @@
-import type { CommandRequest, OpenChat } from '@grimoire/contract';
+import { type CommandRequest, DEFAULT_SETTINGS, type OpenChat } from '@grimoire/contract';
 import { fakeBridge, render } from '@ui/testing/app-testing';
+
+const byProject = () => ({ ...DEFAULT_SETTINGS, historyGroup: 'project' as const });
 
 describe('history', () => {
   it('lists every chat in the History, in parts by project, narrowed and tagged there', async () => {
     const { bridge, calls, answers, emit } = fakeBridge();
+    answers['settings.get'] = byProject;
     answers['agents.chats'] = () => [
       {
         id: 'c1',
@@ -130,6 +133,7 @@ describe('history', () => {
 
   it('searches the chats in the History for words, each with its passage', async () => {
     const { bridge, calls, answers } = fakeBridge();
+    answers['settings.get'] = byProject;
     answers['agents.chats'] = () => [
       {
         id: 'c1',
@@ -251,5 +255,94 @@ describe('history', () => {
       'No chapters yet. Each chat you begin is written in here.',
     ]);
     expect(el.querySelector('gr-history-page .narrow')).toBeNull();
+  });
+
+  describe('by date', () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date(2026, 10, 13, 15, 0));
+    });
+    afterEach(() => vi.useRealTimers());
+
+    it('groups the chats by date, each with its project, and keeps up as chats are written in', async () => {
+      const { bridge, calls, answers, emit } = fakeBridge();
+      const at = (day: number, hour: number) => new Date(2026, 10, day, hour).getTime();
+      let chats = [
+        {
+          id: 'c1',
+          agent: 'claude-code',
+          title: 'Context meter',
+          cwd: 'C:/Users/me/git/grimoire',
+          updatedAt: at(13, 9),
+        },
+        {
+          id: 'c2',
+          agent: 'claude-code',
+          title: 'Fix flaky login test',
+          cwd: 'C:/Users/me/git/breeder',
+          updatedAt: at(12, 18),
+        },
+        {
+          id: 'c3',
+          agent: 'claude-code',
+          title: 'Morning repo summary',
+          cwd: 'C:/Users/me/git/grimoire',
+          updatedAt: at(2, 8),
+        },
+      ];
+      answers['agents.chats'] = () => chats;
+      answers['history.pinsAndTags'] = () => ({ pins: { c3: ['pin'] }, tags: {} });
+      const { fixture, el, texts } = await render(bridge);
+      [...el.querySelectorAll<HTMLButtonElement>('gr-page-tabs .page-tab')]
+        .find((t) => t.textContent!.trim() === 'Table of contents')!
+        .click();
+      await fixture.whenStable();
+
+      expect(texts('gr-history-page h2')).toEqual(['Pinned', 'Today', 'Yesterday']);
+      expect(el.querySelector('gr-history-page h3')).toBeNull();
+      expect(texts('gr-history-page li .chat')).toEqual([
+        'Morning repo summary',
+        'Context meter',
+        'Fix flaky login test',
+      ]);
+      expect(texts('gr-history-page li .project')).toEqual(['grimoire', 'grimoire', 'breeder']);
+      const choice = (label: string) =>
+        [...el.querySelectorAll<HTMLButtonElement>('gr-history-page .choice')].find(
+          (b) => b.textContent!.trim() === label,
+        )!;
+      expect(choice('Date').getAttribute('aria-pressed')).toBe('true');
+
+      // A chat written in moves to the top once its turn ends; a new one shows up.
+      chats = [
+        { ...chats[1]!, updatedAt: at(13, 14) },
+        {
+          id: 'c4',
+          agent: 'claude-code',
+          title: 'New idea',
+          cwd: 'C:/Users/me/git/grimoire',
+          updatedAt: at(13, 14),
+        },
+        chats[0]!,
+        chats[2]!,
+      ];
+      emit('agents.turnEnded', { chatId: 'c4' });
+      await fixture.whenStable();
+      expect(texts('gr-history-page h2')).toEqual(['Pinned', 'Today']);
+      expect(texts('gr-history-page li .chat')).toEqual([
+        'Morning repo summary',
+        'Fix flaky login test',
+        'New idea',
+        'Context meter',
+      ]);
+
+      // By project, the chats go back into their parts, and the choice is kept.
+      choice('Project').click();
+      await fixture.whenStable();
+      expect(calls.filter((c) => c.command === 'settings.set').map((c) => c.request)).toEqual([
+        { historyGroup: 'project' },
+      ]);
+      expect(texts('gr-history-page h3')).toEqual(['Part I', 'Part II']);
+      expect(el.querySelector('gr-history-page li .project')).toBeNull();
+    });
   });
 });

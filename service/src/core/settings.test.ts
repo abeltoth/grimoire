@@ -32,6 +32,7 @@ describe('SettingsStore', () => {
       jira: true,
       jiraQuery:
         'assignee = currentUser() AND (statusCategory != Done OR statusCategoryChangedDate >= -14d) ORDER BY updated DESC',
+      historyGroup: 'date',
     });
     settings.set({ wording: 'plain', newChat: { from: 'preset', preset: 'Bug fix' } });
     settings.set({
@@ -52,6 +53,8 @@ describe('SettingsStore', () => {
     expect(() => settings.set({ jira: 'maybe' } as never)).toThrow('"jira"');
     settings.set({ jiraQuery: 'project = GRIM ORDER BY rank' });
     expect(() => settings.set({ jiraQuery: ' ' })).toThrow('"jiraQuery"');
+    settings.set({ historyGroup: 'project' });
+    expect(() => settings.set({ historyGroup: 'tag' } as never)).toThrow('"historyGroup"');
     expect(() => settings.set({ wording: 'fancy' } as never)).toThrow(`"wording" can't be "fancy"`);
     expect(() => settings.set({ newChat: { from: 'preset', preset: '' } })).toThrow('"newChat"');
     expect(() => settings.set({ shelf: 'x' } as never)).toThrow(`There's no setting "shelf"`);
@@ -84,6 +87,7 @@ describe('SettingsStore', () => {
       autoCompact: true,
       jira: false,
       jiraQuery: 'project = GRIM ORDER BY rank',
+      historyGroup: 'project',
     });
     again.close();
   });

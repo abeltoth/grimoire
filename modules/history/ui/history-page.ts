@@ -17,6 +17,7 @@ import type { ChatId, ChatSummary, SearchHit } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { ChatList } from '@ui/app/core/chat-list';
 import { AgentCatalog } from '@ui/app/core/agent-catalog';
+import { Settings } from '@ui/app/core/settings';
 import { Wording } from '@ui/app/core/wording';
 import { Icon } from '@ui/design-system/icon';
 import {
@@ -25,17 +26,33 @@ import {
   numeral,
   partTitle,
   partsOf,
+  projectOf,
   tagsOf,
   withTags,
 } from './chat-groups';
+import { byDate } from './date-groups';
 import { PinsAndTags } from './pins-and-tags';
 
 /** How long the search field waits for you to stop writing before it searches. */
 const SEARCH_DELAY_MS = 150;
 
+/** A heading's worth of the list: a project's part, or a stretch of days. */
+interface Section {
+  key: string;
+  /** Above the title, in small capitals: "Part I"; none for a stretch of days. */
+  over?: string;
+  title: string;
+  /** After the title: the project's folder. */
+  folderName?: string;
+  /** Each chat's project, when the section mixes them. */
+  projects?: ReadonlyMap<ChatId, string>;
+  chats: ListedChat[];
+}
+
 /**
- * The History page: every chat you've had, in parts by the project it
- * ran in, each chat with its tags and the day it was last written in.
+ * The History page: every chat you've had, by when it was last written in
+ * or in parts by the project it ran in, each chat with its tags and the
+ * day it was last written in. The list keeps up as chats are written in.
  * Searching for words narrows the list to the chats with them, each with the
  * passage that has them; tags narrow it too, and "+ Tag" on a chat adds
  * one. A chat's title, or Enter in the search field, opens it on the left
@@ -52,6 +69,7 @@ export class HistoryPage {
   protected readonly list = inject(ChatList);
   protected readonly catalog = inject(AgentCatalog);
   private readonly pinsAndTags = inject(PinsAndTags);
+  private readonly settings = inject(Settings);
   protected readonly wording = inject(Wording);
   private readonly pending = inject(PendingTasks);
   private readonly injector = inject(Injector);
@@ -62,7 +80,7 @@ export class HistoryPage {
   /** Every agent's chats; undefined until they've answered. */
   private readonly saved = signal<readonly ChatSummary[] | undefined>(undefined);
   /** Those chats with their pins and tags. */
-  private readonly listed = computed(() =>
+  protected readonly listed = computed(() =>
     this.saved()?.map((chat): ListedChat => ({
       ...chat,
       pins: this.pinsAndTags.pins(chat.id),
@@ -92,29 +110,45 @@ export class HistoryPage {
     const tags = new Set(this.tags().map((tag) => tag.toLowerCase()));
     return this.picked().filter((tag) => tags.has(tag.toLowerCase()));
   });
-  protected readonly parts = computed(() => {
+  /** How the list is grouped: by date or by project. */
+  protected readonly group = computed(() => this.settings.all().historyGroup);
+  protected readonly sections = computed((): Section[] | undefined => {
     const listed = this.listed();
     if (!listed) return undefined;
     const home = this.catalog.folders().home;
     const hits = this.hits();
-    const found = hits ? listed.filter((chat) => hits.has(chat.id)) : listed;
-    return partsOf(withTags(found, this.narrowedTo()), home).map((part, i) => ({
-      ...part,
-      numeral: numeral(i + 1),
-      title: partTitle(part.folder, home),
-      folderName: this.catalog.folderName(part.folder),
-    }));
+    const found = withTags(
+      hits ? listed.filter((chat) => hits.has(chat.id)) : listed,
+      this.narrowedTo(),
+    );
+    if (this.group() === 'project') {
+      return partsOf(found, home).map((part, i) => ({
+        key: part.folder,
+        over: `Part ${numeral(i + 1)}`,
+        title: partTitle(part.folder, home),
+        folderName: this.catalog.folderName(part.folder),
+        chats: part.chats,
+      }));
+    }
+    const projects = new Map(
+      found.map((chat) => [chat.id, partTitle(projectOf(chat.cwd ?? home), home)]),
+    );
+    return byDate(found, this.now()).map((group) => ({ ...group, projects }));
   });
 
   /** How many chats have what's searched for, while something is. */
   protected readonly count = computed(() => {
     if (!this.hits()) return this.searching() ? 'Looking…' : '';
-    const count = this.parts()?.reduce((sum, part) => sum + part.chats.length, 0) ?? 0;
+    const count = this.sections()?.reduce((sum, part) => sum + part.chats.length, 0) ?? 0;
     const [one, many] = this.wording.plain() ? ['chat', 'chats'] : ['chapter', 'chapters'];
     return `${count} ${count === 1 ? one : many}`;
   });
 
   protected readonly dated = dated;
+  /** When the list was last read, which the stretches of days count back from. */
+  private readonly now = signal(Date.now());
+  /** Counts the reads of the list, so an answer to an older one is dropped. */
+  private loads = 0;
 
   constructor() {
     // List the chats once the agents are known.
@@ -124,6 +158,9 @@ export class HistoryPage {
     // Keep up with chats renamed on their own pages.
     const stop = this.bridge.on('agents.title', ({ chatId, title }) => this.retitle(chatId, title));
     inject(DestroyRef).onDestroy(stop);
+    // A turn that ended moved its chat to the top, or listed it for the first time.
+    const stopTurns = this.bridge.on('agents.turnEnded', () => void this.load());
+    inject(DestroyRef).onDestroy(stopTurns);
     afterRenderEffect(() => this.field()?.nativeElement.focus());
     afterNextRender(() => this.searchField().nativeElement.focus());
     inject(DestroyRef).onDestroy(() => this.stopWaiting());
@@ -162,8 +199,12 @@ export class HistoryPage {
 
   /** Enter in the search field opens the first chat listed. */
   protected openFirst(): void {
-    const first = this.parts()?.[0]?.chats[0];
+    const first = this.sections()?.[0]?.chats[0];
     if (first) this.open(first);
+  }
+
+  protected groupBy(group: 'date' | 'project'): void {
+    if (group !== this.group()) void this.settings.set({ historyGroup: group });
   }
 
   protected isPicked(tag: string): boolean {
@@ -236,9 +277,13 @@ export class HistoryPage {
   }
 
   private async load(): Promise<void> {
+    const load = ++this.loads;
     const done = this.pending.add();
     try {
-      this.saved.set(await this.catalog.pastChats());
+      const chats = await this.catalog.pastChats();
+      if (load !== this.loads) return;
+      this.now.set(Date.now());
+      this.saved.set(chats);
     } finally {
       done();
     }
