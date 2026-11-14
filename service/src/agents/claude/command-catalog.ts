@@ -54,7 +54,7 @@ const RUNS: Readonly<Record<string, CommandRun>> = {
 /**
  * Claude Code's commands as the command palette lists them, with how each
  * runs: every one it has, those that do little outside a terminal too, so
- * you see what it can do; not its skills.
+ * you see what it can do; not its skills, nor those it has removed or renamed.
  */
 export function catalog(source: CommandSource): AgentCommand[] {
   const seen = new Set<string>();
@@ -63,7 +63,7 @@ export function catalog(source: CommandSource): AgentCommand[] {
     // Names with two underscores are Claude Code's own plumbing; a name listed twice runs the first.
     if (name.startsWith('__') || seen.has(name)) return [];
     seen.add(name);
-    if (source.skills.has(name)) return [];
+    if (source.skills.has(name) || retired(description)) return [];
     const hint = argumentHint ? { argumentHint } : {};
     const owner = OWNERS[name];
     const choices = owner ? [] : choicesOf(name, argumentHint, source);
@@ -79,6 +79,11 @@ export function catalog(source: CommandSource): AgentCommand[] {
       },
     ];
   });
+}
+
+/** Claude Code keeps a removed or renamed command in its list, saying so in its description. */
+function retired(description: string): boolean {
+  return /^\s*(\(removed\)|renamed to\b)/i.test(description);
 }
 
 function runOf(

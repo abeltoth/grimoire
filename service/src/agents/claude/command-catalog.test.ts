@@ -48,6 +48,22 @@ describe('catalog', () => {
     ]);
   });
 
+  it('leaves out what Claude Code says it removed or renamed', () => {
+    const listed = catalog({
+      commands: [
+        {
+          name: 'agents',
+          description: '(removed) Ask Claude to create subagents',
+          argumentHint: '',
+        },
+        { name: 'extra-usage', description: 'Renamed to /usage-credits', argumentHint: '' },
+        { name: 'usage-credits', description: 'Configure usage credits', argumentHint: '' },
+      ],
+      skills: new Set(),
+    });
+    expect(listed.map((c) => c.name)).toEqual(['usage-credits']);
+  });
+
   it('takes the choices from a hint of words, and the current ones where Claude Code says', () => {
     const listed = catalog({
       commands: [
