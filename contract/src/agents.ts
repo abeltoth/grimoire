@@ -248,4 +248,9 @@ export interface OpenChat {
   followUps?: FollowUp[];
   /** While another chat it was sent in parallel with edits: that chat. This one can't edit files. */
   readOnly?: Editor;
+  /**
+   * What changed since the chat's process started that it can't take in
+   * until it starts again, such as a new MCP server; until it does, or you dismiss it.
+   */
+  outdated?: string;
 }

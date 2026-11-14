@@ -47,6 +47,8 @@ export interface Chat {
    * can't edit files until it's made the editing chat.
    */
   readOnly?: Editor;
+  /** What changed that the chat's process takes in only once it starts again, until it does or you dismiss it. */
+  outdated?: string;
   /** Why the last turn failed, until the next message. */
   error?: string;
   /** When a blank chat was opened, in ms since the epoch. */
@@ -97,6 +99,7 @@ export function fromOpenChat(chat: OpenChat): Chat {
     ...(chat.suggestion ? { suggestion: chat.suggestion } : {}),
     ...(chat.followUps?.length ? { followUps: chat.followUps } : {}),
     ...(chat.readOnly ? { readOnly: chat.readOnly } : {}),
+    ...(chat.outdated ? { outdated: chat.outdated } : {}),
   };
 }
 

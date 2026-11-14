@@ -239,6 +239,11 @@ export interface ChatEvents {
   suggestion(text: string): void;
   /** After a turn ended, the separate tasks the agent offered in it, each of which a new chat could take on. */
   followUps(followUps: FollowUp[]): void;
+  /**
+   * Something the process started with changed, which it takes in only when
+   * it starts again: what, in a few words; null once it's back as it was.
+   */
+  outdated(why: string | null): void;
   /** The agent process ended, on close() or by itself. */
   closed(error?: string): void;
 }

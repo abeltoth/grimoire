@@ -50,6 +50,8 @@ export interface ChatState {
   processes: number;
   /** The agent was signed in to another account during a turn: the process starts again once it ends. */
   restart: boolean;
+  /** What changed that the running process takes in only when it starts again, until it does or you dismiss it. */
+  outdated?: string;
   /** What the subagents its tool calls started did while it was live, and where they are, by tool call. */
   subagents: Map<string, SubagentRun>;
   /** Streamed text not sent to windows yet, per entry and block. */

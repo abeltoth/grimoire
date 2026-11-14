@@ -243,6 +243,16 @@ export class ChatActions {
     }
   }
 
+  /** Starts the chat's process again, now or once its turn ends, to take in what changed. */
+  restart(id: string): Promise<void> {
+    return this.settle(id, this.bridge.invoke('agents.restart', { chatId: id }));
+  }
+
+  /** Keeps the chat's process as it is, though something it started with changed. */
+  dismissRestart(id: string): Promise<void> {
+    return this.settle(id, this.bridge.invoke('agents.dismissRestart', { chatId: id }));
+  }
+
   /** Approves or denies an approval; a failure shows as the chat's error. */
   decide(id: string, approvalId: string, decision: ApprovalDecision): Promise<void> {
     return this.settle(id, this.bridge.invoke('agents.decide', { approvalId, decision }));

@@ -42,5 +42,7 @@ export function registerAgentCommands(registry: CommandRegistry, hub: AgentHub):
   );
   registry.register('agents.answer', ({ approvalId, answers }) => hub.answer(approvalId, answers));
   registry.register('agents.takeOver', ({ chatId }) => hub.takeOver(chatId));
+  registry.register('agents.restart', ({ chatId }) => hub.restart(chatId));
+  registry.register('agents.dismissRestart', ({ chatId }) => hub.dismissRestart(chatId));
   registry.register('agents.close', ({ chatId }) => hub.close(chatId));
 }

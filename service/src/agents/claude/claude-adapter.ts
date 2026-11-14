@@ -53,6 +53,7 @@ import * as saved from './saved-chats';
 import { readAccount, signIn } from './sign-in';
 import { Spares } from './spare';
 import { type PickerSources, readRating } from './subagents';
+import { watchedForTools } from './tool-sources';
 
 /** How long a folder's commands are kept before Claude Code is asked again. */
 const COMMANDS_FRESH_MS = 60_000;
@@ -248,6 +249,7 @@ export class ClaudeAdapter implements AgentAdapter {
     events: ChatEvents,
     title?: string,
   ): LiveChat {
+    events = watchedForTools(settings.cwd, events);
     const input = new MessageQueue<SDKUserMessage>();
     const picking = new Deferred<PickerSources>();
     const followUps = new FollowUpsKept();
@@ -325,7 +327,15 @@ export class ClaudeAdapter implements AgentAdapter {
     }
     try {
       if (spare)
-        return await this.spares.claim(spare, settings, text, id, bind, title, attachments);
+        return await this.spares.claim(
+          spare,
+          settings,
+          text,
+          id,
+          (chatId) => watchedForTools(settings.cwd, bind(chatId)),
+          title,
+          attachments,
+        );
     } catch {
       // Refused, or the spare died: start the usual way.
     } finally {

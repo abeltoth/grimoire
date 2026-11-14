@@ -87,6 +87,9 @@ export class ChatList {
     this.listen('agents.readOnly', ({ chatId, readOnly }) =>
       this.update(chatId, ({ readOnly: _, ...c }) => ({ ...c, ...(readOnly ? { readOnly } : {}) })),
     );
+    this.listen('agents.outdated', ({ chatId, outdated }) =>
+      this.update(chatId, ({ outdated: _, ...c }) => ({ ...c, ...(outdated ? { outdated } : {}) })),
+    );
     inject(PendingTasks).run(() => this.restore());
   }
 

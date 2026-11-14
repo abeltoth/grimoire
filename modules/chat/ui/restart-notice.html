@@ -1,0 +1,11 @@
+<p>
+  {{ outdated() }} —
+  {{
+    wording.say(
+      'the chapter takes it in once it starts again',
+      'the chat loads it once it restarts'
+    )
+  }}
+</p>
+<button type="button" class="gr-link" (click)="actions.restart(chatId())">Restart</button>
+<button type="button" class="gr-link" (click)="actions.dismissRestart(chatId())">Dismiss</button>

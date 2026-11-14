@@ -152,6 +152,13 @@ declare module './commands' {
      */
     'agents.takeOver': { request: { chatId: ChatId }; response: void };
     /**
+     * Starts the chat's process again, now or once its turn ends, so it takes
+     * in what changed since it started; the next message continues the chat.
+     */
+    'agents.restart': { request: { chatId: ChatId }; response: void };
+    /** Keeps the chat's process running as it is, and drops what said it's outdated. */
+    'agents.dismissRestart': { request: { chatId: ChatId }; response: void };
+    /**
      * Closes an open chat and stops its agent process. The chat itself
      * stays with the agent. When it edited its project, the chat on it
      * opened first after it edits from now on.
@@ -199,5 +206,7 @@ declare module './events' {
     'agents.followUps': { chatId: ChatId; followUps: FollowUp[] | null };
     /** Another chat now edits the chat's project, so it only reads; null once it's the one that edits. */
     'agents.readOnly': { chatId: ChatId; readOnly: Editor | null };
+    /** Something changed that the chat's process takes in only when it starts again; null once that no longer stands. */
+    'agents.outdated': { chatId: ChatId; outdated: string | null };
   }
 }

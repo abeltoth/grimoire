@@ -73,6 +73,17 @@ export class ChatRuns {
     else chat.restart = true;
   }
 
+  /** Starts the chat's process again, now or once its turn ends, as you asked. */
+  restart(chat: ChatState): void {
+    this.setOutdated(chat, undefined);
+    this.restartWhenIdle(chat);
+  }
+
+  /** Keeps the chat's process as it is: what said it's outdated goes. */
+  dismissRestart(chat: ChatState): void {
+    this.setOutdated(chat, undefined);
+  }
+
   /** What the chat's process reports, for as long as it's the chat's process. */
   events(chat: ChatState): ChatEvents {
     const processes = chat.processes;
@@ -154,10 +165,14 @@ export class ChatRuns {
         if (chat.restart) this.restartProcess(chat);
         this.sendQueued(chat);
       },
+      outdated: (why) => {
+        if (current()) this.setOutdated(chat, why ?? undefined);
+      },
       closed: (error) => {
         if (!current()) return;
         chat.live = undefined;
         chat.restart = false;
+        this.setOutdated(chat, undefined);
         this.approvals.denyAll(chat);
         // Subagents still at work in the background end with the process.
         for (const [toolId, run] of chat.subagents)
@@ -176,10 +191,17 @@ export class ChatRuns {
   /** Stops the chat's process; its next message starts another, continuing the chat. */
   private restartProcess(chat: ChatState): void {
     chat.restart = false;
+    this.setOutdated(chat, undefined);
     chat.processes++;
     const live = chat.live;
     chat.live = undefined;
     live?.close();
+  }
+
+  private setOutdated(chat: ChatState, why: string | undefined): void {
+    if (chat.outdated === why) return;
+    chat.outdated = why;
+    this.emit('agents.outdated', { chatId: chat.id, outdated: why ?? null });
   }
 
   /** A turn ended: the next queued message goes. */

@@ -110,6 +110,9 @@
           </button>
         </div>
       }
+      @if (c.outdated; as outdated) {
+        <gr-restart-notice [chatId]="c.id" [outdated]="outdated" />
+      }
     </gr-page-header>
 
     @if (card(); as open) {

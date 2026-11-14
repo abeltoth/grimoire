@@ -433,6 +433,16 @@ export class AgentHub {
     this.approvals.answer(approvalId, answers);
   }
 
+  /** Starts the chat's process again, now or once its turn ends, so it takes in what changed. */
+  restart(chatId: ChatId): void {
+    this.runs.restart(this.table.chat(chatId));
+  }
+
+  /** Keeps the chat's process as it is, though something it started with changed. */
+  dismissRestart(chatId: ChatId): void {
+    this.runs.dismissRestart(this.table.chat(chatId));
+  }
+
   /** Makes the chat the one that edits of those sent in parallel: the chat that edited only reads from now on. */
   takeOver(chatId: ChatId): void {
     this.editors.takeOver(this.table.chat(chatId));
@@ -500,6 +510,7 @@ export class AgentHub {
       ...(chat.suggestion !== undefined ? { suggestion: chat.suggestion } : {}),
       ...(chat.followUps ? { followUps: structuredClone(chat.followUps) } : {}),
       ...(readOnly ? { readOnly } : {}),
+      ...(chat.outdated ? { outdated: chat.outdated } : {}),
     };
   }
 }

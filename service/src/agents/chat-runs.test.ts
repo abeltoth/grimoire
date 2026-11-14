@@ -228,4 +228,45 @@ describe('ChatRuns', () => {
     run.events.turnEnded();
     expect(run.sent).toEqual(['Hello']);
   });
+
+  it('says when the process is outdated, and restarts it once its turn ends when you ask', async () => {
+    const { id } = await hub.start('fake', settings, 'Hello');
+    const run = fake.runOf(id);
+    run.events.outdated('New MCP server: jira');
+    expect(sent.at(-1)).toEqual({
+      event: 'agents.outdated',
+      payload: { chatId: id, outdated: 'New MCP server: jira' },
+    });
+    expect((await hub.open('fake', id, settings)).outdated).toBe('New MCP server: jira');
+
+    hub.restart(id);
+    expect(sent.at(-1)).toEqual({
+      event: 'agents.outdated',
+      payload: { chatId: id, outdated: null },
+    });
+    expect(run.closed).toBe(false);
+    run.events.turnEnded();
+    expect(run.closed).toBe(true);
+
+    hub.send(id, 'Again');
+    expect(fake.runs).toHaveLength(2);
+    expect(fake.runOf(id).resume).toBe(true);
+  });
+
+  it('keeps the process when you dismiss it, and drops what it said once it ends', async () => {
+    const { id } = await hub.start('fake', settings, 'Hello');
+    const run = fake.runOf(id);
+    run.events.turnEnded();
+    run.events.outdated('New MCP server: jira');
+    hub.dismissRestart(id);
+    expect(run.closed).toBe(false);
+    expect((await hub.open('fake', id, settings)).outdated).toBeUndefined();
+
+    run.events.outdated('MCP server removed: jira');
+    run.events.closed();
+    expect(sent.at(-1)).toEqual({
+      event: 'agents.outdated',
+      payload: { chatId: id, outdated: null },
+    });
+  });
 });
