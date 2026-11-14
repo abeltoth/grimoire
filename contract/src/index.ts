@@ -28,5 +28,5 @@ export * from '../../modules/terminal/contract';
 export * from '../../modules/usage/contract';
 export * from '../../modules/workflow-setup/contract';
 
-// Modules kept outside this repo, such as the paid ones.
+// Modules kept outside this repo, such as the pro ones.
 export * from '@grimoire/extra-modules/contract';

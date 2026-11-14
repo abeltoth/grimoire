@@ -29,6 +29,6 @@ export const MODULES: readonly ServiceModule[] = [
   terminal,
   usage,
   workflowSetup,
-  // Modules kept outside this repo, such as the paid ones.
+  // Modules kept outside this repo, such as the pro ones.
   ...extraModules,
 ];

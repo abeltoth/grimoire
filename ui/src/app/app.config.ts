@@ -33,7 +33,7 @@ export const appConfig: ApplicationConfig = {
     provideTerminal(),
     provideSettings(),
     provideAutoLabels(),
-    // Modules kept outside this repo, such as the paid ones.
+    // Modules kept outside this repo, such as the pro ones.
     ...extraProviders,
   ],
 };

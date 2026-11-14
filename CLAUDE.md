@@ -26,7 +26,7 @@
 - `modules/<name>/{contract.ts,service,ui}`: one feature each, registered in
   `contract/src/index.ts`, `service/src/modules.ts` and `ui/src/app/app.config.ts`.
 - `extra-modules/`: the lists of modules kept outside this repo, empty here; the private repo
-  replaces the package with the paid modules.
+  replaces the package with the pro modules.
 - `scripts/`: dev, build and service scripts.
 
 ## Commands

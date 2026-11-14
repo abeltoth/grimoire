@@ -173,13 +173,13 @@ subscription                  session files
 - No core or module code names a model; Claude's recommended one is `QUICK_MODEL` in the Claude adapter.
 - Auto, the subagent picker and later features share the one model setting, so changing it changes them all.
 
-## Open core, with paid modules in a private repo
+## Open core, with pro modules in a private repo
 
-**Context:** Grimoire gets paid modules while its core stays open source.
+**Context:** Grimoire gets pro modules while its core stays open source.
 
 **Decision:**
 - Grimoire runs on Mac and Windows with the same features, for one user per install. Mac and Windows support is a requirement, not a quality goal that can be traded off.
-- The public repo holds the core and the free modules. A private repo holds the paid modules and includes the public repo as a git submodule.
+- The public repo holds the core and the free modules. A private repo holds the pro modules and includes the public repo as a git submodule. Everything a pro module needs, its styles too, stays in the private repo.
 - The core takes modules from outside its repo through one package, `@grimoire/extra-modules`, which the public repo leaves empty and the private repo replaces.
 
-**Consequences:** the contract and the service's declared surface are an API the paid modules depend on.
+**Consequences:** the contract and the service's declared surface are an API the pro modules depend on.
