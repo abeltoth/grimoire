@@ -15,12 +15,10 @@ export type ChatId = string;
 /** What an agent supports beyond chatting. Features that need one show only for agents that have it. */
 /**
  * What an agent can do beyond chatting; "compact" sums a chat up to free its
- * context, "sign-in" switches the account every chat uses, "job" runs a
- * task unseen, with nothing saved, and "mcp" says how a running chat's MCP
- * servers are and connects one again.
+ * context, "sign-in" switches the account every chat uses, and "job" runs a
+ * task unseen, with nothing saved.
  */
-export type AgentCapability =
-  'rename' | 'fork' | 'undo' | 'compact' | 'sign-in' | 'ask' | 'job' | 'mcp';
+export type AgentCapability = 'rename' | 'fork' | 'undo' | 'compact' | 'sign-in' | 'ask' | 'job';
 
 export interface AgentInfo {
   id: AgentId;
@@ -222,16 +220,6 @@ export interface AgentCommand {
   /** The values a command run by picking takes; Grimoire lists its own for a command it owns. */
   choices?: CommandChoice[];
   owner?: CommandOwner;
-}
-
-/** How one of a running chat's MCP servers is. */
-export interface McpServerState {
-  name: string;
-  status: 'connected' | 'failed' | 'needs-auth' | 'pending' | 'disabled';
-  /** Why it failed, when it did. */
-  error?: string;
-  /** How many tools it gives, once connected. */
-  tools: number;
 }
 
 /**

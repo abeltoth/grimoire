@@ -43,8 +43,6 @@ export interface FakeRun {
   undone: string[];
   interrupts: number;
   configured: SettingsChange[];
-  /** The MCP servers connected again. */
-  reconnected: string[];
   closed: boolean;
 }
 
@@ -228,7 +226,6 @@ export class FakeAdapter implements AgentAdapter {
       undone: [],
       interrupts: 0,
       configured: [],
-      reconnected: [],
       closed: false,
     };
     this.runs.push(run);
@@ -244,8 +241,6 @@ export class FakeAdapter implements AgentAdapter {
         if (this.undoError) throw new Error(this.undoError);
         run.undone.push(entryId);
       },
-      mcpServers: async () => [{ name: 'github', status: 'connected', tools: 2 }],
-      reconnectMcp: async (name) => void run.reconnected.push(name),
       close: () => void (run.closed = true),
     };
   }

@@ -21,7 +21,6 @@ import { CacheTracker, type ReplyUsage, contextTokens } from './cache';
 import { ContextMeter } from './context-meter';
 import { readUserSettings } from './effort';
 import type { FollowUpsKept } from './follow-ups';
-import { mcpStates } from './mcp';
 import type { MessageQueue } from './message-queue';
 import { ASK_TOOL, alwaysAllowOf, toClaudeAnswers, toQuestions } from './permissions';
 import { sdk } from './probe';
@@ -177,8 +176,6 @@ export function drive({
       const result = await (await started).rewindFiles(entryId);
       if (!result.canRewind) throw new Error(result.error ?? "Claude Code can't undo this message");
     },
-    mcpServers: async () => mcpStates(await (await started).mcpServerStatus()),
-    reconnectMcp: async (name) => (await started).reconnectMcpServer(name),
     close: () => {
       input.end();
       void started.then((live) => live.close());

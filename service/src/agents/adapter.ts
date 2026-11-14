@@ -24,7 +24,6 @@ import type {
   SubagentState,
   SubagentStats,
   HookRun,
-  McpServerState,
   PlanStep,
   SettingsChange,
   TokenUse,
@@ -197,10 +196,6 @@ export interface LiveChat {
    * Rejects, saying why, when the agent can't. Agents without undo leave it out.
    */
   undo?(entryId: string): Promise<void>;
-  /** How its MCP servers are. Agents without the "mcp" capability leave it out. */
-  mcpServers?(): Promise<McpServerState[]>;
-  /** Connects one of its MCP servers again. Agents without the "mcp" capability leave it out. */
-  reconnectMcp?(name: string): Promise<void>;
   /** Stops the agent process. */
   close(): void;
 }

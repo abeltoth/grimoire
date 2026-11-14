@@ -102,10 +102,6 @@
     }
   </div>
 
-  @if (mcp() && chat(); as chat) {
-    <gr-mcp-status [chat]="chat" [query]="query()" />
-  }
-
   @if (typed()) {
     <p class="note">
       {{ wording.say('Keep typing in your entry', 'Keep typing in your message') }} to narrow the

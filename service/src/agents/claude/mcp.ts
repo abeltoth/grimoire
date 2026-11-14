@@ -1,5 +1,5 @@
-import type { McpServerStatus, Settings } from '@anthropic-ai/claude-agent-sdk';
-import type { ChatSettings, McpServerState } from '@grimoire/contract';
+import type { Settings } from '@anthropic-ai/claude-agent-sdk';
+import type { ChatSettings } from '@grimoire/contract';
 
 /** The MCP servers off for a chat: those off in every chat, and its own; each once, sorted. */
 export function mcpOff(
@@ -18,13 +18,4 @@ export function mcpOff(
  */
 export function mcpSettings(off: readonly string[]): Pick<Settings, 'deniedMcpServers'> {
   return off.length ? { deniedMcpServers: off.map((serverName) => ({ serverName })) } : {};
-}
-
-/** How a process's MCP servers are; servers Grimoire runs in the process itself are its own plumbing. */
-export function mcpStates(statuses: readonly McpServerStatus[]): McpServerState[] {
-  return statuses.flatMap(({ name, status, error, tools, source }): McpServerState[] =>
-    source === 'sdk'
-      ? []
-      : [{ name, status, ...(error ? { error } : {}), tools: tools?.length ?? 0 }],
-  );
 }

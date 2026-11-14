@@ -97,7 +97,7 @@ export class ClaudeAdapter implements AgentAdapter {
   readonly info: AgentInfo = {
     id: 'claude-code',
     name: 'Claude Code',
-    capabilities: ['rename', 'fork', 'undo', 'compact', 'sign-in', 'ask', 'job', 'mcp'],
+    capabilities: ['rename', 'fork', 'undo', 'compact', 'sign-in', 'ask', 'job'],
   };
 
   listChats(cwd?: string): Promise<ChatSummary[]> {

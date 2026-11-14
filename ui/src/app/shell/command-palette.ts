@@ -14,7 +14,6 @@ import { GRIMOIRE_BRIDGE } from '../core/bridge';
 import { Wording } from '../core/wording';
 import { AgentCommands, GROUPS, type ListedEntry } from './agent-commands';
 import { Focus } from './focus';
-import { McpStatus } from './mcp-status';
 import { PageFooter } from './page/page-footer';
 import { PageHeader } from './page/page-header';
 import { ShellRegistry } from './shell-registry';
@@ -27,7 +26,7 @@ interface Section {
 
 /**
  * The command palette: the chat's agent's commands, by what
- * they do, and its MCP servers. Turned to with its shortcut or its tab, it
+ * they do. Turned to with its shortcut or its tab, it
  * searches in a field of its own; turned to by "/" at the start of a
  * message, you keep typing in the message, whose keys move through the list.
  * A command runs at once, lists its choices to pick one, or is written in
@@ -35,7 +34,7 @@ interface Section {
  */
 @Component({
   selector: 'gr-command-palette',
-  imports: [Icon, McpStatus, PageFooter, PageHeader],
+  imports: [Icon, PageFooter, PageHeader],
   templateUrl: './command-palette.html',
   styleUrl: './command-palette.css',
   host: { '(document:keydown.escape)': 'back($event)' },
@@ -81,12 +80,6 @@ export class CommandPalette {
           entries: listed.filter((entry) => entry.command.group === group),
         }));
     return sections.filter((section) => section.entries.length);
-  });
-
-  /** Whether the MCP servers show: for an agent that says how they are, while no choice is picked. */
-  protected readonly mcp = computed(() => {
-    const chat = this.chat();
-    return !!chat && !this.commands.picking() && this.catalog.can(chat.agent, 'mcp');
   });
 
   protected readonly count = computed(() => {
