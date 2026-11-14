@@ -1,21 +1,11 @@
 @let page = shown();
 @let approvals = rightPage.approvals() ? registry.approvalsPage() : undefined;
-@if (rightPage.commandPalette() !== null) {
+@if (paletteHere()) {
   <gr-page
     side="right"
     [attr.aria-label]="rightPageLabel() + ': ' + wording.say('Index', 'Command palette')"
   >
     <gr-command-palette [backTo]="back()" />
-    <gr-drawing class="sigil" name="empty-page" />
-  </gr-page>
-} @else if (commandsHere()) {
-  <gr-page
-    side="right"
-    [attr.aria-label]="
-      rightPageLabel() + ': ' + wording.say('Index', 'Command palette') + ', commands and skills'
-    "
-  >
-    <gr-slash-commands [backTo]="back()" />
     <gr-drawing class="sigil" name="empty-page" />
   </gr-page>
 } @else if (pageTab(); as tab) {

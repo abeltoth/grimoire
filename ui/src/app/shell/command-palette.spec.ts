@@ -1,106 +1,79 @@
-import type { CommandRequest, OpenChat, Preset } from '@grimoire/contract';
-import { fakeBridge, render } from '../../testing/app-testing';
+import { TestBed } from '@angular/core/testing';
+import type { AgentCommand } from '@grimoire/contract';
+import { fakeBridge, render, write } from '../../testing/app-testing';
+import { ChatList } from '../core/chat-list';
+
+const COMMANDS: AgentCommand[] = [
+  { name: 'compact', description: 'Free up context', group: 'chat', run: 'now' },
+  { name: 'review', description: 'Review a pull request', group: 'chat', run: 'compose' },
+  { name: 'usage', description: 'Show plan usage', group: 'reports', run: 'now' },
+  { name: 'model', description: 'Set the model', group: 'settings', run: 'pick', owner: 'model' },
+  { name: 'commit', description: 'Commit the changes', group: 'skills', run: 'compose' },
+];
+
+async function opened() {
+  const { bridge, calls, answers } = fakeBridge();
+  answers['agents.commands'] = () => COMMANDS;
+  const rendered = await render(bridge);
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }));
+  await rendered.fixture.whenStable();
+  const field = rendered.el.querySelector<HTMLInputElement>('#gr-command-palette-search')!;
+  const type = async (text: string) => {
+    field.value = text;
+    field.dispatchEvent(new Event('input'));
+    await rendered.fixture.whenStable();
+  };
+  const press = async (key: string) => {
+    field.dispatchEvent(new KeyboardEvent('keydown', { key, cancelable: true }));
+    await rendered.fixture.whenStable();
+  };
+  return { ...rendered, calls, answers, field, type, press };
+}
 
 describe('command-palette', () => {
-  it('searches actions and chats in the command palette, turned to with Ctrl+K', async () => {
-    const { bridge, calls, answers } = fakeBridge();
-    answers['agents.chats'] = () => [
-      { id: 'c7', agent: 'claude-code', title: 'Old notes', cwd: 'C:/Users/me', updatedAt: 0 },
-      {
-        id: 'c8',
-        agent: 'claude-code',
-        title: 'Fix flaky login test',
-        cwd: 'C:/Users/me/git/grimoire',
-        updatedAt: 1,
-      },
-      {
-        id: 'c9',
-        agent: 'claude-code',
-        title: 'New onboarding flow',
-        cwd: 'C:/Users/me/git/breeder',
-        updatedAt: 2,
-      },
-    ];
-    answers['history.pinsAndTags'] = () => ({
-      pins: { c7: ['pin', 'star'], c8: ['star'] },
-      tags: {},
-    });
-    answers['agents.open'] = (request: CommandRequest<'agents.open'>): OpenChat => ({
-      id: request.chatId,
-      agent: request.agent,
-      title: 'New onboarding flow',
-      settings: request.settings,
-      status: 'idle',
-      entries: [{ kind: 'user', id: 'u1', text: 'Plan the onboarding' }],
-      approvals: [],
-      queued: [],
-      plan: [],
-      withdrawn: [],
-      copied: [],
-    });
-    const { fixture, el, texts } = await render(bridge);
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }));
-    await fixture.whenStable();
-    // The chats arrive from the service a moment later.
-    await new Promise((resolve) => setTimeout(resolve));
-    await fixture.whenStable();
+  it('lists the chat’s commands by what they do, turned to with Ctrl+K, and runs one', async () => {
+    const { fixture, el, texts, calls, field, type, press } = await opened();
 
     expect(texts('gr-command-palette h2')).toEqual(['Index']);
-    expect(texts('gr-command-palette h3')).toEqual(['Actions', 'Chapters']);
-    // A pinned chat stays at the top, however old.
-    expect(texts('gr-command-palette .entry .label')).toEqual([
-      'New chapter',
-      'New chapter from preset',
-      'Close chapter',
-      'New note',
-      'Single page',
-      'Old notes',
-      'New onboarding flow',
-      'Fix flaky login test',
+    expect(texts('gr-command-palette .runs-in')).toEqual(['Runs in a new chapter']);
+    expect(texts('gr-command-palette h3')).toEqual([
+      'Settings',
+      'Reports',
+      'This chapter',
+      'Claude Code’s skills',
     ]);
-    const field = el.querySelector<HTMLInputElement>('#gr-command-palette-search')!;
+    expect(texts('gr-command-palette .entry .label')).toEqual([
+      '/model',
+      '/usage',
+      '/compact',
+      '/review',
+      'commit',
+    ]);
+    expect(texts('gr-command-palette .entry .where')).toEqual([
+      'choose ›',
+      'run',
+      'run',
+      'write in',
+      'skill',
+    ]);
     expect(document.activeElement).toBe(field);
 
-    field.value = 'new';
-    field.dispatchEvent(new Event('input'));
-    await fixture.whenStable();
-    expect(texts('gr-command-palette .entry .label')).toEqual([
-      'New chapter',
-      'New chapter from preset',
-      'New note',
-      'New onboarding flow',
-    ]);
-    expect(texts('gr-command-palette .entry b')).toEqual(['New', 'New', 'New', 'New']);
-    expect(texts('gr-command-palette .count')).toEqual(['4 entries']);
-    expect(texts('gr-command-palette .entry .gloss')).toEqual([
-      'with your last settings',
-      'pick a preset first',
-      'Claude Code · ~/git/breeder',
-    ]);
-    expect(texts('gr-command-palette .entry .where .gr-kbd')).toEqual([
-      'Ctrl',
-      'N',
-      'Ctrl',
-      'Shift',
-      'N',
-    ]);
-    expect(texts('gr-command-palette .entry[aria-selected="true"] .label')).toEqual([
-      'New chapter',
-    ]);
-
-    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
-    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
-    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
-    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
-    await fixture.whenStable();
-    expect(calls.filter((c) => c.command === 'agents.open').map((c) => c.request)).toEqual([
-      { agent: 'claude-code', chatId: 'c9', settings: { cwd: 'C:/Users/me/git/breeder' } },
+    await type('us');
+    expect(texts('gr-command-palette .entry .label')).toEqual(['/usage']);
+    expect(texts('gr-command-palette .count')).toEqual(['1 entry']);
+    await press('Enter');
+    // A blank chat begins with it.
+    expect(calls.filter((c) => c.command === 'agents.start').map((c) => c.request)).toMatchObject([
+      { agent: 'claude-code', text: '/usage' },
     ]);
     expect(el.querySelector('gr-command-palette')).toBeNull();
-    expect(texts('gr-page-header h1')).toEqual(['New onboarding flow']);
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }));
+    await fixture.whenStable();
+    expect(texts('gr-command-palette .runs-in')).toEqual(['Runs in Untitled chapter']);
   });
 
-  it('opens the command palette from its tab, and turns back with Esc', async () => {
+  it('opens from its tab, says when nothing matches, and turns back with Esc', async () => {
     const { bridge } = fakeBridge();
     const { fixture, el, texts } = await render(bridge);
     const notch = el.querySelector<HTMLButtonElement>('gr-page-tabs .command-palette')!;
@@ -114,7 +87,7 @@ describe('command-palette', () => {
     field.dispatchEvent(new Event('input'));
     await fixture.whenStable();
     expect(texts('gr-command-palette .entries .note')).toEqual([
-      'Nothing in the index matches “zzz”.',
+      'Nothing in Claude Code’s commands and skills matches “zzz”.',
     ]);
     expect(texts('gr-command-palette .count')).toEqual(['0 entries']);
 
@@ -124,50 +97,80 @@ describe('command-palette', () => {
     expect(notch.getAttribute('aria-current')).toBeNull();
   });
 
-  it('begins a chat from a preset listed in the command palette', async () => {
-    const { bridge, answers } = fakeBridge();
-    answers['presets.list'] = (): Preset[] => [
-      {
-        name: 'Bug fix',
-        agent: 'claude-code',
-        settings: { cwd: 'C:/Users/me/git/breeder', model: 'sonnet', mode: 'accept-edits' },
-      },
-    ];
-    const { fixture, el, texts } = await render(bridge);
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }));
-    await fixture.whenStable();
-    const field = el.querySelector<HTMLInputElement>('#gr-command-palette-search')!;
-    field.value = 'preset';
-    field.dispatchEvent(new Event('input'));
-    await fixture.whenStable();
-    expect(texts('gr-command-palette .entry .where')).toEqual(['opens a list ›']);
-    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
-    await fixture.whenStable();
-
-    expect(texts('gr-command-palette h3')).toEqual(['Presets']);
+  it('lists a command’s choices, the one set now marked, and picks one', async () => {
+    const { fixture, texts, field, type, press } = await opened();
+    await type('model');
+    await press('Enter');
+    expect(texts('gr-command-palette h3')).toEqual(['/model']);
+    expect(texts('gr-command-palette .entry .label')).toEqual([
+      'Opus 5.5',
+      'Sonnet 5.5',
+      'Haiku 5.5',
+    ]);
+    expect(texts('gr-command-palette .entry .where')).toEqual(['set now', '', '']);
     expect(field.value).toBe('');
     expect(document.activeElement).toBe(field);
-    expect(texts('gr-command-palette .entry .gloss')).toEqual([
-      'Claude Code · Accept edits · ~/git/breeder',
-    ]);
-    // Esc goes back to the whole command palette first.
+
+    // Esc goes back to the commands first.
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }));
     await fixture.whenStable();
-    expect(texts('gr-command-palette h3')).toEqual(['Actions']);
-    el.querySelector<HTMLButtonElement>('#gr-command-palette-action-from-preset')!.click();
-    await fixture.whenStable();
-    el.querySelector<HTMLButtonElement>('gr-command-palette .entry')!.click();
-    await fixture.whenStable();
+    expect(texts('gr-command-palette h3')).toContain('Settings');
+    await type('model');
+    await press('Enter');
+    await type('son');
+    await press('Enter');
+    expect(TestBed.inject(ChatList).current()?.settings.model).toBe('sonnet');
+    expect(fixture.nativeElement.querySelector('gr-command-palette')).toBeNull();
+  });
 
+  it('writes a command in the message field to finish', async () => {
+    const { el, type, press } = await opened();
+    await type('review');
+    await press('Enter');
+    const message = el.querySelector<HTMLTextAreaElement>('#gr-next-message')!;
+    expect(message.value).toBe('/review ');
+    expect(document.activeElement).toBe(message);
     expect(el.querySelector('gr-command-palette')).toBeNull();
-    expect(texts('.meta button')).toEqual([
-      'Claude Code',
-      'Sonnet 5.5',
-      'Default effort',
-      'Accept edits',
-      '~/git/breeder',
-      'Bug fix',
+  });
+
+  it('runs a command clicked while searching from the message, which keeps the keys', async () => {
+    const { bridge, calls, answers } = fakeBridge();
+    answers['agents.commands'] = () => COMMANDS;
+    const { fixture, el } = await render(bridge);
+    await write(fixture, el, 'First');
+    const field = el.querySelector<HTMLTextAreaElement>('#gr-next-message')!;
+    field.focus();
+    field.value = '/comp';
+    field.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    const entry = el.querySelector<HTMLButtonElement>('gr-command-palette .entry')!;
+    const press = new MouseEvent('mousedown', { cancelable: true });
+    entry.dispatchEvent(press);
+    expect(press.defaultPrevented).toBe(true);
+    entry.click();
+    await fixture.whenStable();
+    expect(calls.filter((c) => c.command === 'agents.send').map((c) => c.request)).toEqual([
+      { chatId: 'chat-1', text: '/compact' },
     ]);
-    expect(texts('[aria-current="page"] i')).toEqual(['Claude Code · blank page']);
+    expect(document.activeElement).toBe(field);
+  });
+
+  it("says why the agent's commands could not be listed", async () => {
+    const { bridge, calls, answers } = fakeBridge();
+    answers['agents.commands'] = () => {
+      throw new Error('Claude Code is not installed');
+    };
+    const { fixture, el, texts } = await render(bridge);
+    const field = el.querySelector<HTMLTextAreaElement>('#gr-next-message')!;
+    field.value = '/';
+    field.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    // A blank chat's folder isn't chosen yet: the agent looks in your home folder.
+    expect(calls.filter((c) => c.command === 'agents.commands').map((c) => c.request)).toEqual([
+      { agent: 'claude-code' },
+    ]);
+    expect(texts('gr-command-palette .entries .note')).toEqual([
+      'Claude Code’s commands and skills couldn’t be listed: Claude Code is not installed',
+    ]);
   });
 });

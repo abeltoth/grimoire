@@ -28,6 +28,7 @@ import type {
 } from '../adapter';
 import type { AgentTool } from '../tools';
 import { AUTO_PROMPT, autoPick, messageForRater } from './auto-model';
+import { catalog } from './command-catalog';
 import {
   CLI_ARGS,
   Deferred,
@@ -96,7 +97,7 @@ export class ClaudeAdapter implements AgentAdapter {
   readonly info: AgentInfo = {
     id: 'claude-code',
     name: 'Claude Code',
-    capabilities: ['rename', 'fork', 'undo', 'compact', 'sign-in', 'ask', 'job'],
+    capabilities: ['rename', 'fork', 'undo', 'compact', 'sign-in', 'ask', 'job', 'mcp'],
   };
 
   listChats(cwd?: string): Promise<ChatSummary[]> {
@@ -383,21 +384,14 @@ async function listCommands(cwd: string): Promise<AgentCommand[]> {
   const input = new MessageQueue<SDKUserMessage>();
   const probe = query({ prompt: input, options: { cwd, permissionMode: MODES.ask, env: env() } });
   try {
-    const all = await probe.supportedCommands();
+    const started = await probe.initializationResult();
     const skills = new Set((await probe.reloadSkills()).skills.map((skill) => skill.name));
-    const seen = new Set<string>();
-    return all.flatMap(({ name, description, argumentHint }): AgentCommand[] => {
-      // Names with two underscores are Claude Code's own plumbing; a name listed twice runs the first.
-      if (name.startsWith('__') || seen.has(name)) return [];
-      seen.add(name);
-      return [
-        {
-          name,
-          description,
-          ...(argumentHint ? { argumentHint } : {}),
-          kind: skills.has(name) ? 'skill' : 'command',
-        },
-      ];
+    return catalog({
+      commands: started.commands,
+      skills,
+      outputStyle: started.output_style,
+      outputStyles: started.available_output_styles,
+      ...(started.fast_mode_state ? { fastMode: started.fast_mode_state } : {}),
     });
   } finally {
     input.end();

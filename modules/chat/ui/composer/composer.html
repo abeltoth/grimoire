@@ -57,7 +57,7 @@
     [value]="draft()"
     [attr.aria-controls]="searchingCommands() ? 'gr-command-entries' : null"
     [attr.aria-expanded]="searchingCommands() ? true : null"
-    [attr.aria-activedescendant]="chosen() ? 'gr-command-' + chosen()!.name : null"
+    [attr.aria-activedescendant]="chosen() ? 'gr-command-' + chosen()!.id : null"
     (input)="write($any($event.target).value)"
     (keydown)="key($event, messageField)"
     (paste)="paste($event)"

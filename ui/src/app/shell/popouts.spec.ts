@@ -119,19 +119,19 @@ describe('popouts', () => {
       expect(bridge.window.close).toHaveBeenCalled();
     });
 
-    it("lists the agent's commands on its own page, above the message field", async () => {
+    it('shows its command palette on its own page, above the message field', async () => {
       const { bridge, answers } = fakeBridge();
       answers['agents.openChats'] = () => [chat('c2', 'Fix flaky login test')];
       answers['agents.commands'] = () => [
-        { name: 'compact', description: 'Free up context', kind: 'command' },
+        { name: 'compact', description: 'Free up context', group: 'chat', run: 'now' },
       ];
       const { fixture, el, texts } = await render(bridge, popout('c2'));
       const field = el.querySelector<HTMLTextAreaElement>('#gr-next-message')!;
       field.value = '/';
       field.dispatchEvent(new Event('input'));
       await fixture.whenStable();
-      expect(texts('gr-chat-page gr-slash-commands .entry .label')).toEqual(['/compact']);
-      expect(el.querySelector('gr-slash-commands gr-page-footer')).toBeNull();
+      expect(texts('gr-chat-page gr-command-palette .entry .label')).toEqual(['/compact']);
+      expect(el.querySelector('gr-command-palette gr-page-footer')).toBeNull();
       expect(el.querySelector('gr-transcript')).toBeNull();
       expect(el.querySelector('#gr-next-message')).toBe(field);
       expect(texts('gr-composer .slash-hint')).toEqual([
@@ -141,7 +141,7 @@ describe('popouts', () => {
       field.value = '';
       field.dispatchEvent(new Event('input'));
       await fixture.whenStable();
-      expect(el.querySelector('gr-slash-commands')).toBeNull();
+      expect(el.querySelector('gr-command-palette')).toBeNull();
       expect(el.querySelector('gr-transcript')).not.toBeNull();
     });
 

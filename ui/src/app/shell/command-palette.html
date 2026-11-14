@@ -2,16 +2,22 @@
   <div class="row">
     <h2 class="title">{{ wording.say('Index', 'Command palette') }}</h2>
     <span class="hint">
-      <span>{{ wording.say('turned to with', 'opened with') }}</span>
-      @for (cap of commandPaletteCaps(); track $index) {
-        <span class="gr-kbd">{{ cap }}</span>
-      }
-      @if (!focus.on()) {
-        <span>{{ wording.say('or its thumb notch', 'or its tab') }}</span>
+      @if (typed()) {
+        <span>{{ wording.say('turned to by', 'opened by') }}</span>
+        <span class="gr-kbd">/</span>
+        <span>{{ wording.say('at the start of your entry', 'at the start of your message') }}</span>
+      } @else {
+        <span>{{ wording.say('turned to with', 'opened with') }}</span>
+        @for (cap of shortcutCaps(); track $index) {
+          <span class="gr-kbd">{{ cap }}</span>
+        }
+        @if (!focus.on()) {
+          <span>{{ wording.say('or its thumb notch', 'or its tab') }}</span>
+        }
       }
     </span>
     <span class="spacer"></span>
-    <button type="button" class="gr-link" (click)="rightPage.closeCommandPalette()">
+    <button type="button" class="gr-link" (click)="commands.close()">
       {{ wording.back(backTo()) }} <span class="gr-kbd">Esc</span>
     </button>
   </div>
@@ -19,65 +25,73 @@
 
 <div class="command-palette">
   <div class="search">
-    <label for="gr-command-palette-search">{{ wording.say('Look up', 'Search') }}</label>
-    <input
-      #field
-      id="gr-command-palette-search"
-      type="text"
-      role="combobox"
-      autocomplete="off"
-      spellcheck="false"
-      aria-expanded="true"
-      aria-controls="gr-command-palette-entries"
-      aria-autocomplete="list"
-      [attr.aria-activedescendant]="selected() ? 'gr-command-palette-' + selected() : null"
-      [value]="query()"
-      (input)="query.set(field.value)"
-      (keydown)="key($event)"
-    />
+    @if (typed()) {
+      <label>{{ wording.say('Look up', 'Search') }}</label>
+      <span class="from"
+        ><span class="slash">/{{ query() }}</span
+        >{{ wording.say('in your entry', 'in your message') }}</span
+      >
+      <span class="spacer"></span>
+    } @else {
+      <label for="gr-command-palette-search">{{ wording.say('Look up', 'Search') }}</label>
+      <input
+        #field
+        id="gr-command-palette-search"
+        type="text"
+        role="combobox"
+        autocomplete="off"
+        spellcheck="false"
+        aria-expanded="true"
+        aria-controls="gr-command-entries"
+        aria-autocomplete="list"
+        [attr.aria-activedescendant]="
+          commands.selected() ? 'gr-command-' + commands.selected() : null
+        "
+        [value]="query()"
+        (input)="commands.searchFor(field.value)"
+        (keydown)="key($event)"
+      />
+    }
     <span class="count">{{ count() }}</span>
   </div>
+  <p class="runs-in">Runs in {{ runsIn() }}</p>
 
   <div
     class="entries"
-    id="gr-command-palette-entries"
+    id="gr-command-entries"
     role="listbox"
-    [attr.aria-label]="entriesLabel()"
+    [attr.aria-label]="agentName() + ' commands and skills'"
   >
     @for (section of sections(); track section.title) {
       <div class="section" role="group" [attr.aria-label]="section.title">
         <h3>{{ section.title }}</h3>
         @for (entry of section.entries; track entry.id) {
+          @let place = where(entry);
           <button
             type="button"
             class="entry"
             role="option"
             tabindex="-1"
-            [id]="'gr-command-palette-' + entry.id"
-            [attr.aria-selected]="entry.id === selected()"
-            (click)="open(entry)"
+            [id]="'gr-command-' + entry.id"
+            [attr.aria-selected]="entry.id === commands.selected()"
+            (mousedown)="typed() && $event.preventDefault()"
+            (click)="commands.use(entry)"
           >
             <span class="cursor" aria-hidden="true"><gr-icon name="quill" /></span>
-            <span class="label"
+            <code class="label" [class.choice]="!!entry.choice"
               >{{ entry.parts[0] }}<b>{{ entry.parts[1] }}</b
-              >{{ entry.parts[2] }}</span
+              >{{ entry.parts[2] }}</code
             >
-            @if (entry.hint) {
-              <span class="gloss"
-                >{{ entry.hint }}
-                @if (entry.folder) {
-                  <code>{{ entry.folder }}</code>
-                }
-              </span>
+            @let gloss = entry.choice ? entry.choice.description : entry.command.description;
+            @if (gloss && entry.command.group !== 'skills') {
+              <span class="gloss">{{ gloss }}</span>
             }
             <span class="leader" aria-hidden="true"></span>
             <span class="where">
-              @if (entry.shortcut) {
-                @for (cap of caps(entry.shortcut); track $index) {
-                  <span class="gr-kbd">{{ cap }}</span>
-                }
+              @if (place.folder) {
+                <code>{{ place.text }}</code>
               } @else {
-                {{ entry.where }}
+                {{ place.text }}
               }
             </span>
           </button>
@@ -88,19 +102,26 @@
     }
   </div>
 
-  <p class="note">
-    {{
-      wording.say(
-        'Every action in Grimoire is listed in this index, with its shortcut. Entries that live on another page say where to find it.',
-        'Every action in Grimoire is listed here, with its shortcut. Those on another page say where to find them.'
-      )
-    }}
-  </p>
+  @if (mcp() && chat(); as chat) {
+    <gr-mcp-status [chat]="chat" [query]="query()" />
+  }
+
+  @if (typed()) {
+    <p class="note">
+      {{ wording.say('Keep typing in your entry', 'Keep typing in your message') }} to narrow the
+      list.
+    </p>
+  }
 </div>
 
-<gr-page-footer>
-  <span class="spacer"></span>
-  <span class="caps"><span class="gr-kbd">↑</span><span class="gr-kbd">↓</span> move</span>
-  <span class="caps"><span class="gr-kbd">⏎</span> open</span>
-  <span class="caps"><span class="gr-kbd">Esc</span> back</span>
-</gr-page-footer>
+@if (foot()) {
+  <gr-page-footer>
+    <span class="spacer"></span>
+    <span class="caps"><span class="gr-kbd">↑</span><span class="gr-kbd">↓</span> move</span>
+    @if (typed()) {
+      <span class="caps"><span class="gr-kbd">Tab</span> complete</span>
+    }
+    <span class="caps"><span class="gr-kbd">⏎</span> use</span>
+    <span class="caps"><span class="gr-kbd">Esc</span> back</span>
+  </gr-page-footer>
+}

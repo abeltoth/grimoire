@@ -7,9 +7,11 @@ import {
   afterRenderEffect,
   booleanAttribute,
   computed,
+  effect,
   inject,
   input,
   linkedSignal,
+  untracked,
   viewChild,
   viewChildren,
 } from '@angular/core';
@@ -26,7 +28,8 @@ import { Presets } from '@ui/app/core/presets';
 import { Wording } from '@ui/app/core/wording';
 import { RestartNotice } from './transcript/restart-notice';
 import { AgentCommands } from '@ui/app/shell/agent-commands';
-import { SlashCommands } from '@ui/app/shell/slash-commands';
+import { CommandPalette } from '@ui/app/shell/command-palette';
+import { CommandRuns } from '@ui/app/shell/command-runs';
 import { RightPageState } from '@ui/app/shell/right-page/right-page-state';
 import { RightPageTabs } from '@ui/app/shell/right-page/right-page-tabs';
 import { Focus } from '@ui/app/shell/focus';
@@ -63,13 +66,13 @@ export const SECOND_CHAT = 'second-chat';
  *
  * Pop out puts a chat that has begun in a window of its own, a
  * popout; there, Back to the main window puts it back. A popout has no right page,
- * so the agent's commands are listed on its own page, above the message field.
+ * so its command palette shows on its own page, above the message field.
  */
 @Component({
   selector: 'gr-chat-page',
   imports: [
     ChatIntro,
-    SlashCommands,
+    CommandPalette,
     Composer,
     NgComponentOutlet,
     RightPageTabs,
@@ -101,6 +104,7 @@ export class ChatPage {
   protected readonly focus = inject(Focus);
   protected readonly shell = inject(ShellRegistry);
   private readonly commands = inject(AgentCommands);
+  private readonly runs = inject(CommandRuns);
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   /** In a popout's window, popped out of the main window. */
@@ -116,7 +120,7 @@ export class ChatPage {
     return id === undefined ? this.list.current() : this.list.all().find((c) => c.id === id);
   });
   protected readonly composer = viewChild(Composer);
-  /** Whether a popout's page lists the agent's commands, searched from its composer. */
+  /** Whether a popout's page shows its command palette. */
   protected readonly searchingCommands = computed(
     () => this.popout && this.commands.search()?.chatId === this.chat()?.id,
   );
@@ -136,6 +140,15 @@ export class ChatPage {
   protected readonly canRename = computed(() => this.catalog.can(this.chat()?.agent, 'rename'));
 
   constructor() {
+    // The command palette's /rename rewrites the title in place, where the page has its pen.
+    effect(() => {
+      const id = this.runs.renaming();
+      if (id === null || id !== this.chat()?.id || this.beside() || !this.canRename()) return;
+      untracked(() => {
+        this.runs.renaming.set(null);
+        this.renaming.set(true);
+      });
+    });
     afterRenderEffect(() => {
       const field = this.titleField()?.nativeElement;
       if (!field) return;

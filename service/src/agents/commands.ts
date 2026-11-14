@@ -11,6 +11,8 @@ export function registerAgentCommands(registry: CommandRegistry, hub: AgentHub):
   );
   registry.register('agents.models', ({ agent }) => hub.models(agent));
   registry.register('agents.commands', ({ agent, cwd }) => hub.commands(agent, cwd));
+  registry.register('agents.mcpStatus', ({ chatId }) => hub.mcpStatus(chatId));
+  registry.register('agents.mcpReconnect', ({ chatId, name }) => hub.mcpReconnect(chatId, name));
   registry.register('agents.account', ({ agent }) => hub.account(agent));
   registry.register('agents.signIn', ({ agent, email }) => hub.signIn(agent, email));
   registry.register('agents.signInCode', ({ agent, code }) => hub.signInCode(agent, code));

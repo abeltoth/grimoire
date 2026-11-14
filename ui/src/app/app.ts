@@ -7,7 +7,7 @@ import { POPOUT } from './core/popout';
 import { ServiceStatus } from './core/service-status';
 import { Wording } from './core/wording';
 import { Frame } from './shell/window/frame';
-import { SlashCommands } from './shell/slash-commands';
+import { CommandPalette } from './shell/command-palette';
 import { RightPage } from './shell/right-page/right-page';
 import { RightPageState } from './shell/right-page/right-page-state';
 import { Focus } from './shell/focus';
@@ -24,8 +24,8 @@ import { WindowControls } from './shell/window/window-controls';
 /**
  * The window: the title bar, and the open book on the desk with its
  * chat tabs. The left page shows the open chat through the page the chat
- * module registers, or the agent's commands while they're searched from
- * the chat on the right page. Registered commands run from their
+ * module registers, or the command palette of the chat on the right
+ * page. Registered commands run from their
  * shortcuts. In focus mode the chat's page lies alone in the middle of
  * the desk; so does a popout's, in a window of its own.
  */
@@ -33,7 +33,7 @@ import { WindowControls } from './shell/window/window-controls';
   selector: 'gr-root',
   imports: [
     Frame,
-    SlashCommands,
+    CommandPalette,
     RightPage,
     NgComponentOutlet,
     Page,
@@ -68,15 +68,15 @@ export class App {
   protected readonly bare = computed(() => !!this.popout || this.focus.on());
   /**
    * The chat's page alone: in a popout, and in focus mode until the right
-   * page is turned to the command palette, the agent's commands, the approvals or a page
+   * page is turned to the command palette, the approvals or a page
    * tab's page, which bring it back beside the chat while they show.
    */
   protected readonly single = computed(
     () => !!this.popout || (this.focus.on() && !this.rightPage.turned()),
   );
-  /** Whether the agent's commands show on this page: those searched from the chat on the right page. */
-  protected readonly commandsHere = computed(() => {
-    const search = this.rightPage.commands();
+  /** Whether the command palette shows on this page: that of the chat on the right page. */
+  protected readonly paletteHere = computed(() => {
+    const search = this.rightPage.commandPalette();
     return !!search && search.chatId === this.list.besideId();
   });
   private readonly platform = inject(GRIMOIRE_BRIDGE).platform;

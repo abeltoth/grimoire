@@ -15,10 +15,12 @@ export type ChatId = string;
 /** What an agent supports beyond chatting. Features that need one show only for agents that have it. */
 /**
  * What an agent can do beyond chatting; "compact" sums a chat up to free its
- * context, "sign-in" switches the account every chat uses, and "job" runs a
- * task unseen, with nothing saved.
+ * context, "sign-in" switches the account every chat uses, "job" runs a
+ * task unseen, with nothing saved, and "mcp" says how a running chat's MCP
+ * servers are and connects one again.
  */
-export type AgentCapability = 'rename' | 'fork' | 'undo' | 'compact' | 'sign-in' | 'ask' | 'job';
+export type AgentCapability =
+  'rename' | 'fork' | 'undo' | 'compact' | 'sign-in' | 'ask' | 'job' | 'mcp';
 
 export interface AgentInfo {
   id: AgentId;
@@ -185,13 +187,52 @@ export interface QueuedEntry {
   attachments?: Attachment[];
 }
 
+/** Where the command palette lists a command: with the settings, the reports, the chat's own or the skills. */
+export type CommandGroup = 'settings' | 'reports' | 'chat' | 'skills';
+
+/**
+ * How a command runs from the command palette: at once, after you pick one
+ * of its choices, or written in the message field for you to finish.
+ */
+export type CommandRun = 'now' | 'pick' | 'compose';
+
+/**
+ * What Grimoire keeps itself, so the command changes it through Grimoire
+ * instead: the chat's model, effort or permission, a new chat, or the
+ * chat's title.
+ */
+export type CommandOwner = 'model' | 'effort' | 'mode' | 'new-chat' | 'rename';
+
+/** One of the values a command takes. */
+export interface CommandChoice {
+  /** What follows the command's name. */
+  value: string;
+  description?: string;
+  /** What it's set to now, when the agent says. */
+  current?: true;
+}
+
 /** One of an agent's commands or skills, used by writing "/name" at the start of a message. */
 export interface AgentCommand {
   name: string;
   description: string;
   /** What it takes after its name, such as "<file>". */
   argumentHint?: string;
-  kind: 'command' | 'skill';
+  group: CommandGroup;
+  run: CommandRun;
+  /** The values a command run by picking takes; Grimoire lists its own for a command it owns. */
+  choices?: CommandChoice[];
+  owner?: CommandOwner;
+}
+
+/** How one of a running chat's MCP servers is. */
+export interface McpServerState {
+  name: string;
+  status: 'connected' | 'failed' | 'needs-auth' | 'pending' | 'disabled';
+  /** Why it failed, when it did. */
+  error?: string;
+  /** How many tools it gives, once connected. */
+  tools: number;
 }
 
 /**

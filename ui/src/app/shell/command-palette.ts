@@ -1,67 +1,41 @@
 import {
   Component,
   ElementRef,
-  afterNextRender,
   afterRenderEffect,
   computed,
   inject,
   input,
-  linkedSignal,
-  signal,
   viewChild,
 } from '@angular/core';
-import type { ChatSummary } from '@grimoire/contract';
+import type { CommandGroup } from '@grimoire/contract';
 import { Icon } from '../../design-system/icon';
-import { GRIMOIRE_BRIDGE } from '../core/bridge';
-import { ChatList } from '../core/chat-list';
 import { AgentCatalog } from '../core/agent-catalog';
-import { Presets } from '../core/presets';
+import { GRIMOIRE_BRIDGE } from '../core/bridge';
 import { Wording } from '../core/wording';
-import { RightPageState } from './right-page/right-page-state';
+import { AgentCommands, GROUPS, type ListedEntry } from './agent-commands';
 import { Focus } from './focus';
+import { McpStatus } from './mcp-status';
 import { PageFooter } from './page/page-footer';
 import { PageHeader } from './page/page-header';
 import { ShellRegistry } from './shell-registry';
-import { type Shortcut, formatShortcut } from './shortcut';
-
-/** One line of the command palette: something you can do or open. */
-interface CommandPaletteEntry {
-  id: string;
-  label: string;
-  /** A gloss after the label, such as "with your last settings". */
-  hint?: string;
-  /** A folder after the gloss, in type. */
-  folder?: string;
-  shortcut?: Shortcut;
-  /** Where it lives, when that's another page: "in History". */
-  where?: string;
-  /** It turns the command palette to a list of its own instead of closing it. */
-  opensList?: true;
-  run: () => void;
-}
-
-/** An entry as listed: its label split around the part you searched for. */
-interface Listed extends CommandPaletteEntry {
-  parts: [before: string, match: string, after: string];
-}
+import { formatShortcut } from './shortcut';
 
 interface Section {
   title: string;
-  entries: Listed[];
+  entries: ListedEntry[];
 }
 
-/** Chats past this many are left for the History. */
-const MAX_CHATS = 8;
-
 /**
- * The command palette, on the right page: every action
- * with its shortcut, and the chats you've had, searched as you type. ↑ and ↓
- * move, Enter opens, and Esc turns back. "New chat from preset" lists the
- * presets instead, until Esc.
+ * The command palette: the chat's agent's commands and skills, by what
+ * they do, and its MCP servers. Turned to with its shortcut or its tab, it
+ * searches in a field of its own; turned to by "/" at the start of a
+ * message, you keep typing in the message, whose keys move through the list.
+ * A command runs at once, lists its choices to pick one, or is written in
+ * the message for you to finish.
  */
 @Component({
   selector: 'gr-command-palette',
-  imports: [Icon, PageFooter, PageHeader],
+  imports: [Icon, McpStatus, PageFooter, PageHeader],
   templateUrl: './command-palette.html',
   styleUrl: './command-palette.css',
   host: { '(document:keydown.escape)': 'back($event)' },
@@ -69,183 +43,133 @@ const MAX_CHATS = 8;
 export class CommandPalette {
   /** The label of the page it turns back to. */
   readonly backTo = input.required<string>();
+  /** With its page footer; not on a page that has one of its own. */
+  readonly foot = input(true);
 
-  protected readonly rightPage = inject(RightPageState);
-  private readonly registry = inject(ShellRegistry);
-  private readonly list = inject(ChatList);
-  private readonly catalog = inject(AgentCatalog);
-  private readonly presets = inject(Presets);
+  protected readonly commands = inject(AgentCommands);
   protected readonly wording = inject(Wording);
+  protected readonly catalog = inject(AgentCatalog);
   protected readonly focus = inject(Focus);
+  private readonly registry = inject(ShellRegistry);
   private readonly platform = inject(GRIMOIRE_BRIDGE).platform;
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
-  private readonly field = viewChild.required<ElementRef<HTMLInputElement>>('field');
+  private readonly field = viewChild<ElementRef<HTMLInputElement>>('field');
 
-  protected readonly query = linkedSignal(() => this.rightPage.commandPalette() ?? '');
-  private readonly pastChats = signal<readonly ChatSummary[]>([]);
-  /** Whether the command palette lists the presets, to begin a chat with one. */
-  protected readonly listingPresets = signal(false);
+  /** Searched for from a message, which keeps the keys. */
+  protected readonly typed = computed(() => !!this.commands.search()?.typed);
+  protected readonly query = computed(() => this.commands.search()?.query ?? '');
+  protected readonly chat = this.commands.chat;
+  protected readonly agentName = computed(() => {
+    const chat = this.chat();
+    return chat ? this.catalog.agentName(chat.agent) : '';
+  });
+
+  /** Where the commands run: the chat's title, or a new chat for a blank one. */
+  protected readonly runsIn = computed(() => {
+    const chat = this.chat();
+    if (!chat || chat.status === 'blank') return this.wording.say('a new chapter', 'a new chat');
+    return chat.title || this.wording.untitled();
+  });
 
   protected readonly sections = computed<Section[]>(() => {
-    const query = this.query().trim();
-    if (this.listingPresets()) {
-      const presets = this.presets.all().map((preset): CommandPaletteEntry => ({
-        id: `preset-${preset.name}`,
-        label: preset.name,
-        hint: `${this.presets.describe(preset)} ·`,
-        folder: this.catalog.folderName(preset.settings.cwd),
-        where: this.wording.say('new chapter', 'new chat'),
-        run: () => this.list.newChat(preset),
-      }));
-      return [{ title: 'Presets', entries: matching(presets, query) }].filter(
-        (s) => s.entries.length,
-      );
-    }
-    const commands = this.registry.commands
-      .all()
-      .filter((command) => command.run && command.id !== 'shell.commandPalette')
-      .map((command): CommandPaletteEntry => ({
-        id: `action-${command.id}`,
-        label: this.wording.label(command),
-        ...(command.hint
-          ? { hint: typeof command.hint === 'string' ? command.hint : command.hint() }
-          : {}),
-        ...(command.shortcut ? { shortcut: command.shortcut } : {}),
-        run: command.run!,
-      }));
-    const fromPreset: CommandPaletteEntry = {
-      id: 'action-from-preset',
-      label: this.wording.say('New chapter from preset', 'New chat from preset'),
-      hint: 'pick a preset first',
-      where: 'opens a list ›',
-      opensList: true,
-      run: () => {
-        this.listingPresets.set(true);
-        this.query.set('');
-      },
-    };
-    const after = commands.findIndex((entry) => entry.id === 'action-chats.new') + 1;
-    const actions = [...commands.slice(0, after), fromPreset, ...commands.slice(after)];
-    // Chats come newest first, so a stable sort keeps that order within each rank.
-    const rank = this.registry.rankChat() ?? (() => 0);
-    const chats = [...this.pastChats()]
-      .sort((a, b) => rank(b) - rank(a))
-      .map((chat): CommandPaletteEntry => ({
-        id: `chat-${chat.id}`,
-        label: chat.title || this.wording.untitled(),
-        hint: `${this.catalog.agentName(chat.agent)} ·`,
-        folder: this.catalog.folderName(chat.cwd),
-        where: this.wording.say('in Table of contents', 'in History'),
-        run: () => void this.list.openChat(chat),
-      }));
-    const sections: Section[] = [
-      { title: 'Actions', entries: matching(actions, query) },
-      {
-        title: this.wording.say('Chapters', 'Chats'),
-        entries: matching(chats, query).slice(0, MAX_CHATS),
-      },
-    ];
+    const listed = this.commands.listed();
+    const picking = this.commands.picking();
+    const sections = picking
+      ? [{ title: `/${picking.name}`, entries: listed }]
+      : GROUPS.map((group) => ({
+          title: this.title(group),
+          entries: listed.filter((entry) => entry.command.group === group),
+        }));
     return sections.filter((section) => section.entries.length);
   });
-  private readonly listed = computed(() => this.sections().flatMap((section) => section.entries));
-  protected readonly selected = linkedSignal({
-    source: this.listed,
-    computation: (listed: Listed[]) => listed[0]?.id,
+
+  /** Whether the MCP servers show: for an agent that says how they are, while no choice is picked. */
+  protected readonly mcp = computed(() => {
+    const chat = this.chat();
+    return !!chat && !this.commands.picking() && this.catalog.can(chat.agent, 'mcp');
   });
+
   protected readonly count = computed(() => {
-    const count = this.listed().length;
+    const count = this.commands.listed().length;
     const [one, many] = this.wording.plain() ? ['result', 'results'] : ['entry', 'entries'];
     return `${count} ${count === 1 ? one : many}`;
   });
 
-  protected readonly entriesLabel = computed(() => {
-    const entries = this.wording.say('Index entries', 'Commands and chats');
-    return this.query() ? `${entries} for ${this.query()}` : entries;
+  /** Why nothing is listed. */
+  protected readonly empty = computed(() => {
+    const name = this.agentName();
+    const picking = this.commands.picking();
+    if (picking) return `Nothing /${picking.name} takes matches “${this.query()}”.`;
+    const all = this.commands.all();
+    if (!all) return `Asking ${name} for its commands and skills…`;
+    if ('error' in all) return `${name}’s commands and skills couldn’t be listed: ${all.error}`;
+    const written = this.typed() ? `/${this.query()}` : this.query();
+    return `Nothing in ${name}’s commands and skills matches “${written}”.`;
   });
 
-  /** Why nothing is listed. */
-  protected readonly empty = computed(() =>
-    this.listingPresets() && !this.presets.all().length
-      ? this.wording.say(
-          'No saved presets yet. Save one on a chapter’s settings card.',
-          'No saved presets yet. Save one in a chat’s settings.',
-        )
-      : this.wording.say(
-          `Nothing in the index matches “${this.query()}”.`,
-          `Nothing matches “${this.query()}”.`,
-        ),
-  );
+  protected readonly shortcutCaps = computed(() => {
+    const shortcut = this.registry.commands.get('shell.commandPalette')?.shortcut;
+    if (!shortcut) return [];
+    const keys = formatShortcut(shortcut, this.platform, 'keys');
+    return this.platform === 'mac' ? [...keys] : keys.split(' ');
+  });
 
   constructor() {
-    void this.catalog.pastChats().then((chats) => this.pastChats.set(chats));
-    void this.presets.load();
-    afterNextRender(() => this.field().nativeElement.focus());
+    // Its own field takes the keys, again as it turns to a command's choices.
     afterRenderEffect(() => {
-      this.selected();
+      this.commands.picking();
+      if (!this.typed()) this.field()?.nativeElement.focus();
+    });
+    afterRenderEffect(() => {
+      this.commands.selected();
       this.host
         .querySelector('.entry[aria-selected="true"]')
         ?.scrollIntoView?.({ block: 'nearest' });
     });
   }
 
-  /** A shortcut as key caps: "Ctrl", "N". */
-  protected caps(shortcut: Shortcut): string[] {
-    const keys = formatShortcut(shortcut, this.platform, 'keys');
-    return this.platform === 'mac' ? [...keys] : keys.split(' ');
+  /** What the right-hand column says of an entry. */
+  protected where(entry: ListedEntry): { text: string; folder?: true } {
+    if (entry.choice) return { text: entry.choice.current ? 'set now' : '' };
+    const { command } = entry;
+    if (command.group === 'skills') return { text: 'skill' };
+    const context = this.chat()?.context;
+    if (command.name === 'compact' && context?.limit)
+      return { text: `${Math.round((context.used / context.limit) * 100)}% used` };
+    if (command.name === 'init')
+      return { text: this.catalog.folderName(this.chat()?.settings.cwd), folder: true };
+    if (command.run === 'pick') return { text: 'choose ›' };
+    return { text: command.run === 'compose' ? 'write in' : 'run' };
   }
-
-  protected readonly commandPaletteCaps = computed(() => {
-    const shortcut = this.registry.commands.get('shell.commandPalette')?.shortcut;
-    return shortcut ? this.caps(shortcut) : [];
-  });
 
   protected key(event: KeyboardEvent): void {
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
-      this.move(event.key === 'ArrowDown' ? 1 : -1);
+      this.commands.move(event.key === 'ArrowDown' ? 1 : -1);
     } else if (event.key === 'Enter') {
       event.preventDefault();
-      const entry = this.listed().find((listed) => listed.id === this.selected());
-      if (entry) this.open(entry);
+      const chosen = this.commands.chosen();
+      if (chosen) this.commands.use(chosen);
     }
   }
 
-  protected open(entry: CommandPaletteEntry): void {
-    if (!entry.opensList) this.rightPage.closeCommandPalette();
-    entry.run();
-    if (entry.opensList) this.field().nativeElement.focus();
-  }
-
-  /** Esc turns back from the presets to the whole command palette, and from there to the right page. */
+  /** Esc turns back from a command's choices to the commands, and from there away. */
   protected back(event: Event): void {
     if (event.defaultPrevented) return;
     event.preventDefault();
-    if (this.listingPresets()) {
-      this.listingPresets.set(false);
-      this.query.set('');
-    } else this.rightPage.closeCommandPalette();
+    this.commands.back();
   }
 
-  private move(step: number): void {
-    const listed = this.listed();
-    const at = listed.findIndex((entry) => entry.id === this.selected());
-    const next = listed[Math.min(Math.max(at + step, 0), listed.length - 1)];
-    if (next) this.selected.set(next.id);
+  private title(group: CommandGroup): string {
+    switch (group) {
+      case 'settings':
+        return 'Settings';
+      case 'reports':
+        return 'Reports';
+      case 'chat':
+        return this.wording.say('This chapter', 'This chat');
+      case 'skills':
+        return `${this.agentName()}’s skills`;
+    }
   }
-}
-
-/** The entries whose label holds what you searched for, split around it. */
-function matching(entries: CommandPaletteEntry[], query: string): Listed[] {
-  const needle = query.toLowerCase();
-  return entries.flatMap((entry) => {
-    const at = entry.label.toLowerCase().indexOf(needle);
-    if (at === -1) return [];
-    const end = at + needle.length;
-    const parts: Listed['parts'] = [
-      entry.label.slice(0, at),
-      entry.label.slice(at, end),
-      entry.label.slice(end),
-    ];
-    return [{ ...entry, parts }];
-  });
 }

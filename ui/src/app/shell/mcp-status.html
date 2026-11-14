@@ -1,0 +1,20 @@
+@if (servers().length) {
+  <h3>MCP servers</h3>
+  @for (server of servers(); track server.name) {
+    <div class="server">
+      <code class="name">{{ server.name }}</code>
+      <span class="status" [class.failed]="server.status.startsWith('failed')">{{
+        server.status
+      }}</span>
+      <span class="spacer"></span>
+      @if (server.reconnects) {
+        <button type="button" class="gr-link" (click)="reconnect(server.name)">Reconnect</button>
+      }
+      @if (!server.everywhere) {
+        <button type="button" class="gr-link" (click)="toggle(server)">
+          {{ server.on ? 'Turn off' : 'Turn on' }}
+        </button>
+      }
+    </div>
+  }
+}

@@ -143,7 +143,7 @@ describe('second-chat', () => {
       expect(beside(el)).not.toBeNull();
     });
 
-    it("lists the agent's commands for its message on the left page", async () => {
+    it('shows the command palette for its message on the left page', async () => {
       const { bridge, answers } = fakeBridge();
       answers['agents.openChats'] = () => [
         chat('c1', 'Context meter'),
@@ -151,7 +151,7 @@ describe('second-chat', () => {
       ];
       answers['layout.get'] = () => ({ current: 'c1', beside: 'c2' });
       answers['agents.commands'] = () => [
-        { name: 'compact', description: 'Free up context', kind: 'command' },
+        { name: 'compact', description: 'Free up context', group: 'chat', run: 'now' },
       ];
       const { fixture, el, texts } = await render(bridge);
       const field = el.querySelector<HTMLTextAreaElement>('#gr-next-message-beside')!;
@@ -159,19 +159,19 @@ describe('second-chat', () => {
       field.dispatchEvent(new Event('input'));
       await fixture.whenStable();
 
-      expect(el.querySelector('gr-page:not(.right-page) gr-slash-commands')).not.toBeNull();
-      expect(el.querySelector('gr-page.right-page gr-slash-commands')).toBeNull();
+      expect(el.querySelector('gr-page:not(.right-page) gr-command-palette')).not.toBeNull();
+      expect(el.querySelector('gr-page.right-page gr-command-palette')).toBeNull();
       expect(el.querySelector('#gr-next-message-beside')).toBe(field);
-      expect(texts('gr-slash-commands .entry .label')).toEqual(['/compact']);
+      expect(texts('gr-command-palette .entry .label')).toEqual(['/compact']);
       expect(texts('gr-composer .slash-hint')).toEqual([
         'Claude Code’s commands and skills are on the facing page ←',
       ]);
-      expect(texts('gr-slash-commands .gr-link')[0]).toMatch(/^Back to the chapter/);
+      expect(texts('gr-command-palette .gr-link')[0]).toMatch(/^Back to the chapter/);
 
       field.value = '';
       field.dispatchEvent(new Event('input'));
       await fixture.whenStable();
-      expect(el.querySelector('gr-slash-commands')).toBeNull();
+      expect(el.querySelector('gr-command-palette')).toBeNull();
       expect(texts('gr-page-header h1')).toEqual(['Context meter']);
     });
 

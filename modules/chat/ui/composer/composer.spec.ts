@@ -268,14 +268,14 @@ describe('composer', () => {
     expect(el.querySelector('gr-composer .cold')).toBeNull();
   });
 
-  it('turns the right page to the agent\'s commands at a "/" in the message field', async () => {
+  it('turns the facing page to the command palette at a "/" in the message field', async () => {
     const { bridge, calls, answers, emit } = fakeBridge();
     answers['agents.commands'] = () => [
-      { name: 'compact', description: 'Free up context', kind: 'command' },
-      { name: 'init', description: 'Write a CLAUDE.md', kind: 'command' },
-      { name: 'code-review', description: 'Review the diff', kind: 'skill' },
-      { name: 'simplify', description: 'Tidy the changed code', kind: 'skill' },
-      { name: 'review', description: 'Review a pull request', kind: 'command' },
+      { name: 'compact', description: 'Free up context', group: 'chat', run: 'now' },
+      { name: 'init', description: 'Write a CLAUDE.md', group: 'chat', run: 'now' },
+      { name: 'code-review', description: 'Review the diff', group: 'skills', run: 'compose' },
+      { name: 'simplify', description: 'Tidy the changed code', group: 'skills', run: 'compose' },
+      { name: 'review', description: 'Review a pull request', group: 'chat', run: 'now' },
     ];
     const { fixture, el, texts } = await render(bridge);
     await write(fixture, el, 'First');
@@ -296,49 +296,47 @@ describe('composer', () => {
     expect(calls.filter((c) => c.command === 'agents.commands').map((c) => c.request)).toEqual([
       { agent: 'claude-code', cwd: 'C:/work/grimoire' },
     ]);
-    expect(texts('gr-slash-commands h3')).toEqual([
-      'Claude Code’s commands',
-      'Claude Code’s skills',
-    ]);
-    expect(texts('gr-slash-commands .entry .label')).toEqual([
+    expect(texts('gr-command-palette h3')).toEqual(['This chapter', 'Claude Code’s skills']);
+    expect(texts('gr-command-palette .entry .label')).toEqual([
       '/compact',
       '/init',
       '/review',
       'code-review',
       'simplify',
     ]);
-    expect(texts('gr-slash-commands .entry .where')).toEqual([
+    expect(texts('gr-command-palette .entry .where')).toEqual([
       '62% used',
       'C:/work/grimoire',
-      'command',
+      'run',
       'skill',
       'skill',
     ]);
-    expect(texts('gr-slash-commands .count')).toEqual([
-      'Claude Code’s commands and skills · 5 entries',
-    ]);
+    expect(texts('gr-command-palette .count')).toEqual(['5 entries']);
+    expect(el.querySelector('#gr-command-palette-search')).toBeNull();
     expect(texts('gr-composer .slash-hint')).toEqual([
       'Claude Code’s commands and skills are on the facing page →',
     ]);
 
     await type('/re');
-    expect(texts('gr-slash-commands .entry .label')).toEqual(['/review', 'code-review']);
-    expect(texts('gr-slash-commands .entry b')).toEqual(['/re', 're']);
+    expect(texts('gr-command-palette .entry .label')).toEqual(['/review', 'code-review']);
+    expect(texts('gr-command-palette .entry b')).toEqual(['/re', 're']);
     await press('ArrowDown');
-    expect(texts('gr-slash-commands .entry[aria-selected="true"] .label')).toEqual(['code-review']);
+    expect(texts('gr-command-palette .entry[aria-selected="true"] .label')).toEqual([
+      'code-review',
+    ]);
     expect(field.getAttribute('aria-activedescendant')).toBe('gr-command-code-review');
     await press('Tab');
     expect(field.value).toBe('/code-review ');
-    expect(el.querySelector('gr-slash-commands')).toBeNull();
+    expect(el.querySelector('gr-command-palette')).toBeNull();
     expect(texts('gr-composer .slash-hint')).toEqual([]);
 
     await type('/zzz');
-    expect(texts('gr-slash-commands .entries .note')).toEqual([
+    expect(texts('gr-command-palette .entries .note')).toEqual([
       'Nothing in Claude Code’s commands and skills matches “/zzz”.',
     ]);
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }));
     await fixture.whenStable();
-    expect(el.querySelector('gr-slash-commands')).toBeNull();
+    expect(el.querySelector('gr-command-palette')).toBeNull();
     expect(calls.filter((c) => c.command === 'agents.interrupt')).toEqual([]);
 
     await type('/comp');
@@ -347,7 +345,7 @@ describe('composer', () => {
       { chatId: 'chat-1', text: '/compact' },
     ]);
     expect(field.value).toBe('');
-    expect(el.querySelector('gr-slash-commands')).toBeNull();
+    expect(el.querySelector('gr-command-palette')).toBeNull();
     // Asked for each time the right page turns to them; the service keeps them a minute.
     expect(calls.filter((c) => c.command === 'agents.commands')).toHaveLength(3);
   });
@@ -359,7 +357,7 @@ describe('composer', () => {
     answers['settings.set'] = (change: Partial<GrimoireSettings>) =>
       (kept = { ...kept, ...change });
     answers['agents.commands'] = () => [
-      { name: 'compact', description: 'Free up context', kind: 'command' },
+      { name: 'compact', description: 'Free up context', group: 'chat', run: 'now' },
     ];
     const { fixture, el } = await render(bridge);
     await write(fixture, el, 'First');

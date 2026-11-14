@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { Attachment, QueuedEntry } from '@grimoire/contract';
+import type { Attachment, McpServerState, QueuedEntry } from '@grimoire/contract';
 import type { Emit } from '../events';
 import type { ChatEvents, LiveChat, Verdict } from './adapter';
 import type { Approvals } from './approvals';
@@ -47,6 +47,17 @@ export class ChatRuns {
   /** The chat's process, started to continue the chat when it has none. */
   live(chat: ChatState): LiveChat {
     return (chat.live ??= chat.agent.run(chat.id, chat.settings, true, this.events(chat)));
+  }
+
+  /** How the chat's MCP servers are; null while its process isn't running, which this doesn't start. */
+  async mcpStatus(chat: ChatState): Promise<McpServerState[] | null> {
+    return (await chat.live?.mcpServers?.()) ?? null;
+  }
+
+  /** Connects one of the chat's MCP servers again, in its running process. */
+  async mcpReconnect(chat: ChatState, name: string): Promise<void> {
+    if (!chat.live?.reconnectMcp) throw new Error('The chat isn’t running');
+    await chat.live.reconnectMcp(name);
   }
 
   /** Takes a message out of the queue; false when it had already gone. */

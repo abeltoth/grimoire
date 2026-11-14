@@ -80,7 +80,30 @@
   outline: none;
 }
 
+/* What you search for from a message is written there; the command palette only shows it. */
+.from {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--gr-command-palette-from-gap);
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+  white-space: nowrap;
+}
+
+.slash {
+  font-style: normal;
+  font-size: var(--gr-size-command-palette-search);
+  line-height: 1;
+  color: var(--gr-pen);
+}
+
+.runs-in {
+  margin: var(--gr-command-palette-head-gap) 0 0;
+}
+
 .count,
+.runs-in,
 .note {
   font-style: italic;
   font-size: var(--gr-size-aside);
@@ -195,4 +218,27 @@ h3 {
 .note {
   margin: var(--gr-command-palette-note-gap) 0 0;
   max-width: var(--gr-command-palette-note-width);
+}
+
+code.label {
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-command-palette-command);
+}
+
+/* A choice is a word of the setting's, not something you'd write. */
+code.label.choice {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+code.label b {
+  font-weight: 600;
+  color: var(--gr-rubric);
+}
+
+.where code {
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-code);
+  letter-spacing: 0;
+  color: var(--gr-ink);
 }

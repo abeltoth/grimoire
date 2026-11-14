@@ -29,6 +29,7 @@ import { POPOUT } from '@ui/app/core/popout';
 import { Settings } from '@ui/app/core/settings';
 import { Wording } from '@ui/app/core/wording';
 import { AgentCommands } from '@ui/app/shell/agent-commands';
+import { CommandRuns } from '@ui/app/shell/command-runs';
 import { Focus } from '@ui/app/shell/focus';
 import { Drafts } from './drafts';
 import { Attachments, Enclosing } from './attachments';
@@ -39,7 +40,7 @@ import { Recall } from './recall';
  * The next page, tucked under the transcript: where you write the next
  * entry. Enter sends it; Shift+Enter starts a new line. What you send
  * while a turn runs waits above it until the turn ends. A "/" at the start
- * turns the right page to the agent's commands, which the message field's keys
+ * turns the facing page to the command palette, which the message field's keys
  * move through and use. Files and pictures come in through Attach, or by
  * dropping or pasting them, and go with the message. What the agent suggests
  * you write next shows in grey on the empty page, and Tab writes it in.
@@ -57,6 +58,7 @@ export class Composer {
   protected readonly actions = inject(ChatActions);
   protected readonly wording = inject(Wording);
   private readonly commands = inject(AgentCommands);
+  private readonly runs = inject(CommandRuns);
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
   private readonly pending = inject(PendingTasks);
   private readonly drafts = inject(Drafts);
@@ -67,7 +69,7 @@ export class Composer {
 
   readonly chatId = input.required<string>();
   readonly agent = input.required<AgentId>();
-  /** The chat's folder, where the agent's commands are searched. */
+  /** The chat's folder, where attached files are found. */
   readonly cwd = input<string>();
   /** A blank chat's composer: it takes the first message. */
   readonly first = input(false);
@@ -175,11 +177,12 @@ export class Composer {
     return suggestion;
   });
 
-  /** Whether the right page lists the agent's commands for this message. */
-  protected readonly searchingCommands = computed(
-    () => this.commands.search()?.chatId === this.chatId(),
-  );
-  /** The command the right page points at, while it lists them. */
+  /** Whether the command palette searches for what follows the "/" in this message. */
+  protected readonly searchingCommands = computed(() => {
+    const search = this.commands.search();
+    return !!search?.typed && search.chatId === this.chatId();
+  });
+  /** The command the command palette points at, while it searches. */
   protected readonly chosen = computed(() =>
     this.searchingCommands() ? this.commands.chosen() : undefined,
   );
@@ -194,7 +197,18 @@ export class Composer {
       const chatId = this.chatId();
       untracked(() => {
         const search = this.commands.search();
-        if (search && search.chatId !== chatId) this.commands.close();
+        if (search?.typed && search.chatId !== chatId) this.commands.close();
+      });
+    });
+    // The command palette writes a command in, for you to finish.
+    effect(() => {
+      const written = this.runs.written();
+      if (written?.chatId !== this.chatId()) return;
+      untracked(() => {
+        this.runs.written.set(null);
+        const field = this.messageField().nativeElement;
+        this.fill(field, written.text);
+        field.focus();
       });
     });
     // Another chat's entries to bring back.
@@ -223,16 +237,8 @@ export class Composer {
     this.draft.set(text);
     if (text) this.dismissed.set(true);
     const slash = /^\/(\S*)$/.exec(text);
-    if (slash) {
-      const cwd = this.cwd();
-      this.commands.open({
-        chatId: this.chatId(),
-        agent: this.agent(),
-        ...(cwd ? { cwd } : {}),
-        query: slash[1]!,
-        use: (command) => this.use(command),
-      });
-    } else if (this.searchingCommands()) this.commands.close();
+    if (slash) this.commands.open({ chatId: this.chatId(), query: slash[1]!, typed: true });
+    else if (this.searchingCommands()) this.commands.close();
   }
 
   protected key(event: KeyboardEvent, field: HTMLTextAreaElement): void {
@@ -252,7 +258,7 @@ export class Composer {
       event.preventDefault();
     } else if (chosen && event.key === 'Tab' && !event.shiftKey) {
       event.preventDefault();
-      this.complete(chosen, field);
+      this.complete(chosen.command, field);
     } else if (
       event.key === 'Tab' &&
       !event.shiftKey &&
@@ -267,8 +273,10 @@ export class Composer {
       this.fill(field, this.suggested()!);
     } else if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
-      if (chosen) this.use(chosen);
-      else this.send(field);
+      if (chosen) {
+        this.fill(field, '');
+        this.commands.use(chosen);
+      } else this.send(field);
     }
   }
 
@@ -305,13 +313,6 @@ export class Composer {
     this.draft.set(text);
     this.commands.close();
     field.setSelectionRange(text.length, text.length);
-  }
-
-  private use(command: AgentCommand): void {
-    const field = this.messageField().nativeElement;
-    field.value = `/${command.name}`;
-    this.send(field);
-    field.focus();
   }
 
   protected send(field: HTMLTextAreaElement): void {

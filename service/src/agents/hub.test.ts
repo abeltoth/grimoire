@@ -219,9 +219,9 @@ describe('AgentHub', () => {
       { id: 'd', agent: 'fake', title: '', cwd: '/new', updatedAt: 2 },
     ];
     expect(await hub.folders()).toEqual({ home: homedir(), recent: ['/new', '/old'] });
-    expect((await hub.commands('fake', '/work')).map((c) => `${c.kind} ${c.name}`)).toEqual([
-      'command compact',
-      'skill simplify',
+    expect((await hub.commands('fake', '/work')).map((c) => `${c.group} ${c.name}`)).toEqual([
+      'chat compact',
+      'skills simplify',
     ]);
     await hub.commands('fake');
     expect(fake.commandFolders).toEqual(['/work', homedir()]);

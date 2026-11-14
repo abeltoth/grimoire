@@ -1,5 +1,4 @@
 import type { AgentSignIn, Profiles } from '@grimoire/contract';
-import { DEFAULT_SETTINGS } from '@grimoire/contract';
 import { fakeBridge, render } from '@ui/testing/app-testing';
 
 describe('profile-settings', () => {
@@ -142,19 +141,6 @@ describe('profile-settings', () => {
       expect(sessionStorage.getItem('grimoire.signInNext')).toBe('side');
       sessionStorage.removeItem('grimoire.signInNext');
       expect(texts('gr-title-bar .window-title')).toEqual(['Side']);
-    });
-
-    it('lists the other profiles in the command palette, in the book’s words or plainly', async () => {
-      const { bridge, emit } = withProfiles();
-      const { fixture, texts } = await render(bridge);
-      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }));
-      await fixture.whenStable();
-      expect(texts('gr-command-palette .entry .label')).toContain('Open the Work volume');
-      expect(texts('gr-command-palette .entry .label')).not.toContain('Open the Personal volume');
-
-      emit('settings.changed', { settings: { ...DEFAULT_SETTINGS, wording: 'plain' } });
-      await fixture.whenStable();
-      expect(texts('gr-command-palette .entry .label')).toContain('Switch to Work');
     });
   });
 });

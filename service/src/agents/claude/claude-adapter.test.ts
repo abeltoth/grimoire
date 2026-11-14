@@ -33,7 +33,11 @@ vi.mock('./probe', async (original) => ({
       };
       return {
         supportedModels: ask('models', () => claude.models),
-        supportedCommands: ask('commands', () => claude.commands),
+        initializationResult: ask('commands', () => ({
+          commands: claude.commands,
+          output_style: 'default',
+          available_output_styles: ['default'],
+        })),
         reloadSkills: async () => ({ skills: claude.skills.map((name) => ({ name })) }),
         close: () => claude.closed++,
         // A one-off prompt answers once, saying what it was asked on which model.
@@ -93,17 +97,37 @@ describe('ClaudeAdapter', () => {
     expect(claude.closed).toBe(2);
   });
 
-  it('lists a folder’s commands and skills, without its plumbing or a name twice', async () => {
+  it('lists a folder’s commands and skills as the command palette shows them', async () => {
     claude.commands = [
       { name: 'review', description: 'Review the diff', argumentHint: '[pr]' },
-      { name: '__internal', description: '' },
+      { name: 'output-style', description: 'Switch styles', argumentHint: '[style]' },
       { name: 'commit', description: 'Commit' },
-      { name: 'review', description: 'Another review' },
     ];
     claude.skills = ['commit'];
     expect(await new ClaudeAdapter().commands('/work')).toEqual([
-      { name: 'review', description: 'Review the diff', argumentHint: '[pr]', kind: 'command' },
-      { name: 'commit', description: 'Commit', kind: 'skill' },
+      {
+        name: 'review',
+        description: 'Review the diff',
+        argumentHint: '[pr]',
+        group: 'chat',
+        run: 'now',
+      },
+      {
+        name: 'output-style',
+        description: 'Switch styles',
+        argumentHint: '[style]',
+        group: 'settings',
+        run: 'pick',
+        choices: [{ value: 'default', current: true }],
+      },
+      { name: 'commit', description: 'Commit', group: 'skills', run: 'compose' },
+      {
+        name: 'permissions',
+        description: 'Set what the agent may do without asking',
+        group: 'settings',
+        run: 'pick',
+        owner: 'mode',
+      },
     ]);
     expect(claude.asked).toEqual([{ cwd: '/work', ask: 'commands' }]);
   });
@@ -137,7 +161,7 @@ describe('ClaudeAdapter', () => {
     const adapter = new ClaudeAdapter();
     claude.failNext = true;
     await expect(adapter.commands('/work')).rejects.toThrow();
-    expect(await adapter.commands('/work')).toEqual([]);
+    expect((await adapter.commands('/work')).map((c) => c.name)).toEqual(['permissions']);
     expect(claude.asked).toHaveLength(2);
   });
 

@@ -1,0 +1,48 @@
+:host {
+  display: block;
+  max-width: var(--gr-command-palette-width);
+  margin-top: var(--gr-command-palette-section-gap);
+}
+
+h3 {
+  margin: 0 0 var(--gr-command-palette-head-gap);
+  font-family: var(--gr-font-sc);
+  font-weight: 500;
+  font-size: var(--gr-size-command-palette-head);
+  letter-spacing: var(--gr-tracking-command-palette-head);
+  color: var(--gr-rubric);
+}
+
+.server {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-command-palette-gloss-gap);
+  padding: var(--gr-command-palette-entry-pad-y) 0;
+  font-size: var(--gr-size-command-palette-entry);
+}
+
+.name {
+  flex: none;
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-command-palette-command);
+  color: var(--gr-ink);
+}
+
+/* A long error is cut short; the buttons always show. */
+.status {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-style: italic;
+  font-size: var(--gr-size-command-palette-gloss);
+  color: var(--gr-ink-soft);
+}
+
+.status.failed {
+  color: var(--gr-rubric);
+}
+
+.spacer {
+  flex: 1;
+}

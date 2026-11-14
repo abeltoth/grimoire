@@ -16,15 +16,11 @@ describe('history.providers', () => {
     expect(texts('gr-tab-page .title')).toEqual(['History']);
   });
 
-  it('puts the pins on the chat’s corners and its tags after its title, and pinned chats first', async () => {
-    const { bridge, answers } = fakeBridge();
-    answers['history.pinsAndTags'] = () => ({ pins: { a: ['pin'], b: ['star'] }, tags: {} });
+  it('puts the pins on the chat’s corners and its tags after its title', async () => {
+    const { bridge } = fakeBridge();
     await render(bridge);
     const shell = TestBed.inject(ShellRegistry);
     expect(shell.chatCorners.all().map((part) => part.component)).toContain(Pins);
     expect(shell.afterTitle.all().map((part) => part.component)).toContain(ChatTags);
-    const rank = shell.rankChat()!;
-    const chat = (id: string) => ({ id, agent: 'claude-code', title: id, updatedAt: 0 });
-    expect([rank(chat('a')), rank(chat('b')), rank(chat('c'))]).toEqual([1, 0, 0]);
   });
 });

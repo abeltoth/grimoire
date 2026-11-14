@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { type CommandSearch, RightPageState } from './right-page-state';
 
-const search: CommandSearch = { chatId: 'c1', agent: 'claude-code', query: '', use: () => {} };
+const search: CommandSearch = { chatId: 'c1', query: 'fix', typed: false };
 
 describe('RightPageState', () => {
   it('turns to one thing at a time, and back to its own pages', () => {
@@ -9,12 +9,10 @@ describe('RightPageState', () => {
     expect(state.turned()).toBe(false);
     state.openApprovals('a1');
     expect(state.firstApproval()).toBe('a1');
-    state.openCommandPalette('fix');
-    expect([state.approvals(), state.commandPalette()]).toEqual([false, 'fix']);
-    state.openCommands(search);
-    expect([state.commandPalette(), state.commands()]).toEqual([null, search]);
+    state.openCommandPalette(search);
+    expect([state.approvals(), state.commandPalette()]).toEqual([false, search]);
     state.openPageTab('settings');
-    expect([state.commands(), state.pageTab()]).toEqual([null, 'settings']);
+    expect([state.commandPalette(), state.pageTab()]).toEqual([null, 'settings']);
     expect(state.turned()).toBe(true);
 
     state.showPage('plan');
@@ -30,12 +28,12 @@ describe('RightPageState', () => {
 
     state.closePageTab();
     state.openApprovals();
-    state.openCommandPalette();
-    state.openCommands(search);
+    state.openCommandPalette(search);
     state.showPage('plan');
     state.openPageTab('settings');
     expect(state.pageTab()).toBe('memories');
     expect(state.approvals()).toBe(false);
+    expect(state.commandPalette()).toBeNull();
     // Turning to the page it shows isn't leaving it.
     state.openPageTab('memories');
     expect(state.pageTab()).toBe('memories');

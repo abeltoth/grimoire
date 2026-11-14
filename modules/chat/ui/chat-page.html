@@ -1,6 +1,6 @@
 @if (chat(); as c) {
   @if (searchingCommands()) {
-    <gr-slash-commands [backTo]="wording.say('chapter', 'chat')" [foot]="false" />
+    <gr-command-palette [backTo]="wording.say('chapter', 'chat')" [foot]="false" />
   } @else {
     @if (!beside()) {
       @for (part of shell.chatCorners.all(); track part.id) {

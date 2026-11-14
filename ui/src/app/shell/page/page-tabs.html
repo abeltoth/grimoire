@@ -20,7 +20,7 @@
     wording.say('Index, the command palette', 'Command palette') +
     (shortcut ? '. ' + (shortcut | shortcut: 'spoken') : '')
   "
-  [attr.aria-current]="rightPage.commandPalette() !== null ? 'page' : null"
+  [attr.aria-current]="rightPage.commandPalette()?.typed === false ? 'page' : null"
   (click)="index()?.run?.()"
 >
   <span>

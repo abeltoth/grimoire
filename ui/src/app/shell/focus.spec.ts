@@ -26,11 +26,6 @@ describe('focus', () => {
     expect(el.classList).not.toContain('single');
     expect(shown('gr-right-page gr-command-palette')).toBe(true);
     expect(shown('gr-page-tabs')).toBe(false);
-    const labels = [...el.querySelectorAll('gr-command-palette .entry .label')].map((n) =>
-      n.textContent!.trim(),
-    );
-    expect(labels).toContain('Two pages');
-    expect(labels).not.toContain('Single page');
     expect(el.querySelector('gr-command-palette .gr-link')!.textContent).toContain(
       'Back to the single page',
     );

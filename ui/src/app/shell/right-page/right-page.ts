@@ -3,7 +3,6 @@ import { Component, computed, inject } from '@angular/core';
 import { Drawing } from '../../../design-system/drawing';
 import { ChatList } from '../../core/chat-list';
 import { Wording } from '../../core/wording';
-import { SlashCommands } from '../slash-commands';
 import { CommandPalette } from '../command-palette';
 import { Page } from '../page/page';
 import { PageFooter } from '../page/page-footer';
@@ -18,16 +17,15 @@ import { type RightPageEntry, ShellRegistry } from '../shell-registry';
  * The right-hand page. Its page header lists what it can show, as
  * registered by features; the first one that can be picked shows first.
  * The approvals tab turns it to the waiting approvals for a while,
- * the command palette's tab or shortcut to the command palette, "/" at the start of
- * a message to the agent's commands, and the other page tabs to their pages.
- * The commands searched from the chat on the right page show on the
- * left page instead, so the message field stays in view. A page drawn whole heads
+ * the command palette's tab or shortcut, or "/" at the start of a message,
+ * to the command palette, and the other page tabs to their pages.
+ * The command palette for the chat on the right page shows on the
+ * left page instead, so the chat stays in view. A page drawn whole heads
  * itself with the tabs.
  */
 @Component({
   selector: 'gr-right-page',
   imports: [
-    SlashCommands,
     Drawing,
     RightPageTabs,
     CommandPalette,
@@ -62,9 +60,9 @@ export class RightPage {
     return page ? this.wording.label(page) : this.wording.say('facing page', 'right page');
   });
 
-  /** Whether the agent's commands show here: not those searched from the chat on this page. */
-  protected readonly commandsHere = computed(() => {
-    const search = this.rightPage.commands();
+  /** Whether the command palette shows here: not that of the chat on this page. */
+  protected readonly paletteHere = computed(() => {
+    const search = this.rightPage.commandPalette();
     return !!search && search.chatId !== this.list.besideId();
   });
 

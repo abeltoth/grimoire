@@ -12,6 +12,7 @@ import type {
   ContextUsage,
   Editor,
   FollowUp,
+  McpServerState,
   OpenChat,
   PlanStep,
   PromptCache,
@@ -37,6 +38,10 @@ declare module './commands' {
     'agents.models': { request: { agent: AgentId }; response: AgentModels };
     /** The agent's commands and skills in a folder; your home folder when there's none. */
     'agents.commands': { request: { agent: AgentId; cwd?: string }; response: AgentCommand[] };
+    /** How the chat's MCP servers are; null while its process isn't running. */
+    'agents.mcpStatus': { request: { chatId: ChatId }; response: McpServerState[] | null };
+    /** Connects one of the chat's MCP servers again. */
+    'agents.mcpReconnect': { request: { chatId: ChatId; name: string }; response: void };
     /** Who the agent is signed in as, and any sign-in under way. */
     'agents.account': { request: { agent: AgentId }; response: AgentSignIn };
     /**

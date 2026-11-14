@@ -293,7 +293,7 @@ describe('general-settings', () => {
     await new Promise((resolve) => setTimeout(resolve));
     await fixture.whenStable();
     expect(texts('gr-command-palette .title')).toEqual(['Command palette']);
-    expect(texts('gr-command-palette h3')).toEqual(['Actions', 'Chats']);
+    expect(texts('gr-command-palette .runs-in')).toEqual(['Runs in Fix flaky login test']);
     expect(bookWords()).toEqual([]);
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }));
     await fixture.whenStable();

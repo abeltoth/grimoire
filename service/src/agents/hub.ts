@@ -15,6 +15,7 @@ import type {
   ChatSummary,
   CompactionChange,
   CompactionSettings,
+  McpServerState,
   NewChatSettings,
   OpenChat,
   ParallelFrom,
@@ -320,6 +321,15 @@ export class AgentHub {
   /** Changes the compaction window for the chat's model. */
   setCompaction(chatId: ChatId, change: CompactionChange): Promise<void> {
     return this.compacting.change(chatId, change);
+  }
+
+  /** How the chat's MCP servers are, as its running process says. */
+  mcpStatus(chatId: ChatId): Promise<McpServerState[] | null> {
+    return this.runs.mcpStatus(this.table.chat(chatId));
+  }
+
+  mcpReconnect(chatId: ChatId, name: string): Promise<void> {
+    return this.runs.mcpReconnect(this.table.chat(chatId), name);
   }
 
   mcpChanged(): void {

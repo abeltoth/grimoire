@@ -3,20 +3,14 @@ import {
   Injectable,
   type Type,
   computed,
-  effect,
   inject,
   provideAppInitializer,
   signal,
   untracked,
 } from '@angular/core';
-import type { ChatSummary } from '@grimoire/contract';
 import type { IconName } from '../../design-system/icon';
 import { ChatList } from '../core/chat-list';
-import { NewChats } from '../core/new-chats';
-import { Profiles } from '../core/profiles';
-import { Wording } from '../core/wording';
-import { RightPageState } from './right-page/right-page-state';
-import { Focus } from './focus';
+import { AgentCommands } from './agent-commands';
 import { noteWaitingChats } from './focus-notes';
 import type { Shortcut } from './shortcut';
 
@@ -83,10 +77,8 @@ export interface SettingsSection extends Entry {
   component: Type<unknown>;
 }
 
-/** Something you can do from the command palette or with a shortcut. */
+/** Something you can do with a shortcut. */
 export interface Command extends Entry, Labelled {
-  /** A gloss the command palette shows after the label, such as "with your last settings". */
-  hint?: string | (() => string);
   shortcut?: Shortcut;
   run?: () => void;
 }
@@ -132,12 +124,6 @@ export class ShellRegistry {
   readonly afterTitle = new Slot<ChatPart>();
   /** On the Settings page, after the model for quick tasks, such as when to label chats. */
   readonly settingsSections = new Slot<SettingsSection>();
-  /**
-   * How high the command palette lists a past chat: higher first, then
-   * newest. The history module's puts pinned chats first; without it,
-   * newest first.
-   */
-  readonly rankChat = signal<((chat: ChatSummary) => number) | undefined>(undefined);
   /** What the left page shows for the open chat: the chat module's page. */
   readonly chatPage = signal<Type<unknown> | undefined>(undefined);
   /**
@@ -165,66 +151,21 @@ export function provideShellEntries(
 /** The shell's own commands. */
 export function provideShell(): EnvironmentProviders {
   return provideShellEntries((shell) => {
-    const rightPage = inject(RightPageState);
+    const commands = inject(AgentCommands);
     shell.commands.add({
       id: 'shell.commandPalette',
       label: 'Index',
       plainLabel: 'Command palette',
       shortcut: 'Mod+K',
-      run: () => rightPage.openCommandPalette(),
+      run: () => commands.openPalette(),
     });
     const list = inject(ChatList);
-    const newChats = inject(NewChats);
     shell.commands.add({
       id: 'chats.new',
       label: 'New chapter',
       plainLabel: 'New chat',
-      hint: () => {
-        const preset = newChats.startOf().preset;
-        return preset ? `from the preset ${preset}` : 'with your last settings';
-      },
       shortcut: 'Mod+N',
       run: () => list.newChat(),
-    });
-    // Focus mode in the command palette: in, or back out to two pages.
-    const focus = inject(Focus);
-    const wording = inject(Wording);
-    effect((onCleanup) => {
-      onCleanup(
-        focus.on()
-          ? shell.commands.add({
-              id: 'shell.twoPages',
-              label: 'Two pages',
-              plainLabel: 'Leave focus',
-              hint: () =>
-                wording.say(
-                  'the facing page, thumb index and ribbons again',
-                  'show everything again',
-                ),
-              run: () => focus.leave(),
-            })
-          : shell.commands.add({
-              id: 'shell.singlePage',
-              label: 'Single page',
-              plainLabel: 'Focus mode',
-              hint: () => wording.say('this chapter alone on the desk', 'only this chat'),
-              run: () => focus.enter(),
-            }),
-      );
-    });
-    // Each other profile in the command palette, to switch to.
-    const profiles = inject(Profiles);
-    effect((onCleanup) => {
-      for (const profile of profiles.others()) {
-        onCleanup(
-          shell.commands.add({
-            id: `profiles.switch.${profile.id}`,
-            label: `Open the ${profile.name} volume`,
-            plainLabel: `Switch to ${profile.name}`,
-            run: () => void profiles.switch(profile.id),
-          }),
-        );
-      }
     });
     shell.commands.add({
       id: 'chats.close',
