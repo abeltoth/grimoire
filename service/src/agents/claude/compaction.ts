@@ -5,17 +5,18 @@ import type { ApiMessage, ClaudeMessage } from './messages';
 const SUMMARY_START = 'Summary:\n';
 const SUMMARY_END = '\nIf you need specific details from before compaction';
 
-/** Claude Code's word on a compaction, live: where it cut the chat, or that it failed. */
+/** Claude Code's word on a compaction, live: that it began, where it cut the chat, or that it failed. */
 export interface CompactMessage {
   subtype?: string;
   uuid?: string;
+  status?: string | null;
   compact_metadata?: { trigger?: 'manual' | 'auto'; pre_tokens?: number; post_tokens?: number };
   compact_result?: 'success' | 'failed';
   compact_error?: string;
 }
 
 /** The compaction a live system message reports, done or failed; undefined for any other message. */
-export function compactionOf(message: CompactMessage, id: string): CompactionEntry | undefined {
+function compactionOf(message: CompactMessage, id: string): CompactionEntry | undefined {
   if (message.subtype === 'compact_boundary') {
     const { trigger, pre_tokens, post_tokens } = message.compact_metadata ?? {};
     return {
@@ -33,6 +34,38 @@ export function compactionOf(message: CompactMessage, id: string): CompactionEnt
       error: message.compact_error?.trim() || 'Claude Code gave no reason',
     };
   return undefined;
+}
+
+/** The compaction a live chat is running, shown from when Claude Code begins it until it ends. */
+export class LiveCompaction {
+  private running: CompactionEntry | undefined;
+
+  /** The compaction line a system message begins or ends; undefined when it does neither. */
+  take(message: CompactMessage, id: string): CompactionEntry | undefined {
+    if (message.subtype === 'status' && message.status === 'compacting') {
+      if (this.running) return undefined;
+      this.running = { kind: 'compaction', id: message.uuid ?? id, running: true };
+      return this.running;
+    }
+    const ended = compactionOf(message, id);
+    if (!ended) return undefined;
+    // The same ID, so the line that said it was compacting turns into how it went.
+    const entry = this.running ? { ...ended, id: this.running.id } : ended;
+    this.running = undefined;
+    return entry;
+  }
+
+  /** The turn ended with the compaction still running, as when you stop it. */
+  turnEnded(): CompactionEntry | undefined {
+    if (!this.running) return undefined;
+    const entry: CompactionEntry = {
+      kind: 'compaction',
+      id: this.running.id,
+      error: 'It stopped before it finished',
+    };
+    this.running = undefined;
+    return entry;
+  }
 }
 
 /** Reads the messages a saved chat's compactions left, in order. */

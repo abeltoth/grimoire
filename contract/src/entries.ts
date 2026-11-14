@@ -89,6 +89,8 @@ export interface CompactionEntry {
   summary?: string;
   /** Why it failed; missing when it worked. */
   error?: string;
+  /** True while the agent is still compacting. */
+  running?: boolean;
 }
 
 export type Block = TextBlock | ThinkingBlock | ToolBlock;

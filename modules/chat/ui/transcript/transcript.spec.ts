@@ -298,6 +298,25 @@ describe('transcript', () => {
     expect(el.querySelector('.row.said.opened')).toBeNull();
   });
 
+  it('shows a compaction while it runs, then how it went on the same line', async () => {
+    const { bridge, emit } = fakeBridge();
+    const { fixture, el, texts } = await render(bridge);
+    await write(fixture, el, 'u1');
+    emit('agents.entry', {
+      chatId: 'chat-1',
+      entry: { kind: 'compaction', id: 'c1', running: true },
+    });
+    await fixture.whenStable();
+    expect(texts('.compaction')).toEqual(['Summing the chapter up…']);
+
+    emit('agents.entry', {
+      chatId: 'chat-1',
+      entry: { kind: 'compaction', id: 'c1', before: 92_000 },
+    });
+    await fixture.whenStable();
+    expect(texts('.compaction')).toEqual([expect.stringContaining('Chapter summed up')]);
+  });
+
   it("opens a compaction's summary, and puts it away", async () => {
     const { bridge, emit } = fakeBridge();
     const { fixture, el, texts } = await render(bridge);

@@ -15,7 +15,12 @@ import type {
   UserEntry,
 } from '@grimoire/contract';
 import { addTokens } from '@grimoire/contract';
-import { type CompactMessage, SavedCompactions, compactionOf, withLiveSummary } from './compaction';
+import {
+  type CompactMessage,
+  LiveCompaction,
+  SavedCompactions,
+  withLiveSummary,
+} from './compaction';
 import {
   type ApiBlock,
   type ApiMessage,
@@ -90,6 +95,7 @@ export class ClaudeTranscript {
   /** The runs of the subagents the chat's tool calls started, by tool call. */
   private readonly subagents = new Map<string, ClaudeTranscript>();
   private readonly savedCompactions = new SavedCompactions();
+  private readonly liveCompaction = new LiveCompaction();
 
   /**
    * @param live Your own messages aren't echoed back live; the hub adds them as you send.
@@ -163,6 +169,7 @@ export class ClaudeTranscript {
   private endTurn(): void {
     this.spent = new Map();
     this.hookRuns.endTurn();
+    this.addCompaction(this.liveCompaction.turnEnded());
   }
 
   /** The transcript of the subagent the tool call `toolId` started, its entries passed on as the subagent's. */
@@ -185,7 +192,9 @@ export class ClaudeTranscript {
     if (message.type === 'stream_event') this.applyStreamEvent(message.event as StreamEvent);
     else if (message.type === 'assistant') this.applyAssistant(message.message as ApiMessage);
     else if (message.type === 'system')
-      this.addCompaction(compactionOf(message as CompactMessage, this.nextId('compaction')));
+      this.addCompaction(
+        this.liveCompaction.take(message as CompactMessage, this.nextId('compaction')),
+      );
     else if (message.type === 'user') {
       const compaction = this.live
         ? withLiveSummary(message, this.entries)
@@ -303,7 +312,9 @@ export class ClaudeTranscript {
 
   private addCompaction(entry: CompactionEntry | undefined): void {
     if (!entry) return;
-    this.entries.push(entry);
+    const index = this.entries.findIndex((known) => known.id === entry.id);
+    if (index === -1) this.entries.push(entry);
+    else this.entries[index] = entry;
     this.listener?.entry(entry);
   }
 

@@ -126,7 +126,32 @@ describe('compactions', () => {
       },
     ]);
     expect(entries).toEqual([
-      { kind: 'compaction', id: 's1', error: 'Not enough messages to compact.' },
+      { kind: 'compaction', id: 'compaction-0', error: 'Not enough messages to compact.' },
+    ]);
+  });
+
+  it('shows a live compaction as it runs, the line turning into how it went', () => {
+    const { entries, told } = listened([
+      { type: 'system', subtype: 'status', uuid: 's0', status: 'compacting' },
+      {
+        type: 'system',
+        subtype: 'compact_boundary',
+        uuid: 'b1',
+        compact_metadata: { trigger: 'auto', pre_tokens: 92_000, post_tokens: 8_000 },
+      },
+    ]);
+    const done = { kind: 'compaction', id: 's0', trigger: 'auto', before: 92_000, after: 8_000 };
+    expect(told).toEqual([{ kind: 'compaction', id: 's0', running: true }, done]);
+    expect(entries).toEqual([done]);
+  });
+
+  it('says a live compaction stopped when its turn ends before it finished', () => {
+    const { entries } = listened([
+      { type: 'system', subtype: 'status', uuid: 's0', status: 'compacting' },
+      { type: 'result', subtype: 'error_during_execution' },
+    ]);
+    expect(entries).toEqual([
+      { kind: 'compaction', id: 's0', error: 'It stopped before it finished' },
     ]);
   });
 
