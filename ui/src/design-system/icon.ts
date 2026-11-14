@@ -15,6 +15,7 @@ export type IconName =
   | 'maximize'
   | 'close'
   | 'pen'
+  | 'tag'
   | 'pop-out'
   | 'attach'
   | 'parallel'

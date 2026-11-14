@@ -1,11 +1,41 @@
-/* The tags take the room the title leaves, wrapping onto more lines, so the title is cut only past that. */
+/* The tags' mark after the title, and the card it opens under it. */
 :host {
+  position: relative;
   display: inline-flex;
-  flex: 1 1 0;
+  flex: none;
 }
 
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gr-tags-toggle-gap);
+  height: var(--gr-icon-button);
+  padding: 0 var(--gr-tags-toggle-pad);
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-control);
+  letter-spacing: var(--gr-tracking-control);
+  color: var(--gr-ink-soft);
+  border-radius: var(--gr-radius-control);
+}
+
+.toggle:hover,
+.toggle.on {
+  color: var(--gr-ink);
+}
+
+.card {
+  position: absolute;
+  z-index: var(--gr-z-card);
+  top: calc(100% + var(--gr-card-offset));
+  width: max-content;
+  max-width: var(--gr-tags-card-width);
+  padding: var(--gr-card-pad);
+  background: var(--gr-card-paper);
+  box-shadow: var(--gr-shadow-card);
+}
+
+/* In the card, tags that don't fit on a line go on to the next. */
 gr-tag-editor {
-  flex: 0 1 auto;
   flex-wrap: wrap;
   align-items: center;
   white-space: normal;

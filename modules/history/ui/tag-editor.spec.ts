@@ -7,6 +7,8 @@ describe('tag-editor', () => {
     answers['history.pinsAndTags'] = () => ({ pins: {}, tags: { other: ['docs', 'Bug'] } });
     const { fixture, el } = await render(bridge);
     await write(fixture, el, 'First');
+    el.querySelector<HTMLButtonElement>('gr-chat-tags .toggle')!.click();
+    await fixture.whenStable();
     const options = () =>
       [...el.querySelectorAll<HTMLOptionElement>('gr-chat-tags datalist option')].map(
         (option) => option.value,

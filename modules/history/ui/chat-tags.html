@@ -1,0 +1,21 @@
+<button
+  #toggle
+  type="button"
+  class="toggle"
+  [class.on]="open()"
+  aria-haspopup="dialog"
+  [attr.aria-expanded]="open()"
+  [attr.aria-label]="label()"
+  [attr.title]="label()"
+  (click)="open.set(!open())"
+>
+  <gr-icon name="tag" />
+  @if (tags().length) {
+    <span class="count">{{ tags().length }}</span>
+  }
+</button>
+@if (open()) {
+  <div #card class="card" role="dialog" aria-label="Tags" [style.left.px]="shift()">
+    <gr-tag-editor [owner]="chat().id" [tags]="tags()" (changed)="save($event)" />
+  </div>
+}
