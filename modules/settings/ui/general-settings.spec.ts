@@ -34,7 +34,7 @@ describe('general-settings', () => {
       'New chapters begin with',
       'Suggest the next entry',
       'Suggest separate chapters',
-      'Sum up before the cache runs out',
+      'Compact before the cache runs out',
       'MCP servers in every chapter',
       'Jira issues on the Kanban board',
       'Jira query',

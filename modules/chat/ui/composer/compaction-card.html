@@ -1,6 +1,6 @@
 <header class="head">
   <h2 id="gr-compaction-heading">
-    {{ wording.say('Page allowance', 'Context window') }} <i>for {{ modelName() }}</i>
+    Context window <i>for {{ modelName() }}</i>
   </h2>
 </header>
 
@@ -9,7 +9,7 @@
     <input
       #field
       type="range"
-      [attr.aria-label]="wording.say('Size of the allowance', 'Window size')"
+      aria-label="Window size"
       [attr.aria-valuetext]="reading()"
       [min]="s.min"
       [max]="s.max"
@@ -49,24 +49,10 @@
     </button>
   </div>
   @if (compactsNext()) {
-    <p class="warn">
-      {{
-        wording.say(
-          'This chapter is summed up on its next turn.',
-          'This chat compacts on its next turn.'
-        )
-      }}
-    </p>
+    <p class="warn">This chat compacts on its next turn.</p>
   }
 } @else if (settings() === null) {
-  <p class="reading">
-    {{
-      wording.say(
-        'This chapter’s allowance can’t be changed here yet.',
-        'This chat’s window can’t be changed here yet.'
-      )
-    }}
-  </p>
+  <p class="reading">This chat’s window can’t be changed here yet.</p>
 } @else {
   <p class="reading">Reading {{ agentName() }}’s settings…</p>
 }
@@ -75,7 +61,5 @@
 }
 
 <div class="foot">
-  <button type="button" class="control" (click)="compactNow()">
-    {{ wording.say('Sum up now', 'Compact now') }}
-  </button>
+  <button type="button" class="control" (click)="compactNow()">Compact now</button>
 </div>

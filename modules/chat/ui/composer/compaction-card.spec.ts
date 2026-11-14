@@ -46,7 +46,7 @@ describe('compaction card', () => {
       '1M',
     ]);
     expect(card.querySelector<HTMLElement>('.now')!.style.left).toBe('0%');
-    expect(texts('gr-compaction-card h2')).toEqual(['Page allowance for Opus 5.5']);
+    expect(texts('gr-compaction-card h2')).toEqual(['Context window for Opus 5.5']);
     expect(card.querySelector('[role="switch"], input[type="text"]')).toBeNull();
   });
 
@@ -57,9 +57,7 @@ describe('compaction card', () => {
     await fixture.whenStable();
     expect(slider!.value).toBe('270000');
     expect(texts('gr-compaction-card .reading')).toEqual(['270K · compacts at 237K']);
-    expect(texts('gr-compaction-card .warn')).toEqual([
-      'This chapter is summed up on its next turn.',
-    ]);
+    expect(texts('gr-compaction-card .warn')).toEqual(['This chat compacts on its next turn.']);
     expect(changes(calls)).toEqual([]);
     expect(texts('gr-compaction-card .saved')).toEqual([]);
     slider!.value = '590000';
@@ -99,7 +97,7 @@ describe('compaction card', () => {
   it("says when the agent can't change it, and closes on Esc", async () => {
     const { fixture, el, texts } = await opened(50_000, null);
     expect(texts('gr-compaction-card .reading')).toEqual([
-      'This chapter’s allowance can’t be changed here yet.',
+      'This chat’s window can’t be changed here yet.',
     ]);
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     await fixture.whenStable();

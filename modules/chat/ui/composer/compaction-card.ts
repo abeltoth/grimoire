@@ -19,7 +19,6 @@ import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { ChatActions } from '@ui/app/core/chat-actions';
 import { modelLabel, tokenCount } from '@ui/app/core/tokens';
 import { Icon } from '@ui/design-system/icon';
-import { Wording } from '@ui/app/core/wording';
 import { STEP, along, snap, stops } from './compaction-scale';
 
 /**
@@ -49,7 +48,6 @@ export class CompactionCard {
   readonly anchor = input<HTMLElement>();
   readonly closed = output<void>();
 
-  protected readonly wording = inject(Wording);
   private readonly catalog = inject(AgentCatalog);
   private readonly actions = inject(ChatActions);
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
