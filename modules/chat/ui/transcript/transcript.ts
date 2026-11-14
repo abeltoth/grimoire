@@ -142,6 +142,18 @@ export class Transcript {
     const turn = this.turn();
     return turn ? duration(this.now() - turn.at) : '';
   });
+  /** When the compaction the agent is running began; it can run with no turn, as when the chat sat idle. */
+  private readonly compactionBegan = computed(() => {
+    const running = this.chat()
+      .entries.filter((entry) => entry.kind === 'compaction' && entry.running)
+      .at(-1);
+    return running?.at;
+  });
+  /** How long the running compaction has taken so far. */
+  protected readonly compacting = computed(() => {
+    const began = this.compactionBegan();
+    return began === undefined ? '' : duration(this.now() - began);
+  });
   protected readonly duration = duration;
   protected readonly tokenCount = tokenCount;
   protected readonly hooksRan = hooksRan;
@@ -172,7 +184,7 @@ export class Transcript {
 
   constructor() {
     effect((onCleanup) => {
-      if (!this.turnKey()) return;
+      if (!this.turnKey() && this.compactionBegan() === undefined) return;
       this.now.set(Date.now());
       const tick = setInterval(() => this.now.set(Date.now()), 1000);
       onCleanup(() => clearInterval(tick));

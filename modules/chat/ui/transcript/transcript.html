@@ -151,6 +151,9 @@
         <p class="compaction" [class.error]="row.error" role="note">
           @if (row.running) {
             {{ wording.say('Summing the chapter up…', 'Compacting the chat…') }}
+            @if (compacting()) {
+              &ngsp;<span class="elapsed">{{ compacting() }}</span>
+            }
           } @else if (row.error) {
             {{ wording.say('Couldn’t sum the chapter up', 'Couldn’t compact the chat') }}:
             {{ row.error }}
@@ -169,7 +172,7 @@
               · from {{ tokenCount(row.before) }} tokens
             }
           }
-          @if (row.at) {
+          @if (row.at && !row.running) {
             &ngsp;<span class="time">{{ time(row.at) }}</span>
           }
           @if (row.summary) {

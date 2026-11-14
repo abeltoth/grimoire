@@ -298,16 +298,23 @@ describe('transcript', () => {
     expect(el.querySelector('.row.said.opened')).toBeNull();
   });
 
-  it('shows a compaction while it runs, then how it went on the same line', async () => {
+  it('shows a compaction while it runs, timed, then how it went on the same line', async () => {
+    // The compaction is timed from when it began to now, so the test fixes now.
+    const now = new Date(2026, 10, 9, 15, 30).getTime();
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(now);
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
     const { bridge, emit } = fakeBridge();
     const { fixture, el, texts } = await render(bridge);
     await write(fixture, el, 'u1');
     emit('agents.entry', {
       chatId: 'chat-1',
-      entry: { kind: 'compaction', id: 'c1', running: true },
+      entry: { kind: 'compaction', id: 'c1', running: true, at: now - 12_000 },
     });
     await fixture.whenStable();
-    expect(texts('.compaction')).toEqual(['Summing the chapter up…']);
+    expect(texts('.compaction')).toEqual(['Summing the chapter up… 12s']);
 
     emit('agents.entry', {
       chatId: 'chat-1',
