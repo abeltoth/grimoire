@@ -1,5 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
-import type { AgentCommand, ApprovalMode, EffortLevel } from '@grimoire/contract';
+import type { AgentCommand, EffortLevel } from '@grimoire/contract';
 import { ChatActions } from '../core/chat-actions';
 import { ChatList } from '../core/chat-list';
 
@@ -37,8 +37,6 @@ export class CommandRuns {
     if (command.owner === 'model') void this.actions.configure(chatId, { model: value });
     else if (command.owner === 'effort')
       void this.actions.configure(chatId, { effort: value as EffortLevel });
-    else if (command.owner === 'mode')
-      void this.actions.configure(chatId, { mode: value as ApprovalMode });
     else void this.actions.send(chatId, `/${command.name} ${value}`);
   }
 }

@@ -187,8 +187,8 @@ export interface QueuedEntry {
   attachments?: Attachment[];
 }
 
-/** Where the command palette lists a command: with the settings, the reports, the chat's own or the skills. */
-export type CommandGroup = 'settings' | 'reports' | 'chat' | 'skills';
+/** Where the command palette lists a command: with the settings, the reports or the chat's own. */
+export type CommandGroup = 'settings' | 'reports' | 'chat';
 
 /**
  * How a command runs from the command palette: at once, after you pick one
@@ -198,10 +198,9 @@ export type CommandRun = 'now' | 'pick' | 'compose';
 
 /**
  * What Grimoire keeps itself, so the command changes it through Grimoire
- * instead: the chat's model, effort or permission, a new chat, or the
- * chat's title.
+ * instead: the chat's model or effort, a new chat, or the chat's title.
  */
-export type CommandOwner = 'model' | 'effort' | 'mode' | 'new-chat' | 'rename';
+export type CommandOwner = 'model' | 'effort' | 'new-chat' | 'rename';
 
 /** One of the values a command takes. */
 export interface CommandChoice {
@@ -212,7 +211,7 @@ export interface CommandChoice {
   current?: true;
 }
 
-/** One of an agent's commands or skills, used by writing "/name" at the start of a message. */
+/** One of an agent's commands, used by writing "/name" at the start of a message; not its skills. */
 export interface AgentCommand {
   name: string;
   description: string;

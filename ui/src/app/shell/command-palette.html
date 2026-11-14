@@ -60,7 +60,7 @@
     class="entries"
     id="gr-command-entries"
     role="listbox"
-    [attr.aria-label]="agentName() + ' commands and skills'"
+    [attr.aria-label]="agentName() + ' commands'"
   >
     @for (section of sections(); track section.title) {
       <div class="section" role="group" [attr.aria-label]="section.title">
@@ -83,7 +83,7 @@
               >{{ entry.parts[2] }}</code
             >
             @let gloss = entry.choice ? entry.choice.description : entry.command.description;
-            @if (gloss && entry.command.group !== 'skills') {
+            @if (gloss) {
               <span class="gloss">{{ gloss }}</span>
             }
             <span class="leader" aria-hidden="true"></span>

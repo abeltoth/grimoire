@@ -273,8 +273,8 @@ describe('composer', () => {
     answers['agents.commands'] = () => [
       { name: 'compact', description: 'Free up context', group: 'chat', run: 'now' },
       { name: 'init', description: 'Write a CLAUDE.md', group: 'chat', run: 'now' },
-      { name: 'code-review', description: 'Review the diff', group: 'skills', run: 'compose' },
-      { name: 'simplify', description: 'Tidy the changed code', group: 'skills', run: 'compose' },
+      { name: 'code-review', description: 'Review the diff', group: 'chat', run: 'compose' },
+      { name: 'usage', description: 'Show plan usage', group: 'reports', run: 'now' },
       { name: 'review', description: 'Review a pull request', group: 'chat', run: 'now' },
     ];
     const { fixture, el, texts } = await render(bridge);
@@ -296,33 +296,33 @@ describe('composer', () => {
     expect(calls.filter((c) => c.command === 'agents.commands').map((c) => c.request)).toEqual([
       { agent: 'claude-code', cwd: 'C:/work/grimoire' },
     ]);
-    expect(texts('gr-command-palette h3')).toEqual(['This chapter', 'Claude Code’s skills']);
+    expect(texts('gr-command-palette h3')).toEqual(['Reports', 'This chapter']);
     expect(texts('gr-command-palette .entry .label')).toEqual([
+      '/usage',
       '/compact',
       '/init',
+      '/code-review',
       '/review',
-      'code-review',
-      'simplify',
     ]);
     expect(texts('gr-command-palette .entry .where')).toEqual([
+      'run',
       '62% used',
       'C:/work/grimoire',
+      'write in',
       'run',
-      'skill',
-      'skill',
     ]);
     expect(texts('gr-command-palette .count')).toEqual(['5 entries']);
     expect(el.querySelector('#gr-command-palette-search')).toBeNull();
     expect(texts('gr-composer .slash-hint')).toEqual([
-      'Claude Code’s commands and skills are on the facing page →',
+      'Claude Code’s commands are on the facing page →',
     ]);
 
     await type('/re');
-    expect(texts('gr-command-palette .entry .label')).toEqual(['/review', 'code-review']);
+    expect(texts('gr-command-palette .entry .label')).toEqual(['/review', '/code-review']);
     expect(texts('gr-command-palette .entry b')).toEqual(['/re', 're']);
     await press('ArrowDown');
     expect(texts('gr-command-palette .entry[aria-selected="true"] .label')).toEqual([
-      'code-review',
+      '/code-review',
     ]);
     expect(field.getAttribute('aria-activedescendant')).toBe('gr-command-code-review');
     await press('Tab');
@@ -332,7 +332,7 @@ describe('composer', () => {
 
     await type('/zzz');
     expect(texts('gr-command-palette .entries .note')).toEqual([
-      'Nothing in Claude Code’s commands and skills matches “/zzz”.',
+      'Nothing in Claude Code’s commands matches “/zzz”.',
     ]);
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }));
     await fixture.whenStable();

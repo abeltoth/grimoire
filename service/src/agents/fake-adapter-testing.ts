@@ -198,12 +198,7 @@ export class FakeAdapter implements AgentAdapter {
     this.commandFolders.push(cwd);
     return [
       { name: 'compact', description: 'Free up context', group: 'chat', run: 'now' },
-      {
-        name: 'simplify',
-        description: 'Review the changed code',
-        group: 'skills',
-        run: 'compose',
-      },
+      { name: 'usage', description: 'Show plan usage', group: 'reports', run: 'now' },
     ];
   }
 

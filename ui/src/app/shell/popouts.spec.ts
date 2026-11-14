@@ -135,7 +135,7 @@ describe('popouts', () => {
       expect(el.querySelector('gr-transcript')).toBeNull();
       expect(el.querySelector('#gr-next-message')).toBe(field);
       expect(texts('gr-composer .slash-hint')).toEqual([
-        'Claude Code’s commands and skills are listed above ↑',
+        'Claude Code’s commands are listed above ↑',
       ]);
 
       field.value = '';

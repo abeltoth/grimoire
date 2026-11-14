@@ -97,7 +97,7 @@ describe('ClaudeAdapter', () => {
     expect(claude.closed).toBe(2);
   });
 
-  it('lists a folder’s commands and skills as the command palette shows them', async () => {
+  it('lists a folder’s commands as the command palette shows them, without its skills', async () => {
     claude.commands = [
       { name: 'review', description: 'Review the diff', argumentHint: '[pr]' },
       { name: 'output-style', description: 'Switch styles', argumentHint: '[style]' },
@@ -119,14 +119,6 @@ describe('ClaudeAdapter', () => {
         group: 'settings',
         run: 'pick',
         choices: [{ value: 'default', current: true }],
-      },
-      { name: 'commit', description: 'Commit', group: 'skills', run: 'compose' },
-      {
-        name: 'permissions',
-        description: 'Set what the agent may do without asking',
-        group: 'settings',
-        run: 'pick',
-        owner: 'mode',
       },
     ]);
     expect(claude.asked).toEqual([{ cwd: '/work', ask: 'commands' }]);
@@ -161,7 +153,7 @@ describe('ClaudeAdapter', () => {
     const adapter = new ClaudeAdapter();
     claude.failNext = true;
     await expect(adapter.commands('/work')).rejects.toThrow();
-    expect((await adapter.commands('/work')).map((c) => c.name)).toEqual(['permissions']);
+    expect(await adapter.commands('/work')).toEqual([]);
     expect(claude.asked).toHaveLength(2);
   });
 

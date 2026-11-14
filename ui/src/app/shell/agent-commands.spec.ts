@@ -10,7 +10,7 @@ import { CommandRuns } from './command-runs';
 const COMMANDS: AgentCommand[] = [
   { name: 'compact', description: 'Free up context', group: 'chat', run: 'now' },
   { name: 'review', description: 'Review a pull request', group: 'chat', run: 'compose' },
-  { name: 'code-review', description: 'Review the diff', group: 'skills', run: 'compose' },
+  { name: 'code-review', description: 'Review the diff', group: 'chat', run: 'now' },
   { name: 'usage', description: 'Show usage', group: 'reports', run: 'now' },
   { name: 'model', description: 'Set the model', group: 'settings', run: 'pick', owner: 'model' },
   {
@@ -59,7 +59,7 @@ describe('AgentCommands', () => {
     commands.searchFor('re');
     expect(commands.listed().map(({ parts }) => parts)).toEqual([
       ['', '/re', 'view'],
-      ['code-', 're', 'view'],
+      ['/code-', 're', 'view'],
     ]);
     expect(commands.chosen()?.id).toBe('review');
   });

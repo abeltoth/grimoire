@@ -41,12 +41,7 @@ describe('CommandRuns', () => {
     const { runs, list, chatId, calls, stable } = await withChat();
     runs.pick(chatId, command('model', { owner: 'model' }), 'haiku');
     runs.pick(chatId, command('effort', { owner: 'effort' }), 'low');
-    runs.pick(chatId, command('permissions', { owner: 'mode' }), 'plan');
-    expect(list.find(chatId)?.settings).toMatchObject({
-      model: 'haiku',
-      effort: 'low',
-      mode: 'plan',
-    });
+    expect(list.find(chatId)?.settings).toMatchObject({ model: 'haiku', effort: 'low' });
 
     runs.pick(chatId, command('fast'), 'on');
     await stable();

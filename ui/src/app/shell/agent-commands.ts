@@ -9,7 +9,7 @@ import { CommandRuns } from './command-runs';
 import { type CommandSearch, RightPageState } from './right-page/right-page-state';
 
 /** The groups, in the order the command palette lists them. */
-export const GROUPS: readonly CommandGroup[] = ['settings', 'reports', 'chat', 'skills'];
+export const GROUPS: readonly CommandGroup[] = ['settings', 'reports', 'chat'];
 
 /** A command, or one of the choices of the command being picked, as the command palette lists it. */
 export interface ListedEntry {
@@ -26,7 +26,7 @@ export interface ListedEntry {
 type Loaded = { commands: AgentCommand[] } | { error: string };
 
 /**
- * The command palette's list: the chat's agent's commands and skills,
+ * The command palette's list: the chat's agent's commands,
  * searched in the command palette or from the start of a message after a
  * "/", and the choices of a command that takes one. Its keys move through
  * them, and use one.
@@ -188,12 +188,11 @@ function keyOf(chat: Chat): string {
 function narrow(commands: AgentCommand[], query: string): ListedEntry[] {
   const found = commands.flatMap((command): ListedEntry[] => {
     // Commands are written with their "/"; it's part of what you searched for when the name starts with it.
-    const shown = command.group === 'skills' ? command.name : `/${command.name}`;
-    const lead = shown.length - command.name.length;
+    const shown = `/${command.name}`;
     const at = command.name.toLowerCase().indexOf(query.toLowerCase());
     if (at === -1) return [];
-    const from = at === 0 ? 0 : at + lead;
-    const end = at + lead + query.length;
+    const from = at === 0 ? 0 : at + 1;
+    const end = at + 1 + query.length;
     const parts: ListedEntry['parts'] = [
       shown.slice(0, from),
       shown.slice(from, end),

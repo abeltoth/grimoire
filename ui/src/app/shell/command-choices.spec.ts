@@ -45,21 +45,13 @@ describe('choicesOf', () => {
     ).toEqual([undefined, true]);
   });
 
-  it('lists the efforts the chat’s model takes, and the permissions', () => {
+  it('lists the efforts the chat’s model takes', () => {
     expect(
       choicesOf(owned('effort'), chat({}), models, { levels: ['low', 'high'], level: 'high' }),
     ).toEqual([
       { value: 'low', label: 'low' },
       { value: 'high', label: 'high', current: true },
     ]);
-    const modes = choicesOf(owned('mode'), chat({ mode: 'plan' }), models, { levels: [] });
-    expect(modes.map(({ value, current }) => [value, current])).toEqual([
-      ['ask', undefined],
-      ['accept-edits', undefined],
-      ['plan', true],
-      ['allow-all', undefined],
-    ]);
-    expect(modes[0]).toMatchObject({ label: 'Ask first', description: expect.any(String) });
   });
 
   it('shows the agent’s own choices by their value', () => {

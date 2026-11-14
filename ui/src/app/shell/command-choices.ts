@@ -1,6 +1,5 @@
 import type { AgentCommand, AgentModels, CommandChoice, EffortLevel } from '@grimoire/contract';
 import type { Chat } from '../core/chat';
-import { MODES } from '../core/modes';
 
 /** A choice as the command palette shows it. */
 export interface Choice extends CommandChoice {
@@ -40,13 +39,6 @@ export function choicesOf(
         value: level,
         label: level,
         ...mark(level, efforts.level),
-      }));
-    case 'mode':
-      return MODES.map(({ mode, label, detail }) => ({
-        value: mode,
-        label,
-        description: detail,
-        ...mark(mode, chat.settings.mode ?? 'ask'),
       }));
     default:
       return (command.choices ?? []).map((choice) => ({ ...choice, label: choice.value }));

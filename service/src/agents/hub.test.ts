@@ -221,7 +221,7 @@ describe('AgentHub', () => {
     expect(await hub.folders()).toEqual({ home: homedir(), recent: ['/new', '/old'] });
     expect((await hub.commands('fake', '/work')).map((c) => `${c.group} ${c.name}`)).toEqual([
       'chat compact',
-      'skills simplify',
+      'reports usage',
     ]);
     await hub.commands('fake');
     expect(fake.commandFolders).toEqual(['/work', homedir()]);

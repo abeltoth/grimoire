@@ -10,7 +10,7 @@ import type {
 /** What Claude Code says as it starts: its commands, and the settings some of them change. */
 export interface CommandSource {
   commands: readonly SlashCommand[];
-  /** The names of its skills, which it lists among its commands. */
+  /** The names of its skills, which it lists among its commands; the workflow setup shows them. */
   skills: ReadonlySet<string>;
   outputStyle?: string;
   outputStyles?: readonly string[];
@@ -60,27 +60,16 @@ const RUNS: Readonly<Record<string, CommandRun>> = {
   compact: 'now',
 };
 
-/** The chat's permission, which Grimoire keeps and Claude Code changes only in a terminal. */
-const PERMISSIONS: AgentCommand = {
-  name: 'permissions',
-  description: 'Set what the agent may do without asking',
-  group: 'settings',
-  run: 'pick',
-  owner: 'mode',
-};
-
-/** Claude Code's commands and skills as the command palette lists them, with how each runs. */
+/** Claude Code's commands as the command palette lists them, with how each runs; not its skills. */
 export function catalog(source: CommandSource): AgentCommand[] {
   const seen = new Set<string>();
-  const listed = source.commands.flatMap((command): AgentCommand[] => {
+  return source.commands.flatMap((command): AgentCommand[] => {
     const { name, description, argumentHint } = command;
     // Names with two underscores are Claude Code's own plumbing; a name listed twice runs the first.
     if (name.startsWith('__') || seen.has(name)) return [];
     seen.add(name);
+    if (source.skills.has(name) || HIDDEN.has(name)) return [];
     const hint = argumentHint ? { argumentHint } : {};
-    if (source.skills.has(name))
-      return [{ name, description, ...hint, group: 'skills', run: 'compose' }];
-    if (HIDDEN.has(name)) return [];
     const owner = OWNERS[name];
     const choices = owner ? [] : choicesOf(name, argumentHint, source);
     return [
@@ -95,7 +84,6 @@ export function catalog(source: CommandSource): AgentCommand[] {
       },
     ];
   });
-  return [...listed, PERMISSIONS];
 }
 
 function runOf(

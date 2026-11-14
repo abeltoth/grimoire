@@ -8,7 +8,6 @@ const COMMANDS: AgentCommand[] = [
   { name: 'review', description: 'Review a pull request', group: 'chat', run: 'compose' },
   { name: 'usage', description: 'Show plan usage', group: 'reports', run: 'now' },
   { name: 'model', description: 'Set the model', group: 'settings', run: 'pick', owner: 'model' },
-  { name: 'commit', description: 'Commit the changes', group: 'skills', run: 'compose' },
 ];
 
 async function opened() {
@@ -36,25 +35,18 @@ describe('command-palette', () => {
 
     expect(texts('gr-command-palette h2')).toEqual(['Index']);
     expect(texts('gr-command-palette .runs-in')).toEqual(['Runs in a new chapter']);
-    expect(texts('gr-command-palette h3')).toEqual([
-      'Settings',
-      'Reports',
-      'This chapter',
-      'Claude Code’s skills',
-    ]);
+    expect(texts('gr-command-palette h3')).toEqual(['Settings', 'Reports', 'This chapter']);
     expect(texts('gr-command-palette .entry .label')).toEqual([
       '/model',
       '/usage',
       '/compact',
       '/review',
-      'commit',
     ]);
     expect(texts('gr-command-palette .entry .where')).toEqual([
       'choose ›',
       'run',
       'run',
       'write in',
-      'skill',
     ]);
     expect(document.activeElement).toBe(field);
 
@@ -87,7 +79,7 @@ describe('command-palette', () => {
     field.dispatchEvent(new Event('input'));
     await fixture.whenStable();
     expect(texts('gr-command-palette .entries .note')).toEqual([
-      'Nothing in Claude Code’s commands and skills matches “zzz”.',
+      'Nothing in Claude Code’s commands matches “zzz”.',
     ]);
     expect(texts('gr-command-palette .count')).toEqual(['0 entries']);
 
@@ -170,7 +162,7 @@ describe('command-palette', () => {
       { agent: 'claude-code' },
     ]);
     expect(texts('gr-command-palette .entries .note')).toEqual([
-      'Claude Code’s commands and skills couldn’t be listed: Claude Code is not installed',
+      'Claude Code’s commands couldn’t be listed: Claude Code is not installed',
     ]);
   });
 });

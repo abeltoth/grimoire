@@ -164,7 +164,7 @@ describe('second-chat', () => {
       expect(el.querySelector('#gr-next-message-beside')).toBe(field);
       expect(texts('gr-command-palette .entry .label')).toEqual(['/compact']);
       expect(texts('gr-composer .slash-hint')).toEqual([
-        'Claude Code’s commands and skills are on the facing page ←',
+        'Claude Code’s commands are on the facing page ←',
       ]);
       expect(texts('gr-command-palette .gr-link')[0]).toMatch(/^Back to the chapter/);
 

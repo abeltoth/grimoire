@@ -26,7 +26,7 @@ interface Section {
 }
 
 /**
- * The command palette: the chat's agent's commands and skills, by what
+ * The command palette: the chat's agent's commands, by what
  * they do, and its MCP servers. Turned to with its shortcut or its tab, it
  * searches in a field of its own; turned to by "/" at the start of a
  * message, you keep typing in the message, whose keys move through the list.
@@ -101,10 +101,10 @@ export class CommandPalette {
     const picking = this.commands.picking();
     if (picking) return `Nothing /${picking.name} takes matches “${this.query()}”.`;
     const all = this.commands.all();
-    if (!all) return `Asking ${name} for its commands and skills…`;
-    if ('error' in all) return `${name}’s commands and skills couldn’t be listed: ${all.error}`;
+    if (!all) return `Asking ${name} for its commands…`;
+    if ('error' in all) return `${name}’s commands couldn’t be listed: ${all.error}`;
     const written = this.typed() ? `/${this.query()}` : this.query();
-    return `Nothing in ${name}’s commands and skills matches “${written}”.`;
+    return `Nothing in ${name}’s commands matches “${written}”.`;
   });
 
   protected readonly shortcutCaps = computed(() => {
@@ -132,7 +132,6 @@ export class CommandPalette {
   protected where(entry: ListedEntry): { text: string; folder?: true } {
     if (entry.choice) return { text: entry.choice.current ? 'set now' : '' };
     const { command } = entry;
-    if (command.group === 'skills') return { text: 'skill' };
     const context = this.chat()?.context;
     if (command.name === 'compact' && context?.limit)
       return { text: `${Math.round((context.used / context.limit) * 100)}% used` };
@@ -168,8 +167,6 @@ export class CommandPalette {
         return 'Reports';
       case 'chat':
         return this.wording.say('This chapter', 'This chat');
-      case 'skills':
-        return `${this.agentName()}’s skills`;
     }
   }
 }

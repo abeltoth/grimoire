@@ -26,39 +26,22 @@ describe('catalog', () => {
       ['batch', 'chat', 'compose'],
       ['debug', 'chat', 'now'],
       ['config', 'settings', 'compose'],
-      ['permissions', 'settings', 'pick'],
     ]);
   });
 
-  it('writes skills in to finish, even one named as a command it hides', () => {
-    const listed = catalog({
-      commands: [command('review-pr', '<number>'), command('focus')],
-      skills: new Set(['review-pr', 'focus']),
-    });
-    expect(listed.slice(0, 2)).toEqual([
-      {
-        name: 'review-pr',
-        description: 'review-pr it',
-        argumentHint: '<number>',
-        group: 'skills',
-        run: 'compose',
-      },
-      { name: 'focus', description: 'focus it', group: 'skills', run: 'compose' },
-    ]);
-  });
-
-  it('leaves out plumbing, terminal-only commands and a name listed twice', () => {
+  it('leaves out plumbing, terminal-only commands, skills and a name listed twice', () => {
     const listed = catalog({
       commands: [
         command('__remote-workflow'),
         command('color', '[red|blue]'),
         command('mcp', '[reconnect|enable|disable [<server>|all]]'),
         command('init'),
-        command('init'),
+        command('usage'),
+        command('usage'),
       ],
-      skills: new Set(),
+      skills: new Set(['init']),
     });
-    expect(listed.map((c) => c.name)).toEqual(['init', 'permissions']);
+    expect(listed.map((c) => c.name)).toEqual(['usage']);
   });
 
   it('takes the choices from a hint of words, and the current ones where Claude Code says', () => {
@@ -81,7 +64,6 @@ describe('catalog', () => {
       ['fast', 'pick', [{ value: 'on', current: true }, { value: 'off' }]],
       ['output-style', 'pick', [{ value: 'default' }, { value: 'Concise', current: true }]],
       ['autocompact', 'compose', undefined],
-      ['permissions', 'pick', undefined],
     ]);
   });
 
@@ -100,7 +82,6 @@ describe('catalog', () => {
       ['effort', 'pick', 'effort', undefined],
       ['clear', 'now', 'new-chat', undefined],
       ['rename', 'now', 'rename', undefined],
-      ['permissions', 'pick', 'mode', undefined],
     ]);
   });
 });
