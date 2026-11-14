@@ -73,6 +73,31 @@ describe('Presets', () => {
       model: 'opus',
       effort: 'xhigh',
       mode: 'plan',
+      mcpOff: [],
+    });
+  });
+
+  it('keeps the MCP servers turned off with the preset, and gives a chat them', async () => {
+    const quiet: Preset = {
+      ...planning,
+      name: 'Quiet',
+      settings: { ...planning.settings, mcpOff: ['github', 'slack'] },
+    };
+    const { presets, calls } = await withPresets([planning, quiet]);
+    expect(presets.of(chat({ mode: 'plan', mcpOff: ['slack', 'github'] }))?.name).toBe('Quiet');
+    expect(presets.of(chat({ mode: 'plan', mcpOff: ['slack'] }))).toBeUndefined();
+    expect(presets.describe(quiet)).toBe('Claude Code · Plan only · 2 servers off');
+
+    await presets.save(chat({ mode: 'plan', mcpOff: ['slack', 'github'] }), 'Quiet');
+    expect(calls.filter((c) => c.command === 'presets.save').at(-1)?.request).toEqual(quiet);
+
+    const configure = vi.spyOn(TestBed.inject(ChatActions), 'configure').mockResolvedValue();
+    await presets.use(quiet, chat({}));
+    expect(configure).toHaveBeenCalledWith('chat-1', {
+      model: 'opus',
+      effort: 'xhigh',
+      mode: 'plan',
+      mcpOff: ['github', 'slack'],
     });
   });
 });

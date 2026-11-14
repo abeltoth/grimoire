@@ -1,0 +1,85 @@
+/* The settings card's headings and choices, shared with the MCP servers' list. */
+h3 {
+  margin: 0 0 var(--gr-card-column-head-gap);
+  font-family: var(--gr-font-sc);
+  font-weight: 500;
+  font-size: var(--gr-size-card-column-head);
+  letter-spacing: var(--gr-tracking-card-column-head);
+  color: var(--gr-ink-soft);
+}
+
+h3 i {
+  font-family: var(--gr-font-text);
+  font-weight: 400;
+  letter-spacing: 0;
+  font-size: var(--gr-size-card-column-note);
+}
+
+.choice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gr-card-choice-tick-gap);
+  padding: var(--gr-card-choice-pad);
+  margin-left: calc(var(--gr-card-choice-inset) * -1);
+  border-radius: var(--gr-radius-card-choice);
+  font-size: var(--gr-size-card-choice);
+  color: var(--gr-ink);
+  text-align: left;
+  line-height: var(--gr-leading-meta);
+}
+
+.choice:hover:not([aria-disabled]) {
+  background: var(--gr-card-choice-hover);
+}
+
+.choice gr-icon {
+  margin-top: var(--gr-card-tick-drop);
+  opacity: 0;
+  color: var(--gr-rubric);
+}
+
+.choice[aria-checked='true'] {
+  font-weight: 500;
+}
+
+.choice[aria-checked='true'] gr-icon {
+  opacity: 1;
+}
+
+/* A setting that stays as the chat began. */
+.choice[aria-disabled] {
+  color: var(--gr-ink-faint);
+  cursor: default;
+}
+
+.choice small {
+  display: block;
+  font-style: italic;
+  font-weight: 400;
+  font-size: var(--gr-size-card-detail);
+  color: var(--gr-ink-soft);
+  margin-top: var(--gr-card-detail-gap);
+}
+
+.choice code {
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-card-code);
+}
+
+.choice.action {
+  color: var(--gr-lapis);
+  font-style: italic;
+  font-size: var(--gr-size-card-action);
+}
+
+.choice.action[aria-disabled] {
+  color: var(--gr-ink-faint);
+}
+
+.none {
+  margin: 0;
+  font-style: italic;
+  font-size: var(--gr-size-card-aside);
+  color: var(--gr-ink-soft);
+  padding: var(--gr-card-none-pad);
+}

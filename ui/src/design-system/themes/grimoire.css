@@ -351,8 +351,12 @@
   --gr-size-card-column-note: 12.5px;
   --gr-card-choice-gap: 2px;
   --gr-card-choice-inset: 4px;
-  /* The strip of MCP servers under the columns: between its choices */
+  /* The MCP servers' line under the columns: between its parts */
   --gr-card-strip-gap: 18px;
+  /* Their list, opened under it */
+  --gr-card-mcp-list-height: 340px;
+  --gr-card-mcp-filter-width: 240px;
+  --gr-card-mcp-server-width: 280px;
   --gr-card-choice-pad: 5px 6px 5px 4px;
   --gr-card-choice-tick-gap: 8px;
   --gr-card-tick-drop: 2px;

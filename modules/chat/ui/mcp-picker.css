@@ -1,0 +1,106 @@
+/* The chat's MCP servers, on a line under the columns, their list opened under it. */
+:host {
+  display: block;
+  margin-top: var(--gr-card-columns-pad);
+  padding-top: var(--gr-card-columns-pad);
+  border-top: 1px solid var(--gr-hairline);
+}
+
+.summary {
+  display: flex;
+  align-items: baseline;
+  column-gap: var(--gr-card-strip-gap);
+}
+
+.summary h3 {
+  margin: 0;
+}
+
+:host(.open) .summary h3 {
+  color: var(--gr-rubric);
+}
+
+.count {
+  font-size: var(--gr-size-card-aside);
+  color: var(--gr-ink-soft);
+}
+
+.summary .choice {
+  margin-left: 0;
+}
+
+.list {
+  max-height: var(--gr-card-mcp-list-height);
+  overflow-y: auto;
+  margin-top: var(--gr-card-columns-pad);
+}
+
+.tools {
+  display: flex;
+  align-items: baseline;
+  column-gap: var(--gr-card-strip-gap);
+  margin-bottom: var(--gr-card-columns-pad);
+}
+
+.tools .choice {
+  margin-left: 0;
+}
+
+/* Written in pen, as a preset's name is. */
+.filter {
+  width: var(--gr-card-mcp-filter-width);
+  padding: 0;
+  border: 0;
+  border-bottom: var(--gr-rename-rule);
+  background: transparent;
+  font: inherit;
+  font-size: var(--gr-size-card-action);
+  color: var(--gr-pen);
+  caret-color: var(--gr-pen);
+  outline: none;
+}
+
+.filter::placeholder {
+  font-style: italic;
+  color: var(--gr-ink-placeholder);
+}
+
+section + section {
+  margin-top: var(--gr-card-columns-pad);
+}
+
+h4 {
+  margin: 0 0 var(--gr-card-column-head-gap);
+  font-family: var(--gr-font-sc);
+  font-weight: 400;
+  font-size: var(--gr-size-card-column-note);
+  letter-spacing: var(--gr-tracking-card-column-head);
+  color: var(--gr-ink-soft);
+}
+
+.servers {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--gr-card-mcp-server-width), 1fr));
+  column-gap: var(--gr-card-column-gap);
+  row-gap: var(--gr-card-choice-gap);
+}
+
+/* Its name, and what it costs at the far end of the row. */
+.server {
+  margin-left: 0;
+  min-width: 0;
+}
+
+.server .name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.server small {
+  margin-top: 0;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}

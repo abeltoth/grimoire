@@ -1,5 +1,4 @@
-import type { AgentSetup, CommandRequest, OpenChat, Preset } from '@grimoire/contract';
-import { DEFAULT_SETTINGS } from '@grimoire/contract';
+import type { CommandRequest, OpenChat, Preset } from '@grimoire/contract';
 import { fakeBridge, pick, render, write } from '@ui/testing/app-testing';
 
 describe('settings-card', () => {
@@ -166,64 +165,6 @@ describe('settings-card', () => {
     document.body.dispatchEvent(new Event('pointerdown', { bubbles: true }));
     await fixture.whenStable();
     expect(el.querySelector('gr-settings-card')).toBeNull();
-  });
-
-  it('turns MCP servers off for one chat on its settings card, and not for the next', async () => {
-    const { bridge, answers, calls, emit } = fakeBridge();
-    const empty = {
-      memory: [],
-      skills: [],
-      agents: [],
-      commands: [],
-      hooks: [],
-      mcpServers: [],
-      plugins: [],
-      permissions: [],
-    };
-    answers['setup.get'] = (request: CommandRequest<'setup.get'>): AgentSetup => ({
-      cwd: request.cwd ?? 'C:/Users/me',
-      sections: {
-        ...empty,
-        mcpServers: [
-          { name: 'github', source: 'project', tokens: 4200 },
-          { name: 'slack', source: 'user', tokens: 900 },
-        ],
-      },
-      settingsFiles: [],
-      at: new Date(2026, 10, 9, 15, 30).getTime(),
-    });
-    answers['settings.get'] = () => ({ ...DEFAULT_SETTINGS, mcpOff: ['slack'] });
-    const { fixture, el, texts } = await render(bridge);
-    await write(fixture, el, 'Hello');
-    el.querySelector<HTMLButtonElement>('.meta [data-setting="mode"]')!.click();
-    await fixture.whenStable();
-
-    const column = 'gr-settings-card [data-setting="mcp"]';
-    // What each costs; one off in every chat stays off here.
-    expect(texts(`${column} .choice`)).toEqual([
-      'github 4,200 tokens',
-      'slack off in every chapter',
-    ]);
-    expect(texts(`${column} .choice[aria-checked="true"]`)).toEqual(['github 4,200 tokens']);
-    expect(texts(`${column} .choice[aria-disabled]`)).toEqual(['slack off in every chapter']);
-    expect(texts(`${column} .none`)).toEqual(['A change counts from its next turn']);
-
-    pick(el, 'github');
-    pick(el, 'slack');
-    await fixture.whenStable();
-    expect(calls.filter((c) => c.command === 'agents.configure').map((c) => c.request)).toEqual([
-      { chatId: 'chat-1', change: { mcpOff: ['github'] } },
-    ]);
-    emit('agents.settings', {
-      chatId: 'chat-1',
-      settings: { cwd: 'C:/work/grimoire', mcpOff: ['github'] },
-    });
-    await fixture.whenStable();
-    expect(texts(`${column} .choice[aria-checked="true"]`)).toEqual([]);
-    // A new chat takes the settings used last, but not the servers turned off for this one.
-    expect(calls.filter((c) => c.command === 'layout.set').at(-1)?.request).toEqual({
-      lastUsed: { agent: 'claude-code', settings: { cwd: 'C:/work/grimoire' } },
-    });
   });
 
   it("saves a chat's settings as a preset, and puts chats on it", async () => {

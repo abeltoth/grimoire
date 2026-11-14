@@ -27,7 +27,10 @@ export class Presets {
     return this.list.load();
   }
 
-  /** Saves the chat's settings under a name, spelled out: its folder, model, effort and permission. */
+  /**
+   * Saves the chat's settings under a name, spelled out: its folder, model,
+   * effort, permission and the MCP servers turned off for it.
+   */
   async save(chat: Chat, name: string): Promise<void> {
     const named = name.trim();
     if (!named) return;
@@ -71,23 +74,32 @@ export class Presets {
       ...(model ? { model } : {}),
       ...(effort ? { effort } : {}),
       ...(mode ? { mode } : {}),
+      // A preset with none off turns on those the chat had off.
+      mcpOff: [...(preset.settings.mcpOff ?? [])],
     });
   }
 
-  /** What the preset begins with, in a few words: "Claude Code · Plan only". */
+  /** What the preset begins with, in a few words: "Claude Code · Plan only · 2 servers off". */
   describe(preset: Preset): string {
-    return `${this.catalog.agentName(preset.agent)} · ${modeName(preset.settings.mode)}`;
+    const off = preset.settings.mcpOff?.length ?? 0;
+    return [
+      this.catalog.agentName(preset.agent),
+      modeName(preset.settings.mode),
+      ...(off ? [`${off} ${off === 1 ? 'server' : 'servers'} off`] : []),
+    ].join(' · ');
   }
 
   /**
    * Settings with the defaults written in: your home folder, the agent's
-   * default model, the effort it runs at when known, Ask first.
+   * default model, the effort it runs at when known, Ask first, the MCP
+   * servers off in order.
    */
   private spelledOut(agent: AgentId, settings: NewChatSettings): NewChatSettings {
     const cwd = settings.cwd ?? this.catalog.folders().home;
+    const mcpOff = settings.mcpOff?.length ? { mcpOff: [...settings.mcpOff].sort() } : {};
     // On Auto, the model and effort are picked for the first message.
     if (settings.autoModel)
-      return { ...(cwd ? { cwd } : {}), autoModel: true, mode: settings.mode ?? 'ask' };
+      return { ...(cwd ? { cwd } : {}), autoModel: true, mode: settings.mode ?? 'ask', ...mcpOff };
     const model = settings.model ?? this.catalog.models()[agent]?.default;
     const { level: effort } = this.catalog.effortOf(agent, {
       ...settings,
@@ -98,6 +110,7 @@ export class Presets {
       ...(model ? { model } : {}),
       ...(effort ? { effort } : {}),
       mode: settings.mode ?? 'ask',
+      ...mcpOff,
     };
   }
 }
@@ -108,6 +121,7 @@ function same(a: NewChatSettings, b: NewChatSettings): boolean {
     !!a.autoModel === !!b.autoModel &&
     a.model === b.model &&
     a.effort === b.effort &&
-    a.mode === b.mode
+    a.mode === b.mode &&
+    (a.mcpOff ?? []).join('\n') === (b.mcpOff ?? []).join('\n')
   );
 }

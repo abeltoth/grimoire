@@ -1,0 +1,75 @@
+<div class="summary">
+  <h3>MCP servers <i>on here</i></h3>
+  @if (servers(); as servers) {
+    @if (servers.length) {
+      <span class="count">{{ summary() }}</span>
+      <button
+        type="button"
+        class="choice action"
+        aria-controls="gr-mcp-list"
+        [attr.aria-expanded]="open()"
+        (click)="toggleOpen()"
+      >
+        {{ open() ? 'Done' : 'Choose…' }}
+      </button>
+    } @else {
+      <p class="none">{{ agentName() }} loads none here</p>
+    }
+  } @else {
+    <p class="none">Asking {{ agentName() }}…</p>
+  }
+</div>
+
+@if (open()) {
+  <div class="list" id="gr-mcp-list">
+    <div class="tools">
+      <input
+        #filter
+        class="filter"
+        type="search"
+        aria-label="Find an MCP server"
+        placeholder="Find a server"
+        autocomplete="off"
+        [value]="query()"
+        (input)="query.set(filter.value)"
+        (keydown.escape)="close($event)"
+      />
+      <button type="button" class="choice action" (click)="setAll(true)">
+        {{ filtered() ? 'These on' : 'All on' }}
+      </button>
+      <button type="button" class="choice action" (click)="setAll(false)">
+        {{ filtered() ? 'These off' : 'All off' }}
+      </button>
+    </div>
+    @for (group of groups(); track group.label) {
+      <section role="group" [attr.aria-label]="group.label">
+        <h4>{{ group.label }}</h4>
+        <div class="servers">
+          @for (server of group.servers; track server.name) {
+            <button
+              type="button"
+              class="choice server"
+              role="checkbox"
+              [attr.aria-checked]="server.on"
+              [attr.aria-disabled]="server.everywhere || null"
+              (click)="toggle(server)"
+            >
+              <gr-icon name="check" />
+              <span class="name">{{ server.name }}</span>
+              <small>{{
+                server.everywhere
+                  ? wording.say('off in every chapter', 'off in every chat')
+                  : tokenCount(server.tokens)
+              }}</small>
+            </button>
+          }
+        </div>
+      </section>
+    } @empty {
+      <p class="none">No server called that</p>
+    }
+    @if (begun()) {
+      <p class="none">A change counts from its next turn</p>
+    }
+  </div>
+}
