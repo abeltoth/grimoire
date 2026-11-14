@@ -132,7 +132,7 @@ export class ClaudeAdapter implements AgentAdapter {
 
   async compaction(model: string, cwd: string): Promise<CompactionSettings> {
     const { enabled, max, reserve } = await measureCompaction(model, cwd);
-    const window = windowSet(model);
+    const window = windowSet(model, cwd);
     return {
       enabled,
       ...(window !== undefined ? { window } : {}),
@@ -142,8 +142,8 @@ export class ClaudeAdapter implements AgentAdapter {
     };
   }
 
-  async setCompaction(model: string, change: CompactionChange): Promise<void> {
-    saveCompaction(model, change);
+  async setCompaction(model: string, change: CompactionChange, cwd: string): Promise<void> {
+    saveCompaction(model, change, cwd);
   }
 
   /**

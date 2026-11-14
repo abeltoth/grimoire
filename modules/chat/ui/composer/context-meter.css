@@ -12,7 +12,7 @@
   color: var(--gr-ink-soft);
 }
 
-.gauge:hover,
+.gauge:not(.fixed):hover,
 .gauge[aria-expanded='true'] {
   background: var(--gr-allowance-hover);
 }

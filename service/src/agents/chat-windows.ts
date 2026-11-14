@@ -25,11 +25,13 @@ export class ChatWindows {
     const same =
       before?.model === context.model &&
       before.limit === context.limit &&
-      before.compactsAt === context.compactsAt;
+      before.compactsAt === context.compactsAt &&
+      before.fixed === context.fixed;
     if (same) return;
     this.store.put(chat.agent.info.id, context.model, {
       limit: context.limit,
       ...(context.compactsAt ? { compactsAt: context.compactsAt } : {}),
+      ...(context.fixed ? { fixed: context.fixed } : {}),
     });
   }
 

@@ -31,7 +31,7 @@ export class Compaction {
     const adapter = chat.agent;
     if (!model || !adapter.setCompaction)
       throw new Error("This chat's compaction can't be changed yet");
-    await adapter.setCompaction(model, change);
+    await adapter.setCompaction(model, change, chat.settings.cwd);
     const touched = [...this.table.chats.values()].filter(
       (open) =>
         open.agent === adapter && (change.enabled !== undefined || open.context?.model === model),

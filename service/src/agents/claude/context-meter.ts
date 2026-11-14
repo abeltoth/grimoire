@@ -1,5 +1,6 @@
 import type { SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
 import type { ContextUsage, ContextWindow } from '@grimoire/contract';
+import { fixedBy } from './compaction-settings';
 import { MessageQueue } from './message-queue';
 import { claudeEnv, sdk } from './probe';
 
@@ -12,10 +13,17 @@ export interface MeasuredContext {
   model?: string;
 }
 
-/** The window Claude Code measured: its size, and where it compacts when it does. */
-export function windowOf(usage: MeasuredContext): ContextWindow {
+/** The window Claude Code measured: its size, where it compacts when it does, and what fixes it. */
+export function windowOf(
+  usage: MeasuredContext,
+  fixed = fixedBy(usage.model ?? ''),
+): ContextWindow {
   const compactsAt = usage.isAutoCompactEnabled ? usage.autoCompactThreshold : undefined;
-  return { limit: usage.rawMaxTokens, ...(compactsAt ? { compactsAt } : {}) };
+  return {
+    limit: usage.rawMaxTokens,
+    ...(compactsAt ? { compactsAt } : {}),
+    ...(fixed ? { fixed } : {}),
+  };
 }
 
 /**

@@ -19,7 +19,7 @@ describe('database', () => {
     migrate(db, 'one', [...first, 'ALTER TABLE a ADD COLUMN y TEXT']);
     migrate(db, 'two', ['CREATE TABLE b (x TEXT)']);
     expect(db.prepare('SELECT owner, version FROM schema_versions ORDER BY owner').all()).toEqual([
-      { owner: 'core', version: 5 },
+      { owner: 'core', version: 6 },
       { owner: 'one', version: 2 },
       { owner: 'two', version: 1 },
     ]);

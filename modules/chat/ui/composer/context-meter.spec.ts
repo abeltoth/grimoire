@@ -39,6 +39,23 @@ describe('context meter', () => {
     expect(el.querySelector<HTMLElement>('.allowance .used')!.style.width).toBe('100%');
   });
 
+  it("doesn't open when something it can't change fixes the window, and says what", async () => {
+    const { bridge, emit } = fakeBridge();
+    const { fixture, el } = await render(bridge);
+    await write(fixture, el, 'Add the meter');
+    const fixed = 'CLAUDE_CODE_AUTO_COMPACT_WINDOW';
+    emit('agents.context', { chatId: 'chat-1', context: { used: 9_000, limit: 200_000, fixed } });
+    await fixture.whenStable();
+    const gauge = el.querySelector<HTMLButtonElement>('.allowance .gauge')!;
+    gauge.click();
+    await fixture.whenStable();
+    expect(el.querySelector('gr-compaction-card')).toBeNull();
+    expect(gauge.getAttribute('aria-haspopup')).toBeNull();
+    expect(gauge.getAttribute('title')).toBe(
+      '9,000 of 200,000 tokens\nSet by CLAUDE_CODE_AUTO_COMPACT_WINDOW, so it can’t be changed here',
+    );
+  });
+
   it('opens and closes how the agent compacts the chat', async () => {
     const { bridge, emit, answers } = fakeBridge();
     answers['agents.compaction'] = () => null;

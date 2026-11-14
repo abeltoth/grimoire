@@ -1,9 +1,9 @@
 import { readFileSync, renameSync, writeFileSync } from 'node:fs';
-import path from 'node:path';
 import type { SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
 import type { CompactionChange, CompactionWindow } from '@grimoire/contract';
 import { claudeHome } from './config-dir';
 import { canonicalModel } from './effort';
+import { managedSettingsPath, settingsFilesIn } from './settings-files';
 import { MessageQueue } from './message-queue';
 import { claudeEnv, sdk } from './probe';
 
@@ -24,46 +24,119 @@ type Settings = Record<string, unknown> & {
   modelSettings?: Record<string, Record<string, unknown> | undefined>;
 };
 
-const settingsFile = (home: string) => path.join(home, 'settings.json');
+/** What sets the window when an environment variable does: ahead of every settings file. */
+const WINDOW_VARIABLE = 'CLAUDE_CODE_AUTO_COMPACT_WINDOW';
 
-function read(home: string): Settings {
+function read(file: string): Settings {
   try {
-    const settings: unknown = JSON.parse(readFileSync(settingsFile(home), 'utf8'));
+    const settings: unknown = JSON.parse(readFileSync(file, 'utf8'));
     return typeof settings === 'object' && settings !== null ? (settings as Settings) : {};
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return {};
     // A file that can't be read isn't overwritten: what's in it would be lost.
-    throw new Error(`Can't read Claude Code's settings: ${(error as Error).message}`);
+    throw new Error(`Can't read ${file}: ${(error as Error).message}`);
   }
 }
 
-/** The compaction window your user settings give the model: its own, else every model's. */
-export function windowSet(model: string, home = claudeHome()): CompactionWindow | undefined {
-  let settings: Settings;
-  try {
-    settings = read(home);
-  } catch {
-    return undefined;
-  }
-  const own = settings.modelSettings?.[canonicalModel(model)]?.['autoCompactWindow'];
-  const value = own ?? settings['autoCompactWindow'];
+/** The window a settings file gives the model: its own, else every model's. */
+function windowIn(settings: Settings, model: string): unknown {
+  return (
+    settings.modelSettings?.[canonicalModel(model)]?.['autoCompactWindow'] ??
+    settings['autoCompactWindow']
+  );
+}
+
+/** The settings files in the folder a change can be saved in, the one Claude Code reads first first. */
+function changeable(cwd: string, home: string): string[] {
+  return settingsFilesIn(cwd, home, process.platform)
+    .filter((file) => file.source !== 'managed')
+    .map((file) => file.path)
+    .reverse();
+}
+
+/** The file Claude Code takes a setting from in the folder, or your user settings when none sets it. */
+function fileSetting(cwd: string, home: string, sets: (settings: Settings) => boolean): string {
+  const files = changeable(cwd, home);
+  const setting = files.find((file) => {
+    try {
+      return sets(read(file));
+    } catch {
+      return false;
+    }
+  });
+  return setting ?? files.at(-1)!;
+}
+
+/** The compaction window the folder's settings give the model, as Claude Code takes it. */
+export function windowSet(
+  model: string,
+  cwd: string,
+  home = claudeHome(),
+): CompactionWindow | undefined {
+  const value = windowIn(
+    read(fileSetting(cwd, home, (s) => windowIn(s, model) !== undefined)),
+    model,
+  );
   return value === 'auto' || typeof value === 'number' ? value : undefined;
 }
 
 /**
- * Saves a change to compaction in your user settings, as Claude Code's
- * /autocompact does: the window under the model's canonical name, whether
- * it compacts at all for every model. The rest of the file stays.
+ * What sets the model's window ahead of the settings files a change can be
+ * saved in: an environment variable, or the machine's managed settings.
+ * Undefined when nothing does.
  */
-export function saveCompaction(model: string, change: CompactionChange, home = claudeHome()): void {
-  const settings = read(home);
-  if (change.window !== undefined) {
-    const key = canonicalModel(model);
-    const models = (settings.modelSettings ??= {});
-    models[key] = { ...models[key], autoCompactWindow: change.window };
+export function fixedBy(
+  model: string,
+  env: NodeJS.ProcessEnv = process.env,
+  platform: NodeJS.Platform = process.platform,
+): string | undefined {
+  if (env[WINDOW_VARIABLE]) return WINDOW_VARIABLE;
+  try {
+    if (windowIn(read(managedSettingsPath(platform)), model) !== undefined)
+      return 'your organization’s managed settings';
+  } catch {
+    // Managed settings that can't be read set nothing.
   }
-  if (change.enabled !== undefined) settings['autoCompactEnabled'] = change.enabled;
-  const file = settingsFile(home);
+  return undefined;
+}
+
+/**
+ * Saves a change to compaction where Claude Code takes it from in the
+ * folder: the file that sets it already, else your user settings. The
+ * window goes under the model's canonical name, as /autocompact saves it;
+ * whether it compacts at all is for every model. The rest stays.
+ */
+export function saveCompaction(
+  model: string,
+  change: CompactionChange,
+  cwd: string,
+  home = claudeHome(),
+): void {
+  if (change.window !== undefined) {
+    const window = change.window;
+    update(
+      fileSetting(cwd, home, (s) => windowIn(s, model) !== undefined),
+      (settings) => {
+        const key = canonicalModel(model);
+        const models = (settings.modelSettings ??= {});
+        models[key] = { ...models[key], autoCompactWindow: window };
+      },
+    );
+  }
+  if (change.enabled !== undefined) {
+    const enabled = change.enabled;
+    update(
+      fileSetting(cwd, home, (s) => s['autoCompactEnabled'] !== undefined),
+      (settings) => {
+        settings['autoCompactEnabled'] = enabled;
+      },
+    );
+  }
+}
+
+function update(file: string, change: (settings: Settings) => void): void {
+  const settings = read(file);
+  change(settings);
   // Written whole, then moved over the old one, so Claude Code never reads half a file.
   writeFileSync(`${file}.tmp`, `${JSON.stringify(settings, null, 2)}\n`, 'utf8');
   renameSync(`${file}.tmp`, file);

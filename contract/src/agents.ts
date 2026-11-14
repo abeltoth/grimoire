@@ -104,10 +104,12 @@ export interface ContextUsage {
   compactsAt?: number;
   /** The model whose window this is, when the agent says. */
   model?: string;
+  /** What sets the window where Grimoire can't change it, such as an environment variable. */
+  fixed?: string;
 }
 
 /** A model's context window: its size, and where the agent compacts a chat by itself. */
-export type ContextWindow = Pick<ContextUsage, 'limit' | 'compactsAt'>;
+export type ContextWindow = Pick<ContextUsage, 'limit' | 'compactsAt' | 'fixed'>;
 
 /** A compaction window as the agent's settings take it: in tokens, or 'auto' for the agent's own. */
 export type CompactionWindow = number | 'auto';

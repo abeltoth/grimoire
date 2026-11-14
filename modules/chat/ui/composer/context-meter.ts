@@ -36,13 +36,22 @@ export class ContextMeter {
     () => `${tokenCount(this.context().used)} / ${tokenCount(this.range())}`,
   );
 
+  /** Why the window can't be changed here, when something Grimoire can't change sets it. */
+  private readonly why = computed(() => {
+    const fixed = this.context().fixed;
+    return fixed ? `Set by ${fixed}, so it can’t be changed here` : '';
+  });
+
   protected readonly label = computed(
-    () => `Context window: ${this.share()}% used, ${this.count()}. Change how it compacts`,
+    () =>
+      `Context window: ${this.share()}% used, ${this.count()}. ` +
+      (this.why() || 'Change how it compacts'),
   );
 
   protected readonly detail = computed(() => {
     const { used, limit, compactsAt } = this.context();
     const filled = `${used.toLocaleString()} of ${limit.toLocaleString()} tokens`;
-    return compactsAt ? `${filled}; compacts at ${compactsAt.toLocaleString()}` : filled;
+    const measured = compactsAt ? `${filled}; compacts at ${compactsAt.toLocaleString()}` : filled;
+    return this.why() ? `${measured}\n${this.why()}` : measured;
   });
 }

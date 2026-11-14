@@ -2,11 +2,12 @@
   #gauge
   type="button"
   class="gauge"
-  aria-haspopup="dialog"
-  [attr.aria-expanded]="open()"
+  [class.fixed]="!!context().fixed"
+  [attr.aria-haspopup]="context().fixed ? null : 'dialog'"
+  [attr.aria-expanded]="context().fixed ? null : open()"
   [attr.aria-label]="label()"
   [attr.title]="detail()"
-  (click)="open.set(!open())"
+  (click)="context().fixed || open.set(!open())"
 >
   <span class="ticks" aria-hidden="true">
     <span class="used" [style.width.%]="share() > 100 ? 100 : share()"></span>
@@ -17,7 +18,7 @@
     <span>{{ wording.say('of the chapter’s page allowance', 'of the context window') }}</span>
   }
 </button>
-@if (open()) {
+@if (open() && !context().fixed) {
   <gr-compaction-card
     [chatId]="chatId()"
     [agent]="agent()"

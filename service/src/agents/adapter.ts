@@ -66,10 +66,11 @@ export interface AgentAdapter {
    */
   compaction?(model: string, cwd: string): Promise<CompactionSettings>;
   /**
-   * Saves a change to compaction in your settings; agent processes started
-   * afterwards take it. Agents that can't leave it out.
+   * Saves a change to compaction in your settings, where the agent takes it
+   * from in the folder; agent processes started afterwards take it. Agents
+   * that can't leave it out.
    */
-  setCompaction?(model: string, change: CompactionChange): Promise<void>;
+  setCompaction?(model: string, change: CompactionChange, cwd: string): Promise<void>;
   /**
    * The model and effort for a new chat on Auto, picked for its first
    * entry; undefined when the agent can't say. Agents that can't pick leave it out.

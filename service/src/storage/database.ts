@@ -101,6 +101,8 @@ const CORE_MIGRATIONS = [
      compacts_at INTEGER,
      PRIMARY KEY (agent, model)
    );`,
+  // What fixes a model's window where Grimoire can't change it.
+  `ALTER TABLE context_windows ADD COLUMN fixed TEXT;`,
 ];
 
 /**
