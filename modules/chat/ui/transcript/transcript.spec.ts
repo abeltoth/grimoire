@@ -314,14 +314,14 @@ describe('transcript', () => {
       entry: { kind: 'compaction', id: 'c1', running: true, at: now - 12_000 },
     });
     await fixture.whenStable();
-    expect(texts('.compaction')).toEqual(['Summing the chapter up… 12s']);
+    expect(texts('.compaction')).toEqual(['Compacting the chat… 12s']);
 
     emit('agents.entry', {
       chatId: 'chat-1',
       entry: { kind: 'compaction', id: 'c1', before: 92_000 },
     });
     await fixture.whenStable();
-    expect(texts('.compaction')).toEqual([expect.stringContaining('Chapter summed up')]);
+    expect(texts('.compaction')).toEqual([expect.stringContaining('Chat compacted')]);
   });
 
   it("opens a compaction's summary, and puts it away", async () => {
