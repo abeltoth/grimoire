@@ -8,6 +8,7 @@ export default defineConfig({
       'contract/src/**/*.test.ts',
       'service/src/**/*.test.ts',
       'modules/*/service/**/*.test.ts',
+      'extra-modules/*.test.ts',
       'app/src/**/*.test.ts',
       'ui/tools/**/*.test.ts',
       '.claude/hooks/*.test.ts',

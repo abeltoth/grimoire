@@ -3,5 +3,10 @@
   "compilerOptions": {
     "types": ["node"]
   },
-  "include": ["src", "../modules/*/service", "../modules/*/contract.ts"]
+  "include": [
+    "src",
+    "../modules/*/service",
+    "../modules/*/contract.ts",
+    "../extra-modules/*.test.ts"
+  ]
 }

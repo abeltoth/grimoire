@@ -11,6 +11,8 @@
 - Code uses plain names; book names appear only in UI text, through `Wording`.
 - Comments explain why, in one sentence, with no history (git log keeps that).
 - `ADR.md` records decisions; it is not a changelog.
+- Nothing pro goes in this repo: pro modules, their styles and their registrations live in the
+  private repo.
 - Tests never read the real clock.
 - `npm run check` must pass before a commit.
 
