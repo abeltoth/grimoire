@@ -373,7 +373,7 @@ describe('composer', () => {
     answers['agents.commands'] = () => [
       { name: 'compact', description: 'Free up context', kind: 'command' },
     ];
-    const { fixture, el, texts } = await render(bridge);
+    const { fixture, el } = await render(bridge);
     await write(fixture, el, 'First');
     const field = el.querySelector<HTMLTextAreaElement>('#gr-next-message')!;
     const type = async (text: string) => {
@@ -397,14 +397,12 @@ describe('composer', () => {
     emit('agents.status', { chatId: 'chat-1', status: 'idle' });
     await fixture.whenStable();
     expect(field.placeholder).toBe('Run the tests');
-    expect(texts('gr-composer .suggestion-hint')).toEqual(['Tab to write it in']);
 
     await press('Enter');
     expect(sends()).toEqual([]);
     await press('Tab');
     expect(field.value).toBe('Run the tests');
     expect(field.placeholder).toBe('Write the next entry…');
-    expect(texts('gr-composer .suggestion-hint')).toEqual([]);
     await press('Enter');
     expect(sends().map((c) => c.request)).toEqual([{ chatId: 'chat-1', text: 'Run the tests' }]);
 
@@ -447,6 +445,5 @@ describe('composer', () => {
     await fixture.whenStable();
     const back = el.querySelector<HTMLTextAreaElement>('#gr-next-message')!;
     expect(back.placeholder).toBe('Write the next entry…');
-    expect(texts('gr-composer .suggestion-hint')).toEqual([]);
   });
 });
