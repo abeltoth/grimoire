@@ -183,3 +183,15 @@ subscription                  session files
 - The core takes modules from outside its repo through one package, `@grimoire/extra-modules`, which the public repo leaves empty and the private repo replaces.
 
 **Consequences:** the contract and the service's declared surface are an API the pro modules depend on.
+
+## Modules run the agent unseen through jobs
+
+**Context:** Some features need the agent to do real work in a folder, with its tools and your setup, such as running one of its own commands, without a chat showing up or a session being kept. A quick job has no tools, and a chat is seen and saved.
+
+**Decision:**
+- An agent runs a task unseen through the optional `job` of `AgentAdapter`: one message, in a folder, on the model, effort and permission the caller gives, with nothing saved. It reports what it has spent as it goes and ends with its last answer, its tokens and its version. An agent that can do it says so with the `job` capability; one that can't leaves it out.
+- Modules run jobs through the hub, never an agent directly.
+
+**Consequences:**
+- A job spends tokens like a chat, so a feature that runs jobs shows what it will cost and runs them only when you ask.
+- Jobs don't appear in the History, and an agent's own reports on past sessions don't see them.

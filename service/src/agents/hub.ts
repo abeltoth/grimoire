@@ -23,11 +23,12 @@ import type {
   RecentFolders,
   SettingsChange,
   SubagentRun,
+  TokenUse,
 } from '@grimoire/contract';
 import type { Emit } from '../events';
 import { openDatabase } from '../storage/database';
 import { Accounts } from './accounts';
-import type { AgentAdapter } from './adapter';
+import type { AgentAdapter, JobRequest, JobResult } from './adapter';
 import { Approvals } from './approvals';
 import { ChatRuns } from './chat-runs';
 import { type ChatState, ChatTable, hubStore } from './chat-table';
@@ -120,6 +121,18 @@ export class AgentHub {
     const adapter = this.table.adapter(agent);
     if (!adapter.ask) return Promise.reject(new Error(`${adapter.info.name} can't answer prompts`));
     return adapter.ask(instructions, text, signal);
+  }
+
+  /** Runs a task unseen, with nothing saved; rejects when the agent can't. */
+  job(
+    agent: AgentId,
+    request: JobRequest,
+    progress: (uses: TokenUse[]) => void,
+    signal: AbortSignal,
+  ): Promise<JobResult> {
+    const adapter = this.table.adapter(agent);
+    if (!adapter.job) return Promise.reject(new Error(`${adapter.info.name} can't run jobs`));
+    return adapter.job(request, progress, signal);
   }
 
   /** The agent's commands and skills in a folder; none when it has no such thing. */

@@ -352,4 +352,35 @@ describe('AgentHub', () => {
       "Mute agent can't answer prompts",
     );
   });
+
+  it('runs a job on the agent, and refuses for an agent that can’t run one', async () => {
+    const use = {
+      model: 'big',
+      input: 1,
+      cacheWritten: 0,
+      cacheWrittenLong: 0,
+      cacheRead: 0,
+      output: 2,
+    };
+    fake.jobAnswer = async (request, progress) => {
+      progress([use]);
+      return { text: `Ran ${request.text}`, tokens: [use] };
+    };
+    const seen: unknown[] = [];
+    const request = { cwd: '/work', text: '/doctor', mode: 'plan' as const };
+    const signal = new AbortController().signal;
+    expect(await hub.job('fake', request, (uses) => seen.push(uses), signal)).toEqual({
+      text: 'Ran /doctor',
+      tokens: [use],
+    });
+    expect(fake.jobs).toEqual([request]);
+    expect(seen).toEqual([[use]]);
+
+    const mute: AgentAdapter = new FakeAdapter();
+    Object.assign(mute, { job: undefined, info: { ...mute.info, id: 'mute', name: 'Mute agent' } });
+    hub.addAdapter(mute);
+    await expect(hub.job('mute', request, () => {}, signal)).rejects.toThrow(
+      "Mute agent can't run jobs",
+    );
+  });
 });

@@ -13,8 +13,16 @@ import type {
   PlanStep,
   PromptCache,
   SettingsChange,
+  TokenUse,
 } from '@grimoire/contract';
-import type { AgentAdapter, ChatEvents, ChatHistory, LiveChat } from './adapter';
+import type {
+  AgentAdapter,
+  ChatEvents,
+  ChatHistory,
+  JobRequest,
+  JobResult,
+  LiveChat,
+} from './adapter';
 
 /** A run of the fake agent, which a test drives through `events`. */
 export interface FakeRun {
@@ -105,6 +113,24 @@ export class FakeAdapter implements AgentAdapter {
   async ask(instructions: string, text: string): Promise<string> {
     this.asked.push({ instructions, text });
     return this.answer(instructions, text);
+  }
+
+  /** The jobs run, in order. */
+  readonly jobs: JobRequest[] = [];
+  /** How a job goes: it may report progress, and it ends as the promise it gives does. */
+  jobAnswer: (
+    request: JobRequest,
+    progress: (uses: TokenUse[]) => void,
+    signal: AbortSignal,
+  ) => Promise<JobResult> = async () => ({ text: '', tokens: [] });
+
+  job(
+    request: JobRequest,
+    progress: (uses: TokenUse[]) => void,
+    signal: AbortSignal,
+  ): Promise<JobResult> {
+    this.jobs.push(structuredClone(request));
+    return this.jobAnswer(request, progress, signal);
   }
 
   async models(): Promise<AgentModels> {

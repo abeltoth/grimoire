@@ -12,8 +12,17 @@ import type {
   Attachment,
   SubagentRun,
   SubagentStats,
+  TokenUse,
 } from '@grimoire/contract';
-import type { AgentAdapter, ChatEvents, ChatHistory, LiveChat, SignInRun } from '../adapter';
+import type {
+  AgentAdapter,
+  ChatEvents,
+  ChatHistory,
+  JobRequest,
+  JobResult,
+  LiveChat,
+  SignInRun,
+} from '../adapter';
 import type { AgentTool } from '../tools';
 import { AUTO_PROMPT, autoPick, messageForRater } from './auto-model';
 import {
@@ -28,6 +37,7 @@ import {
 } from './drive';
 import { readUserSettings } from './effort';
 import { FollowUpsKept } from './follow-ups';
+import { runJob } from './job';
 import { GRIMOIRE_SERVER, ProcessChat, grimoireOptions } from './grimoire-tools';
 import { mcpOff, mcpSettings } from './mcp';
 import { MessageQueue } from './message-queue';
@@ -80,7 +90,7 @@ export class ClaudeAdapter implements AgentAdapter {
   readonly info: AgentInfo = {
     id: 'claude-code',
     name: 'Claude Code',
-    capabilities: ['rename', 'fork', 'undo', 'compact', 'sign-in', 'ask'],
+    capabilities: ['rename', 'fork', 'undo', 'compact', 'sign-in', 'ask', 'job'],
   };
 
   listChats(cwd?: string): Promise<ChatSummary[]> {
@@ -142,6 +152,14 @@ export class ClaudeAdapter implements AgentAdapter {
 
   ask(instructions: string, text: string, signal: AbortSignal): Promise<string> {
     return rate(instructions, text, this.quickModel(), signal);
+  }
+
+  job(
+    request: JobRequest,
+    progress: (uses: TokenUse[]) => void,
+    signal: AbortSignal,
+  ): Promise<JobResult> {
+    return runJob(request, progress, signal);
   }
 
   /** The model for quick jobs: the one Settings names, else the one Claude Code recommends. */

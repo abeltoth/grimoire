@@ -6,11 +6,13 @@ import type {
   Answer,
   Approval,
   ApprovalDecision,
+  ApprovalMode,
   ChatId,
   ChatSettings,
   ChatStatus,
   ChatSummary,
   ContextUsage,
+  EffortLevel,
   PromptCache,
   Attachment,
   Entry,
@@ -61,6 +63,16 @@ export interface AgentAdapter {
    * yours loaded, nothing saved. Agents that can't leave it out.
    */
   ask?(instructions: string, text: string, signal: AbortSignal): Promise<string>;
+  /**
+   * Runs a task unseen in a folder, with the agent's tools and your setup
+   * as a chat has them, but nothing saved and no chat shown; `progress` gets
+   * what it has spent so far after each reply. Agents that can't leave it out.
+   */
+  job?(
+    request: JobRequest,
+    progress: (uses: TokenUse[]) => void,
+    signal: AbortSignal,
+  ): Promise<JobResult>;
   /** The commands and skills you can use in a folder. Agents without them leave it out. */
   commands?(cwd: string): Promise<AgentCommand[]>;
   /** Who the agent is signed in as; null while it's signed out. Agents that can't switch accounts leave it out. */
@@ -100,6 +112,27 @@ export interface AgentAdapter {
   warm?(): void;
   /** Stops any spare process, for when the service stops. */
   dispose?(): void;
+}
+
+/** A task run unseen: its one message, where, on which model, and with what permission. */
+export interface JobRequest {
+  cwd: string;
+  text: string;
+  model?: string;
+  effort?: EffortLevel;
+  mode: ApprovalMode;
+}
+
+/** How a job ended. */
+export interface JobResult {
+  /** The agent's last answer; empty when it gave none. */
+  text: string;
+  /** What it spent, by model. */
+  tokens: TokenUse[];
+  /** The version of the agent that ran it, when it says. */
+  agentVersion?: string;
+  /** Why it failed, when it did. */
+  error?: string;
 }
 
 /** A sign-in under way. */

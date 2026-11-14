@@ -15,9 +15,10 @@ export type ChatId = string;
 /** What an agent supports beyond chatting. Features that need one show only for agents that have it. */
 /**
  * What an agent can do beyond chatting; "compact" sums a chat up to free its
- * context, and "sign-in" switches the account every chat uses.
+ * context, "sign-in" switches the account every chat uses, and "job" runs a
+ * task unseen, with nothing saved.
  */
-export type AgentCapability = 'rename' | 'fork' | 'undo' | 'compact' | 'sign-in' | 'ask';
+export type AgentCapability = 'rename' | 'fork' | 'undo' | 'compact' | 'sign-in' | 'ask' | 'job';
 
 export interface AgentInfo {
   id: AgentId;
