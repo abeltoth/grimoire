@@ -24,18 +24,27 @@ export async function listChats(agent: AgentId, cwd?: string): Promise<ChatSumma
     .sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
-/** A saved chat as it shows again: its entries, plan, prompt cache and the cards it last offered. */
+/** A saved chat as it shows again: its entries, plan, prompt cache, last model and the cards it last offered. */
 export async function history(chatId: ChatId, cwd: string): Promise<ChatHistory> {
   const { getSessionMessages, getSubagentMessages, listSubagents } = await sdk();
   const transcript = new ClaudeTranscript(false);
   const cache = new CacheTracker();
+  let model: string | undefined;
   const saved = await savedIn(chatId, cwd);
   const messages = await getSessionMessages(chatId, saved);
   for (const message of messages) {
     const at = timeOf(message);
     transcript.apply(message, at);
-    if (message.type === 'assistant' && message.parent_tool_use_id === null && Number.isFinite(at))
-      cache.reply((message.message as { usage?: ReplyUsage }).usage, at);
+    if (
+      message.type === 'assistant' &&
+      message.parent_tool_use_id === null &&
+      Number.isFinite(at)
+    ) {
+      const reply = message.message as { usage?: ReplyUsage; model?: string };
+      cache.reply(reply.usage, at);
+      // Claude Code's own notes, such as an interrupted turn's, name the model "<synthetic>".
+      if (reply.model && !reply.model.startsWith('<')) model = reply.model;
+    }
     // How long the summary is isn't saved: no cache shows until the next reply.
     if ((message as ClaudeMessage).isCompactSummary && Number.isFinite(at)) cache.compacted(at);
   }
@@ -50,6 +59,7 @@ export async function history(chatId: ChatId, cwd: string): Promise<ChatHistory>
     entries: transcript.entries,
     plan: transcript.plan,
     ...(cache.cache ? { cache: cache.cache } : {}),
+    ...(model ? { model } : {}),
     ...(followUps ? { followUps } : {}),
   };
 }

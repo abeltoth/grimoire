@@ -3,7 +3,8 @@ import type { Attachment, QueuedEntry } from '@grimoire/contract';
 import type { Emit } from '../events';
 import type { ChatEvents, LiveChat, Verdict } from './adapter';
 import type { Approvals } from './approvals';
-import { type ChatState, type ChatTable, type HubStore, userEntry } from './chat-table';
+import { type ChatState, type ChatTable, userEntry } from './chat-table';
+import type { ChatWindows } from './chat-windows';
 import type { ChatUpdates } from './chat-updates';
 import type { Editors } from './editors';
 
@@ -21,7 +22,7 @@ export class ChatRuns {
     private readonly updates: ChatUpdates,
     private readonly approvals: Approvals,
     private readonly editors: Editors,
-    private readonly store: HubStore,
+    private readonly windows: ChatWindows,
   ) {}
 
   /** Sends a message, or queues it while a turn runs. */
@@ -104,10 +105,8 @@ export class ChatRuns {
           : undefined,
       context: (context) => {
         if (!current()) return;
-        const before = chat.context;
+        this.windows.keep(chat, context, chat.context);
         chat.context = context;
-        if (before?.limit !== context.limit || before.compactsAt !== context.compactsAt)
-          this.store.windows.put(chat.id, { limit: context.limit, compactsAt: context.compactsAt });
         this.emit('agents.context', { chatId: chat.id, context });
       },
       cache: (cache) => {

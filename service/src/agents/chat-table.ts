@@ -67,7 +67,7 @@ export interface HubStore {
   copied: EntryIds;
   /** The chats sent one entry in parallel, and the one that edits each group. */
   parallels: Parallels;
-  /** Each chat's context window, for the meter of a chat reopened before its agent runs. */
+  /** Each model's context window, for the meter of a chat reopened before its agent runs. */
   windows: ContextWindows;
 }
 

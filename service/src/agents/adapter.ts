@@ -12,6 +12,7 @@ import type {
   ChatStatus,
   ChatSummary,
   ContextUsage,
+  ContextWindow,
   EffortLevel,
   PromptCache,
   Attachment,
@@ -52,6 +53,11 @@ export interface AgentAdapter {
   /** The chat's title; empty until the agent names it. */
   title(chatId: ChatId, cwd: string): Promise<string>;
   models(): Promise<AgentModels>;
+  /**
+   * Measures a model's context window, in the folder, without a chat.
+   * Agents that can't leave it out.
+   */
+  contextWindow?(model: string, cwd: string): Promise<ContextWindow>;
   /**
    * The model and effort for a new chat on Auto, picked for its first
    * entry; undefined when the agent can't say. Agents that can't pick leave it out.
@@ -155,6 +161,8 @@ export interface ChatHistory {
   plan: PlanStep[];
   /** What the last reply left in the prompt cache, when the agent records it. */
   cache?: PromptCache;
+  /** The model the last reply came from, when the agent records it. */
+  model?: string;
   /** The separate tasks the agent offered in the chat's last turn, when it did. */
   followUps?: FollowUp[];
 }

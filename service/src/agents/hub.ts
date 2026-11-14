@@ -31,6 +31,7 @@ import { Accounts } from './accounts';
 import type { AgentAdapter, JobRequest, JobResult } from './adapter';
 import { Approvals } from './approvals';
 import { ChatRuns } from './chat-runs';
+import { ChatWindows } from './chat-windows';
 import { type ChatState, ChatTable, hubStore } from './chat-table';
 import { ChatUpdates } from './chat-updates';
 import { Editors } from './editors';
@@ -70,6 +71,7 @@ export class AgentHub {
   private readonly editors: Editors;
   private readonly accounts: Accounts;
   private readonly runs: ChatRuns;
+  private readonly windows: ChatWindows;
   private readonly newChats: NewChats;
   private readonly lifecycle: HubLifecycle;
 
@@ -81,12 +83,20 @@ export class AgentHub {
     this.updates = new ChatUpdates(emit, textBatchMs);
     this.approvals = new Approvals(emit, this.table, this.updates);
     this.editors = new Editors(emit, this.table, store);
+    this.windows = new ChatWindows(emit, this.table, store.windows);
     // The agent's open chats move to its new account, each as soon as no turn runs.
     this.accounts = new Accounts(emit, this.table, (adapter) => {
       for (const chat of this.table.chats.values())
         if (chat.agent === adapter) this.runs.restartWhenIdle(chat);
     });
-    this.runs = new ChatRuns(emit, this.table, this.updates, this.approvals, this.editors, store);
+    this.runs = new ChatRuns(
+      emit,
+      this.table,
+      this.updates,
+      this.approvals,
+      this.editors,
+      this.windows,
+    );
     this.newChats = new NewChats(this.table, store, this.updates, this.editors, this.runs, {
       open: (agent, chatId, settings) => this.open(agent, chatId, settings),
       snapshot: (chat) => this.snapshot(chat),
@@ -444,10 +454,7 @@ export class AgentHub {
         this.table.track(chatId, adapter, settings, history.entries, title);
       chat.plan = history.plan;
       if (history.cache && !chat.cache) chat.cache = history.cache;
-      // The meter shows before the agent runs: the last reply's tokens, in the window last measured.
-      const window = this.store.windows.get(chatId);
-      if (history.cache && window && !chat.context)
-        chat.context = { used: history.cache.tokens, ...window };
+      this.windows.show(chat, history);
       chat.withdrawn = this.store.withdrawn.list(chatId);
       chat.copied = this.store.copied.list(chatId);
       // What the last turn offered stands, unless the chat went on meanwhile.

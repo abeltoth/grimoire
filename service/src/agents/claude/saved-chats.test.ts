@@ -77,6 +77,21 @@ describe('saved chats', () => {
     await expect(fork('c1', 'C:/work', 'u9', 'Meter (4)')).rejects.toThrow('not in the chat');
   });
 
+  it("gives the model the last reply came from, leaving out Claude Code's own notes", async () => {
+    const reply = (model: string, at: string) => ({
+      type: 'assistant',
+      parent_tool_use_id: null,
+      timestamp: at,
+      message: { id: `msg_${at}`, model, content: [], usage: { input_tokens: 9_000 } },
+    });
+    saved.messages = [
+      reply('claude-sonnet-5-5', '2026-11-14T10:00:00Z'),
+      reply('claude-opus-5-5', '2026-11-14T10:01:00Z'),
+      reply('<synthetic>', '2026-11-14T10:02:00Z'),
+    ];
+    expect((await history('c1', 'C:/work')).model).toBe('claude-opus-5-5');
+  });
+
   it('shows an empty chat, and no run for a subagent it never started', async () => {
     expect(await history('c1', 'C:/work')).toEqual({ entries: [], plan: [] });
     expect(await subagent('c1', 'C:/work', 't1')).toEqual({ entries: [] });

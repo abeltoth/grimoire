@@ -27,12 +27,7 @@ describe('context meter', () => {
     const context = { limit: 1_000_000, compactsAt: 400_000 };
     emit('agents.context', { chatId: 'chat-1', context: { used: 100_000, ...context } });
     await fixture.whenStable();
-    expect(texts('.allowance > *')).toEqual([
-      '',
-      '25%',
-      '100K / 400K',
-      'before the chapter is summed up',
-    ]);
+    expect(texts('.allowance > *')).toEqual(['', '25%', '100K / 400K']);
     expect(el.querySelector('.allowance')!.getAttribute('title')).toBe(
       '100,000 of 1,000,000 tokens; compacts at 400,000',
     );

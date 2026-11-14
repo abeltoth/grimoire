@@ -27,6 +27,20 @@ describe('ContextMeter', () => {
     expect(report).toHaveBeenCalledWith({ used: 9_000, limit: 200_000 });
   });
 
+  it('names the model whose window it measured', () => {
+    const report = vi.fn();
+    new ContextMeter(report).measured(
+      { totalTokens: 9_000, ...window, model: 'claude-opus-5-5' },
+      0,
+    );
+    expect(report).toHaveBeenCalledWith({
+      used: 9_000,
+      limit: 200_000,
+      compactsAt: 167_000,
+      model: 'claude-opus-5-5',
+    });
+  });
+
   it("keeps a reply's count over a measure asked for before it", () => {
     const report = vi.fn();
     const meter = new ContextMeter(report);

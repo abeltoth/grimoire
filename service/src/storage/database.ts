@@ -92,6 +92,15 @@ const CORE_MIGRATIONS = [
      context_limit INTEGER NOT NULL,
      compacts_at INTEGER
    );`,
+  // The context windows are kept per model, for any chat on it.
+  `DROP TABLE context_windows;
+   CREATE TABLE context_windows (
+     agent TEXT NOT NULL,
+     model TEXT NOT NULL,
+     context_limit INTEGER NOT NULL,
+     compacts_at INTEGER,
+     PRIMARY KEY (agent, model)
+   );`,
 ];
 
 /**

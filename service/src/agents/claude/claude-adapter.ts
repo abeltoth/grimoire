@@ -10,6 +10,7 @@ import type {
   ChatSettings,
   ChatSummary,
   Attachment,
+  ContextWindow,
   SubagentRun,
   SubagentStats,
   TokenUse,
@@ -41,6 +42,7 @@ import { runJob } from './job';
 import { GRIMOIRE_SERVER, ProcessChat, grimoireOptions } from './grimoire-tools';
 import { mcpOff, mcpSettings } from './mcp';
 import { MessageQueue } from './message-queue';
+import { measureWindow } from './context-meter';
 import { savedSubagentStats } from './subagent-stats';
 import { QUICK_MODEL, toAgentModels } from './models';
 import { claudeEnv as env, sdk } from './probe';
@@ -119,6 +121,10 @@ export class ClaudeAdapter implements AgentAdapter {
 
   title(chatId: ChatId, cwd: string): Promise<string> {
     return saved.title(chatId, cwd);
+  }
+
+  contextWindow(model: string, cwd: string): Promise<ContextWindow> {
+    return measureWindow(model, cwd);
   }
 
   /**

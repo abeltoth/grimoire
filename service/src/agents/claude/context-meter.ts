@@ -1,4 +1,7 @@
-import type { ContextUsage } from '@grimoire/contract';
+import type { SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
+import type { ContextUsage, ContextWindow } from '@grimoire/contract';
+import { MessageQueue } from './message-queue';
+import { claudeEnv, sdk } from './probe';
 
 /** What Claude Code measures of a chat's context window. */
 export interface MeasuredContext {
@@ -6,6 +9,40 @@ export interface MeasuredContext {
   rawMaxTokens: number;
   autoCompactThreshold?: number;
   isAutoCompactEnabled?: boolean;
+  model?: string;
+}
+
+/** The window Claude Code measured: its size, and where it compacts when it does. */
+export function windowOf(usage: MeasuredContext): ContextWindow {
+  const compactsAt = usage.isAutoCompactEnabled ? usage.autoCompactThreshold : undefined;
+  return { limit: usage.rawMaxTokens, ...(compactsAt ? { compactsAt } : {}) };
+}
+
+/**
+ * Measures a model's context window in the folder, on a Claude Code process
+ * of its own that gets no message and starts no MCP server.
+ */
+export async function measureWindow(model: string, cwd: string): Promise<ContextWindow> {
+  const { query } = await sdk();
+  const input = new MessageQueue<SDKUserMessage>();
+  const claude = query({
+    prompt: input,
+    options: {
+      cwd,
+      model,
+      env: claudeEnv(),
+      permissionMode: 'default',
+      mcpServers: {},
+      strictMcpConfig: true,
+      persistSession: false,
+    },
+  });
+  try {
+    return windowOf(await claude.getContextUsage({ detail: 'summary' }));
+  } finally {
+    input.end();
+    claude.close();
+  }
 }
 
 /**
@@ -29,8 +66,7 @@ export class ContextMeter {
 
   /** Claude Code's measure, asked for at `asked`: its count stands unless a reply came since. */
   measured(usage: MeasuredContext, asked: number): void {
-    const compactsAt = usage.isAutoCompactEnabled ? usage.autoCompactThreshold : undefined;
-    this.window = { limit: usage.rawMaxTokens, ...(compactsAt ? { compactsAt } : {}) };
+    this.window = { ...windowOf(usage), ...(usage.model ? { model: usage.model } : {}) };
     this.show(asked === this.replies ? usage.totalTokens : this.used);
   }
 

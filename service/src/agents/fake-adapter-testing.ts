@@ -1,4 +1,5 @@
 import type {
+  ContextWindow,
   AgentCommand,
   AgentInfo,
   AgentModels,
@@ -51,6 +52,14 @@ export class FakeAdapter implements AgentAdapter {
   transcripts = new Map<ChatId, Entry[]>();
   plans = new Map<ChatId, PlanStep[]>();
   caches = new Map<ChatId, PromptCache>();
+  /** The model each saved chat's last reply came from. */
+  lastModels = new Map<ChatId, string>();
+  /** Each model's context window, as measured apart; one missing fails to measure. */
+  windows = new Map<string, ContextWindow>();
+  /** The models measured apart, in order. */
+  measured: string[] = [];
+  /** Each measure apart waits for it. */
+  measureGate: Promise<void> = Promise.resolve();
   /** The separate tasks each saved chat's last turn offered. */
   followUps = new Map<ChatId, FollowUp[]>();
   /** Saved subagents' runs, by the tool call that started each. */
@@ -69,8 +78,17 @@ export class FakeAdapter implements AgentAdapter {
       entries: this.transcripts.get(chatId) ?? [],
       plan: this.plans.get(chatId) ?? [],
       ...(this.caches.has(chatId) ? { cache: this.caches.get(chatId) } : {}),
+      ...(this.lastModels.has(chatId) ? { model: this.lastModels.get(chatId) } : {}),
       ...(this.followUps.has(chatId) ? { followUps: this.followUps.get(chatId) } : {}),
     });
+  }
+
+  async contextWindow(model: string): Promise<ContextWindow> {
+    this.measured.push(model);
+    await this.measureGate;
+    const window = this.windows.get(model);
+    if (!window) throw new Error(`No window for ${model}`);
+    return structuredClone(window);
   }
 
   async subagent(_chatId: ChatId, _cwd: string, toolId: string): Promise<SubagentRun> {

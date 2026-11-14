@@ -102,7 +102,12 @@ export interface ContextUsage {
   limit: number;
   /** Where the agent compacts the chat by itself, when it does. */
   compactsAt?: number;
+  /** The model whose window this is, when the agent says. */
+  model?: string;
 }
+
+/** A model's context window: its size, and where the agent compacts a chat by itself. */
+export type ContextWindow = Pick<ContextUsage, 'limit' | 'compactsAt'>;
 
 /**
  * The prompt cache a chat's last reply left. Until it runs out, continuing

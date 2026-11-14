@@ -3,8 +3,6 @@
 </span>
 <b>{{ share() }}%</b>
 <span class="count">{{ count() }}</span>
-<span>{{
-  context().compactsAt
-    ? wording.say('before the chapter is summed up', 'before auto-compact')
-    : wording.say('of the chapter’s page allowance', 'of the context window')
-}}</span>
+@if (!context().compactsAt) {
+  <span>{{ wording.say('of the chapter’s page allowance', 'of the context window') }}</span>
+}
