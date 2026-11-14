@@ -39,6 +39,16 @@ vi.mock('./probe', async (original) => ({
         // A one-off prompt answers once, saying what it was asked on which model.
         async *[Symbol.asyncIterator]() {
           yield {
+            type: 'assistant',
+            parent_tool_use_id: null,
+            message: {
+              id: 'm1',
+              model: options.model,
+              content: [],
+              usage: { input_tokens: 40, output_tokens: 3 },
+            },
+          };
+          yield {
             type: 'result',
             subtype: 'success',
             result: `${options.model}: ${String(prompt)}`,
@@ -140,5 +150,15 @@ describe('ClaudeAdapter', () => {
       agent === 'claude-code' ? 'sonnet' : undefined,
     );
     expect(await named.ask('Name it', 'Hello', signal)).toBe('sonnet: Hello');
+  });
+
+  it('says what a one-off prompt spent', async () => {
+    const spent: unknown[] = [];
+    await new ClaudeAdapter().ask('Name it', 'Hello', new AbortController().signal, (uses) =>
+      spent.push(uses),
+    );
+    expect(spent.at(-1)).toEqual([
+      { model: 'haiku', input: 40, cacheWritten: 0, cacheWrittenLong: 0, cacheRead: 0, output: 3 },
+    ]);
   });
 });

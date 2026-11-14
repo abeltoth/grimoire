@@ -117,10 +117,16 @@ export class AgentHub {
   }
 
   /** Answers a one-off prompt on the agent's model for quick jobs; rejects when the agent can't. */
-  ask(agent: AgentId, instructions: string, text: string, signal: AbortSignal): Promise<string> {
+  ask(
+    agent: AgentId,
+    instructions: string,
+    text: string,
+    signal: AbortSignal,
+    spent?: (uses: TokenUse[]) => void,
+  ): Promise<string> {
     const adapter = this.table.adapter(agent);
     if (!adapter.ask) return Promise.reject(new Error(`${adapter.info.name} can't answer prompts`));
-    return adapter.ask(instructions, text, signal);
+    return adapter.ask(instructions, text, signal, spent);
   }
 
   /** Runs a task unseen, with nothing saved; rejects when the agent can't. */

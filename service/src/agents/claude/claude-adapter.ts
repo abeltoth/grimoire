@@ -150,8 +150,13 @@ export class ClaudeAdapter implements AgentAdapter {
     return rating && autoPick(rating, await this.models());
   }
 
-  ask(instructions: string, text: string, signal: AbortSignal): Promise<string> {
-    return rate(instructions, text, this.quickModel(), signal);
+  ask(
+    instructions: string,
+    text: string,
+    signal: AbortSignal,
+    spent?: (uses: TokenUse[]) => void,
+  ): Promise<string> {
+    return rate(instructions, text, this.quickModel(), signal, spent);
   }
 
   job(

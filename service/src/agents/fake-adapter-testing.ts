@@ -110,9 +110,19 @@ export class FakeAdapter implements AgentAdapter {
   /** How a one-off prompt is answered. */
   answer: (instructions: string, text: string) => string | Promise<string> = () => '';
 
-  async ask(instructions: string, text: string): Promise<string> {
+  /** What a one-off prompt says it spent. */
+  askSpent: TokenUse[] = [];
+
+  async ask(
+    instructions: string,
+    text: string,
+    _signal?: AbortSignal,
+    spent?: (uses: TokenUse[]) => void,
+  ): Promise<string> {
     this.asked.push({ instructions, text });
-    return this.answer(instructions, text);
+    const answer = await this.answer(instructions, text);
+    if (this.askSpent.length) spent?.(this.askSpent);
+    return answer;
   }
 
   /** The jobs run, in order. */

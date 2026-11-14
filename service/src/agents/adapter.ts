@@ -60,9 +60,15 @@ export interface AgentAdapter {
   /**
    * Answers a one-off prompt on the agent's model for quick jobs, the one
    * Settings names or else the one it recommends: no tools, nothing of
-   * yours loaded, nothing saved. Agents that can't leave it out.
+   * yours loaded, nothing saved; tells `spent` what it spent. Agents that
+   * can't leave it out.
    */
-  ask?(instructions: string, text: string, signal: AbortSignal): Promise<string>;
+  ask?(
+    instructions: string,
+    text: string,
+    signal: AbortSignal,
+    spent?: (uses: TokenUse[]) => void,
+  ): Promise<string>;
   /**
    * Runs a task unseen in a folder, with the agent's tools and your setup
    * as a chat has them, but nothing saved and no chat shown; `progress` gets

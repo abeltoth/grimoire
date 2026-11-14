@@ -14,6 +14,7 @@ import type {
   Attachment,
   ChatId,
   ChatSettings,
+  TokenUse,
 } from '@grimoire/contract';
 import type { ChatEvents, LiveChat } from '../adapter';
 import { CacheTracker, type ReplyUsage } from './cache';
@@ -222,6 +223,7 @@ export async function rate(
   task: string,
   model: string,
   signal: AbortSignal,
+  spent?: (uses: TokenUse[]) => void,
 ): Promise<string> {
   const { query } = await sdk();
   const abortController = new AbortController();
@@ -243,8 +245,18 @@ export async function rate(
       abortController,
     },
   });
+  const transcript =
+    spent &&
+    new ClaudeTranscript(true, {
+      entry: () => {},
+      text: () => {},
+      status: () => {},
+      plan: () => {},
+      tokens: spent,
+    });
   for await (const message of rater) {
     if (message.type === 'result') return message.subtype === 'success' ? message.result : '';
+    transcript?.apply(message);
   }
   return '';
 }

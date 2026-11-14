@@ -344,6 +344,18 @@ describe('AgentHub', () => {
     const signal = new AbortController().signal;
     expect(await hub.ask('fake', 'Name it', 'Hello', signal)).toBe('Name it: Hello');
     expect(fake.asked).toEqual([{ instructions: 'Name it', text: 'Hello' }]);
+    const use = {
+      model: 'm',
+      input: 5,
+      cacheWritten: 0,
+      cacheWrittenLong: 0,
+      cacheRead: 0,
+      output: 1,
+    };
+    fake.askSpent = [use];
+    const spent: unknown[] = [];
+    await hub.ask('fake', 'Name it', 'Hello', signal, (uses) => spent.push(uses));
+    expect(spent).toEqual([[use]]);
 
     const mute: AgentAdapter = new FakeAdapter();
     Object.assign(mute, { ask: undefined, info: { ...mute.info, id: 'mute', name: 'Mute agent' } });
