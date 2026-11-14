@@ -17,18 +17,6 @@ export interface CommandSource {
   fastMode?: FastModeState;
 }
 
-/** Commands that mean something only in a terminal, or that Grimoire shows its own way. */
-const HIDDEN = new Set([
-  'agents',
-  'auto-mode-setup',
-  'color',
-  'extra-usage',
-  'focus',
-  'heapdump',
-  'mcp',
-  'workflow-launch-exec',
-]);
-
 const GROUPS: Readonly<Record<string, CommandGroup>> = {
   model: 'settings',
   effort: 'settings',
@@ -37,6 +25,9 @@ const GROUPS: Readonly<Record<string, CommandGroup>> = {
   'output-style': 'settings',
   autocompact: 'settings',
   config: 'settings',
+  mcp: 'settings',
+  color: 'settings',
+  focus: 'settings',
   context: 'reports',
   usage: 'reports',
   'list-agents': 'reports',
@@ -60,7 +51,11 @@ const RUNS: Readonly<Record<string, CommandRun>> = {
   compact: 'now',
 };
 
-/** Claude Code's commands as the command palette lists them, with how each runs; not its skills. */
+/**
+ * Claude Code's commands as the command palette lists them, with how each
+ * runs: every one it has, those that do little outside a terminal too, so
+ * you see what it can do; not its skills.
+ */
 export function catalog(source: CommandSource): AgentCommand[] {
   const seen = new Set<string>();
   return source.commands.flatMap((command): AgentCommand[] => {
@@ -68,7 +63,7 @@ export function catalog(source: CommandSource): AgentCommand[] {
     // Names with two underscores are Claude Code's own plumbing; a name listed twice runs the first.
     if (name.startsWith('__') || seen.has(name)) return [];
     seen.add(name);
-    if (source.skills.has(name) || HIDDEN.has(name)) return [];
+    if (source.skills.has(name)) return [];
     const hint = argumentHint ? { argumentHint } : {};
     const owner = OWNERS[name];
     const choices = owner ? [] : choicesOf(name, argumentHint, source);

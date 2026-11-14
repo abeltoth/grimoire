@@ -29,19 +29,23 @@ describe('catalog', () => {
     ]);
   });
 
-  it('leaves out plumbing, terminal-only commands, skills and a name listed twice', () => {
+  it('lists the commands meant for a terminal too, leaving out plumbing, skills and a name listed twice', () => {
     const listed = catalog({
       commands: [
         command('__remote-workflow'),
         command('color', '[red|blue]'),
         command('mcp', '[reconnect|enable|disable [<server>|all]]'),
+        command('heapdump'),
         command('init'),
-        command('usage'),
-        command('usage'),
+        command('heapdump'),
       ],
       skills: new Set(['init']),
     });
-    expect(listed.map((c) => c.name)).toEqual(['usage']);
+    expect(listed.map(({ name, group, run }) => [name, group, run])).toEqual([
+      ['color', 'settings', 'pick'],
+      ['mcp', 'settings', 'now'],
+      ['heapdump', 'chat', 'now'],
+    ]);
   });
 
   it('takes the choices from a hint of words, and the current ones where Claude Code says', () => {
