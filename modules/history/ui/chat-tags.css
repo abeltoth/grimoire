@@ -1,8 +1,12 @@
+/* The tags take the room the title leaves, wrapping onto more lines, so the title is cut only past that. */
 :host {
   display: inline-flex;
-  flex: none;
+  flex: 1 1 0;
 }
 
 gr-tag-editor {
+  flex: 0 1 auto;
+  flex-wrap: wrap;
   align-items: center;
+  white-space: normal;
 }
