@@ -5,62 +5,49 @@
 </header>
 
 @if (settings(); as s) {
-  <label class="switch">
+  <div class="track">
     <input
-      type="checkbox"
-      role="switch"
-      [checked]="s.enabled"
+      #field
+      type="range"
+      [attr.aria-label]="wording.say('Size of the allowance', 'Window size')"
+      [attr.aria-valuetext]="reading()"
+      [min]="s.min"
+      [max]="s.max"
+      [step]="step"
+      [value]="size()"
+      [class.faint]="auto()"
       [disabled]="saving()"
-      (change)="save({ enabled: $any($event.target).checked })"
+      (input)="drag(field)"
+      (change)="release()"
     />
-    {{
-      wording.say(
-        'Sum the chapter up by itself as the allowance runs out',
-        'Compact by itself as the window fills'
-      )
-    }}
-  </label>
+    <span
+      class="now"
+      [style.left.%]="along(context().used)"
+      [attr.title]="'This chat holds ' + tokenCount(context().used) + ' now'"
+    ></span>
+    <span class="stops" aria-hidden="true">
+      @for (stop of stops(); track stop) {
+        <span [style.left.%]="along(stop)">{{ tokenCount(stop) }}</span>
+      }
+    </span>
+  </div>
 
-  <div class="scale" [class.off]="!s.enabled">
+  <div class="line">
+    <p class="reading">{{ reading() }}</p>
+    @if (saved()) {
+      <span class="saved" role="status"><gr-icon name="check" />Saved</span>
+    }
     <button
       type="button"
       class="auto"
       [attr.aria-pressed]="auto()"
-      [disabled]="!s.enabled || saving()"
+      [disabled]="saving()"
       [attr.title]="agentName() + ' picks the window for the model'"
       (click)="save({ window: 'auto' })"
     >
       Auto
     </button>
-    <div class="track">
-      <input
-        #field
-        type="range"
-        [attr.aria-label]="wording.say('Size of the allowance', 'Window size')"
-        [attr.aria-valuetext]="reading()"
-        [min]="s.min"
-        [max]="s.max"
-        [step]="step"
-        [value]="size()"
-        [class.auto]="auto()"
-        [disabled]="!s.enabled || saving()"
-        (input)="drag(field)"
-        (change)="release()"
-      />
-      <span
-        class="now"
-        [style.left.%]="along(context().used)"
-        [attr.title]="'This chat holds ' + tokenCount(context().used) + ' now'"
-      ></span>
-      <span class="stops" aria-hidden="true">
-        @for (stop of stops(); track stop) {
-          <span [style.left.%]="along(stop)">{{ tokenCount(stop) }}</span>
-        }
-      </span>
-    </div>
   </div>
-
-  <p class="reading">{{ reading() }}</p>
   @if (compactsNext()) {
     <p class="warn">
       {{
@@ -70,9 +57,6 @@
         )
       }}
     </p>
-  }
-  @if (note()) {
-    <p class="note" role="status">{{ note() }}</p>
   }
 } @else if (settings() === null) {
   <p class="reading">
@@ -90,14 +74,8 @@
   <p class="warn" role="alert">{{ failed() }}</p>
 }
 
-<form class="compact" (submit)="compactNow($event, instructions)">
-  <input
-    #instructions
-    type="text"
-    [attr.aria-label]="wording.say('What the summary keeps', 'What the summary should keep')"
-    placeholder="What the summary should keep (optional)"
-  />
-  <button type="submit" class="control">
+<div class="foot">
+  <button type="button" class="control" (click)="compactNow()">
     {{ wording.say('Sum up now', 'Compact now') }}
   </button>
-</form>
+</div>

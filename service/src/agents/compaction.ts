@@ -20,10 +20,9 @@ export class Compaction {
   }
 
   /**
-   * Saves the change for the chat's model, or for every model when it turns
-   * compaction on or off. An agent process takes it only as it starts, so
-   * each open chat it touches starts again once its turn ends, and its
-   * meter shows its window at once.
+   * Saves the window for the chat's model. An agent process takes it only
+   * as it starts, so each open chat on the model starts again once its turn
+   * ends, and its meter shows its window at once.
    */
   async change(chatId: ChatId, change: CompactionChange): Promise<void> {
     const chat = this.table.chat(chatId);
@@ -33,8 +32,7 @@ export class Compaction {
       throw new Error("This chat's compaction can't be changed yet");
     await adapter.setCompaction(model, change, chat.settings.cwd);
     const touched = [...this.table.chats.values()].filter(
-      (open) =>
-        open.agent === adapter && (change.enabled !== undefined || open.context?.model === model),
+      (open) => open.agent === adapter && open.context?.model === model,
     );
     for (const open of touched) this.runs.restartWhenIdle(open);
     await this.windows.remeasure(touched);

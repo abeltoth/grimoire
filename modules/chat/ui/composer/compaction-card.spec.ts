@@ -3,7 +3,6 @@ import { fakeBridge, render, write } from '@ui/testing/app-testing';
 
 const opus = 'claude-opus-5-5';
 const compaction: CompactionSettings = {
-  enabled: true,
   window: 400_000,
   min: 100_000,
   max: 1_000_000,
@@ -48,7 +47,7 @@ describe('compaction card', () => {
     ]);
     expect(card.querySelector<HTMLElement>('.now')!.style.left).toBe('0%');
     expect(texts('gr-compaction-card h2')).toEqual(['Page allowance for Opus 5.5']);
-    expect(card.querySelector('[role="switch"]')!.matches(':checked')).toBe(true);
+    expect(card.querySelector('[role="switch"], input[type="text"]')).toBeNull();
   });
 
   it('snaps as you drag, warns when the chat would compact at once, and saves as you let go', async () => {
@@ -62,17 +61,20 @@ describe('compaction card', () => {
       'This chapter is summed up on its next turn.',
     ]);
     expect(changes(calls)).toEqual([]);
+    expect(texts('gr-compaction-card .saved')).toEqual([]);
     slider!.value = '590000';
     slider!.dispatchEvent(new Event('input'));
     slider!.dispatchEvent(new Event('change'));
     await fixture.whenStable();
     expect(changes(calls)).toEqual([{ chatId: 'chat-1', change: { window: 600_000 } }]);
-    expect(texts('gr-compaction-card .note')).toEqual([
-      'Saved. Open chapters on Opus 5.5 take it once their turn ends.',
-    ]);
+    expect(texts('gr-compaction-card .saved')).toEqual(['Saved']);
+    slider!.value = '700000';
+    slider!.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    expect(texts('gr-compaction-card .saved')).toEqual([]);
   });
 
-  it('leaves the window to the agent with Auto, and turns compaction off', async () => {
+  it('leaves the window to the agent with Auto', async () => {
     const { fixture, card, texts, calls } = await opened();
     card.querySelector<HTMLButtonElement>('.auto')!.click();
     await fixture.whenStable();
@@ -80,27 +82,16 @@ describe('compaction card', () => {
     expect(texts('gr-compaction-card .reading')).toEqual([
       'Auto, Claude Code’s own · 400K, compacts at 367K',
     ]);
-    const toggle = card.querySelector<HTMLInputElement>('[role="switch"]')!;
-    toggle.checked = false;
-    toggle.dispatchEvent(new Event('change'));
-    await fixture.whenStable();
-    expect(changes(calls)).toEqual([
-      { chatId: 'chat-1', change: { window: 'auto' } },
-      { chatId: 'chat-1', change: { enabled: false } },
-    ]);
-    expect(card.querySelector<HTMLInputElement>('input[type="range"]')!.disabled).toBe(true);
-    expect(texts('gr-compaction-card .reading')).toEqual([
-      'Summed up only when you ask · 400K allowance',
-    ]);
+    expect(texts('gr-compaction-card .saved')).toEqual(['Saved']);
+    expect(changes(calls)).toEqual([{ chatId: 'chat-1', change: { window: 'auto' } }]);
   });
 
-  it('compacts the chat now, with what the summary should keep', async () => {
+  it('compacts the chat now', async () => {
     const { fixture, el, card, calls } = await opened();
-    card.querySelector<HTMLInputElement>('.compact input')!.value = 'the open questions';
-    card.querySelector<HTMLButtonElement>('.compact button')!.click();
+    card.querySelector<HTMLButtonElement>('.foot button')!.click();
     await fixture.whenStable();
     expect(calls.filter((c) => c.command === 'agents.send').map((c) => c.request)).toEqual([
-      { chatId: 'chat-1', text: '/compact the open questions' },
+      { chatId: 'chat-1', text: '/compact' },
     ]);
     expect(el.querySelector('gr-compaction-card')).toBeNull();
   });

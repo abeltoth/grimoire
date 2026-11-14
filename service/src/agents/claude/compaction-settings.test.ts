@@ -68,21 +68,18 @@ describe('compaction settings', () => {
       modelSettings: { 'claude-opus-5-5': { effortLevel: 'xhigh', autoCompactWindow: 400_000 } },
     });
     saveCompaction('claude-opus-5-5[1m]', { window: 250_000 }, folder, home);
-    saveCompaction('claude-opus-5-5', { enabled: false }, folder, home);
     expect(json(file())).toEqual({
       model: 'opus',
       modelSettings: { 'claude-opus-5-5': { effortLevel: 'xhigh', autoCompactWindow: 250_000 } },
-      autoCompactEnabled: false,
     });
   });
 
   it("saves where the folder's settings set it already", () => {
     put(file(), { modelSettings: { 'claude-opus-5-5': { autoCompactWindow: 400_000 } } });
-    put(project(), { autoCompactWindow: 300_000, autoCompactEnabled: true });
-    saveCompaction('claude-opus-5-5', { window: 600_000, enabled: false }, folder, home);
+    put(project(), { autoCompactWindow: 300_000 });
+    saveCompaction('claude-opus-5-5', { window: 600_000 }, folder, home);
     expect(json(project())).toEqual({
       autoCompactWindow: 300_000,
-      autoCompactEnabled: false,
       modelSettings: { 'claude-opus-5-5': { autoCompactWindow: 600_000 } },
     });
     expect(json(file())).toEqual({
@@ -110,9 +107,8 @@ describe('compaction settings', () => {
     );
   });
 
-  it("measures whether it compacts, how far before the end, and the model's own window", async () => {
+  it("measures how far before the end it compacts, and the model's own window", async () => {
     expect(await measureCompaction('claude-opus-5-5', home)).toEqual({
-      enabled: false,
       max: 1_000_000,
       reserve: 33_000,
     });

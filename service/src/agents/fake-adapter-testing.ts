@@ -64,7 +64,6 @@ export class FakeAdapter implements AgentAdapter {
   measureGate: Promise<void> = Promise.resolve();
   /** How it compacts, on any model. */
   compactionSettings: CompactionSettings = {
-    enabled: true,
     min: 100_000,
     max: 1_000_000,
     reserve: 33_000,

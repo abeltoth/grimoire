@@ -12,8 +12,6 @@ export const MIN_WINDOW = 100_000;
 
 /** What Claude Code's measure tells of a model's compaction, whatever your settings say. */
 export interface ModelCompaction {
-  /** Whether it compacts a chat by itself. */
-  enabled: boolean;
   /** The model's own window: the most its compaction window can be. */
   max: number;
   /** How far before the window's end it compacts. */
@@ -112,26 +110,14 @@ export function saveCompaction(
   cwd: string,
   home = claudeHome(),
 ): void {
-  if (change.window !== undefined) {
-    const window = change.window;
-    update(
-      fileSetting(cwd, home, (s) => windowIn(s, model) !== undefined),
-      (settings) => {
-        const key = canonicalModel(model);
-        const models = (settings.modelSettings ??= {});
-        models[key] = { ...models[key], autoCompactWindow: window };
-      },
-    );
-  }
-  if (change.enabled !== undefined) {
-    const enabled = change.enabled;
-    update(
-      fileSetting(cwd, home, (s) => s['autoCompactEnabled'] !== undefined),
-      (settings) => {
-        settings['autoCompactEnabled'] = enabled;
-      },
-    );
-  }
+  update(
+    fileSetting(cwd, home, (s) => windowIn(s, model) !== undefined),
+    (settings) => {
+      const key = canonicalModel(model);
+      const models = (settings.modelSettings ??= {});
+      models[key] = { ...models[key], autoCompactWindow: change.window };
+    },
+  );
 }
 
 function update(file: string, change: (settings: Settings) => void): void {
@@ -144,9 +130,9 @@ function update(file: string, change: (settings: Settings) => void): void {
 
 /**
  * Measures a model's compaction on a Claude Code process of its own that
- * gets no message and starts no MCP server: whether it compacts, and,
- * with compaction turned on and then off for that process only, how far
- * before the window's end it does and the model's own window.
+ * gets no message and starts no MCP server: with compaction turned on and
+ * then off for that process only, how far before the window's end it
+ * compacts and the model's own window.
  */
 export async function measureCompaction(model: string, cwd: string): Promise<ModelCompaction> {
   const { query } = await sdk();
@@ -164,13 +150,11 @@ export async function measureCompaction(model: string, cwd: string): Promise<Mod
     },
   });
   try {
-    const { isAutoCompactEnabled: enabled } = await claude.getContextUsage({ detail: 'summary' });
     await claude.applyFlagSettings({ autoCompactEnabled: true });
     const on = await claude.getContextUsage({ detail: 'summary' });
     await claude.applyFlagSettings({ autoCompactEnabled: false });
     const off = await claude.getContextUsage({ detail: 'summary' });
     return {
-      enabled,
       max: off.rawMaxTokens,
       reserve: on.autoCompactThreshold ? on.rawMaxTokens - on.autoCompactThreshold : 0,
     };

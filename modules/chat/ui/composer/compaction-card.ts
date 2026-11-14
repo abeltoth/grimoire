@@ -18,19 +18,20 @@ import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { ChatActions } from '@ui/app/core/chat-actions';
 import { modelLabel, tokenCount } from '@ui/app/core/tokens';
+import { Icon } from '@ui/design-system/icon';
 import { Wording } from '@ui/app/core/wording';
 import { STEP, along, snap, stops } from './compaction-scale';
 
 /**
- * How the agent compacts chats on this chat's model, opened from its
- * context meter: whether it compacts by itself, and the window it
- * compacts in, Auto or set on a slider that snaps to round sizes. A size
- * is saved in your agent's settings as you let go; every open chat on the
- * model takes it once its turn ends. "Compact now" compacts this chat.
+ * The window the agent compacts this chat's model in, opened from its
+ * context meter: Auto, or set on a slider that snaps to round sizes. A
+ * size is saved in your agent's settings as you let go; every open chat on
+ * the model takes it once its turn ends. "Compact now" compacts this chat.
  * Esc or a click elsewhere closes it.
  */
 @Component({
   selector: 'gr-compaction-card',
+  imports: [Icon],
   templateUrl: './compaction-card.html',
   styleUrl: './compaction-card.css',
   host: {
@@ -62,8 +63,8 @@ export class CompactionCard {
   /** The size being dragged to, until it's let go. */
   protected readonly draft = signal<number | undefined>(undefined);
   protected readonly saving = signal(false);
-  /** What saving did. */
-  protected readonly note = signal('');
+  /** Whether the size shown was saved. */
+  protected readonly saved = signal(false);
 
   protected readonly agentName = computed(() => this.catalog.agentName(this.agent()));
   /** The measured model as you'd say it, such as "Opus 5.5". */
@@ -89,12 +90,6 @@ export class CompactionCard {
   protected readonly reading = computed(() => {
     const s = this.settings();
     if (!s) return '';
-    const limit = tokenCount(this.context().limit);
-    if (!s.enabled)
-      return this.wording.say(
-        `Summed up only when you ask · ${limit} allowance`,
-        `Compacts only when you ask · ${limit} window`,
-      );
     const size = tokenCount(this.size());
     const at = tokenCount(this.size() - s.reserve);
     return this.auto()
@@ -105,7 +100,7 @@ export class CompactionCard {
   /** Whether the size shown is too small for what the chat holds already. */
   protected readonly compactsNext = computed(() => {
     const s = this.settings();
-    return !!s?.enabled && this.size() - s.reserve <= this.context().used;
+    return !!s && this.size() - s.reserve <= this.context().used;
   });
 
   constructor() {
@@ -123,6 +118,7 @@ export class CompactionCard {
     const size = snap(Number(field.value), s.min, s.max);
     field.value = String(size);
     this.draft.set(size);
+    this.saved.set(false);
   }
 
   protected release(): void {
@@ -134,21 +130,12 @@ export class CompactionCard {
     const s = this.settings();
     if (!s) return;
     this.saving.set(true);
+    this.saved.set(false);
     this.failed.set('');
     try {
       await this.bridge.invoke('agents.setCompaction', { chatId: this.chatId(), change });
       this.settings.set({ ...s, ...change });
-      this.note.set(
-        change.window !== undefined
-          ? this.wording.say(
-              `Saved. Open chapters on ${this.modelName()} take it once their turn ends.`,
-              `Saved. Open chats on ${this.modelName()} take it once their turn ends.`,
-            )
-          : this.wording.say(
-              'Saved. Open chapters take it once their turn ends.',
-              'Saved. Open chats take it once their turn ends.',
-            ),
-      );
+      this.saved.set(true);
     } catch (error) {
       this.failed.set(error instanceof Error ? error.message : String(error));
     } finally {
@@ -157,10 +144,8 @@ export class CompactionCard {
     }
   }
 
-  /** Compacts the chat now, keeping what the instructions ask for. */
-  protected compactNow(event: Event, instructions: HTMLInputElement): void {
-    event.preventDefault();
-    void this.actions.send(this.chatId(), `/compact ${instructions.value}`.trim());
+  protected compactNow(): void {
+    void this.actions.send(this.chatId(), '/compact');
     this.closed.emit();
   }
 

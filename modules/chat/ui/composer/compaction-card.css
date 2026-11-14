@@ -1,4 +1,4 @@
-/* How the agent compacts this chat's model, over the context meter. */
+/* The window the agent compacts this chat's model in, over the context meter. */
 :host {
   position: absolute;
   z-index: var(--gr-z-card);
@@ -35,54 +35,19 @@
   color: var(--gr-ink-soft);
 }
 
-.switch {
-  display: flex;
-  align-items: center;
-  gap: var(--gr-composer-button-gap);
-}
-
-.switch input,
-.track input {
-  accent-color: var(--gr-ink);
-}
-
-.scale {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--gr-compaction-gap);
-}
-
-.scale.off {
-  opacity: var(--gr-compaction-off);
-}
-
-.auto {
-  padding: var(--gr-composer-button-pad);
-  border: var(--gr-compaction-auto-rule);
-  border-radius: var(--gr-radius-control);
-  font-size: var(--gr-size-control);
-  color: var(--gr-ink-soft);
-}
-
-.auto[aria-pressed='true'] {
-  border-color: var(--gr-ink);
-  color: var(--gr-ink);
-  font-weight: 500;
-}
-
 .track {
   position: relative;
-  flex: 1;
   padding-bottom: var(--gr-compaction-stops-height);
 }
 
 .track input {
   width: 100%;
   margin: 0;
+  accent-color: var(--gr-ink);
 }
 
 /* Auto's size shows where the thumb is, fainter: it isn't a size you set. */
-.track input.auto {
+.track input.faint {
   opacity: var(--gr-compaction-off);
 }
 
@@ -105,49 +70,54 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* The size and where it compacts, then Auto at the end of the line. */
+.line {
+  display: flex;
+  align-items: center;
+  gap: var(--gr-compaction-gap);
+}
+
 .reading,
-.warn,
-.note {
+.warn {
   margin: 0;
 }
 
 .reading {
+  flex: 1;
   font-variant-numeric: tabular-nums;
+}
+
+.saved {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gr-card-choice-gap);
+  font-size: var(--gr-size-key);
+  color: var(--gr-ink-soft);
+}
+
+.auto {
+  padding: var(--gr-composer-button-pad);
+  border: var(--gr-compaction-auto-rule);
+  border-radius: var(--gr-radius-control);
+  font-size: var(--gr-size-control);
+  color: var(--gr-ink-soft);
+}
+
+.auto[aria-pressed='true'] {
+  border-color: var(--gr-ink);
+  color: var(--gr-ink);
+  font-weight: 500;
 }
 
 .warn {
   color: var(--gr-rubric);
 }
 
-.note {
-  color: var(--gr-ink-soft);
-  font-style: italic;
-}
-
-.compact {
+.foot {
   display: flex;
-  align-items: center;
-  gap: var(--gr-compaction-gap);
+  justify-content: flex-end;
   padding-top: var(--gr-card-head-pad);
   border-top: 1px solid var(--gr-hairline);
-}
-
-.compact input {
-  flex: 1;
-  min-width: 0;
-  padding: 0;
-  border: 0;
-  border-bottom: var(--gr-rename-rule);
-  background: transparent;
-  font: inherit;
-  color: var(--gr-pen);
-  caret-color: var(--gr-pen);
-  outline: none;
-}
-
-.compact input::placeholder {
-  font-style: italic;
-  color: var(--gr-ink-placeholder);
 }
 
 .control {

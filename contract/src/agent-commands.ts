@@ -86,9 +86,8 @@ declare module './commands' {
     /** How the agent compacts chats on the chat's model; null when it can't say, or the model isn't known yet. */
     'agents.compaction': { request: { chatId: ChatId }; response: CompactionSettings | null };
     /**
-     * Changes compaction for the chat's model, or whether the agent compacts
-     * at all, in your agent's settings. Every open chat it touches takes it
-     * once its turn ends.
+     * Changes the compaction window for the chat's model in your agent's
+     * settings. Every open chat on the model takes it once its turn ends.
      */
     'agents.setCompaction': {
       request: { chatId: ChatId; change: CompactionChange };

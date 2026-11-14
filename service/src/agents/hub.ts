@@ -317,7 +317,7 @@ export class AgentHub {
     return this.compacting.settings(chatId);
   }
 
-  /** Changes compaction for the chat's model, or whether the agent compacts at all. */
+  /** Changes the compaction window for the chat's model. */
   setCompaction(chatId: ChatId, change: CompactionChange): Promise<void> {
     return this.compacting.change(chatId, change);
   }

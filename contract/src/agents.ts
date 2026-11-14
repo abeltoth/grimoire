@@ -116,8 +116,6 @@ export type CompactionWindow = number | 'auto';
 
 /** How the agent compacts chats on a model, and what the model's window can be set to. */
 export interface CompactionSettings {
-  /** Whether the agent compacts a chat by itself as it fills. */
-  enabled: boolean;
   /** The window your settings give the model; missing when they give none. */
   window?: CompactionWindow;
   min: number;
@@ -127,10 +125,9 @@ export interface CompactionSettings {
   reserve: number;
 }
 
-/** A change to compaction: a model's window, whether the agent compacts by itself at all, or both. */
+/** A change to compaction: a model's window. */
 export interface CompactionChange {
-  window?: CompactionWindow;
-  enabled?: boolean;
+  window: CompactionWindow;
 }
 
 /**

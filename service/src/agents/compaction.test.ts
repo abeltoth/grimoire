@@ -62,25 +62,6 @@ describe('Compaction', () => {
     ]);
   });
 
-  it('turns compaction off for every model, a running turn ending first', async () => {
-    const a = await chatOn(opus, 50_000);
-    const b = await chatOn(sonnet, 60_000);
-    b.run.events.status('writing');
-    fake.windows.set(opus, { limit: 1_000_000 });
-    fake.windows.set(sonnet, { limit: 1_000_000 });
-    sent = [];
-    await hub.setCompaction(a.id, { enabled: false });
-    await settle();
-    expect(a.run.closed).toBe(true);
-    expect(b.run.closed).toBe(false);
-    b.run.events.turnEnded();
-    expect(b.run.closed).toBe(true);
-    expect(contexts()).toEqual([
-      { chatId: a.id, context: { used: 50_000, limit: 1_000_000, model: opus } },
-      { chatId: b.id, context: { used: 60_000, limit: 1_000_000, model: sonnet } },
-    ]);
-  });
-
   it("refuses a change before the chat's model is known", async () => {
     const { id } = await hub.start('fake', settings, 'Hello');
     await expect(hub.setCompaction(id, { window: 'auto' })).rejects.toThrow(
