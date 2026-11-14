@@ -10,7 +10,6 @@
   have no logic.
 - Code uses plain names; book names appear only in UI text, through `Wording`.
 - Comments explain why, in one sentence, with no history (git log keeps that).
-- `ADR.md` records decisions; it is not a changelog.
 - Nothing pro goes in this repo: pro modules, their styles and their registrations live in the
   private repo.
 - Tests never read the real clock.
@@ -47,7 +46,3 @@
 - Commit titles: `Area: what changed, in one sentence`, as in `git log`.
 - Shell entries carry `label` and `plainLabel`; running text goes through
   `wording.say(book, plain)`.
-
-## Decisions
-
-Read `ADR.md` before any architectural change; a new decision is a new ADR.

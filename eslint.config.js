@@ -104,7 +104,7 @@ const realClock = [
 ];
 
 export default defineConfig(
-  { ignores: ['**/dist/**', 'ui/vendor/**', 'design/**'] },
+  { ignores: ['**/dist/**', 'ui/vendor/**'] },
   {
     files: sources.map((root) => `${root}/**/*.ts`),
     extends: [tseslint.configs.recommended],

@@ -35,8 +35,8 @@ const CACHE_SIZE = 500;
 
 /**
  * Parses a reply. While it's still being written, half-finished markdown
- * is closed first so it reads as it will once finished (ADR: Grimoire
- * handles half-finished markdown itself).
+ * is closed first so it reads as it will once finished: no Angular markdown
+ * renderer is built for streaming, so Grimoire handles half-finished markdown itself.
  */
 export function parseMarkdown(text: string, writing: boolean): Markdown {
   const key = `${writing ? 'w' : 'd'}${text}`;
