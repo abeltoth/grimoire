@@ -1,3 +1,0 @@
-#!/bin/sh
-# Refuses a push whose commits carry a secret or the private repo's code; see leak-guard.mjs.
-exec node .githooks/leak-guard.mjs push

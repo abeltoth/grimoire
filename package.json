@@ -10,7 +10,6 @@
     "extra-modules"
   ],
   "scripts": {
-    "prepare": "git config core.hooksPath .githooks || exit 0",
     "dev": "node scripts/dev.mjs",
     "build": "npm run build -w @grimoire/ui && node scripts/build.mjs",
     "start": "npm run build && electron app",

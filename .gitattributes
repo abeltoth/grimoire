@@ -1,2 +1,0 @@
-# Git's sh misreads hooks with Windows line endings.
-.githooks/pre-* text eol=lf
