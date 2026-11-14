@@ -100,6 +100,8 @@ export type ChatStatus = 'idle' | 'thinking' | 'writing' | 'waiting';
 export interface ContextUsage {
   used: number;
   limit: number;
+  /** Where the agent compacts the chat by itself, when it does. */
+  compactsAt?: number;
 }
 
 /**

@@ -17,7 +17,8 @@ import type {
   TokenUse,
 } from '@grimoire/contract';
 import type { ChatEvents, LiveChat } from '../adapter';
-import { CacheTracker, type ReplyUsage } from './cache';
+import { CacheTracker, type ReplyUsage, contextTokens } from './cache';
+import { ContextMeter } from './context-meter';
 import { readUserSettings } from './effort';
 import type { FollowUpsKept } from './follow-ups';
 import type { MessageQueue } from './message-queue';
@@ -89,6 +90,13 @@ export function drive({
   });
   const transcript = new ClaudeTranscript(true, events);
   const cache = new CacheTracker();
+  const meter = new ContextMeter((usage) => events.context(usage));
+  const measure = async (live: Query) => {
+    const asked = meter.asking();
+    const usage = await live.getContextUsage({ detail: 'summary' });
+    meter.measured(usage, asked);
+    return usage;
+  };
   // Claude Code names a new chat during its first turn: looked for as each reply comes, one read at a time, until it has.
   let named = false;
   let naming = false;
@@ -109,25 +117,30 @@ export function drive({
   void (async () => {
     try {
       const live = await started;
+      // The meter shows from the start, before the first turn.
+      measure(live).catch(() => {});
       for await (const message of live) {
         transcript.apply(message);
         // At most one a turn, after its result.
         if (message.type === 'prompt_suggestion') events.suggestion(message.suggestion);
         if (message.type === 'assistant' && message.parent_tool_use_id === null) {
-          cache.reply(message.message.usage as ReplyUsage, Date.now());
+          const usage = message.message.usage as ReplyUsage | undefined;
+          cache.reply(usage, Date.now());
+          if (usage) meter.reply(contextTokens(usage));
           lookForName();
         }
-        if (message.type === 'system' && message.subtype === 'compact_boundary')
+        if (message.type === 'system' && message.subtype === 'compact_boundary') {
           cache.compacted(Date.now(), message.compact_metadata.post_tokens);
+          meter.compacted(message.compact_metadata.post_tokens);
+        }
         if (message.type !== 'result') continue;
         events.turnEnded(resultError(message));
         // What the turn offered shows once it ended, unless the next has begun.
         const offered = followUps.take();
         if (offered?.length) events.followUps(offered);
         if (cache.cache) events.cache(cache.cache);
-        live.getContextUsage({ detail: 'summary' }).then(
+        measure(live).then(
           (usage) => {
-            events.context({ used: usage.totalTokens, limit: usage.rawMaxTokens });
             // A compaction that didn't say how long its summary is shows it only here.
             if (cache.measured(usage.totalTokens)) events.cache(cache.cache!);
           },
@@ -152,6 +165,8 @@ export function drive({
     configure: async ({ model, mode, effort }) => {
       const live = await started;
       if (model) await live.setModel(model);
+      // Another model may have a window of another size.
+      if (model) measure(live).catch(() => {});
       if (effort) await live.applyFlagSettings({ effortLevel: effort });
       if (model) current.model = model;
       if (effort) current.effort = effort;

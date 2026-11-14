@@ -1,0 +1,32 @@
+:host {
+  display: flex;
+  align-items: center;
+  gap: var(--gr-allowance-gap);
+  font-size: var(--gr-size-control);
+  color: var(--gr-ink-soft);
+}
+
+b {
+  font-weight: 500;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink);
+}
+
+.count {
+  font-variant-numeric: tabular-nums;
+}
+
+.ticks {
+  position: relative;
+  width: var(--gr-allowance-width);
+  height: var(--gr-allowance-height);
+  background: var(--gr-allowance-ticks);
+}
+
+/* Each reply moves it, so it glides rather than jumps. */
+.used {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--gr-allowance-ticks-used);
+  transition: width var(--gr-allowance-dur) var(--gr-ease-ink);
+}

@@ -86,6 +86,12 @@ const CORE_MIGRATIONS = [
   // The history module keeps the pins and tags.
   `DROP TABLE pins;
    DROP TABLE tags;`,
+  // Each chat's context window, for the meter of a chat reopened before its agent runs.
+  `CREATE TABLE context_windows (
+     chat_id TEXT PRIMARY KEY,
+     context_limit INTEGER NOT NULL,
+     compacts_at INTEGER
+   );`,
 ];
 
 /**

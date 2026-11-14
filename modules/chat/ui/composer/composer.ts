@@ -32,6 +32,7 @@ import { AgentCommands } from '@ui/app/shell/agent-commands';
 import { Focus } from '@ui/app/shell/focus';
 import { Drafts } from './drafts';
 import { Attachments, Enclosing } from './attachments';
+import { ContextMeter } from './context-meter';
 import { Recall } from './recall';
 
 /**
@@ -45,7 +46,7 @@ import { Recall } from './recall';
  */
 @Component({
   selector: 'gr-composer',
-  imports: [Attachments, Icon],
+  imports: [Attachments, ContextMeter, Icon],
   templateUrl: './composer.html',
   styleUrl: './composer.css',
   host: { role: 'region', '[attr.aria-label]': "wording.say('Next page', 'Message')" },
@@ -133,12 +134,6 @@ export class Composer {
 
   /** Your messages, brought back with Up and Down. */
   private readonly recalls = new Recall();
-
-  /** The share of the allowance used, in percent; missing until the agent reports it. */
-  protected readonly used = computed(() => {
-    const context = this.context();
-    return context?.limit ? Math.round((context.used / context.limit) * 100) : undefined;
-  });
 
   private readonly messageField =
     viewChild.required<ElementRef<HTMLTextAreaElement>>('messageField');

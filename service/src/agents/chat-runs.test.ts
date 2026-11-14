@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { openDatabase } from '../storage/database';
+import { hubStore } from './chat-table';
 import { FakeAdapter } from './fake-adapter-testing';
 import { AgentHub } from './hub';
 import { type Sent, settings } from './hub-testing';
@@ -199,6 +201,21 @@ describe('ChatRuns', () => {
     expect((await hub.open('fake', id, settings)).context).toEqual({
       used: 62_000,
       limit: 100_000,
+    });
+  });
+
+  it("keeps a chat's context window, so the chat reopened shows its last reply in it", async () => {
+    hub = new AgentHub(() => {}, 50, hubStore(openDatabase(':memory:')));
+    hub.addAdapter(fake);
+    const { id } = await hub.start('fake', settings, 'Hello');
+    fake.runOf(id).events.context({ used: 62_000, limit: 200_000, compactsAt: 167_000 });
+    hub.close(id);
+    fake.transcripts.set(id, []);
+    fake.caches.set(id, { tokens: 70_000, until: 1_000 });
+    expect((await hub.open('fake', id, settings)).context).toEqual({
+      used: 70_000,
+      limit: 200_000,
+      compactsAt: 167_000,
     });
   });
 

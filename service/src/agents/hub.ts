@@ -86,7 +86,7 @@ export class AgentHub {
       for (const chat of this.table.chats.values())
         if (chat.agent === adapter) this.runs.restartWhenIdle(chat);
     });
-    this.runs = new ChatRuns(emit, this.table, this.updates, this.approvals, this.editors);
+    this.runs = new ChatRuns(emit, this.table, this.updates, this.approvals, this.editors, store);
     this.newChats = new NewChats(this.table, store, this.updates, this.editors, this.runs, {
       open: (agent, chatId, settings) => this.open(agent, chatId, settings),
       snapshot: (chat) => this.snapshot(chat),
@@ -444,6 +444,10 @@ export class AgentHub {
         this.table.track(chatId, adapter, settings, history.entries, title);
       chat.plan = history.plan;
       if (history.cache && !chat.cache) chat.cache = history.cache;
+      // The meter shows before the agent runs: the last reply's tokens, in the window last measured.
+      const window = this.store.windows.get(chatId);
+      if (history.cache && window && !chat.context)
+        chat.context = { used: history.cache.tokens, ...window };
       chat.withdrawn = this.store.withdrawn.list(chatId);
       chat.copied = this.store.copied.list(chatId);
       // What the last turn offered stands, unless the chat went on meanwhile.

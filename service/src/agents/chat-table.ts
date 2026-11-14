@@ -13,6 +13,7 @@ import type {
   QueuedEntry,
   SubagentRun,
 } from '@grimoire/contract';
+import { ContextWindows } from '../storage/context-windows';
 import { EntryIds } from '../storage/entry-ids';
 import { OpenChats } from '../storage/open-chats';
 import { Parallels } from '../storage/parallels';
@@ -66,6 +67,8 @@ export interface HubStore {
   copied: EntryIds;
   /** The chats sent one entry in parallel, and the one that edits each group. */
   parallels: Parallels;
+  /** Each chat's context window, for the meter of a chat reopened before its agent runs. */
+  windows: ContextWindows;
 }
 
 export function hubStore(db: DatabaseSync): HubStore {
@@ -74,6 +77,7 @@ export function hubStore(db: DatabaseSync): HubStore {
     withdrawn: new EntryIds(db, 'withdrawn'),
     copied: new EntryIds(db, 'copied'),
     parallels: new Parallels(db),
+    windows: new ContextWindows(db),
   };
 }
 

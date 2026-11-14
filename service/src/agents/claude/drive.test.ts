@@ -85,6 +85,20 @@ describe('drive', () => {
     expect(events.closed).toHaveBeenCalledWith();
   });
 
+  it('shows the context from the start and as each reply comes, and again for another model', async () => {
+    const reply = {
+      type: 'assistant',
+      parent_tool_use_id: null,
+      message: { id: 'msg_1', content: [], usage: { input_tokens: 40, output_tokens: 5 } },
+    };
+    const query = liveQuery([reply]);
+    const chat = run(query);
+    await settle();
+    expect(events.context).toHaveBeenLastCalledWith({ used: 45, limit: 100 });
+    await chat.configure({ model: 'sonnet' });
+    expect(query.getContextUsage).toHaveBeenCalledTimes(2);
+  });
+
   it('leaves the cache a compaction left, measured once the turn ends, not the one before it', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(5_000);
