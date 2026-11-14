@@ -69,12 +69,12 @@ describe('toolChange', () => {
 
   it('names the servers added, removed and changed', () => {
     expect(toolChange(sources({ a: '1', b: '1' }), sources({ a: '2', c: '1', d: '1' }))).toBe(
-      'New MCP servers: c, d; MCP server removed: b; MCP server changed: a',
+      'c, d added; b removed; a changed',
     );
   });
 
   it('says when plugins or MCP settings changed', () => {
-    expect(toolChange(sources({}), sources({}, '[{}]'))).toBe('Plugins or MCP settings changed');
+    expect(toolChange(sources({}), sources({}, '[{}]'))).toBe('Tool settings changed');
   });
 
   it('is null when nothing that loads tools changed', () => {
@@ -126,7 +126,7 @@ describe('watchToolSources', () => {
     changed!('.mcp.json');
     changed!('.mcp.json');
     vi.advanceTimersByTime(500);
-    expect(told).toEqual(['New MCP server: jira']);
+    expect(told).toEqual(['jira added']);
 
     changed!('.mcp.json');
     vi.advanceTimersByTime(500);
@@ -135,7 +135,7 @@ describe('watchToolSources', () => {
     current = { servers: {}, loading: '[]' };
     changed!('.mcp.json');
     vi.advanceTimersByTime(500);
-    expect(told).toEqual(['New MCP server: jira', null]);
+    expect(told).toEqual(['jira added', null]);
   });
 
   it('ignores other files in the folders watched', () => {

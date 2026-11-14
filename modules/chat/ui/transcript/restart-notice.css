@@ -1,11 +1,47 @@
+/* Under the last reply, in the text column, as the transcript's rows lay out. */
 :host {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--gr-margin-col);
+  column-gap: var(--gr-col-gap);
+  margin-top: var(--gr-follow-ups-margin);
+}
+
+/* A slip of laid paper, edged in red so it's seen. */
+.slip {
+  justify-self: start;
   display: flex;
   align-items: center;
-  gap: var(--gr-head-row-gap);
+  gap: var(--gr-restart-gap);
+  max-width: 100%;
+  padding: var(--gr-restart-pad);
+  background: var(--gr-card-paper);
+  border-left: var(--gr-restart-edge);
+  border-radius: var(--gr-radius-surface);
+  box-shadow: var(--gr-shadow-surface);
+  color: var(--gr-ink);
+}
+
+.what {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: var(--gr-size-aside);
+}
+
+.restart {
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-control);
+  letter-spacing: var(--gr-tracking-control);
+  color: var(--gr-rubric);
+}
+
+.dismiss {
+  display: inline-flex;
   color: var(--gr-ink-soft);
 }
 
-p {
-  margin: 0;
+.restart:hover,
+.dismiss:hover {
+  color: var(--gr-ink);
 }

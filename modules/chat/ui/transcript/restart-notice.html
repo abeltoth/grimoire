@@ -1,11 +1,22 @@
-<p>
-  {{ outdated() }} —
-  {{
+<div
+  class="slip"
+  role="status"
+  [attr.title]="
     wording.say(
-      'the chapter takes it in once it starts again',
-      'the chat loads it once it restarts'
+      'The chapter takes it in once it starts again',
+      'The chat loads it once it restarts'
     )
-  }}
-</p>
-<button type="button" class="gr-link" (click)="actions.restart(chatId())">Restart</button>
-<button type="button" class="gr-link" (click)="actions.dismissRestart(chatId())">Dismiss</button>
+  "
+>
+  <span class="what">{{ outdated() }}</span>
+  <button type="button" class="restart" (click)="actions.restart(chatId())">Restart</button>
+  <button
+    type="button"
+    class="dismiss"
+    aria-label="Dismiss"
+    title="Dismiss"
+    (click)="actions.dismissRestart(chatId())"
+  >
+    <gr-icon name="close" />
+  </button>
+</div>

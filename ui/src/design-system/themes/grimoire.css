@@ -830,6 +830,11 @@
   --gr-follow-up-pad: 9px 14px 10px;
   --gr-follow-up-line-gap: 2px;
 
+  /* Chat: the offer to restart a chat's process, a slip under the last reply */
+  --gr-restart-edge: 3px solid var(--gr-rubric);
+  --gr-restart-pad: 8px 12px;
+  --gr-restart-gap: 14px;
+
   /* Chat: approval slip, tucked into the page */
   --gr-approval-card-margin: 16px 4px 4px 0;
   --gr-approval-card-pad: 15px 22px 14px 24px;

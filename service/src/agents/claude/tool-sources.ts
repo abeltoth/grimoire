@@ -66,10 +66,10 @@ export function toolChange(before: ToolSources, now: ToolSources): string | null
     (name) => name in before.servers && before.servers[name] !== now.servers[name],
   );
   const said = [
-    listed(added, 'New MCP server', 'New MCP servers'),
-    listed(removed, 'MCP server removed', 'MCP servers removed'),
-    listed(changed, 'MCP server changed', 'MCP servers changed'),
-    before.loading !== now.loading ? 'Plugins or MCP settings changed' : '',
+    listed(added, 'added'),
+    listed(removed, 'removed'),
+    listed(changed, 'changed'),
+    before.loading !== now.loading ? 'Tool settings changed' : '',
   ].filter(Boolean);
   return said.length ? said.join('; ') : null;
 }
@@ -171,9 +171,8 @@ export function watchedForTools(cwd: string, events: ChatEvents): ChatEvents {
   };
 }
 
-function listed(names: string[], one: string, many: string): string {
-  if (!names.length) return '';
-  return `${names.length === 1 ? one : many}: ${names.sort().join(', ')}`;
+function listed(names: string[], what: string): string {
+  return names.length ? `${names.sort().join(', ')} ${what}` : '';
 }
 
 function pick(settings: Record<string, unknown>): Record<string, unknown> {

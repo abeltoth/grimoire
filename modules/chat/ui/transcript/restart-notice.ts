@@ -1,14 +1,16 @@
 import { Component, inject, input } from '@angular/core';
 import { ChatActions } from '@ui/app/core/chat-actions';
 import { Wording } from '@ui/app/core/wording';
+import { Icon } from '@ui/design-system/icon';
 
 /**
- * A line in a chat's page header while its process is outdated: what
- * changed, such as a new MCP server, and a Restart to take it in or a
- * Dismiss to keep the process as it is.
+ * A slip under a chat's last reply while its process is outdated: what
+ * changed, such as an MCP server added, and a Restart to take it in or a
+ * dismiss to keep the process as it is.
  */
 @Component({
   selector: 'gr-restart-notice',
+  imports: [Icon],
   templateUrl: './restart-notice.html',
   styleUrl: './restart-notice.css',
 })

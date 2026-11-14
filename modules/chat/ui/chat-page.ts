@@ -24,7 +24,7 @@ import { effortName } from '@ui/app/core/efforts';
 import { modeName } from '@ui/app/core/modes';
 import { Presets } from '@ui/app/core/presets';
 import { Wording } from '@ui/app/core/wording';
-import { RestartNotice } from './restart-notice';
+import { RestartNotice } from './transcript/restart-notice';
 import { AgentCommands } from '@ui/app/shell/agent-commands';
 import { SlashCommands } from '@ui/app/shell/slash-commands';
 import { RightPageState } from '@ui/app/shell/right-page/right-page-state';

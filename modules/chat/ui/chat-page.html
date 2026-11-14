@@ -110,9 +110,6 @@
           </button>
         </div>
       }
-      @if (c.outdated; as outdated) {
-        <gr-restart-notice [chatId]="c.id" [outdated]="outdated" />
-      }
     </gr-page-header>
 
     @if (card(); as open) {
@@ -129,6 +126,9 @@
       />
     } @else {
       <gr-transcript [chat]="c" (stop)="stop()">
+        @if (c.outdated; as outdated) {
+          <gr-restart-notice [chatId]="c.id" [outdated]="outdated" />
+        }
         @if (c.status === 'idle' && c.followUps?.length) {
           <gr-follow-ups [chatId]="c.id" [followUps]="c.followUps!" />
         }
