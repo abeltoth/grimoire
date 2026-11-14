@@ -1,5 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
+import { fakeBridge } from '@ui/testing/app-testing';
 import { Diagrams } from './diagrams';
 import { MarkdownView } from './markdown-view';
 
@@ -20,14 +22,18 @@ class Reply {
 }
 
 function reply() {
+  const { bridge } = fakeBridge();
   TestBed.configureTestingModule({
-    providers: [{ provide: Diagrams, useValue: { draw: async () => ({ problem: 'Not here' }) } }],
+    providers: [
+      { provide: Diagrams, useValue: { draw: async () => ({ problem: 'Not here' }) } },
+      { provide: GRIMOIRE_BRIDGE, useValue: bridge },
+    ],
   });
   const fixture = TestBed.createComponent(Reply);
   const el = fixture.nativeElement as HTMLElement;
   const texts = (selector: string) =>
     [...el.querySelectorAll(selector)].map((node) => node.textContent!.replace(/\s+/g, ' ').trim());
-  return { fixture, el, texts };
+  return { fixture, el, texts, bridge };
 }
 
 describe('MarkdownView', () => {
@@ -47,6 +53,16 @@ describe('MarkdownView', () => {
     expect(el.querySelector('div')).toBeNull();
     // The quill follows the last words, here the raw HTML's.
     expect(texts('.raw')).toEqual(['<div>raw</div>✒']);
+  });
+
+  it('opens a link in your browser, not in the window', async () => {
+    const { fixture, el, bridge } = reply();
+    fixture.componentInstance.text.set('See [the docs](https://example.com/docs).');
+    await fixture.whenStable();
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+    el.querySelector('a')!.dispatchEvent(click);
+    expect(click.defaultPrevented).toBe(true);
+    expect(bridge.openExternal).toHaveBeenCalledWith('https://example.com/docs');
   });
 
   it('numbers its listings after the chat’s listings before it', async () => {

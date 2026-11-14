@@ -1,5 +1,6 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, type TemplateRef, computed, input } from '@angular/core';
+import { Component, type TemplateRef, computed, inject, input } from '@angular/core';
+import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { Diagram } from './diagram';
 import { Listing } from './listing';
 import { parseMarkdown } from './markdown';
@@ -18,6 +19,8 @@ import { parseMarkdown } from './markdown';
   styleUrl: './markdown-view.css',
 })
 export class MarkdownView {
+  private readonly bridge = inject(GRIMOIRE_BRIDGE);
+
   readonly text = input.required<string>();
   /** Still being written: half-finished markdown is closed as it will be. */
   readonly writing = input(false);
@@ -26,4 +29,10 @@ export class MarkdownView {
   readonly tail = input<TemplateRef<unknown> | null>(null);
 
   protected readonly markdown = computed(() => parseMarkdown(this.text(), this.writing()));
+
+  /** The window never navigates away from the app, so a link opens in your browser. */
+  protected follow(event: MouseEvent, href: string): void {
+    event.preventDefault();
+    this.bridge.openExternal(href);
+  }
 }
