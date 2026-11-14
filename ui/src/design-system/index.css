@@ -1,5 +1,6 @@
 @import './fonts.css';
 @import './themes/grimoire.css';
+@import '@grimoire/extra-modules/theme.css';
 @import './themes/night.css';
 @import './themes/sepia.css';
 @import './themes/contrast.css';

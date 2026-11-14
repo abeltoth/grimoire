@@ -1,6 +1,7 @@
 import type { GrimoireSettings } from '@grimoire/contract';
 import { DEFAULT_SETTINGS } from '@grimoire/contract';
 import { DENSITIES, TEXT_FONTS } from './theme';
+import { THEME_SHEETS } from '@ui/design-system/theme-sheets';
 import { fakeBridge, render } from '@ui/testing/app-testing';
 
 describe('theme-editor', () => {
@@ -238,5 +239,28 @@ describe('theme-editor', () => {
     await fixture.whenStable();
     expect(kept.themeName).toBe('auto');
     expect(theme()).toBe('grimoire');
+  });
+
+  it('lists the tokens of the sheets modules add, after the theme’s own, to change as any other', async () => {
+    const { bridge } = fakeBridge();
+    const sheet = `:root {
+  /* Extra: a module from outside */
+  --gr-extra-gap: 4px;
+}
+`;
+    const { fixture, el, texts } = await render(bridge, [
+      { provide: THEME_SHEETS, multi: true, useValue: () => Promise.resolve(sheet) },
+    ]);
+    [...el.querySelectorAll<HTMLButtonElement>('gr-page-tabs .page-tab')]
+      .find((tab) => tab.textContent!.trim() === 'Colophon')!
+      .click();
+    await fixture.whenStable();
+    for (let i = 0; i < 50 && !el.querySelector('gr-theme-editor details'); i++) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      await fixture.whenStable();
+    }
+
+    expect(texts('gr-theme-editor summary').at(-1)).toMatch(/^Extra: a module from outside\s*1$/);
+    expect(texts('gr-theme-editor summary')[0]).toMatch(/^Desk, binding and thumb index/);
   });
 });

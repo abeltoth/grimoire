@@ -5,6 +5,7 @@
   "exports": {
     "./contract": "./contract.ts",
     "./service": "./service.ts",
+    "./theme.css": "./theme.css",
     "./ui": "./ui.ts"
   }
 }

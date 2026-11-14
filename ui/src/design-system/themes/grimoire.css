@@ -587,15 +587,6 @@
   --gr-workflow-setup-elsewhere-gap: 14px;
   --gr-workflow-setup-elsewhere-space: 22px;
 
-  /* Tune-up: checks of the agent's own setup, each a ruled row with its Run button */
-  --gr-optimize-row-pad: 12px 0;
-  --gr-optimize-col-gap: 18px;
-  --gr-optimize-rule: 1px solid var(--gr-hairline);
-  --gr-optimize-mark-gap: 10px;
-  --gr-optimize-run-pad: 4px 14px;
-  --gr-optimize-run-rule: 1px solid var(--gr-rubric);
-  --gr-optimize-run-radius: var(--gr-radius-control);
-
   /* File editor: a file opened on a thumb tab's page, on a sheet of the next page, ruled round */
   --gr-file-editor-min: 240px;
   --gr-file-editor-pad: 12px 14px;

@@ -3,6 +3,7 @@ import { type ThemeName, THEME_NAMES } from '@grimoire/contract';
 import { Settings } from '@ui/app/core/settings';
 import { Wording } from '@ui/app/core/wording';
 import { AUTO_DARK, AUTO_LIGHT, DesignSettings } from '@ui/design-system/design-settings';
+import { THEME_SHEETS } from '@ui/design-system/theme-sheets';
 import {
   DENSITIES,
   type Density,
@@ -102,10 +103,12 @@ export class ThemeEditor {
   });
 
   constructor() {
-    void THEME_FILES.grimoire().then(
+    const sheets = inject(THEME_SHEETS);
+    void Promise.all([THEME_FILES.grimoire(), ...sheets.map((sheet) => sheet())]).then(
       (css) => {
-        this.groups.set(tokenGroups(css));
-        this.files.update((files) => ({ ...files, grimoire: tokenValues(css) }));
+        this.groups.set(css.flatMap((sheet) => tokenGroups(sheet)));
+        const values = Object.assign({}, ...css.map((sheet) => tokenValues(sheet)));
+        this.files.update((files) => ({ ...files, grimoire: values }));
       },
       (error: unknown) => this.unread.set(error instanceof Error ? error.message : String(error)),
     );
