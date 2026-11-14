@@ -17,6 +17,10 @@ export function registerAgentCommands(registry: CommandRegistry, hub: AgentHub):
   registry.register('agents.cancelSignIn', ({ agent }) => hub.cancelSignIn(agent));
   registry.register('agents.folders', () => hub.folders());
   registry.register('agents.configure', ({ chatId, change }) => hub.configure(chatId, change));
+  registry.register('agents.compaction', ({ chatId }) => hub.compaction(chatId));
+  registry.register('agents.setCompaction', ({ chatId, change }) =>
+    hub.setCompaction(chatId, change),
+  );
   registry.register('agents.start', ({ agent, settings, text, title, attachments }) =>
     hub.start(agent, settings, text, title, attachments),
   );

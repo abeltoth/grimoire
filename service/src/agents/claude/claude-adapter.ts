@@ -10,6 +10,8 @@ import type {
   ChatSettings,
   ChatSummary,
   Attachment,
+  CompactionChange,
+  CompactionSettings,
   ContextWindow,
   SubagentRun,
   SubagentStats,
@@ -42,6 +44,7 @@ import { runJob } from './job';
 import { GRIMOIRE_SERVER, ProcessChat, grimoireOptions } from './grimoire-tools';
 import { mcpOff, mcpSettings } from './mcp';
 import { MessageQueue } from './message-queue';
+import { MIN_WINDOW, measureCompaction, saveCompaction, windowSet } from './compaction-settings';
 import { measureWindow } from './context-meter';
 import { savedSubagentStats } from './subagent-stats';
 import { QUICK_MODEL, toAgentModels } from './models';
@@ -125,6 +128,22 @@ export class ClaudeAdapter implements AgentAdapter {
 
   contextWindow(model: string, cwd: string): Promise<ContextWindow> {
     return measureWindow(model, cwd);
+  }
+
+  async compaction(model: string, cwd: string): Promise<CompactionSettings> {
+    const { enabled, max, reserve } = await measureCompaction(model, cwd);
+    const window = windowSet(model);
+    return {
+      enabled,
+      ...(window !== undefined ? { window } : {}),
+      min: Math.min(MIN_WINDOW, max),
+      max,
+      reserve,
+    };
+  }
+
+  async setCompaction(model: string, change: CompactionChange): Promise<void> {
+    saveCompaction(model, change);
   }
 
   /**

@@ -50,6 +50,34 @@ export class ChatWindows {
     });
   }
 
+  /**
+   * Measures again the windows of these chats' models, as a change to your
+   * settings left them, and shows each chat's meter in its model's.
+   */
+  async remeasure(chats: readonly ChatState[]): Promise<void> {
+    const byModel = new Map<string, ChatState[]>();
+    for (const chat of chats) {
+      const model = chat.context?.model;
+      if (model && chat.agent.contextWindow)
+        byModel.set(model, [...(byModel.get(model) ?? []), chat]);
+    }
+    await Promise.all(
+      [...byModel].map(async ([model, onIt]) => {
+        const [first] = onIt;
+        const window = await first!.agent.contextWindow!(model, first!.settings.cwd).catch(
+          () => undefined,
+        );
+        if (!window) return;
+        this.store.put(first!.agent.info.id, model, window);
+        for (const chat of onIt) {
+          if (!chat.context || this.table.chats.get(chat.id) !== chat) continue;
+          chat.context = { used: chat.context.used, ...window, model };
+          this.emit('agents.context', { chatId: chat.id, context: chat.context });
+        }
+      }),
+    );
+  }
+
   private measure(chat: ChatState, model: string): Promise<ContextWindow | undefined> {
     const adapter = chat.agent;
     if (!adapter.contextWindow) return Promise.resolve(undefined);

@@ -132,7 +132,12 @@
   </button>
   <span class="spacer"></span>
   @if (context()?.limit) {
-    <gr-context-meter class="allowance" [context]="context()!" />
+    <gr-context-meter
+      class="allowance"
+      [chatId]="chatId()"
+      [agent]="agent()"
+      [context]="context()!"
+    />
   }
   @if (canParallel()) {
     <button

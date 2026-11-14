@@ -109,6 +109,28 @@ export interface ContextUsage {
 /** A model's context window: its size, and where the agent compacts a chat by itself. */
 export type ContextWindow = Pick<ContextUsage, 'limit' | 'compactsAt'>;
 
+/** A compaction window as the agent's settings take it: in tokens, or 'auto' for the agent's own. */
+export type CompactionWindow = number | 'auto';
+
+/** How the agent compacts chats on a model, and what the model's window can be set to. */
+export interface CompactionSettings {
+  /** Whether the agent compacts a chat by itself as it fills. */
+  enabled: boolean;
+  /** The window your settings give the model; missing when they give none. */
+  window?: CompactionWindow;
+  min: number;
+  /** The model's own window. */
+  max: number;
+  /** How far before the window's end the agent compacts. */
+  reserve: number;
+}
+
+/** A change to compaction: a model's window, whether the agent compacts by itself at all, or both. */
+export interface CompactionChange {
+  window?: CompactionWindow;
+  enabled?: boolean;
+}
+
 /**
  * The prompt cache a chat's last reply left. Until it runs out, continuing
  * reads the chat's context from the cache; after, it reads it all again.

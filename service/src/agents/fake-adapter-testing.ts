@@ -1,4 +1,6 @@
 import type {
+  CompactionChange,
+  CompactionSettings,
   ContextWindow,
   AgentCommand,
   AgentInfo,
@@ -60,6 +62,15 @@ export class FakeAdapter implements AgentAdapter {
   measured: string[] = [];
   /** Each measure apart waits for it. */
   measureGate: Promise<void> = Promise.resolve();
+  /** How it compacts, on any model. */
+  compactionSettings: CompactionSettings = {
+    enabled: true,
+    min: 100_000,
+    max: 1_000_000,
+    reserve: 33_000,
+  };
+  /** The changes to compaction saved, by model, in order. */
+  compactionChanges: { model: string; change: CompactionChange }[] = [];
   /** The separate tasks each saved chat's last turn offered. */
   followUps = new Map<ChatId, FollowUp[]>();
   /** Saved subagents' runs, by the tool call that started each. */
@@ -89,6 +100,14 @@ export class FakeAdapter implements AgentAdapter {
     const window = this.windows.get(model);
     if (!window) throw new Error(`No window for ${model}`);
     return structuredClone(window);
+  }
+
+  async compaction(): Promise<CompactionSettings> {
+    return structuredClone(this.compactionSettings);
+  }
+
+  async setCompaction(model: string, change: CompactionChange): Promise<void> {
+    this.compactionChanges.push({ model, change });
   }
 
   async subagent(_chatId: ChatId, _cwd: string, toolId: string): Promise<SubagentRun> {

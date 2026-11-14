@@ -776,6 +776,15 @@
   --gr-allowance-ticks: repeating-linear-gradient(90deg, rgba(74, 48, 22, 0.3) 0 1px, transparent 1px 4px);
   --gr-allowance-ticks-used: repeating-linear-gradient(90deg, var(--gr-ink) 0 1.5px, transparent 1.5px 4px);
   --gr-allowance-dur: 400ms;
+  --gr-allowance-hover: rgba(74, 48, 22, 0.07);
+  --gr-allowance-pad: 4px 6px;
+  --gr-compaction-width: 380px;
+  --gr-compaction-gap: 10px;
+  --gr-compaction-off: 0.45;
+  --gr-compaction-auto-rule: 1px solid var(--gr-hairline);
+  --gr-compaction-now-width: 2px;
+  --gr-compaction-now-height: 18px;
+  --gr-compaction-stops-height: 16px;
   --gr-send-gap: 9px;
   --gr-send-pad: 7px 14px;
   --gr-tracking-send: 0.06em;

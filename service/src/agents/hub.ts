@@ -13,6 +13,8 @@ import type {
   ChatSettings,
   ChatStatus,
   ChatSummary,
+  CompactionChange,
+  CompactionSettings,
   NewChatSettings,
   OpenChat,
   ParallelFrom,
@@ -32,6 +34,7 @@ import type { AgentAdapter, JobRequest, JobResult } from './adapter';
 import { Approvals } from './approvals';
 import { ChatRuns } from './chat-runs';
 import { ChatWindows } from './chat-windows';
+import { Compaction } from './compaction';
 import { type ChatState, ChatTable, hubStore } from './chat-table';
 import { ChatUpdates } from './chat-updates';
 import { Editors } from './editors';
@@ -72,6 +75,7 @@ export class AgentHub {
   private readonly accounts: Accounts;
   private readonly runs: ChatRuns;
   private readonly windows: ChatWindows;
+  private readonly compacting: Compaction;
   private readonly newChats: NewChats;
   private readonly lifecycle: HubLifecycle;
 
@@ -97,6 +101,7 @@ export class AgentHub {
       this.editors,
       this.windows,
     );
+    this.compacting = new Compaction(this.table, this.runs, this.windows);
     this.newChats = new NewChats(this.table, store, this.updates, this.editors, this.runs, {
       open: (agent, chatId, settings) => this.open(agent, chatId, settings),
       snapshot: (chat) => this.snapshot(chat),
@@ -307,6 +312,16 @@ export class AgentHub {
    * The MCP servers turned off in every chat changed: each open chat's
    * process starts again, as soon as no turn runs, continuing the chat.
    */
+  /** How the agent compacts chats on the chat's model; null when it can't say, or the model isn't known yet. */
+  compaction(chatId: ChatId): Promise<CompactionSettings | null> {
+    return this.compacting.settings(chatId);
+  }
+
+  /** Changes compaction for the chat's model, or whether the agent compacts at all. */
+  setCompaction(chatId: ChatId, change: CompactionChange): Promise<void> {
+    return this.compacting.change(chatId, change);
+  }
+
   mcpChanged(): void {
     for (const chat of this.table.chats.values()) this.runs.restartWhenIdle(chat);
   }

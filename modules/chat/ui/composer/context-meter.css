@@ -1,9 +1,20 @@
 :host {
+  position: relative;
+}
+
+.gauge {
   display: flex;
   align-items: center;
   gap: var(--gr-allowance-gap);
+  padding: var(--gr-allowance-pad);
+  border-radius: var(--gr-radius-control);
   font-size: var(--gr-size-control);
   color: var(--gr-ink-soft);
+}
+
+.gauge:hover,
+.gauge[aria-expanded='true'] {
+  background: var(--gr-allowance-hover);
 }
 
 b {

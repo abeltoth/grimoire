@@ -11,6 +11,8 @@ import type {
   ChatSettings,
   ChatStatus,
   ChatSummary,
+  CompactionChange,
+  CompactionSettings,
   ContextUsage,
   ContextWindow,
   EffortLevel,
@@ -58,6 +60,16 @@ export interface AgentAdapter {
    * Agents that can't leave it out.
    */
   contextWindow?(model: string, cwd: string): Promise<ContextWindow>;
+  /**
+   * How the agent compacts chats on a model: what your settings say, and
+   * what the model's window can be set to. Agents that can't say leave it out.
+   */
+  compaction?(model: string, cwd: string): Promise<CompactionSettings>;
+  /**
+   * Saves a change to compaction in your settings; agent processes started
+   * afterwards take it. Agents that can't leave it out.
+   */
+  setCompaction?(model: string, change: CompactionChange): Promise<void>;
   /**
    * The model and effort for a new chat on Auto, picked for its first
    * entry; undefined when the agent can't say. Agents that can't pick leave it out.
