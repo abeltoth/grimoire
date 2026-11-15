@@ -9,9 +9,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--gr-composer-gap);
-  /* Drawn at the drawn text size and zoomed to yours, as the transcript is. */
-  --gr-size-text: var(--gr-size-text-drawn);
-  zoom: var(--gr-chat-zoom);
 }
 
 /* A message waiting for the turn to end. */

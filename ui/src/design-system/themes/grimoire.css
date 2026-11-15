@@ -95,8 +95,6 @@
   --gr-size-chat: 30px;
   --gr-size-window-title: 17px;
   --gr-size-text: 17px;
-  --gr-size-text-drawn: 17px;
-  --gr-chat-zoom: calc(var(--gr-size-text) / var(--gr-size-text-drawn));
   --gr-leading-text: 1.48;
   --gr-size-chat-tab: 13.5px;
   --gr-size-note: 13px;
