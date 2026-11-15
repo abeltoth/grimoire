@@ -63,6 +63,16 @@ li {
   background: var(--gr-allowance-ticks-used);
 }
 
+/* How much of the limit's time is gone: used past it, the limit runs out before it resets. */
+.pace {
+  position: absolute;
+  top: calc(-1 * var(--gr-allowance-pace-overhang));
+  bottom: calc(-1 * var(--gr-allowance-pace-overhang));
+  width: var(--gr-allowance-pace);
+  transform: translateX(-50%);
+  background: var(--gr-rubric);
+}
+
 b {
   font-weight: 500;
   font-size: var(--gr-size-aside);

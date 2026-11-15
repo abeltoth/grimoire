@@ -20,14 +20,8 @@ import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { ChatList } from '@ui/app/core/chat-list';
 import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { countsInWords, tokenCount } from '@ui/app/core/tokens';
-import {
-  type ChartSeries,
-  type ChartTick,
-  type Column,
-  type LineSeries,
-  UsageColumns,
-  UsageLines,
-} from './charts';
+import { type ChartSeries, type ChartTick, type Column, UsageColumns } from './charts';
+import { type LineSeries, UsageLines } from './lines-chart';
 import {
   DAY,
   HOUR,

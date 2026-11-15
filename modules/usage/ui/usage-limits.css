@@ -22,3 +22,11 @@ h2 {
   font-size: var(--gr-size-aside);
   color: var(--gr-ink-soft);
 }
+
+/* Where the week's pace so far leads, under its chart. */
+.forecast {
+  margin: var(--gr-aside-gap) 0 0;
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}

@@ -1,13 +1,27 @@
-import { Component, PendingTasks, effect, inject, input, signal, untracked } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  PendingTasks,
+  effect,
+  inject,
+  input,
+  signal,
+  untracked,
+} from '@angular/core';
 import type { AgentInfo, PlanUsage } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { AgentCatalog } from '@ui/app/core/agent-catalog';
-import { type ChartSeries, UsageColumns, UsageLines } from './charts';
-import { type LimitsChart, limitsChart } from './limits-chart';
+import { type ChartSeries, type Column, UsageColumns } from './charts';
+import { type LimitsChart, limitsChart, weekColumns } from './limits-chart';
+import { UsageLines } from './lines-chart';
+import { UsageSessions } from './sessions-chart';
 import {
   DAY,
+  HOUR,
+  elapsed,
   filled,
   limitName,
+  meterText,
   percent,
   planName,
   readingName,
@@ -17,24 +31,29 @@ import {
   time,
 } from './usage-format';
 
-/** An agent with a plan, how much of its limits is used, and how much was over the last week. */
+/** An agent with a plan, how much of its limits is used, its week so far and the weeks before. */
 interface Plan {
   agent: AgentInfo;
   usage: PlanUsage;
-  /** Its limits over the last week; null with too little read to draw. */
+  /** The week under way; null until a week's limit has been read. */
   chart: LimitsChart | null;
+  /** How full each week got, oldest first, the one under way last. */
+  weeks: Column[];
 }
 
-const SESSION_SERIES: ChartSeries[] = [{ name: 'Peak of the session', color: 'var(--gr-chart-3)' }];
+/** How many weeks back the weeks' chart goes, the one under way among them. */
+const WEEKS = 8;
+const WEEK_SERIES: ChartSeries[] = [{ name: 'Most used', color: 'var(--gr-chart-4)' }];
 
 /**
  * The Usage page's limits: how much of each agent's subscription limits is
- * used, read from the agent when the page opens, each limit with when it
- * resets, and the last week of them drawn.
+ * used, each limit with when it resets and how much of its time is gone,
+ * the week under way drawn with its sessions, and the weeks before. Read
+ * from the agent when the page opens, and again whenever the service reads them.
  */
 @Component({
   selector: 'gr-usage-limits',
-  imports: [UsageColumns, UsageLines],
+  imports: [UsageColumns, UsageLines, UsageSessions],
   templateUrl: './usage-limits.html',
   styleUrls: ['./usage-lists.css', './usage-limits.css'],
 })
@@ -50,8 +69,10 @@ export class UsageLimits {
   protected readonly plans = signal<Plan[] | undefined>(undefined);
   protected readonly reading = signal(false);
   protected readonly failed = signal<string | null>(null);
+  /** When the limits were last drawn, which their time gone counts to. */
+  protected readonly now = signal(Date.now());
 
-  protected readonly sessionSeries = SESSION_SERIES;
+  protected readonly weekSeries = WEEK_SERIES;
   /** A week's line holds across the hours nothing was read: its share only grows until it starts afresh. */
   protected readonly weekApart = 7 * DAY;
   protected readonly readingName = readingName;
@@ -60,6 +81,8 @@ export class UsageLimits {
   protected readonly time = time;
   protected readonly limitName = limitName;
   protected readonly filled = filled;
+  protected readonly elapsed = elapsed;
+  protected readonly meterText = meterText;
   protected readonly round = Math.round;
   protected readonly spent = spent;
   protected readonly resetsOn = resetsOn;
@@ -70,6 +93,9 @@ export class UsageLimits {
     effect(() => {
       if (this.catalog.agents().length) untracked(() => void this.read());
     });
+    // The service reads the limits now and again: what it read shows at once.
+    const stop = this.bridge.on('usage.read', ({ agent, usage }) => void this.update(agent, usage));
+    inject(DestroyRef).onDestroy(stop);
   }
 
   protected async read(): Promise<void> {
@@ -79,31 +105,52 @@ export class UsageLimits {
     this.failed.set(null);
     try {
       const agents = this.catalog.agents();
-      const since = Date.now() - 7 * DAY;
-      const answers = await Promise.all(
+      const plans = await Promise.all(
         agents.map(async (agent) => {
           const usage = await this.bridge.invoke('usage.plan', { agent: agent.id });
-          if (!usage) return null;
-          // Read after the limits, so the history has this reading too.
-          const history =
-            (await this.bridge.invoke('usage.history', { agent: agent.id, since })) ?? [];
-          return { usage, history };
+          return usage ? this.drawn(agent, usage) : null;
         }),
       );
-      const now = Date.now();
-      this.plans.set(
-        agents.flatMap((agent, i) => {
-          const answer = answers[i];
-          return answer
-            ? [{ agent, usage: answer.usage, chart: limitsChart(answer.history, now) }]
-            : [];
-        }),
-      );
+      this.plans.set(plans.filter((plan) => plan !== null));
     } catch (error) {
       this.failed.set(error instanceof Error ? error.message : String(error));
     } finally {
       this.reading.set(false);
       done();
     }
+  }
+
+  /** An agent's limits as the service just read them, in place of those shown. */
+  private async update(agent: string, usage: PlanUsage): Promise<void> {
+    const shown = this.plans()?.find((plan) => plan.agent.id === agent);
+    if (!shown) return;
+    const done = this.pending.add();
+    try {
+      const plan = await this.drawn(shown.agent, usage);
+      this.plans.update((plans) => plans?.map((each) => (each.agent.id === agent ? plan : each)));
+    } catch {
+      // What's shown stays until the next reading.
+    } finally {
+      done();
+    }
+  }
+
+  /** An agent's limits with the week under way and the weeks before, as kept. */
+  private async drawn(agent: AgentInfo, usage: PlanUsage): Promise<Plan> {
+    const now = Date.now();
+    const week = usage.windows.find((window) => window.span === 'week' && !window.model);
+    // The week under way, and the session it began in.
+    const since = week?.resetsAt ? week.resetsAt - 7 * DAY - 5 * HOUR : now - 7 * DAY;
+    const [history, weeks] = await Promise.all([
+      this.bridge.invoke('usage.history', { agent: agent.id, since }),
+      this.bridge.invoke('usage.weeks', { agent: agent.id, count: WEEKS }),
+    ]);
+    this.now.set(now);
+    return {
+      agent,
+      usage,
+      chart: limitsChart(history ?? [], now),
+      weeks: weekColumns(weeks ?? [], now),
+    };
   }
 }

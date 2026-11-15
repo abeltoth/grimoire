@@ -51,30 +51,32 @@ describe('usage-limits', () => {
     expect(calls.filter((call) => call.command === 'usage.plan')).toHaveLength(2);
   });
 
-  it("draws the week's limit as steps and each session's peak in the Usage page, with a row a day", async () => {
+  it('draws the week under way with its pace, its sessions and the weeks before in the Usage page', async () => {
     const { bridge, answers, calls } = fakeBridge();
-    const minutes = (n: number) => now - n * 60_000;
-    const lastWeek = minutes(3 * 24 * 60);
-    const nextWeek = now + 4 * 24 * 60 * 60_000;
-    const firstSession = minutes(100);
-    const secondSession = now + 270 * 60_000;
+    const hour = 60 * 60_000;
+    const end = now + 3 * 24 * hour;
+    const session = now + 2 * hour;
     answers['usage.plan'] = () => ({
       plan: 'max',
       windows: [
-        { span: 'session', used: 40, resetsAt: secondSession },
-        { span: 'week', used: 20, resetsAt: nextWeek },
+        { span: 'session', used: 40, resetsAt: session },
+        { span: 'week', used: 20, resetsAt: end },
       ],
       at: now,
     });
     answers['usage.history'] = (): UsageReading[] => [
-      { at: minutes(4 * 24 * 60), span: 'week', used: 90, resetsAt: lastWeek },
-      { at: minutes(300), span: 'session', used: 10, resetsAt: firstSession },
-      { at: minutes(300), span: 'week', used: 15, resetsAt: nextWeek },
-      // A reset read a few seconds off is the same session.
-      { at: minutes(285), span: 'session', used: 60, resetsAt: firstSession + 30_000 },
-      { at: minutes(30), span: 'session', used: 35, resetsAt: secondSession },
-      { at: minutes(15), span: 'session', used: 40, resetsAt: secondSession },
-      { at: minutes(15), span: 'week', used: 20, resetsAt: nextWeek },
+      { at: now - 48 * hour, span: 'week', used: 10, resetsAt: end },
+      { at: now - 2 * hour, span: 'session', used: 40, resetsAt: session },
+      { at: now - 2 * hour, span: 'week', used: 20, resetsAt: end },
+    ];
+    answers['usage.weeks'] = () => [
+      {
+        start: end - 14 * 24 * hour,
+        end: end - 7 * 24 * hour,
+        peak: 100,
+        fullAt: now - 5 * 24 * hour,
+      },
+      { start: end - 7 * 24 * hour, end, peak: 20, fullAt: null },
     ];
     const { fixture, el, texts } = await render(bridge);
     [...el.querySelectorAll<HTMLButtonElement>('gr-page-tabs .page-tab')]
@@ -82,38 +84,55 @@ describe('usage-limits', () => {
       .click();
     await fixture.whenStable();
 
+    // Read from the session the week began in.
     const since = (calls.find((c) => c.command === 'usage.history')!.request as { since: number })
       .since;
-    expect(now - since).toBeGreaterThan(7 * 24 * 60 * 60_000 - 60_000);
+    expect(since).toBe(end - 7 * 24 * hour - 5 * hour);
     expect(texts('gr-usage-page .plan figcaption')).toEqual([
-      'The week\u2019s limit over the last 7 days',
-      'How full each session got',
+      'This week’s limit, from one reset to the next',
+      'Each five-hour session this week',
+      'How full each week got',
     ]);
-    // One series each: the caption names it, with no legend.
-    expect(el.querySelector('gr-usage-page .plan .legend')).toBeNull();
-    // Last week's reading stands apart from this week's steps, with the new week marked.
-    const steps = [...el.querySelectorAll('gr-usage-page .plan path.line')].map((p) =>
-      p.getAttribute('d')!,
+    // The session is 3 hours of 5 gone; the week 4 days of 7.
+    const meters = [...el.querySelectorAll('gr-usage-page .plan [role="meter"]')];
+    expect(meters[0]!.getAttribute('aria-valuetext')).toBe('40% used, 60% of the session gone');
+    expect(meters[1]!.getAttribute('aria-valuetext')).toBe('20% used, 57% of the week gone');
+    expect(el.querySelectorAll('gr-usage-page .plan .pace')).toHaveLength(2);
+    // The week's line, the even pace and where the pace so far leads.
+    expect(texts('gr-usage-page .plan gr-usage-lines .legend li')).toEqual([
+      'This week, all models',
+      'Even pace',
+      'At this rate',
+    ]);
+    expect(el.querySelector('gr-usage-page .plan gr-usage-lines .table-view')).toBeNull();
+    expect(texts('gr-usage-page .plan .forecast')[0]).toMatch(
+      /^At this rate, you’ll end the week near \d+%\.$/,
     );
-    expect(steps).toHaveLength(1);
-    expect(steps[0]).toMatch(/^M[\d.]+,[\d.]+H[\d.]+V[\d.]+$/);
-    expect(texts('gr-usage-page .plan .mark-label')).toEqual(['New week']);
-    expect(texts('gr-usage-page .plan .end-label')).toEqual(['20%']);
+    expect(el.querySelectorAll('gr-usage-page .plan rect.session').length).toBeGreaterThan(0);
+    expect(el.querySelectorAll('gr-usage-page .plan gr-usage-columns rect.hit')).toHaveLength(2);
+  });
 
-    // A row a day, in place of every reading.
-    const rows = [...el.querySelectorAll('gr-usage-page .plan tbody tr')].map((row) =>
-      [...row.querySelectorAll('td')].map((cell) => cell.textContent!.trim()),
-    );
-    // Only the days anything was read.
-    expect(rows.length).toBeGreaterThanOrEqual(2);
-    expect(rows.length).toBeLessThanOrEqual(3);
-    expect(rows[0]).toEqual(['\u2013', '90%']);
-    expect(rows.some(([, week]) => week === '20%')).toBe(true);
+  it('shows the limits the service read meanwhile in the Usage page, without reading them itself', async () => {
+    const { bridge, answers, calls, emit } = fakeBridge();
+    answers['usage.plan'] = () => ({
+      plan: 'max',
+      windows: [{ span: 'session', used: 10, resetsAt: null }],
+      at: now,
+    });
+    const { fixture, el, texts } = await render(bridge);
+    [...el.querySelectorAll<HTMLButtonElement>('gr-page-tabs .page-tab')]
+      .find((tab) => tab.textContent!.trim() === 'Ledger')!
+      .click();
+    await fixture.whenStable();
+    expect(texts('gr-usage-page .plan b')).toEqual(['10%']);
 
-    // Two sessions, each at its peak.
-    const sessions = el.querySelectorAll('gr-usage-page .plan gr-usage-columns rect.hit');
-    expect(sessions).toHaveLength(2);
-    expect(sessions[0]!.getAttribute('aria-label')).toMatch(/: 60%; /);
+    emit('usage.read', {
+      agent: 'claude-code',
+      usage: { plan: 'max', windows: [{ span: 'session', used: 25, resetsAt: null }], at: now },
+    });
+    await fixture.whenStable();
+    expect(texts('gr-usage-page .plan b')).toEqual(['25%']);
+    expect(calls.filter((call) => call.command === 'usage.plan')).toHaveLength(1);
   });
 
   it("shows an organization's monthly allowance in the Usage page, with no session or week limits", async () => {

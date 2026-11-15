@@ -1,0 +1,72 @@
+<figure class="chart">
+  <figcaption>{{ caption() }}</figcaption>
+
+  @let drawn = layout();
+  <div class="plot">
+    <svg
+      [attr.viewBox]="'0 0 ' + width + ' ' + drawn.height"
+      role="group"
+      [attr.aria-label]="caption()"
+      (mouseleave)="show(null)"
+    >
+      @for (row of drawn.rows; track row.y) {
+        <rect
+          class="day"
+          [attr.x]="left"
+          [attr.y]="row.y"
+          [attr.width]="right - left"
+          [attr.height]="rowHeight"
+        />
+        <text class="y-tick" [attr.x]="left - 6" [attr.y]="row.y + rowHeight / 2" dy="0.32em">
+          {{ row.label }}
+        </text>
+      }
+      @for (hour of drawn.hours; track hour.x) {
+        <line class="grid" [attr.x1]="hour.x" [attr.x2]="hour.x" y1="0" [attr.y2]="drawn.base" />
+        <text class="x-tick" [attr.x]="hour.x" [attr.y]="drawn.base + 16">{{ hour.label }}</text>
+      }
+      @for (block of drawn.blocks; track $index) {
+        @let session = sessions()[block.s]!;
+        <rect
+          class="session"
+          [class.dim]="hovered() !== null && hovered() !== block.s"
+          [attr.x]="block.x"
+          [attr.y]="block.y"
+          [attr.width]="block.width"
+          [attr.height]="rowHeight"
+          [attr.fill-opacity]="block.opacity"
+          tabindex="0"
+          role="img"
+          [attr.aria-label]="named(session)"
+          (mouseenter)="show(block.s)"
+          (focus)="show(block.s)"
+          (blur)="show(null)"
+        />
+        @if (block.full !== null) {
+          <line
+            class="ran-out"
+            [attr.x1]="block.full"
+            [attr.x2]="block.full"
+            [attr.y1]="block.y - 2"
+            [attr.y2]="block.y + rowHeight + 2"
+          />
+        }
+      }
+    </svg>
+
+    @let s = hovered();
+    @if (s !== null) {
+      @let block = drawn.blocks.find((each) => each.s === s)!;
+      @let at = tipAt(block.x + block.width / 2, block.y, drawn.height);
+      <div
+        class="tip"
+        [class.flip]="at.flip"
+        [style.left.%]="at.left"
+        [style.top.%]="at.top"
+        aria-hidden="true"
+      >
+        <span class="tip-head">{{ named(sessions()[s]!) }}</span>
+      </div>
+    }
+  </div>
+</figure>

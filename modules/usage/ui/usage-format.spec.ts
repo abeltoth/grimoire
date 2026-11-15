@@ -3,9 +3,11 @@ import {
   behaviourName,
   dayKey,
   dayName,
+  elapsed,
   filled,
   limitName,
   money,
+  onDay,
   planName,
   resets,
   spent,
@@ -44,6 +46,22 @@ describe('usage formats', () => {
     const weekday = new Date(at(3, 9)).toLocaleDateString([], { weekday: 'long' });
     expect(resets(at(3, 9))).toBe(`resets ${weekday} at ${time(at(3, 9))}`);
     expect(resets(null)).toBe('');
+  });
+
+  it('says a moment to come: today, tomorrow, or on a weekday', () => {
+    const at = (days: number, hours: number) => new Date(2026, 10, 9 + days, hours).getTime();
+    expect(onDay(at(0, 23), now)).toBe(`today at ${time(at(0, 23))}`);
+    expect(onDay(at(1, 9), now)).toBe(`tomorrow at ${time(at(1, 9))}`);
+    const weekday = new Date(at(3, 9)).toLocaleDateString([], { weekday: 'long' });
+    expect(onDay(at(3, 9), now)).toBe(`${weekday} at ${time(at(3, 9))}`);
+  });
+
+  it('says how much of a limit’s window is gone', () => {
+    const hour = 60 * 60_000;
+    expect(elapsed({ span: 'session', used: 5, resetsAt: now + 4 * hour }, now)).toBe(20);
+    expect(elapsed({ span: 'week', used: 5, resetsAt: now + 7 * 24 * hour }, now)).toBe(0);
+    expect(elapsed({ span: 'week', used: 5, resetsAt: now - hour }, now)).toBe(100);
+    expect(elapsed({ span: 'week', used: 5, resetsAt: null }, now)).toBeNull();
   });
 
   it('writes money in the currency, or as cents with a code Intl refuses', () => {

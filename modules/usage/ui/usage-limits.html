@@ -29,6 +29,7 @@
                   <span class="name">{{ limitName(window) }}</span>
                   <span class="resets">{{ resets(window.resetsAt) }}</span>
                 </span>
+                @let gone = elapsed(window, now());
                 <span
                   class="ticks"
                   role="meter"
@@ -36,8 +37,16 @@
                   aria-valuemin="0"
                   aria-valuemax="100"
                   [attr.aria-valuenow]="window.used"
+                  [attr.aria-valuetext]="meterText(window, now())"
                 >
                   <span class="used" [style.width.%]="filled(window.used)"></span>
+                  @if (gone !== null) {
+                    <span
+                      class="pace"
+                      [style.left.%]="gone"
+                      [title]="percent(gone) + ' of the ' + window.span + ' gone'"
+                    ></span>
+                  }
                 </span>
                 <b>{{ window.used ?? '–' }}%</b>
               </li>
@@ -69,30 +78,40 @@
             }
           </ul>
           @if (plan.chart; as chart) {
-            @if (chart.week.length) {
-              <gr-usage-lines
-                caption="The week’s limit over the last 7 days"
-                [series]="chart.week"
-                [from]="chart.from"
-                [to]="chart.to"
-                [ticks]="chart.ticks"
-                [marks]="chart.marks"
-                [breakAfter]="weekApart"
-                [step]="true"
-                [table]="chart.table"
-                [when]="readingName"
-              />
+            <gr-usage-lines
+              caption="This week’s limit, from one reset to the next"
+              [series]="chart.week"
+              [guides]="chart.guides"
+              [from]="chart.from"
+              [to]="chart.to"
+              [ticks]="chart.ticks"
+              [marks]="chart.marks"
+              [breakAfter]="weekApart"
+              [step]="true"
+              [tabled]="false"
+              [when]="readingName"
+            />
+            @if (chart.forecast; as forecast) {
+              <p class="forecast">{{ forecast }}</p>
             }
             @if (chart.sessions.length) {
-              <gr-usage-columns
-                caption="How full each session got"
-                [series]="sessionSeries"
-                [columns]="chart.sessions"
-                [format]="percent"
-                [max]="100"
-                [tabled]="false"
+              <gr-usage-sessions
+                caption="Each five-hour session this week"
+                [sessions]="chart.sessions"
+                [from]="chart.from"
+                [now]="now()"
               />
             }
+          }
+          @if (plan.weeks.length) {
+            <gr-usage-columns
+              caption="How full each week got"
+              [series]="weekSeries"
+              [columns]="plan.weeks"
+              [format]="percent"
+              [max]="100"
+              [tabled]="false"
+            />
           }
         } @else {
           <p class="none">

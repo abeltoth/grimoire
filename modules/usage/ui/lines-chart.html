@@ -1,9 +1,12 @@
 <figure class="chart">
   <figcaption>{{ caption() }}</figcaption>
-  @if (series().length > 1) {
+  @if (series().length + guides().length > 1) {
     <ul class="legend">
       @for (each of series(); track each.name) {
         <li><span class="line-key" [style.background]="each.color"></span>{{ each.name }}</li>
+      }
+      @for (each of guides(); track each.name) {
+        <li><span class="guide-key" [style.color]="each.color"></span>{{ each.name }}</li>
       }
     </ul>
   }
@@ -40,6 +43,10 @@
         </text>
       }
       <line class="axis" [attr.x1]="left" [attr.x2]="right" [attr.y1]="base" [attr.y2]="base" />
+
+      @for (each of drawn.guides; track each.guide.name) {
+        <path class="guide" [attr.d]="each.d" [style.stroke]="each.guide.color" />
+      }
 
       @for (line of drawn.lines; track line.series.name) {
         @for (d of line.lines; track $index) {
@@ -125,29 +132,10 @@
     }
   </div>
 
-  <details class="table-view">
-    <summary>As a table</summary>
-    <table>
-      @if (table(); as table) {
-        <thead>
-          <tr>
-            <th scope="col"></th>
-            @for (head of table.head; track $index) {
-              <th scope="col">{{ head }}</th>
-            }
-          </tr>
-        </thead>
-        <tbody>
-          @for (row of table.rows; track $index) {
-            <tr>
-              <th scope="row">{{ row.name }}</th>
-              @for (cell of row.cells; track $index) {
-                <td>{{ cell }}</td>
-              }
-            </tr>
-          }
-        </tbody>
-      } @else {
+  @if (tabled()) {
+    <details class="table-view">
+      <summary>As a table</summary>
+      <table>
         <thead>
           <tr>
             <th scope="col"></th>
@@ -166,7 +154,7 @@
             </tr>
           }
         </tbody>
-      }
-    </table>
-  </details>
+      </table>
+    </details>
+  }
 </figure>

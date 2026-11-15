@@ -1,49 +1,69 @@
-import type { UsageReading } from '@grimoire/contract';
-import type { ChartTable, ChartTick, Column, LinePoint, LineSeries } from './charts';
+import type { UsageReading, UsageWeek } from '@grimoire/contract';
+import type { ChartTick, Column } from './charts';
+import type { ChartGuide, LinePoint, LineSeries } from './lines-chart';
 import {
   DAY,
   HOUR,
-  dayKey,
-  dayName,
   dayTick,
   limitName,
+  onDay,
   percent,
+  readingName,
   startOf,
-  time,
-  weekday,
 } from './usage-format';
 
-/** A plan's limits over the last week, drawn. */
+/** A five-hour session: when it ran, the most of it used, and when it was first read full. */
+export interface LimitSession {
+  start: number;
+  end: number;
+  peak: number;
+  fullAt: number | null;
+}
+
+/** The week under way of a plan's limits, drawn from when it started to when it starts afresh. */
 export interface LimitsChart {
-  /** The week's limit, and any week kept for one model: a step line each, broken where a week starts afresh. */
+  /** The week's limit, and any week kept for one model: a step line each. */
   week: LineSeries[];
-  /** How full each five-hour session got. */
-  sessions: Column[];
+  /** The pace that would use the week up just as it ends, and where the pace so far leads. */
+  guides: ChartGuide[];
+  /** Where the pace so far leads, in a sentence; null with too little read to say. */
+  forecast: string | null;
+  /** The week's five-hour sessions, oldest first. */
+  sessions: LimitSession[];
   from: number;
   to: number;
   ticks: ChartTick[];
   marks: ChartTick[];
-  /** A row a day: the busiest session, and the week's share at the day's end. */
-  table: ChartTable;
 }
 
 /** The week's limits drawn as lines, in this order: all models, then each week kept for one model. */
 const WEEK_COLORS = ['var(--gr-chart-4)', 'var(--gr-chart-1)', 'var(--gr-chart-2)'];
 
+const WEEK = 7 * DAY;
 /** A five-hour session, and how near together two readings of when it resets may be and still be the same one. */
 const SESSION = 5 * HOUR;
 const SAME_RESET = 10 * 60_000;
+/** Less of the week gone than this, and its pace so far says too little to go on. */
+const TOO_SOON = 6 * HOUR;
+
+/** Two readings a minute apart may say 14:59 or 15:00: a reset is to the hour. */
+const toHour = (at: number) => Math.round(at / HOUR) * HOUR;
 
 /**
- * A plan's limits over the last week: the week's share as a step line,
- * each new week marked, and how full each five-hour session got. Null
- * with too little read to draw.
+ * The week under way of a plan's limits: the week's share as a step line,
+ * the pace to keep and the pace so far as guides, and its five-hour
+ * sessions. Null until a week's limit has been read.
  */
 export function limitsChart(history: readonly UsageReading[], now: number): LimitsChart | null {
-  const from = now - 7 * DAY;
-  const shown = history.filter((r) => r.at >= from && r.used !== null);
-  // Two readings a minute apart may say 14:59 or 15:00: a reset is to the hour.
-  const toHour = (at: number) => Math.round(at / HOUR) * HOUR;
+  const read = history.filter((r) => r.used !== null);
+  const latest = read.filter((r) => r.span === 'week' && !r.model && r.resetsAt !== null).at(-1);
+  if (!latest) return null;
+  const to = toHour(latest.resetsAt!);
+  const from = to - WEEK;
+  // A week kept for one model that's unused may not say when it resets.
+  const shown = read.filter(
+    (r) => r.at >= from && (r.resetsAt === null || toHour(r.resetsAt) > from),
+  );
 
   const weeks = new Map<string, { window: UsageReading; points: LinePoint[] }>();
   const byModel = (a: UsageReading, b: UsageReading) =>
@@ -65,70 +85,94 @@ export function limitsChart(history: readonly UsageReading[], now: number): Limi
     points: limit.points,
   }));
 
-  const peaks = new Map<number, { end: number; peak: number }>();
-  for (const r of shown) {
-    if (r.span !== 'session' || r.resetsAt === null) continue;
-    const key = Math.round(r.resetsAt / SAME_RESET);
-    const session = peaks.get(key) ?? { end: r.resetsAt, peak: 0 };
-    session.peak = Math.max(session.peak, r.used!);
-    peaks.set(key, session);
-  }
-  let labelled = -Infinity;
-  let lastDay = '';
-  const sessions = [...peaks.values()]
-    .filter((session) => session.peak > 0)
-    .sort((a, b) => a.end - b.end)
-    .map((session, i): Column => {
-      const start = session.end - SESSION;
-      const day = dayKey(new Date(start));
-      // A day's first session names the day, unless the one just named is too near.
-      const named = day !== lastDay && i - labelled >= 2;
-      lastDay = day;
-      if (named) labelled = i;
-      return {
-        label: named ? dayTick(start) : '',
-        name: `${weekday(start)} ${time(start)} to ${time(session.end)}`,
-        parts: [session.peak],
-      };
-    });
-  if (!week.some((each) => each.points.length > 1) && !sessions.length) return null;
-
   const ticks: ChartTick[] = [];
-  const rows: { name: string; cells: string[] }[] = [];
-  const allModels = shown.filter((r) => r.span === 'week' && !r.model);
-  for (const day = startOf(from, 'day'); day.getTime() <= now; day.setDate(day.getDate() + 1)) {
-    const start = day.getTime();
-    const noon = start + 12 * HOUR;
-    if (noon >= from && noon <= now) ticks.push({ at: noon, label: dayTick(noon) });
-    const end = new Date(start);
-    end.setDate(end.getDate() + 1);
-    const inDay = (r: UsageReading) => r.at >= start && r.at < end.getTime();
-    const busiest = Math.max(
-      -1,
-      ...shown.filter((r) => r.span === 'session' && inDay(r)).map((r) => r.used!),
-    );
-    const last = allModels.filter(inDay).at(-1);
-    // A day nothing was read, such as one the app was closed, has no row.
-    if (busiest >= 0 || last) {
-      rows.push({
-        name: dayName(dayKey(day)),
-        cells: [busiest < 0 ? '–' : percent(busiest), last ? percent(last.used!) : '–'],
-      });
-    }
+  for (const day = startOf(from, 'day'); day.getTime() < to; day.setDate(day.getDate() + 1)) {
+    const noon = day.getTime() + 12 * HOUR;
+    if (noon >= from && noon <= to) ticks.push({ at: noon, label: dayTick(noon) });
   }
-  const resets = new Set(
-    allModels
-      .filter((r) => r.resetsAt !== null)
-      .map((r) => toHour(r.resetsAt!))
-      .filter((at) => at > from && at <= now),
-  );
+  const { guides, forecast } = pace(latest, from, to, now);
   return {
     week,
-    sessions,
+    guides,
+    forecast,
+    sessions: sessions(shown, from),
     from,
-    to: now,
+    to,
     ticks,
-    marks: [...resets].sort((a, b) => a - b).map((at) => ({ at, label: 'New week' })),
-    table: { head: ['Busiest session', 'Week at the day’s end'], rows },
+    marks: now > from && now < to ? [{ at: now, label: 'Now' }] : [],
   };
+}
+
+/** The pace that uses the week up just as it ends, and, once enough of it is gone, where the pace so far leads. */
+function pace(
+  latest: UsageReading,
+  from: number,
+  to: number,
+  now: number,
+): { guides: ChartGuide[]; forecast: string | null } {
+  const guides: ChartGuide[] = [
+    {
+      name: 'Even pace',
+      color: 'var(--gr-ink-soft)',
+      from: { at: from, value: 0 },
+      to: { at: to, value: 100 },
+    },
+  ];
+  const used = latest.used!;
+  const gone = latest.at - from;
+  if (used >= 100) return { guides, forecast: 'The week’s limit is used up.' };
+  if (gone < TOO_SOON || used <= 0) return { guides, forecast: null };
+  const rate = used / gone;
+  const fullAt = latest.at + (100 - used) / rate;
+  const reaches = fullAt <= to;
+  const atEnd = used + rate * (to - latest.at);
+  guides.push({
+    name: 'At this rate',
+    color: WEEK_COLORS[0]!,
+    from: { at: latest.at, value: used },
+    to: reaches ? { at: fullAt, value: 100 } : { at: to, value: atEnd },
+  });
+  return {
+    guides,
+    forecast: reaches
+      ? `At this rate, the week’s limit runs out ${onDay(fullAt, now)}.`
+      : `At this rate, you’ll end the week near ${percent(atEnd)}.`,
+  };
+}
+
+/** Each five-hour session that used any of the limit and ended after the week began, oldest first. */
+function sessions(shown: readonly UsageReading[], from: number): LimitSession[] {
+  const found = new Map<number, LimitSession>();
+  for (const r of shown) {
+    if (r.span !== 'session' || r.resetsAt === null) continue;
+    const key = Math.round(r.resetsAt! / SAME_RESET);
+    const session = found.get(key) ?? {
+      start: r.resetsAt! - SESSION,
+      end: r.resetsAt!,
+      peak: 0,
+      fullAt: null,
+    };
+    session.peak = Math.max(session.peak, r.used!);
+    if (r.used! >= 100 && (session.fullAt === null || r.at < session.fullAt)) session.fullAt = r.at;
+    found.set(key, session);
+  }
+  return [...found.values()]
+    .filter((session) => session.peak > 0 && session.end > from)
+    .sort((a, b) => a.start - b.start);
+}
+
+/** A column a week, named by the day it began, the one under way as so far, with when any ran out. */
+export function weekColumns(weeks: readonly UsageWeek[], now: number): Column[] {
+  // The week under way alone says no more than its meter does.
+  if (weeks.length < 2) return [];
+  return weeks.map((week) => {
+    const began = new Date(week.start).toLocaleDateString([], { month: 'short', day: 'numeric' });
+    const under = week.end > now;
+    const ran = week.fullAt === null ? '' : `, ran out ${readingName(week.fullAt)}`;
+    return {
+      label: under ? 'This week' : began,
+      name: `Week from ${readingName(week.start)}${under ? ', so far' : ''}${ran}`,
+      parts: [week.peak],
+    };
+  });
 }

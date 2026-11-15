@@ -2,7 +2,7 @@ import type { UsageReading } from '@grimoire/contract';
 import { describe, expect, it } from 'vitest';
 import { migrate, openDatabase } from '@grimoire/service/testing/database';
 import { MIGRATIONS } from './migrations';
-import { UsageReadings, sameAccount } from './readings';
+import { UsageReadings, sameAccount, weeks } from './readings';
 
 const HOUR = 60 * 60_000;
 /** Thursday 15:00 and Saturday 00:00, a week on: two accounts' weeks. */
@@ -65,5 +65,24 @@ describe('sameAccount', () => {
 
   it('has nothing to keep with no readings', () => {
     expect(sameAccount([])).toEqual([]);
+  });
+});
+
+describe('weeks', () => {
+  it('tells each week of the limit for all models by when it starts afresh, and when it was first full', () => {
+    const next = THURSDAY + 7 * 24 * HOUR;
+    const history: UsageReading[] = [
+      { at: 1000, span: 'week', used: 90, resetsAt: THURSDAY },
+      { at: 2000, span: 'week', used: 100, resetsAt: THURSDAY + 60_000 },
+      { at: 3000, span: 'week', used: 100, resetsAt: THURSDAY },
+      { at: 3000, span: 'week', model: 'Opus', used: 100, resetsAt: THURSDAY },
+      { at: 3000, span: 'session', used: 100, resetsAt: 4000 },
+      { at: 4000, span: 'week', used: 12, resetsAt: next },
+      { at: 5000, span: 'week', used: null, resetsAt: next },
+    ];
+    expect(weeks(history)).toEqual([
+      { start: THURSDAY - 7 * 24 * HOUR, end: THURSDAY, peak: 100, fullAt: 2000 },
+      { start: THURSDAY, end: next, peak: 12, fullAt: null },
+    ]);
   });
 });

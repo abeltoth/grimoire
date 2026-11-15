@@ -452,6 +452,8 @@
   --gr-chart-tick-size: 11.5px;
   /* A line's width, a key's height, and the ring of the page's colour round a dot. */
   --gr-chart-stroke: 2px;
+  /* A guide's dashes and gaps, such as the pace to keep. */
+  --gr-chart-dash: 5 4;
   --gr-chart-swatch-radius: 2px;
   --gr-chart-fade: 120ms;
   --gr-chart-tip-gap: 2px;
@@ -805,6 +807,9 @@
   --gr-allowance-gap: 9px;
   --gr-allowance-width: 128px;
   --gr-allowance-height: 14px;
+  /* The mark on a limit's meter for how much of its time is gone, and how far it stands past the meter. */
+  --gr-allowance-pace: 2px;
+  --gr-allowance-pace-overhang: 3px;
   --gr-allowance-ticks: repeating-linear-gradient(90deg, rgba(74, 48, 22, 0.3) 0 1px, transparent 1px 4px);
   --gr-allowance-ticks-used: repeating-linear-gradient(90deg, var(--gr-ink) 0 1.5px, transparent 1.5px 4px);
   --gr-allowance-dur: 400ms;

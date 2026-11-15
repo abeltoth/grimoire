@@ -106,6 +106,40 @@ export function resets(at: number | null): string {
   return `resets ${on}at ${time(at)}`;
 }
 
+/** A moment from now on, such as "today at 2:00 PM", "tomorrow at 9:00 AM" or "Wednesday at 3:00 PM". */
+export function onDay(at: number, now: number): string {
+  const day = (offset: number) => {
+    const date = new Date(now);
+    date.setDate(date.getDate() + offset);
+    return date.toDateString();
+  };
+  const when = new Date(at).toDateString();
+  const on =
+    when === day(0)
+      ? 'today'
+      : when === day(1)
+        ? 'tomorrow'
+        : new Date(at).toLocaleDateString([], { weekday: 'long' });
+  return `${on} at ${time(at)}`;
+}
+
+/** How long each of a plan's limits runs before it starts afresh. */
+const LENGTHS: Record<UsageWindow['span'], number> = { session: 5 * HOUR, week: 7 * DAY };
+
+/** How much of a limit's window is gone, 0-100; null when it doesn't say when it resets. */
+export function elapsed(window: UsageWindow, now: number): number | null {
+  if (window.resetsAt === null) return null;
+  const length = LENGTHS[window.span];
+  return filled(((now - (window.resetsAt - length)) / length) * 100);
+}
+
+/** What a limit's meter says, such as "18% used, 40% of the session gone". */
+export function meterText(window: UsageWindow, now: number): string {
+  const used = window.used === null ? 'Not read' : `${percent(window.used)} used`;
+  const gone = elapsed(window, now);
+  return gone === null ? used : `${used}, ${percent(gone)} of the ${window.span} gone`;
+}
+
 /** Claude Code's ways of working, as its usage scan names them, in plain words. */
 const BEHAVIOURS: Record<string, string> = {
   cache_miss: 'Going on after the prompt cache ran out',

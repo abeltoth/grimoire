@@ -1,0 +1,29 @@
+/* A day's row: the hours no session ran. */
+.day {
+  fill: var(--gr-chart-grid);
+}
+
+/* A session, darker the more of its limit it used. */
+.session {
+  fill: var(--gr-chart-4);
+  outline: none;
+  transition: opacity var(--gr-chart-fade);
+}
+
+.session:focus-visible {
+  stroke: var(--gr-ink);
+  stroke-width: var(--gr-chart-stroke);
+  vector-effect: non-scaling-stroke;
+}
+
+/* The session under the pointer stands out; the rest step back. */
+.session.dim {
+  opacity: 0.45;
+}
+
+/* Where a session ran out. */
+.ran-out {
+  stroke: var(--gr-rubric);
+  stroke-width: var(--gr-chart-stroke);
+  vector-effect: non-scaling-stroke;
+}

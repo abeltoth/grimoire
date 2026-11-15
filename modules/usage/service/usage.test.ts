@@ -14,6 +14,7 @@ function setUp() {
   migrate(db, 'usage', MIGRATIONS);
   const readings = new UsageReadings(db);
   let used = 10;
+  const kept: [string, PlanUsage][] = [];
   const source: UsageSource = {
     plan: async (): Promise<PlanUsage> => ({
       plan: 'max',
@@ -23,27 +24,67 @@ function setUp() {
     }),
     breakdown: async () => null,
   };
-  const usage = new Usage(readings, new Map([['fake', source]]), () => ['fake', 'plain']);
-  return { usage, readings };
+  const usage = new Usage(
+    readings,
+    new Map([['fake', source]]),
+    () => ['fake', 'plain'],
+    (agent, plan) => kept.push([agent, plan]),
+    () => vi.getMockedSystemTime()!.getTime(),
+  );
+  return { usage, readings, kept, source };
 }
 
 describe('Usage', () => {
-  it('reads the plan limits now and every so often, and keeps each reading', async () => {
-    const { usage, readings } = setUp();
+  it('reads the plan limits, keeps each reading and says so', async () => {
+    const { usage, readings, kept } = setUp();
     expect(await usage.plan('fake')).toMatchObject({ plan: 'max', windows: [{ used: 10 }] });
-
     await vi.advanceTimersByTimeAsync(1000);
-    const stop = usage.readEvery(60_000);
-    await vi.advanceTimersByTimeAsync(60_000);
-    stop();
-    await vi.advanceTimersByTimeAsync(60_000);
+    await usage.readAll();
     expect(readings.since('fake', 0).map(({ span, used }) => ({ span, used }))).toEqual([
       { span: 'session', used: 10 },
       { span: 'session', used: 11 },
-      { span: 'session', used: 12 },
     ]);
-    const [, second] = readings.since('fake', 0);
-    expect(usage.history('fake', second!.at).map(({ used }) => used)).toEqual([11, 12]);
+    expect(kept.map(([agent, plan]) => [agent, plan.windows[0]!.used])).toEqual([
+      ['fake', 10],
+      ['fake', 11],
+    ]);
+    expect(usage.history('fake', 1000).map(({ used }) => used)).toEqual([11]);
+  });
+
+  it('shares a read under way with whoever asks meanwhile', async () => {
+    const { usage, readings } = setUp();
+    const [first, second] = await Promise.all([usage.plan('fake'), usage.plan('fake')]);
+    expect(second).toBe(first);
+    expect(readings.since('fake', 0)).toHaveLength(1);
+  });
+
+  it('fails to read all when any agent fails', async () => {
+    const { usage, source } = setUp();
+    source.plan = async () => {
+      throw new Error('Too many requests');
+    };
+    await expect(usage.readAll()).rejects.toThrow('Too many requests');
+  });
+
+  it('tells the weeks of the limit for all models, the latest last', async () => {
+    const { usage, readings } = setUp();
+    const week = 7 * 24 * 60 * 60_000;
+    vi.setSystemTime(3 * week);
+    for (const [at, used] of [
+      [0.5 * week, 100],
+      [1.5 * week, 40],
+      [2.5 * week, 20],
+    ] as const) {
+      readings.record('fake', {
+        plan: 'max',
+        windows: [{ span: 'week', used, resetsAt: (Math.floor(at / week) + 1) * week }],
+        at,
+      });
+    }
+    expect(usage.weeks('fake', 2).map(({ end, peak }) => [end / week, peak])).toEqual([
+      [2, 40],
+      [3, 20],
+    ]);
   });
 
   it('has no plan limits, nor where they went, for an agent without a plan', async () => {

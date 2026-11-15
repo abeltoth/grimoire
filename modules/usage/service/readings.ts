@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { AgentId, PlanUsage, UsageReading, UsageWindow } from '@grimoire/contract';
+import type { AgentId, PlanUsage, UsageReading, UsageWeek, UsageWindow } from '@grimoire/contract';
 
 /**
  * Each reading of how much of the plan's limits is used, kept so their
@@ -80,4 +80,24 @@ export function sameAccount(readings: readonly UsageReading[]): UsageReading[] {
   return readings.filter((r) =>
     account && r.account ? r.account === account : phase !== null && phases.get(r.at) === phase,
   );
+}
+
+/** A week a reading of the limit for all models belongs to, by when it starts afresh, to the hour. */
+const weekOf = (r: UsageReading) => Math.round(r.resetsAt! / HOUR) * HOUR;
+
+/**
+ * The weeks of the limit for all models the readings tell of, oldest
+ * first: how much of each was used, and when it was first read full.
+ */
+export function weeks(readings: readonly UsageReading[]): UsageWeek[] {
+  const found = new Map<number, UsageWeek>();
+  for (const r of readings) {
+    if (r.span !== 'week' || r.model || r.resetsAt === null || r.used === null) continue;
+    const end = weekOf(r);
+    const week = found.get(end) ?? { start: end - WEEK, end, peak: 0, fullAt: null };
+    week.peak = Math.max(week.peak, r.used);
+    if (r.used >= 100 && (week.fullAt === null || r.at < week.fullAt)) week.fullAt = r.at;
+    found.set(end, week);
+  }
+  return [...found.values()].sort((a, b) => a.end - b.end);
 }
