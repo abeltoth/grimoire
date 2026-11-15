@@ -10,8 +10,6 @@ import {
   MAIN_TOKENS,
   TEXT_FONT,
   TEXT_FONTS,
-  TEXT_SIZE,
-  TEXT_SIZES,
   THEME_CHOICES,
   THEME_FILES,
   type TokenGroup,
@@ -19,7 +17,6 @@ import {
   hexOf,
   isColour,
   searchTokens,
-  pxOf,
   textFontOf,
   tokenGroups,
   tokenValues,
@@ -30,7 +27,7 @@ import { percentOf } from './scale';
 /**
  * The theme editor: the ready-made themes to choose from, then, to
  * change the one in use, the book's main colours, the scale of every
- * window, the size and face of the chat's text and how closely its pages are set, and every token under the
+ * window, the face of its text and how closely its pages are set, and every token under the
  * theme's own headings, to search and change. The book is its own preview: a change shows on every page at
  * once, and is kept for every window once you stop. Reset puts a token
  * back as the theme draws it; choosing another theme starts afresh.
@@ -45,8 +42,6 @@ export class ThemeEditor {
   private readonly design = inject(DesignSettings);
   protected readonly wording = inject(Wording);
   protected readonly isColour = isColour;
-  protected readonly textSizes = TEXT_SIZES;
-  protected readonly TEXT_SIZE = TEXT_SIZE;
 
   /** The theme's tokens under its headings, once its file is read. */
   protected readonly groups = signal<TokenGroup[] | null>(null);
@@ -86,7 +81,6 @@ export class ThemeEditor {
   protected readonly scales = SCALES;
   protected readonly scale = computed(() => this.settings.all().scale ?? 1);
   protected readonly percent = computed(() => percentOf(this.scale()));
-  protected readonly textSize = computed(() => pxOf(this.valueOf(TEXT_SIZE)));
   protected readonly TEXT_FONT = TEXT_FONT;
   /** The faces to pick, each word shown in its own face. */
   protected readonly fonts = computed(() =>

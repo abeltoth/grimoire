@@ -74,10 +74,6 @@ export const MAIN_TOKENS: readonly { name: string; label: string; plainLabel?: s
   { name: '--gr-gilt', label: 'Gilt', plainLabel: 'Gold' },
 ];
 
-export const TEXT_SIZE = '--gr-size-text';
-/** How small and large the text may be set, in px. */
-export const TEXT_SIZES = { min: 13, max: 24 } as const;
-
 export const TEXT_FONT = '--gr-font-text';
 
 /** A face to set the text in; the book's own when it changes nothing. */
@@ -250,10 +246,4 @@ export function hexOf(value: string): string | null {
 /** Whether a value draws a colour, so it can be shown as a swatch. */
 export function isColour(value: string): boolean {
   return /^(#[0-9a-f]{3,8}|rgba?\(|hsla?\()/i.test(value.trim());
-}
-
-/** A size in px as a number, such as 17 for "17px"; null for any other value. */
-export function pxOf(value: string): number | null {
-  const px = /^(\d+(?:\.\d+)?)px$/.exec(value.trim());
-  return px ? Number(px[1]) : null;
 }

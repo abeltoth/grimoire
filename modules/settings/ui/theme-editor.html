@@ -77,26 +77,6 @@
     }
   </span>
 
-  <label class="label" for="gr-theme-text-size">{{
-    wording.say('Size of the chapter’s text', 'Chat text size')
-  }}</label>
-  <span class="control">
-    <input
-      type="range"
-      class="size"
-      id="gr-theme-text-size"
-      step="0.5"
-      [min]="textSizes.min"
-      [max]="textSizes.max"
-      [value]="textSize() ?? ''"
-      (input)="change(TEXT_SIZE, $any($event.target).value + 'px')"
-    />
-    <code>{{ valueOf(TEXT_SIZE) }}</code>
-    @if (TEXT_SIZE in changes()) {
-      <button type="button" class="gr-link" (click)="reset(TEXT_SIZE)">Reset</button>
-    }
-  </span>
-
   <span class="label" id="gr-theme-font">{{ wording.say('Face of the text', 'Font') }}</span>
   <span class="control">
     <span class="words" role="radiogroup" aria-labelledby="gr-theme-font">

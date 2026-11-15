@@ -38,7 +38,6 @@ describe('theme-editor', () => {
       'Lapis',
       'Gilt',
       'Size of the pages',
-      'Size of the chapter’s text',
       'Face of the text',
       'Room on the page',
     ]);
