@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { type LineSeries, UsageLines } from './lines-chart';
+import { type LineSeries, UsageLines, smoothPath } from './lines-chart';
 
 const texts = (el: HTMLElement, selector: string) =>
   [...el.querySelectorAll(selector)].map((node) => node.textContent!.replace(/\s+/g, ' ').trim());
@@ -85,5 +85,29 @@ describe('UsageLines guides', () => {
     expect(el.querySelectorAll('path.area')).toHaveLength(1);
     expect(el.querySelectorAll('circle.dot')).toHaveLength(3);
     expect(el.querySelector('.table-view')).toBeNull();
+  });
+});
+
+describe('smoothPath', () => {
+  it('curves through every point, flat where the line holds, so it never rises past one', () => {
+    const d = smoothPath([
+      { x: 0, y: 100 },
+      { x: 10, y: 50 },
+      { x: 20, y: 50 },
+      { x: 30, y: 0 },
+    ]);
+    expect(d).toMatch(/^M0\.0,100\.0C/);
+    // Each control point lies between its segment's ends.
+    const ys = [...d.matchAll(/,(-?[\d.]+)/g)].map((m) => Number(m[1]));
+    expect(Math.max(...ys)).toBeLessThanOrEqual(100);
+    expect(Math.min(...ys)).toBeGreaterThanOrEqual(0);
+    // Holding at 50, the curve leaves the second point flat.
+    expect(d).toContain('C13.3,50.0 16.7,50.0 20.0,50.0');
+    expect(
+      smoothPath([
+        { x: 0, y: 0 },
+        { x: 5, y: 5 },
+      ]),
+    ).toBe('M0.0,0.0L5.0,5.0');
   });
 });

@@ -137,7 +137,6 @@ svg {
   font-size: var(--gr-chart-tick-size);
   font-style: italic;
   fill: var(--gr-ink-soft);
-  text-anchor: end;
 }
 
 /* The ground under a line, a wash of its colour. */

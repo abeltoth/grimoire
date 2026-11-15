@@ -98,13 +98,18 @@ describe('usage-limits', () => {
     expect(el.querySelectorAll('gr-usage-page .plan .pace')).toHaveLength(2);
     // One line each, so no legend; the even pace named by its end, and where the pace so far leads.
     expect(el.querySelector('gr-usage-page .plan .legend')).toBeNull();
-    expect(texts('gr-usage-page .plan .guide-label')).toEqual(['even pace', 'even pace']);
-    expect(el.querySelectorAll('gr-usage-page .plan path.guide')).toHaveLength(4);
+    // The pace so far ends where the limit runs out, by its time, or at the reset, by its share.
+    const labels = texts('gr-usage-page .plan .guide-label');
+    expect(labels).toHaveLength(5);
+    expect([labels[0], labels[2], labels[4]]).toEqual(['even pace', 'even pace', '20% so far']);
+    expect(labels[1]).toMatch(/\d:\d\d/);
+    expect(labels[3]).toMatch(/^\d+%$/);
+    expect(el.querySelectorAll('gr-usage-page .plan path.guide')).toHaveLength(5);
     expect(el.querySelectorAll('gr-usage-page .plan path.area').length).toBeGreaterThan(0);
     expect(el.querySelector('gr-usage-page .plan gr-usage-lines .table-view')).toBeNull();
     expect(el.querySelector('gr-usage-page .plan .forecast')).toBeNull();
     expect(el.querySelectorAll('gr-usage-page .plan rect.session').length).toBeGreaterThan(0);
-    // The two weeks ended, a dot each; the week under way is drawn above.
+    // The two weeks ended, a dot each; the week under way dashed after them.
     const weeks = el.querySelectorAll('gr-usage-page .plan gr-usage-lines')[2]!;
     expect(weeks.querySelectorAll('circle.dot')).toHaveLength(2);
   });

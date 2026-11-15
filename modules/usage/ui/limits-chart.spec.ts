@@ -1,6 +1,6 @@
 import type { UsageReading } from '@grimoire/contract';
 import { limitsChart, sessionChart, weeksChart } from './limits-chart';
-import { HOUR } from './usage-format';
+import { HOUR, readingName, time } from './usage-format';
 
 const DAY = 24 * HOUR;
 
@@ -31,7 +31,9 @@ describe('limitsChart', () => {
       'This week, all models',
       'This week, Opus',
     ]);
-    expect(chart.week[0]!.points.map((point) => point.value)).toEqual([10, 40]);
+    // Drawn from nothing at the reset, as the first reading came later.
+    expect(chart.week[0]!.points.map((point) => point.value)).toEqual([0, 10, 40]);
+    expect(chart.week[0]!.points[0]!.at).toBe(start);
     // A tick at each noon of the week, and now marked.
     expect(chart.ticks).toHaveLength(7);
     expect(chart.marks).toEqual([{ at: now, label: 'Now' }]);
@@ -41,9 +43,14 @@ describe('limitsChart', () => {
     // Four days gone and 80% used: 20% a day, so it runs out a day on, before the reset.
     const history: UsageReading[] = [{ at: now, span: 'week', used: 80, resetsAt: end }];
     const chart = limitsChart(history, now)!;
-    expect(chart.guides.map(({ name, from, to }) => [name, from, to])).toEqual([
-      ['Even pace', { at: start, value: 0 }, { at: end, value: 100 }],
-      ['At this rate', { at: now, value: 80 }, { at: now + DAY, value: 100 }],
+    expect(chart.guides.map(({ name, from, to, label }) => [name, from, to, label])).toEqual([
+      ['Even pace', { at: start, value: 0 }, { at: end, value: 100 }, 'even pace'],
+      [
+        'At this rate',
+        { at: now, value: 80 },
+        { at: now + DAY, value: 100 },
+        readingName(now + DAY),
+      ],
     ]);
   });
 
@@ -51,6 +58,7 @@ describe('limitsChart', () => {
     // Four days gone and 20% used: 5% a day, 35% by the reset.
     const lasting = limitsChart([{ at: now, span: 'week', used: 20, resetsAt: end }], now)!;
     expect(lasting.guides[1]!.to).toEqual({ at: end, value: 35 });
+    expect(lasting.guides[1]!.label).toBe('35%');
 
     const early = limitsChart(
       [{ at: start + HOUR, span: 'week', used: 5, resetsAt: end }],
@@ -97,12 +105,13 @@ describe('sessionChart', () => {
     ];
     const chart = sessionChart(history, now)!;
     expect([chart.from, chart.to]).toEqual([end - 5 * HOUR, end]);
-    expect(chart.lines[0]!.points.map((point) => point.value)).toEqual([10, 60]);
+    expect(chart.lines[0]!.points.map((point) => point.value)).toEqual([0, 10, 60]);
     // A tick each hour, and now marked.
     expect(chart.ticks).toHaveLength(6);
     expect(chart.marks).toEqual([{ at: now, label: 'Now' }]);
     // Three hours gone and 60% used: it runs out in two, as it resets.
     expect(chart.guides[1]!.to).toEqual({ at: end, value: 100 });
+    expect(chart.guides[1]!.label).toBe(time(end));
   });
 
   it('has nothing to draw when no session is under way', () => {
@@ -123,7 +132,7 @@ describe('weeksChart', () => {
     used,
   });
 
-  it('draws how much of each week ended was used, a point where each began, the week under way left out', () => {
+  it('draws how much of each week ended was used, a point where each began, and the week under way so far', () => {
     const chart = weeksChart(
       [
         ended(3, 70),
@@ -138,8 +147,11 @@ describe('weeksChart', () => {
       { at: now - 2 * week - DAY, value: 100 },
       { at: now - week - DAY, value: 40 },
     ]);
-    expect([chart.from, chart.to]).toEqual([now - 3 * week - DAY, now - week - DAY]);
-    expect(chart.ticks).toHaveLength(3);
+    expect(chart.guides.map(({ from, to, label }) => [from, to, label])).toEqual([
+      [{ at: now - week - DAY, value: 40 }, { at: now - DAY, value: 5 }, '5% so far'],
+    ]);
+    expect([chart.from, chart.to]).toEqual([now - 3 * week - DAY, now - DAY]);
+    expect(chart.ticks).toHaveLength(4);
   });
 
   it('labels about six weeks of many, the latest among them', () => {
@@ -149,9 +161,9 @@ describe('weeksChart', () => {
     expect(ticks.at(-1)!.at).toBe(now - week - DAY);
   });
 
-  it('has nothing to draw with fewer than two weeks ended', () => {
-    expect(
-      weeksChart([ended(1, 40), { start: now - DAY, end: now + 6 * DAY, used: 5 }], now),
-    ).toBeNull();
+  it('draws from the first week ended, and nothing before', () => {
+    const under = { start: now - DAY, end: now + 6 * DAY, used: 5 };
+    expect(weeksChart([ended(1, 40), under], now)!.lines[0]!.points).toHaveLength(1);
+    expect(weeksChart([under], now)).toBeNull();
   });
 });

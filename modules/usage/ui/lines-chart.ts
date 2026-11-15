@@ -43,8 +43,11 @@ export class UsageLines {
   readonly marks = input<readonly ChartTick[]>([]);
   /** How far apart two readings may be and still be joined by a line, in ms. */
   readonly breakAfter = input.required<number>();
-  /** Each reading holds until the next, as a limit's share does, rather than sloping to it. */
-  readonly step = input(false);
+  /**
+   * How a line goes from reading to reading: straight; in a step, each
+   * holding until the next; or smooth, a curve that never rises past either.
+   */
+  readonly curve = input<'straight' | 'step' | 'smooth'>('straight');
   /** Dashed lines drawn under the series, each named by its end. */
   readonly guides = input<readonly ChartGuide[]>([]);
   /** The ground under each line shaded in its colour. */
@@ -97,15 +100,21 @@ export class UsageLines {
         if (run && last && point.at - last.at <= gap && point.run === last.run) run.push(point);
         else runs.push([point]);
       }
-      const step = this.step();
+      const curve = this.curve();
       const path = (run: readonly LinePoint[]) =>
-        run
-          .map((p, i) => {
-            const px = x(p.at).toFixed(1);
-            const py = y(p.value).toFixed(1);
-            return i === 0 ? `M${px},${py}` : step ? `H${px}V${py}` : `L${px},${py}`;
-          })
-          .join('');
+        curve === 'smooth'
+          ? smoothPath(run.map((p) => ({ x: x(p.at), y: y(p.value) })))
+          : run
+              .map((p, i) => {
+                const px = x(p.at).toFixed(1);
+                const py = y(p.value).toFixed(1);
+                return i === 0
+                  ? `M${px},${py}`
+                  : curve === 'step'
+                    ? `H${px}V${py}`
+                    : `L${px},${py}`;
+              })
+              .join('');
       const end = series.points[series.points.length - 1];
       const joined = runs.filter((run) => run.length > 1);
       return {
@@ -135,7 +144,7 @@ export class UsageLines {
     const guides = this.guides().map((guide) => ({
       guide,
       d: `M${x(guide.from.at).toFixed(1)},${y(guide.from.value).toFixed(1)}L${x(guide.to.at).toFixed(1)},${y(guide.to.value).toFixed(1)}`,
-      end: { x: x(guide.to.at), y: y(guide.to.value) },
+      label: guideLabel(x(guide.to.at), y(guide.to.value), this.right),
     }));
     return {
       guides,
@@ -159,7 +168,9 @@ export class UsageLines {
       rows: this.series().map((series) => {
         const point =
           series.points.find((p) => p.at === at) ??
-          (this.step() ? latestBy(series.points, at, gap) : nearest(series.points, at, gap));
+          (this.curve() === 'step'
+            ? latestBy(series.points, at, gap)
+            : nearest(series.points, at, gap));
         return { series, point, y: point ? this.y()(point.value) : 0 };
       }),
     };
@@ -252,4 +263,40 @@ function nearest<T extends { at: number }>(
     if (off <= within && (!best || off < Math.abs(best.at - at))) best = point;
   }
   return best;
+}
+
+/**
+ * A curve through points left to right that rises and falls only where
+ * they do, never past the points on either side: a monotone cubic
+ * (Fritsch and Carlson), so a share that only grows is drawn only growing.
+ */
+export function smoothPath(points: readonly { x: number; y: number }[]): string {
+  const n = points.length;
+  if (!n) return '';
+  const at = (p: { x: number; y: number }) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`;
+  if (n < 3) return `M${points.map(at).join('L')}`;
+  const slopes = points
+    .slice(1)
+    .map((p, i) => (p.y - points[i]!.y) / Math.max(p.x - points[i]!.x, 1e-9));
+  const tangents = points.map((_, i) => {
+    if (i === 0) return slopes[0]!;
+    if (i === n - 1) return slopes[n - 2]!;
+    const [a, b] = [slopes[i - 1]!, slopes[i]!];
+    // Where the line turns or holds, the curve flattens rather than overshoots.
+    return a * b <= 0 ? 0 : (2 * a * b) / (a + b);
+  });
+  let d = `M${at(points[0]!)}`;
+  for (let i = 0; i < n - 1; i++) {
+    const [p, q] = [points[i]!, points[i + 1]!];
+    const h = (q.x - p.x) / 3;
+    d += `C${at({ x: p.x + h, y: p.y + tangents[i]! * h })} ${at({ x: q.x - h, y: q.y - tangents[i + 1]! * h })} ${at(q)}`;
+  }
+  return d;
+}
+
+/** Where a guide's label goes: past its end where there's room, else over it, ending there. */
+function guideLabel(x: number, y: number, right: number) {
+  return x < right - 60
+    ? { x: x + 6, y, dy: '0.32em', anchor: 'start' }
+    : { x, y: y - 6, dy: '0', anchor: 'end' };
 }

@@ -1,7 +1,18 @@
 import type { UsageReading, UsageWeek } from '@grimoire/contract';
 import type { ChartTick } from './charts';
 import type { ChartGuide, LinePoint, LineSeries } from './lines-chart';
-import { DAY, HOUR, dayTick, hourName, limitName, monthDay, startOf } from './usage-format';
+import {
+  DAY,
+  HOUR,
+  dayTick,
+  hourName,
+  limitName,
+  monthDay,
+  percent,
+  readingName,
+  startOf,
+  time,
+} from './usage-format';
 
 /** A five-hour session: when it ran, the most of it used, and when it was first read full. */
 export interface LimitSession {
@@ -84,7 +95,7 @@ export function limitsChart(history: readonly UsageReading[], now: number): Limi
     .map((limit, i) => ({
       name: limitName(limit.window),
       color: WEEK_COLORS[i]!,
-      points: limit.points,
+      points: limit.window.model ? limit.points : fromNothing(limit.points, from, to),
     }));
 
   const ticks: ChartTick[] = [];
@@ -94,7 +105,7 @@ export function limitsChart(history: readonly UsageReading[], now: number): Limi
   }
   return {
     week,
-    guides: pace(latest, from, to, 'week'),
+    guides: pace(latest, from, to, (at) => readingName(at)),
     sessions: sessions(shown, from),
     from,
     to,
@@ -103,12 +114,16 @@ export function limitsChart(history: readonly UsageReading[], now: number): Limi
   };
 }
 
-/** The pace that uses a limit up just as it resets, and, once enough of it is gone, where the pace so far leads. */
+/**
+ * The pace that uses a limit up just as it resets, and, once enough of it
+ * is gone, where the pace so far leads: labelled by when it would run out,
+ * or by how much would be used as it resets.
+ */
 function pace(
   latest: UsageReading,
   from: number,
   to: number,
-  span: UsageReading['span'],
+  when: (at: number) => string,
 ): ChartGuide[] {
   const guides: ChartGuide[] = [
     {
@@ -121,17 +136,26 @@ function pace(
   ];
   const used = latest.used!;
   const gone = latest.at - from;
-  if (used >= 100 || used <= 0 || gone < TOO_SOON[span]) return guides;
+  if (used >= 100 || used <= 0 || gone < TOO_SOON[latest.span]) return guides;
   const rate = used / gone;
   const fullAt = latest.at + (100 - used) / rate;
+  const atEnd = used + rate * (to - latest.at);
   guides.push({
     name: 'At this rate',
     color: WEEK_COLORS[0]!,
     from: { at: latest.at, value: used },
-    to:
-      fullAt <= to ? { at: fullAt, value: 100 } : { at: to, value: used + rate * (to - latest.at) },
+    ...(fullAt <= to
+      ? { to: { at: fullAt, value: 100 }, label: when(fullAt) }
+      : { to: { at: to, value: atEnd }, label: percent(atEnd) }),
   });
   return guides;
+}
+
+/** A window starts with nothing used: drawn from there, as the readings came later. */
+function fromNothing(points: readonly LinePoint[], from: number, run?: number): LinePoint[] {
+  const first = points[0];
+  if (!first || first.at <= from) return [...points];
+  return [{ at: from, value: 0, ...(run === undefined ? {} : { run }) }, ...points];
 }
 
 /** Each five-hour session that used any of the limit and ended after the week began, oldest first. */
@@ -168,16 +192,19 @@ export function sessionChart(history: readonly UsageReading[], now: number): Lim
   if (!latest || latest.resetsAt! <= now) return null;
   const to = latest.resetsAt!;
   const from = to - SESSION;
-  const points = read
-    .filter((r) => r.at >= from && Math.abs(r.resetsAt! - to) < SAME_RESET)
-    .map((r) => ({ at: r.at, value: r.used! }));
+  const points = fromNothing(
+    read
+      .filter((r) => r.at >= from && Math.abs(r.resetsAt! - to) < SAME_RESET)
+      .map((r) => ({ at: r.at, value: r.used! })),
+    from,
+  );
   const ticks: ChartTick[] = [];
   for (let at = Math.ceil(from / HOUR) * HOUR; at <= to; at += HOUR) {
     ticks.push({ at, label: hourName(at) });
   }
   return {
     lines: [{ name: limitName(latest), color: WEEK_COLORS[0]!, points }],
-    guides: pace(latest, from, to, 'session'),
+    guides: pace(latest, from, to, time),
     from,
     to,
     ticks,
@@ -186,16 +213,20 @@ export function sessionChart(history: readonly UsageReading[], now: number): Lim
 }
 
 /**
- * How much of each week's limit was used by its end, a point a week, the
- * week under way left out. Null with fewer than two weeks ended.
+ * How much of each week's limit was used by its end, a point a week, and
+ * the week under way so far, dashed. Null until a week has ended.
  */
 export function weeksChart(weeks: readonly UsageWeek[], now: number): LimitLine | null {
   const ended = weeks.filter((week) => week.end <= now);
-  if (ended.length < 2) return null;
+  const last = ended.at(-1);
+  if (!last) return null;
+  const under = weeks.find((week) => week.end > now);
+  const to = under?.start ?? last.start;
   // About six labels, however many weeks, the latest among them.
-  const every = Math.ceil(ended.length / 6);
-  const ticks = ended
-    .filter((_, i) => (ended.length - 1 - i) % every === 0)
+  const all = under ? [...ended, under] : ended;
+  const every = Math.ceil(all.length / 6);
+  const ticks = all
+    .filter((_, i) => (all.length - 1 - i) % every === 0)
     .map((week) => ({ at: week.start, label: monthDay(week.start) }));
   return {
     lines: [
@@ -205,9 +236,19 @@ export function weeksChart(weeks: readonly UsageWeek[], now: number): LimitLine 
         points: ended.map((week) => ({ at: week.start, value: week.used })),
       },
     ],
-    guides: [],
+    guides: under
+      ? [
+          {
+            name: 'This week so far',
+            label: `${percent(under.used)} so far`,
+            color: WEEK_COLORS[0]!,
+            from: { at: last.start, value: last.used },
+            to: { at: under.start, value: under.used },
+          },
+        ]
+      : [],
     from: ended[0]!.start,
-    to: ended[ended.length - 1]!.start,
+    to,
     ticks,
     marks: [],
   };
