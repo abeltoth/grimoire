@@ -38,14 +38,20 @@
       <li class="row">
         <span class="graph"><gr-git-lanes [row]="entry.row" /></span>
         <span class="description">
-          @for (label of labelsOf(commit.refs); track label.kind + label.name) {
+          @let labels = labelsOf(commit.refs);
+          @if (labels[0]; as label) {
             <span
               [class]="'ref ' + label.kind"
               [class.current]="label.current"
               [class.synced]="label.synced"
               [attr.title]="label.title"
-              ><gr-icon [name]="label.kind === 'tag' ? 'tag' : 'branch'" />{{ label.name }}</span
+              ><gr-icon [name]="label.kind === 'tag' ? 'tag' : 'branch'" /><span class="name">{{
+                label.name
+              }}</span></span
             >
+          }
+          @if (labels.length > 1) {
+            <span class="ref more" [attr.title]="othersOf(labels)">+{{ labels.length - 1 }}</span>
           }
           <button type="button" class="open" (click)="pick.emit(commit.sha)">
             {{ commit.subject }}

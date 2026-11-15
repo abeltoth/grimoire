@@ -10,9 +10,10 @@
 .head,
 .row {
   display: grid;
+  /* The description keeps its room; author, date and sha give way on a narrow page. */
   grid-template-columns:
-    var(--graph-col) minmax(0, 1fr) var(--gr-git-author-w) var(--gr-git-date-w)
-    var(--gr-git-sha-w);
+    var(--graph-col) minmax(var(--gr-git-desc-min), 1fr) minmax(0, var(--gr-git-author-w))
+    minmax(0, var(--gr-git-date-w)) minmax(0, var(--gr-git-sha-w));
   column-gap: var(--gr-git-col-gap);
   align-items: center;
 }
@@ -64,6 +65,7 @@
 
 .row {
   position: relative;
+  overflow: hidden;
   height: var(--gr-git-row-h);
   font-size: var(--gr-size-git-file);
   color: var(--gr-ink);
@@ -83,11 +85,13 @@
   align-items: center;
   gap: var(--gr-git-row-gap);
   min-width: 0;
+  overflow: hidden;
   white-space: nowrap;
 }
 
 /* The subject opens the commit, and its click reaches across the whole row. */
 .open {
+  flex: 1 1 var(--gr-git-subject-min);
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -113,7 +117,8 @@
 .chat {
   position: relative;
   z-index: 1;
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 0;
   display: inline-flex;
   align-items: center;
   gap: var(--gr-git-ref-gap);
@@ -125,6 +130,21 @@
   text-overflow: ellipsis;
   font-size: var(--gr-size-aside);
   line-height: var(--gr-git-ref-leading);
+}
+
+.ref .name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ref gr-icon {
+  flex: none;
+}
+
+.ref.more {
+  flex: none;
+  color: var(--gr-ink-soft);
 }
 
 .ref.current {

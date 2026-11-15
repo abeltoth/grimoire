@@ -683,10 +683,12 @@
   --gr-git-line-w: 0.14;
   --gr-git-node-r: 0.28;
   --gr-git-dash: 0.25 0.2;
-  --gr-git-graph-max: 220px;
-  --gr-git-author-w: 120px;
+  --gr-git-graph-max: 140px;
+  --gr-git-desc-min: 180px;
+  --gr-git-subject-min: 90px;
+  --gr-git-author-w: 110px;
   --gr-git-date-w: 84px;
-  --gr-git-sha-w: 64px;
+  --gr-git-sha-w: 8ch;
   --gr-git-col-gap: 10px;
   --gr-git-head-pad: 4px;
   --gr-git-head-rule: 1px solid var(--gr-git-tree-rule);

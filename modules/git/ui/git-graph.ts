@@ -162,6 +162,14 @@ export class GitGraph {
 
   protected readonly labelsOf = labelsOf;
 
+  /** The labels after the first, one per line, for the "+N" label's hover. */
+  protected othersOf(labels: readonly RefLabel[]): string {
+    return labels
+      .slice(1)
+      .map((label) => label.title)
+      .join('\n');
+  }
+
   protected when(at: number): string {
     return whenOf(at, Date.now());
   }

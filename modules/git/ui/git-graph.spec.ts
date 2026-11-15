@@ -31,7 +31,13 @@ const commits = [
     ],
     chat: { id: 'c1', agent: 'claude-code', title: 'Fix it', cwd: 'C:/w' },
   }),
-  commit('f000000', ['a000000'], { refs: [{ name: 'feature', kind: 'branch' }] }),
+  commit('f000000', ['a000000'], {
+    refs: [
+      { name: 'feature', kind: 'branch' },
+      { name: 'origin/feature', kind: 'remote' },
+      { name: 'v2', kind: 'tag' },
+    ],
+  }),
   commit('b000000', ['a000000']),
   commit('a000000', [], { refs: [{ name: 'v1', kind: 'tag' }] }),
 ];
@@ -75,6 +81,11 @@ describe('GitGraph', () => {
       'Branch main, checked out, even with origin/main',
     );
     expect(texts('gr-git-graph .ref.tag')).toEqual(['v1']);
+    // Past the first, a commit's labels fold into one that names them on hover.
+    expect(texts('gr-git-graph .row:nth-child(2) .ref')).toEqual(['feature', '+2']);
+    expect(el.querySelector('gr-git-graph .ref.more')?.getAttribute('title')).toBe(
+      'Remote branch origin/feature\nTag v2',
+    );
     expect(texts('gr-git-graph .chat')).toEqual(['Fix it']);
     expect(texts('gr-git-graph .sha')).toEqual(['m000000', 'f000000', 'b000000', 'a000000']);
     // The merge's dot is in lane 0, the feature's in lane 1.
