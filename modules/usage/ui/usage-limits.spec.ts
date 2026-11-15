@@ -149,8 +149,13 @@ describe('usage-limits', () => {
         used: 20.575,
         resetsAt: new Date(2026, 11, 1).getTime(),
       },
+      account: 'me@work.example',
       at: 0,
     });
+    // A subscription's limits kept on this machine are another account's.
+    answers['usage.history'] = (): UsageReading[] => [
+      { at: now - 60_000, span: 'week', used: 40, resetsAt: now + 24 * 60 * 60_000 },
+    ];
     const day = 24 * 60 * 60_000;
     answers['usage.spend'] = () => [
       { at: now - 2 * day, spent: 8000, limit: 60000, currency: 'USD' },
@@ -168,9 +173,14 @@ describe('usage-limits', () => {
 
     expect(texts('gr-usage-page .sub')[0]).toMatch(/^Enterprise plan, read at /);
     // The month, its days with what's left to spend a day, and the months before.
-    expect(
-      (calls.find((c) => c.command === 'usage.spend')!.request as { since: number }).since,
-    ).toBe(new Date(2026, 10, 1).getTime());
+    expect(calls.find((c) => c.command === 'usage.spend')!.request).toEqual({
+      agent: 'claude-code',
+      account: 'me@work.example',
+      since: new Date(2026, 10, 1).getTime(),
+    });
+    expect(calls.some((c) => c.command === 'usage.history' || c.command === 'usage.weeks')).toBe(
+      false,
+    );
     expect(texts('gr-usage-page .plan figcaption')).toEqual(['This month', 'Days', 'Months']);
     expect(texts('gr-usage-page .plan gr-usage-columns .guide-label')[0]).toMatch(
       / a day to last the month$/,

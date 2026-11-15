@@ -51,19 +51,26 @@ export class UsageReadings {
     }));
   }
 
-  /** The latest reading of the limit for all models that says when it starts afresh. */
-  latestWeek(agent: AgentId): UsageReading | undefined {
+  /** The latest reading of the limit for all models that says when it starts afresh: of `account`, when given. */
+  latestWeek(agent: AgentId, account?: string): UsageReading | undefined {
     const row = this.db
       .prepare(
         `SELECT at, used, resets_at, account FROM usage_readings
          WHERE agent = ? AND span = 'week' AND model = '' AND resets_at IS NOT NULL
+           AND (? IS NULL OR account = ?)
          ORDER BY at DESC LIMIT 1`,
       )
-      .get(agent) as
+      .get(agent, account ?? null, account ?? null) as
       { at: number; used: number | null; resets_at: number; account: string } | undefined;
     if (!row) return undefined;
-    const { at, used, resets_at, account } = row;
-    return { at, span: 'week', used, resetsAt: resets_at, ...(account ? { account } : {}) };
+    const { at, used, resets_at } = row;
+    return {
+      at,
+      span: 'week',
+      used,
+      resetsAt: resets_at,
+      ...(row.account ? { account: row.account } : {}),
+    };
   }
 
   /**
@@ -93,15 +100,16 @@ function weekPhase(resetsAt: number): number {
 }
 
 /**
- * The readings of the account the latest one is of, oldest first. Readings
- * kept before the account was noted go by when their week starts afresh,
- * which differs from account to account.
+ * The readings of an account, by default the one the latest is of, oldest
+ * first. Readings kept before the account was noted go by when their week
+ * starts afresh, which differs from account to account.
  */
-export function sameAccount(readings: readonly UsageReading[]): UsageReading[] {
+export function sameAccount(
+  readings: readonly UsageReading[],
+  account: string | undefined = readings.at(-1)?.account,
+): UsageReading[] {
   const week = (r: UsageReading) => r.span === 'week' && !r.model && r.resetsAt !== null;
-  const latest = readings[readings.length - 1];
-  if (!latest) return [];
-  const account = latest.account;
+  if (!readings.length) return [];
   const latestWeek = [...readings]
     .reverse()
     .find((r) => week(r) && (!account || r.account === account));

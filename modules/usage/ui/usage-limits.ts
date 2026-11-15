@@ -165,24 +165,29 @@ export class UsageLimits {
   private async drawn(agent: AgentInfo, usage: PlanUsage): Promise<Plan> {
     const now = Date.now();
     const week = usage.windows.find((window) => window.span === 'week' && !window.model);
+    const session = usage.windows.some((window) => window.span === 'session');
+    const credits = usage.credits;
+    // Only the account signed in now: another's, such as a subscription's next to an
+    // organization's allowance, kept on this machine, is no part of it.
+    const id = { agent: agent.id, ...(usage.account ? { account: usage.account } : {}) };
     // The week under way, and the session it began in.
     const since = week?.resetsAt ? week.resetsAt - 7 * DAY - 5 * HOUR : now - 7 * DAY;
-    const credits = usage.credits;
     const [history, weeks, spending, months] = await Promise.all([
-      this.bridge.invoke('usage.history', { agent: agent.id, since }),
-      this.bridge.invoke('usage.weeks', { agent: agent.id }),
-      credits ? this.bridge.invoke('usage.spend', { agent: agent.id, since: monthStart(now) }) : [],
-      credits ? this.bridge.invoke('usage.months', { agent: agent.id }) : [],
+      week || session ? this.bridge.invoke('usage.history', { ...id, since }) : [],
+      week ? this.bridge.invoke('usage.weeks', id) : [],
+      credits ? this.bridge.invoke('usage.spend', { ...id, since: monthStart(now) }) : [],
+      credits ? this.bridge.invoke('usage.months', id) : [],
     ]);
     this.now.set(now);
+    // Each chart only for a limit the plan has now.
     return {
       agent,
       usage,
-      chart: limitsChart(history ?? [], now),
-      session: sessionChart(history ?? [], now),
-      weeks: weeksChart(weeks ?? [], now),
+      chart: week ? limitsChart(history ?? [], now) : null,
+      session: session ? sessionChart(history ?? [], now) : null,
+      weeks: week ? weeksChart(weeks ?? [], now) : null,
       spend: credits ? spendCharts(spending ?? [], credits, now) : null,
-      months: monthsChart(months ?? [], now),
+      months: credits ? monthsChart(months ?? [], now) : null,
     };
   }
 }

@@ -20,14 +20,14 @@ export class SpendReadings {
       .run(agent, usage.at, credits.spent, credits.limit, credits.currency, usage.account ?? '');
   }
 
-  /** The readings since a moment of the account read last, oldest first. */
-  since(agent: AgentId, from: number): SpendReading[] {
+  /** The readings since a moment of an account, by default the one read last, oldest first. */
+  since(agent: AgentId, from: number, account = this.account(agent)): SpendReading[] {
     const rows = this.db
       .prepare(
         `SELECT at, spent, spend_limit, currency FROM usage_spend
          WHERE agent = ? AND at >= ? AND account = ? ORDER BY at`,
       )
-      .all(agent, from, this.account(agent)) as {
+      .all(agent, from, account) as {
       at: number;
       spent: number;
       spend_limit: number | null;
@@ -41,8 +41,8 @@ export class SpendReadings {
     }));
   }
 
-  /** Every month of the account read last, local time, oldest first. */
-  months(agent: AgentId): UsageMonth[] {
+  /** Every month of an account, by default the one read last, local time, oldest first. */
+  months(agent: AgentId, account = this.account(agent)): UsageMonth[] {
     const rows = this.db
       .prepare(
         `SELECT MIN(at) AS first, MAX(spent) AS spent, MAX(spend_limit) AS spend_limit,
@@ -50,7 +50,7 @@ export class SpendReadings {
          FROM usage_spend WHERE agent = ? AND account = ?
          GROUP BY strftime('%Y-%m', at / 1000, 'unixepoch', 'localtime') ORDER BY first`,
       )
-      .all(agent, this.account(agent)) as {
+      .all(agent, account) as {
       first: number;
       spent: number;
       spend_limit: number | null;

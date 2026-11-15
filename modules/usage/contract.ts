@@ -113,16 +113,26 @@ declare module '@grimoire/contract' {
   interface CommandMap {
     /** The agent's plan limits, read now and kept; null when it has no plan. */
     'usage.plan': { request: { agent: AgentId }; response: PlanUsage | null };
-    /** Each reading of the agent's plan limits kept since a time, oldest first: those of the account signed in now. */
-    'usage.history': { request: { agent: AgentId; since: number }; response: UsageReading[] };
+    /**
+     * Each reading of the agent's plan limits kept since a time, oldest
+     * first: those of `account`, the one signed in as `usage.plan` says, or
+     * without it, of the account read last. So too the commands below.
+     */
+    'usage.history': {
+      request: { agent: AgentId; since: number; account?: string };
+      response: UsageReading[];
+    };
     /** What the agent's own scan says took your plan's usage; null where it has none. */
     'usage.breakdown': { request: { agent: AgentId }; response: UsageBreakdown | null };
     /** Each reading of the usage credits spent kept since a time, oldest first: those of the account signed in now. */
-    'usage.spend': { request: { agent: AgentId; since: number }; response: SpendReading[] };
+    'usage.spend': {
+      request: { agent: AgentId; since: number; account?: string };
+      response: SpendReading[];
+    };
     /** Every month of usage credits kept, oldest first: those of the account signed in now. */
-    'usage.months': { request: { agent: AgentId }; response: UsageMonth[] };
+    'usage.months': { request: { agent: AgentId; account?: string }; response: UsageMonth[] };
     /** Every week of the plan's limit for all models kept, oldest first: those of the account signed in now. */
-    'usage.weeks': { request: { agent: AgentId }; response: UsageWeek[] };
+    'usage.weeks': { request: { agent: AgentId; account?: string }; response: UsageWeek[] };
   }
 
   interface EventMap {

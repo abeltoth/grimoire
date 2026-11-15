@@ -53,25 +53,25 @@ export class Usage {
     if (failed) throw failed.reason;
   }
 
-  /** Each reading of the agent's plan limits kept since a time, oldest first: those of the account signed in now. */
-  history(agent: AgentId, since: number): UsageReading[] {
-    return sameAccount(this.readings.since(agent, since));
+  /** Each reading of the agent's plan limits kept since a time, oldest first: those of `account`, by default the one read last. */
+  history(agent: AgentId, since: number, account?: string): UsageReading[] {
+    return sameAccount(this.readings.since(agent, since), account);
   }
 
-  /** Every week of the plan's limit for all models kept, oldest first: those of the account signed in now. */
-  weeks(agent: AgentId): UsageWeek[] {
-    const latest = this.readings.latestWeek(agent);
+  /** Every week of the plan's limit for all models kept, oldest first: those of `account`, by default the one read last. */
+  weeks(agent: AgentId, account?: string): UsageWeek[] {
+    const latest = this.readings.latestWeek(agent, account);
     return accountWeeks(this.readings.weeks(agent), latest);
   }
 
-  /** Each reading of the usage credits spent kept since a time, oldest first: those of the account signed in now. */
-  spending(agent: AgentId, since: number): SpendReading[] {
-    return this.spend.since(agent, since);
+  /** Each reading of the usage credits spent kept since a time, oldest first: those of `account`, by default the one read last. */
+  spending(agent: AgentId, since: number, account?: string): SpendReading[] {
+    return this.spend.since(agent, since, account);
   }
 
-  /** Every month of usage credits kept, oldest first: those of the account signed in now. */
-  months(agent: AgentId): UsageMonth[] {
-    return this.spend.months(agent);
+  /** Every month of usage credits kept, oldest first: those of `account`, by default the one read last. */
+  months(agent: AgentId, account?: string): UsageMonth[] {
+    return this.spend.months(agent, account);
   }
 
   /** What the agent's own scan says took the plan's usage; null when it can't say. */

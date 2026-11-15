@@ -63,6 +63,15 @@ describe('sameAccount', () => {
     expect(sameAccount(history).map((r) => r.at)).toEqual([1000, 1000, 3000, 3000, 4000, 4000]);
   });
 
+  it('keeps the readings of the account asked for, and none of one with no readings', () => {
+    const history = [
+      ...read(1000, 38, THURSDAY, 'work@example.com'),
+      ...read(2000, 6, SATURDAY, 'home@example.com'),
+    ];
+    expect(sameAccount(history, 'work@example.com').map((r) => r.at)).toEqual([1000, 1000]);
+    expect(sameAccount(history, 'enterprise@example.com')).toEqual([]);
+  });
+
   it('has nothing to keep with no readings', () => {
     expect(sameAccount([])).toEqual([]);
   });
@@ -96,5 +105,13 @@ describe('weeks', () => {
       ],
     );
     expect(accountWeeks([], undefined)).toEqual([]);
+    // Asked for another account: that one's weeks, or none.
+    expect(
+      accountWeeks(
+        readings.weeks('claude-code'),
+        readings.latestWeek('claude-code', 'home@example.com'),
+      ),
+    ).toEqual([{ start: SATURDAY - 7 * 24 * HOUR, end: SATURDAY, used: 40 }]);
+    expect(readings.latestWeek('claude-code', 'enterprise@example.com')).toBeUndefined();
   });
 });

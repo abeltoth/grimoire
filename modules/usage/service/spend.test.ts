@@ -34,6 +34,14 @@ describe('SpendReadings', () => {
     ]);
   });
 
+  it('keeps to the account asked for', () => {
+    const { spend, read } = setUp();
+    read(at(10, 2), 1000, 'other@example.com');
+    read(at(10, 3), 2500);
+    expect(spend.since('claude-code', 0, 'other@example.com').map((r) => r.spent)).toEqual([1000]);
+    expect(spend.months('claude-code', 'nobody@example.com')).toEqual([]);
+  });
+
   it('keeps nothing without credits', () => {
     const { spend } = setUp();
     spend.record('claude-code', { plan: 'max', windows: [], at: 1000 });
