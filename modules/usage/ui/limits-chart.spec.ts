@@ -39,12 +39,25 @@ describe('limitsChart', () => {
     expect(chart.marks).toEqual([{ at: now, label: 'Now' }]);
   });
 
-  it('guides with the even pace, and leads the pace so far to when the limit runs out', () => {
+  it('draws the week through a reading every few hours, and the latest, so it shows the trend', () => {
+    const history: UsageReading[] = [10, 11, 12, 13, 14].map((used, i) => ({
+      at: hours(10) + i * 20 * 60_000,
+      span: 'week' as const,
+      used,
+      resetsAt: end,
+    }));
+    history.push({ at: hours(1), span: 'week', used: 20, resetsAt: end });
+    const values = limitsChart(history, now)!.week[0]!.points.map((point) => point.value);
+    expect(values.length).toBeLessThan(history.length + 1);
+    expect(values[0]).toBe(0);
+    expect(values.at(-1)).toBe(20);
+  });
+
+  it('leads the pace so far to when the limit runs out, named by when', () => {
     // Four days gone and 80% used: 20% a day, so it runs out a day on, before the reset.
     const history: UsageReading[] = [{ at: now, span: 'week', used: 80, resetsAt: end }];
     const chart = limitsChart(history, now)!;
     expect(chart.guides.map(({ name, from, to, label }) => [name, from, to, label])).toEqual([
-      ['Even pace', { at: start, value: 0 }, { at: end, value: 100 }, 'even pace'],
       [
         'At this rate',
         { at: now, value: 80 },
@@ -57,20 +70,20 @@ describe('limitsChart', () => {
   it('leads the pace so far to the reset when it lasts, and not too early in the week nor once used up', () => {
     // Four days gone and 20% used: 5% a day, 35% by the reset.
     const lasting = limitsChart([{ at: now, span: 'week', used: 20, resetsAt: end }], now)!;
-    expect(lasting.guides[1]!.to).toEqual({ at: end, value: 35 });
-    expect(lasting.guides[1]!.label).toBe('35%');
+    expect(lasting.guides[0]!.to).toEqual({ at: end, value: 35 });
+    expect(lasting.guides[0]!.label).toBe('35%');
 
     const early = limitsChart(
       [{ at: start + HOUR, span: 'week', used: 5, resetsAt: end }],
       start + HOUR,
     )!;
-    expect(early.guides.map((guide) => guide.name)).toEqual(['Even pace']);
+    expect(early.guides).toEqual([]);
 
     const out = limitsChart([{ at: now, span: 'week', used: 100, resetsAt: end }], now)!;
-    expect(out.guides).toHaveLength(1);
+    expect(out.guides).toEqual([]);
   });
 
-  it('finds each session of the week at its peak, and when it ran out', () => {
+  it('finds each session of the week from its first message to when it last used more', () => {
     const first = hours(20);
     const second = hours(2);
     const history: UsageReading[] = [
@@ -84,8 +97,8 @@ describe('limitsChart', () => {
       { at: hours(1), span: 'session', used: 0, resetsAt: now + 4 * HOUR },
     ];
     expect(limitsChart(history, now)!.sessions).toEqual([
-      { start: first - 5 * HOUR, end: first, peak: 100, fullAt: hours(21) },
-      { start: second - 5 * HOUR, end: second, peak: 25, fullAt: null },
+      { start: first - 5 * HOUR, end: hours(21) },
+      { start: second - 5 * HOUR, end: hours(3) },
     ]);
   });
 });
@@ -110,8 +123,8 @@ describe('sessionChart', () => {
     expect(chart.ticks).toHaveLength(6);
     expect(chart.marks).toEqual([{ at: now, label: 'Now' }]);
     // Three hours gone and 60% used: it runs out in two, as it resets.
-    expect(chart.guides[1]!.to).toEqual({ at: end, value: 100 });
-    expect(chart.guides[1]!.label).toBe(time(end));
+    expect(chart.guides[0]!.to).toEqual({ at: end, value: 100 });
+    expect(chart.guides[0]!.label).toBe(time(end));
   });
 
   it('has nothing to draw when no session is under way', () => {

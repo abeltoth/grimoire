@@ -3,7 +3,7 @@
   fill: var(--gr-chart-grid);
 }
 
-/* A session, darker the more of its limit it used. */
+/* A session, from its first message to when it last used any more. */
 .session {
   fill: var(--gr-chart-4);
   outline: none;
@@ -19,11 +19,4 @@
 /* The session under the pointer stands out; the rest step back. */
 .session.dim {
   opacity: 0.45;
-}
-
-/* Where a session ran out. */
-.ran-out {
-  stroke: var(--gr-rubric);
-  stroke-width: var(--gr-chart-stroke);
-  vector-effect: non-scaling-stroke;
 }

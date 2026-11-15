@@ -1,7 +1,7 @@
 import { Component, computed, input, signal } from '@angular/core';
 import { LEFT, W } from './charts';
 import type { LimitSession } from './limits-chart';
-import { HOUR, dayTick, hourName, percent, startOf, time, weekday } from './usage-format';
+import { HOUR, dayTick, hourName, startOf, time, weekday } from './usage-format';
 
 /** A day's row, the gap between rows, and the room above and below them, in the SVG's own units. */
 const ROW = 18;
@@ -11,13 +11,11 @@ const BOTTOM = 24;
 const RIGHT = W - 40;
 /** The hours named under the rows. */
 const HOURS = [0, 6, 12, 18, 24];
-/** How faint a session that used little of its limit is drawn, so none vanishes. */
-const FAINTEST = 0.25;
 
 /**
- * The week's five-hour sessions on a timeline: a row a day, each session
- * drawn where it ran, the fuller the darker, those that ran out marked
- * where they did, with a tooltip on hover and focus.
+ * The week's sessions on a timeline: a row a day, each session drawn from
+ * its first message to when it last used any more, with a tooltip on
+ * hover and focus.
  */
 @Component({
   selector: 'gr-usage-sessions',
@@ -37,7 +35,6 @@ export class UsageSessions {
   protected readonly right = RIGHT;
   protected readonly rowHeight = ROW;
   protected readonly hovered = signal<number | null>(null);
-  protected readonly percent = percent;
 
   protected readonly layout = computed(() => {
     const days: { start: number; end: number }[] = [];
@@ -56,18 +53,12 @@ export class UsageSessions {
         const from = Math.max(session.start, day.start);
         const to = Math.min(session.end, day.end);
         if (from >= to) return [];
-        const full =
-          session.fullAt !== null && session.fullAt >= day.start && session.fullAt < day.end
-            ? x(day, session.fullAt)
-            : null;
         return [
           {
             s,
             x: x(day, from),
             y: rowY(i),
             width: Math.max(x(day, to) - x(day, from), 1),
-            opacity: FAINTEST + (1 - FAINTEST) * (Math.min(session.peak, 100) / 100),
-            full,
           },
         ];
       }),
@@ -87,9 +78,7 @@ export class UsageSessions {
 
   /** A session in words, for its tooltip and its accessible name. */
   protected named(session: LimitSession): string {
-    const ran = `${weekday(session.start)} ${time(session.start)} to ${time(session.end)}`;
-    const full = session.fullAt === null ? '' : `, ran out at ${time(session.fullAt)}`;
-    return `${ran}: peaked at ${percent(session.peak)}${full}`;
+    return `${weekday(session.start)} ${time(session.start)} to ${time(session.end)}`;
   }
 
   protected show(s: number | null): void {

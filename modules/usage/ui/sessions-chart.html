@@ -34,7 +34,6 @@
           [attr.y]="block.y"
           [attr.width]="block.width"
           [attr.height]="rowHeight"
-          [attr.fill-opacity]="block.opacity"
           tabindex="0"
           role="img"
           [attr.aria-label]="named(session)"
@@ -42,15 +41,6 @@
           (focus)="show(block.s)"
           (blur)="show(null)"
         />
-        @if (block.full !== null) {
-          <line
-            class="ran-out"
-            [attr.x1]="block.full"
-            [attr.x2]="block.full"
-            [attr.y1]="block.y - 2"
-            [attr.y2]="block.y + rowHeight + 2"
-          />
-        }
       }
     </svg>
 

@@ -14,21 +14,19 @@ import {
   time,
 } from './usage-format';
 
-/** A five-hour session: when it ran, the most of it used, and when it was first read full. */
+/** A session as it ran: from its first message to the last reading its usage grew by. */
 export interface LimitSession {
   start: number;
   end: number;
-  peak: number;
-  fullAt: number | null;
 }
 
 /** The week under way of a plan's limits, drawn from when it started to when it starts afresh. */
 export interface LimitsChart {
   /** The week's limit, and any week kept for one model: a step line each. */
   week: LineSeries[];
-  /** The pace that would use the week up just as it ends, and where the pace so far leads. */
+  /** Where the pace so far leads. */
   guides: ChartGuide[];
-  /** The week's five-hour sessions, oldest first. */
+  /** The week's sessions, oldest first. */
   sessions: LimitSession[];
   from: number;
   to: number;
@@ -55,6 +53,8 @@ const SESSION = 5 * HOUR;
 const SAME_RESET = 10 * 60_000;
 /** Less of a week or a session gone than this, and its pace so far says too little to go on. */
 const TOO_SOON = { week: 6 * HOUR, session: 30 * 60_000 };
+/** A week's line goes through one reading in each stretch this long. */
+const STRETCH = 3 * HOUR;
 
 /** Two readings a minute apart may say 14:59 or 15:00: a reset is to the hour. */
 const toHour = (at: number) => Math.round(at / HOUR) * HOUR;
@@ -95,7 +95,9 @@ export function limitsChart(history: readonly UsageReading[], now: number): Limi
     .map((limit, i) => ({
       name: limitName(limit.window),
       color: WEEK_COLORS[i]!,
-      points: limit.window.model ? limit.points : fromNothing(limit.points, from, to),
+      points: limit.window.model
+        ? smoothed(limit.points)
+        : fromNothing(smoothed(limit.points), from, to),
     }));
 
   const ticks: ChartTick[] = [];
@@ -115,9 +117,8 @@ export function limitsChart(history: readonly UsageReading[], now: number): Limi
 }
 
 /**
- * The pace that uses a limit up just as it resets, and, once enough of it
- * is gone, where the pace so far leads: labelled by when it would run out,
- * or by how much would be used as it resets.
+ * Once enough of a limit is gone, where its pace so far leads: labelled
+ * by when it would run out, or by how much would be used as it resets.
  */
 function pace(
   latest: UsageReading,
@@ -125,30 +126,35 @@ function pace(
   to: number,
   when: (at: number) => string,
 ): ChartGuide[] {
-  const guides: ChartGuide[] = [
-    {
-      name: 'Even pace',
-      label: 'even pace',
-      color: 'var(--gr-ink-soft)',
-      from: { at: from, value: 0 },
-      to: { at: to, value: 100 },
-    },
-  ];
   const used = latest.used!;
   const gone = latest.at - from;
-  if (used >= 100 || used <= 0 || gone < TOO_SOON[latest.span]) return guides;
+  if (used >= 100 || used <= 0 || gone < TOO_SOON[latest.span]) return [];
   const rate = used / gone;
   const fullAt = latest.at + (100 - used) / rate;
   const atEnd = used + rate * (to - latest.at);
-  guides.push({
-    name: 'At this rate',
-    color: WEEK_COLORS[0]!,
-    from: { at: latest.at, value: used },
-    ...(fullAt <= to
-      ? { to: { at: fullAt, value: 100 }, label: when(fullAt) }
-      : { to: { at: to, value: atEnd }, label: percent(atEnd) }),
-  });
-  return guides;
+  return [
+    {
+      name: 'At this rate',
+      color: WEEK_COLORS[0]!,
+      from: { at: latest.at, value: used },
+      ...(fullAt <= to
+        ? { to: { at: fullAt, value: 100 }, label: when(fullAt) }
+        : { to: { at: to, value: atEnd }, label: percent(atEnd) }),
+    },
+  ];
+}
+
+/**
+ * The last reading of each stretch of a week, and the latest: read every
+ * few minutes, a week's line would follow each pause and burst, where the
+ * week's trend is what's drawn.
+ */
+function smoothed(points: readonly LinePoint[]): LinePoint[] {
+  const last = new Map<number, LinePoint>();
+  for (const point of points) last.set(Math.floor(point.at / STRETCH), point);
+  const kept = [...last.values()];
+  const latest = points.at(-1);
+  return latest && kept.at(-1) !== latest ? [...kept, latest] : kept;
 }
 
 /** A window starts with nothing used: drawn from there, as the readings came later. */
@@ -158,25 +164,28 @@ function fromNothing(points: readonly LinePoint[], from: number, run?: number): 
   return [{ at: from, value: 0, ...(run === undefined ? {} : { run }) }, ...points];
 }
 
-/** Each five-hour session that used any of the limit and ended after the week began, oldest first. */
+/**
+ * Each session that used any of the limit and ended after the week began,
+ * oldest first: from its first message, five hours before it resets, to the
+ * first reading at the most it used, after which it used no more.
+ */
 function sessions(shown: readonly UsageReading[], from: number): LimitSession[] {
-  const found = new Map<number, LimitSession>();
+  const found = new Map<number, LimitSession & { peak: number }>();
   for (const r of shown) {
     if (r.span !== 'session' || r.resetsAt === null) continue;
-    const key = Math.round(r.resetsAt! / SAME_RESET);
-    const session = found.get(key) ?? {
-      start: r.resetsAt! - SESSION,
-      end: r.resetsAt!,
-      peak: 0,
-      fullAt: null,
-    };
-    session.peak = Math.max(session.peak, r.used!);
-    if (r.used! >= 100 && (session.fullAt === null || r.at < session.fullAt)) session.fullAt = r.at;
+    const key = Math.round(r.resetsAt / SAME_RESET);
+    const start = r.resetsAt - SESSION;
+    const session = found.get(key) ?? { start, end: start, peak: 0 };
+    if (r.used! > session.peak) {
+      session.peak = r.used!;
+      session.end = Math.min(r.at, r.resetsAt);
+    }
     found.set(key, session);
   }
   return [...found.values()]
     .filter((session) => session.peak > 0 && session.end > from)
-    .sort((a, b) => a.start - b.start);
+    .sort((a, b) => a.start - b.start)
+    .map(({ start, end }) => ({ start, end }));
 }
 
 /**

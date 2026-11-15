@@ -96,15 +96,15 @@ describe('usage-limits', () => {
     expect(meters[0]!.getAttribute('aria-valuetext')).toBe('40% used, 60% of the session gone');
     expect(meters[1]!.getAttribute('aria-valuetext')).toBe('20% used, 57% of the week gone');
     expect(el.querySelectorAll('gr-usage-page .plan .pace')).toHaveLength(2);
-    // One line each, so no legend; the even pace named by its end, and where the pace so far leads.
+    // One line each, so no legend.
     expect(el.querySelector('gr-usage-page .plan .legend')).toBeNull();
     // The pace so far ends where the limit runs out, by its time, or at the reset, by its share.
     const labels = texts('gr-usage-page .plan .guide-label');
-    expect(labels).toHaveLength(5);
-    expect([labels[0], labels[2], labels[4]]).toEqual(['even pace', 'even pace', '20% so far']);
-    expect(labels[1]).toMatch(/\d:\d\d/);
-    expect(labels[3]).toMatch(/^\d+%$/);
-    expect(el.querySelectorAll('gr-usage-page .plan path.guide')).toHaveLength(5);
+    expect(labels).toHaveLength(3);
+    expect(labels[0]).toMatch(/\d:\d\d/);
+    expect(labels[1]).toMatch(/^\d+%$/);
+    expect(labels[2]).toBe('20% so far');
+    expect(el.querySelectorAll('gr-usage-page .plan path.guide')).toHaveLength(3);
     expect(el.querySelectorAll('gr-usage-page .plan path.area').length).toBeGreaterThan(0);
     expect(el.querySelector('gr-usage-page .plan gr-usage-lines .table-view')).toBeNull();
     expect(el.querySelector('gr-usage-page .plan .forecast')).toBeNull();
