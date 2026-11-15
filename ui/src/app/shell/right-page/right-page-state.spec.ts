@@ -18,6 +18,10 @@ describe('RightPageState', () => {
     state.showPage('plan');
     expect(state.page()).toBe('plan');
     expect(state.turned()).toBe(false);
+
+    state.openPageTab('settings');
+    expect(state.turnBack()).toBe(true);
+    expect([state.page(), state.turned()]).toEqual(['plan', false]);
   });
 
   it('stays on a page tab’s page while its guard says so, until the guard is taken away', () => {
@@ -31,6 +35,7 @@ describe('RightPageState', () => {
     state.openCommandPalette(search);
     state.showPage('plan');
     state.openPageTab('settings');
+    expect(state.turnBack()).toBe(false);
     expect(state.pageTab()).toBe('memories');
     expect(state.approvals()).toBe(false);
     expect(state.commandPalette()).toBeNull();

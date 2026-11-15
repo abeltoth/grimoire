@@ -95,6 +95,15 @@ export class RightPageState {
     this.pageTab.set(null);
   }
 
+  /** Turns the right page back to its own pages, where it was; false when a page tab's page keeps it. */
+  turnBack(): boolean {
+    if (!this.mayLeave()) return false;
+    this.approvals.set(false);
+    this.commandPalette.set(null);
+    this.pageTab.set(null);
+    return true;
+  }
+
   closeCommandPalette(): void {
     this.commandPalette.set(null);
   }

@@ -1,4 +1,6 @@
+import { TestBed } from '@angular/core/testing';
 import { fakeBridge, render } from '../../testing/app-testing';
+import { RightPageState } from './right-page/right-page-state';
 
 describe('focus', () => {
   it('lays the chat alone on the desk at Single page, and brings everything back at Two pages', async () => {
@@ -46,6 +48,22 @@ describe('focus', () => {
     expect(shown('gr-right-page')).toBe(true);
     expect(shown('.desk')).toBe(false);
     expect(calls).toContainEqual({ command: 'layout.set', request: { focus: false } });
+  });
+
+  it('closes the page tab open on the right page, so the chat lies alone', async () => {
+    const { bridge } = fakeBridge();
+    const { fixture, el } = await render(bridge);
+    const rightPage = TestBed.inject(RightPageState);
+    rightPage.openPageTab('history');
+    await fixture.whenStable();
+
+    [...el.querySelectorAll<HTMLButtonElement>('gr-page-header .gr-link')]
+      .find((link) => link.textContent!.includes('Single page'))!
+      .click();
+    await fixture.whenStable();
+    expect(rightPage.pageTab()).toBeNull();
+    expect(el.classList).toContain('single');
+    expect(el.querySelector('gr-right-page')).toBeNull();
   });
 
   it('opens at a single page when the book was left that way', async () => {

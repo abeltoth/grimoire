@@ -1,5 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { GRIMOIRE_BRIDGE } from '../core/bridge';
+import { RightPageState } from './right-page/right-page-state';
 
 /**
  * Focus mode: the book lies at a single page, the chat alone on the
@@ -9,6 +10,7 @@ import { GRIMOIRE_BRIDGE } from '../core/bridge';
 @Injectable({ providedIn: 'root' })
 export class Focus {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
+  private readonly rightPage = inject(RightPageState);
 
   readonly on = signal(false);
   /** Whether you've gone in or out since the book opened, so the remembered way doesn't undo it. */
@@ -23,8 +25,9 @@ export class Focus {
     );
   }
 
+  /** Lays the chat alone, so a page tab's page, the command palette or the approvals close first. */
   enter(): void {
-    this.set(true);
+    if (this.rightPage.turnBack()) this.set(true);
   }
 
   leave(): void {
