@@ -1,7 +1,14 @@
 @for (item of shown(); track $index) {
   @if (item.kind === 'plate') {
     <figure class="plate">
-      <img class="plate-img" [src]="item.src" [alt]="item.caption" />
+      <button
+        type="button"
+        class="plate-open"
+        [attr.aria-label]="'Enlarge plate ' + item.number"
+        (click)="enlarge(item)"
+      >
+        <img class="plate-img" [src]="item.src" [alt]="item.caption" />
+      </button>
       <figcaption>
         <span
           ><b>Plate {{ item.number }}.</b> {{ item.caption }}</span
@@ -41,3 +48,15 @@
     </figure>
   }
 }
+
+<dialog
+  #enlarged
+  class="enlarged"
+  aria-label="Enlarged picture"
+  (click)="enlarged.close()"
+  (close)="large.set(null)"
+>
+  @if (large(); as plate) {
+    <img class="enlarged-img" [src]="plate.src" [alt]="plate.caption" />
+  }
+</dialog>

@@ -274,6 +274,9 @@
   --gr-plate-height: 128px;
   --gr-plate-frame: 6px;
   --gr-shadow-plate: 0 0 0 5px var(--gr-plate), 0 0 0 6px var(--gr-plate-mark);
+  --gr-enlarged-backdrop: rgba(20, 12, 4, 0.8);
+  --gr-enlarged-width: 90vw;
+  --gr-enlarged-height: 88vh;
   --gr-ref-gap: 10px;
   --gr-ref-pad: 10px 16px 10px 12px;
   --gr-ref-rule-top: 3px double var(--gr-form-rule);

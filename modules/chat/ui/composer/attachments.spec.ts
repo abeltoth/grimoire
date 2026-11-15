@@ -103,6 +103,45 @@ describe('attachments', () => {
     expect(el.querySelector<HTMLTextAreaElement>('#gr-next-message')!.value).toBe('And this.');
     expect(texts('gr-composer .ref code')).toEqual(['notes.txt']);
   });
+
+  it('opens a plate large when clicked, and closes it on a click', async () => {
+    // jsdom has no modal dialogs, so here they open and close by their attribute.
+    const dialogs = HTMLDialogElement.prototype as Partial<HTMLDialogElement>;
+    dialogs.showModal = function (this: HTMLDialogElement) {
+      this.setAttribute('open', '');
+    };
+    dialogs.close = function (this: HTMLDialogElement) {
+      this.removeAttribute('open');
+      this.dispatchEvent(new Event('close'));
+    };
+    const { bridge, emit } = fakeBridge();
+    const { fixture, el } = await render(bridge);
+    await write(fixture, el, 'First');
+    emit('agents.entry', {
+      chatId: 'chat-1',
+      entry: {
+        kind: 'user',
+        id: 'u2',
+        text: '',
+        attachments: [{ kind: 'picture', mediaType: 'image/png', data: 'AQID', caption: 'Ribbon' }],
+      },
+    });
+    await fixture.whenStable();
+
+    el.querySelector<HTMLButtonElement>('.you [aria-label="Enlarge plate I"]')!.click();
+    await fixture.whenStable();
+    const dialog = el.querySelector<HTMLDialogElement>('.you dialog.enlarged')!;
+    expect(dialog.hasAttribute('open')).toBe(true);
+    expect(dialog.querySelector('img')!.getAttribute('src')).toBe('data:image/png;base64,AQID');
+    expect(dialog.querySelector('img')!.getAttribute('alt')).toBe('Ribbon');
+
+    dialog.click();
+    await fixture.whenStable();
+    expect(dialog.hasAttribute('open')).toBe(false);
+    expect(dialog.querySelector('img')).toBeNull();
+    delete dialogs.showModal;
+    delete dialogs.close;
+  });
 });
 
 describe('Enclosing', () => {

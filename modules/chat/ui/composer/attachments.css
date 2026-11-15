@@ -14,6 +14,11 @@ figure {
 }
 
 /* A picture, mounted like a book's plate. */
+.plate-open {
+  display: block;
+  cursor: zoom-in;
+}
+
 .plate-img {
   display: block;
   max-width: var(--gr-plate-width);
@@ -69,4 +74,27 @@ figcaption b {
 
 .ref-body code {
   overflow-wrap: anywhere;
+}
+
+/* A plate opened large, over a darkened page; a click anywhere or Escape closes it. */
+.enlarged {
+  padding: 0;
+  border: 0;
+  background: none;
+  max-width: none;
+  max-height: none;
+  overflow: visible;
+  cursor: zoom-out;
+}
+
+.enlarged::backdrop {
+  background: var(--gr-enlarged-backdrop);
+}
+
+.enlarged-img {
+  display: block;
+  max-width: var(--gr-enlarged-width);
+  max-height: var(--gr-enlarged-height);
+  border: 1px solid var(--gr-plate-mark);
+  box-shadow: var(--gr-shadow-plate);
 }

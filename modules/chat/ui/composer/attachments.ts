@@ -3,24 +3,33 @@ import {
   type PendingTasks,
   type WritableSignal,
   booleanAttribute,
+  type ElementRef,
   computed,
   inject,
   input,
   output,
+  signal,
+  viewChild,
 } from '@angular/core';
 import type { Attachment, GrimoireBridge } from '@grimoire/contract';
 import { Icon } from '@ui/design-system/icon';
 import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { readPicture } from './pictures';
 
+type Plate = {
+  kind: 'plate';
+  attachment: Attachment;
+  number: string;
+  src: string;
+  caption: string;
+};
 type Shown =
-  | { kind: 'plate'; attachment: Attachment; number: string; src: string; caption: string }
-  | { kind: 'ref'; attachment: Attachment; number: number; name: string; file: string };
+  Plate | { kind: 'ref'; attachment: Attachment; number: number; name: string; file: string };
 
 /**
  * What's sent with a message: pictures as numbered plates with captions, and
- * files as numbered references. On the next page each has a cross that
- * takes it off.
+ * files as numbered references. A plate opens large when clicked. On the next
+ * page each has a cross that takes it off.
  */
 @Component({
   selector: 'gr-attachments',
@@ -36,6 +45,15 @@ export class Attachments {
   readonly cwd = input<string>();
   readonly removable = input(false, { transform: booleanAttribute });
   readonly removed = output<Attachment>();
+
+  private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('enlarged');
+  /** The plate shown large, or null. */
+  protected readonly large = signal<Plate | null>(null);
+
+  protected enlarge(plate: Plate): void {
+    this.large.set(plate);
+    this.dialog().nativeElement.showModal();
+  }
 
   protected readonly shown = computed(() => {
     let plates = 0;
