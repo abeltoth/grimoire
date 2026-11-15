@@ -29,5 +29,6 @@ function outsideTheApp(): GrimoireBridge {
     popOut: () => {},
     onPopoutClosed: () => () => {},
     openExternal: () => {},
+    zoom: () => {},
   };
 }

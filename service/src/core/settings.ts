@@ -4,6 +4,7 @@ import {
   type EventName,
   type EventPayload,
   type GrimoireSettings,
+  SCALES,
   THEME_NAMES,
 } from '@grimoire/contract';
 import type { CommandRegistry } from '../registry';
@@ -48,6 +49,7 @@ const VALID: { [K in keyof GrimoireSettings]: (value: unknown) => boolean } = {
       )
     );
   },
+  scale: (value) => typeof value === 'number' && value >= SCALES.min && value <= SCALES.max,
   accounts: (value) =>
     Array.isArray(value) &&
     value.length <= MAX_ACCOUNTS &&

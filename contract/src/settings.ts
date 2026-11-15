@@ -20,6 +20,8 @@ export interface GrimoireSettings {
   themeName: ThemeName | 'auto';
   /** The tokens of that look you changed, by name, such as "--gr-page": "#fffaf0"; the rest stay as drawn. */
   theme: Readonly<Record<string, string>>;
+  /** How large every window draws everything, text, room and pictures alike, as a factor: 1 as drawn, 1.2 a fifth larger. */
+  scale: number;
   /** The accounts you switch the agent's sign-in between, by email, such as yours and your family's. */
   accounts: readonly string[];
   /** The MCP servers turned off in every chat, by name; open chats change from their next turn. */
@@ -66,6 +68,9 @@ export interface GrimoireSettings {
   autoSummaries: boolean;
 }
 
+/** How small and large the windows may be scaled, and the step a shortcut takes. */
+export const SCALES = { min: 0.8, max: 1.6, step: 0.1 } as const;
+
 /** The Jira issues on the board unless you say otherwise: yours not done, and those done in the last fortnight. */
 export const DEFAULT_JIRA_QUERY =
   'assignee = currentUser() AND (statusCategory != Done OR statusCategoryChangedDate >= -14d) ORDER BY updated DESC';
@@ -77,6 +82,7 @@ export const DEFAULT_SETTINGS: GrimoireSettings = {
   newChat: { from: 'last-used' },
   themeName: 'grimoire',
   theme: {},
+  scale: 1,
   accounts: [],
   mcpOff: [],
   suggestions: true,

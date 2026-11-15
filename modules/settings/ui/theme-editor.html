@@ -59,8 +59,26 @@
     </span>
   }
 
+  <label class="label" for="gr-theme-scale">{{ wording.say('Size of the pages', 'Scale') }}</label>
+  <span class="control">
+    <input
+      type="range"
+      class="size"
+      id="gr-theme-scale"
+      [min]="scales.min"
+      [max]="scales.max"
+      [step]="scales.step"
+      [value]="scale()"
+      (change)="setScale(+$any($event.target).value)"
+    />
+    <code>{{ percent() }}</code>
+    @if (scale() !== 1) {
+      <button type="button" class="gr-link" (click)="setScale(1)">Reset</button>
+    }
+  </span>
+
   <label class="label" for="gr-theme-text-size">{{
-    wording.say('Size of the text', 'Text size')
+    wording.say('Size of the chapter’s text', 'Chat text size')
   }}</label>
   <span class="control">
     <input

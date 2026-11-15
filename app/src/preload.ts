@@ -3,7 +3,7 @@
  * sandbox on. It exposes only the typed bridge; the page can't reach Node,
  * Electron or the file system.
  */
-import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron';
+import { contextBridge, ipcRenderer, webFrame, webUtils, type IpcRendererEvent } from 'electron';
 import type { GrimoireBridge, Platform } from '@grimoire/contract';
 
 const platform: Platform =
@@ -43,6 +43,7 @@ const bridge: GrimoireBridge = {
     return () => ipcRenderer.removeListener('grimoire:popoutClosed', handler);
   },
   openExternal: (url) => ipcRenderer.send('grimoire:openExternal', url),
+  zoom: (factor) => webFrame.setZoomFactor(factor),
 };
 
 contextBridge.exposeInMainWorld('grimoire', bridge);

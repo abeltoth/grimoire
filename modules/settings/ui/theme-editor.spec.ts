@@ -37,7 +37,8 @@ describe('theme-editor', () => {
       'Pen',
       'Lapis',
       'Gilt',
-      'Size of the text',
+      'Size of the pages',
+      'Size of the chapter’s text',
       'Face of the text',
       'Room on the page',
     ]);
@@ -92,6 +93,39 @@ describe('theme-editor', () => {
     await fixture.whenStable();
     expect(kept.theme).toEqual({});
     expect(root.getPropertyValue('--gr-page')).toBe('');
+  });
+
+  it('scales every window in Settings once the slider is let go, and resets it', async () => {
+    const { bridge, answers, calls } = fakeBridge();
+    let kept: GrimoireSettings = { ...DEFAULT_SETTINGS };
+    answers['settings.get'] = () => kept;
+    answers['settings.set'] = (change: Partial<GrimoireSettings>) =>
+      (kept = { ...kept, ...change });
+    const { fixture, el } = await render(bridge);
+    [...el.querySelectorAll<HTMLButtonElement>('gr-page-tabs .page-tab')]
+      .find((tab) => tab.textContent!.trim() === 'Colophon')!
+      .click();
+    await fixture.whenStable();
+    const slider = el.querySelector<HTMLInputElement>('#gr-theme-scale')!;
+    const shown = () => slider.parentElement!.querySelector('code')!.textContent!.trim();
+    const reset = () => slider.parentElement!.querySelector<HTMLButtonElement>('.gr-link');
+    expect(shown()).toBe('100%');
+    expect(reset()).toBeNull();
+    expect(bridge.zoom).toHaveBeenLastCalledWith(1);
+
+    slider.value = '1.3';
+    slider.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    expect(calls.filter((c) => c.command === 'settings.set').map((c) => c.request)).toEqual([
+      { scale: 1.3 },
+    ]);
+    expect(shown()).toBe('130%');
+    expect(bridge.zoom).toHaveBeenLastCalledWith(1.3);
+
+    reset()!.click();
+    await fixture.whenStable();
+    expect(kept.scale).toBe(1);
+    expect(bridge.zoom).toHaveBeenLastCalledWith(1);
   });
 
   it('sets the text’s face and the room on the page in Settings, as changes to the theme', async () => {

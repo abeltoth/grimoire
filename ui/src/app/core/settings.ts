@@ -33,6 +33,7 @@ export class Settings {
       design.themeName.set(themeName ?? 'grimoire');
       design.tokens.set(theme ?? {});
     });
+    effect(() => this.bridge.zoom(this.all().scale ?? 1));
   }
 
   /** Changes the settings given at once, and as the service has them again if it refuses them. */

@@ -35,6 +35,8 @@ export interface GrimoireBridge {
   onPopoutClosed(listener: (chatId: ChatId) => void): () => void;
   /** Opens a web page in the system's browser; only https addresses open. */
   openExternal(url: string): void;
+  /** Draws everything in the window larger or smaller by a factor, 1 as drawn; the windows share it. */
+  zoom(factor: number): void;
 }
 
 /** For the window controls Grimoire draws itself (Windows and Linux). */

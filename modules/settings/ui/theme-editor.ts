@@ -1,5 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { type ThemeName, THEME_NAMES } from '@grimoire/contract';
+import { SCALES, type ThemeName, THEME_NAMES } from '@grimoire/contract';
 import { Settings } from '@ui/app/core/settings';
 import { Wording } from '@ui/app/core/wording';
 import { AUTO_DARK, AUTO_LIGHT, DesignSettings } from '@ui/design-system/design-settings';
@@ -25,11 +25,12 @@ import {
   tokenValues,
   withDensity,
 } from './theme';
+import { percentOf } from './scale';
 
 /**
  * The theme editor: the ready-made themes to choose from, then, to
- * change the one in use, the book's main colours, the size and face of
- * its text and how closely its pages are set, and every token under the
+ * change the one in use, the book's main colours, the scale of every
+ * window, the size and face of the chat's text and how closely its pages are set, and every token under the
  * theme's own headings, to search and change. The book is its own preview: a change shows on every page at
  * once, and is kept for every window once you stop. Reset puts a token
  * back as the theme draws it; choosing another theme starts afresh.
@@ -82,6 +83,9 @@ export class ThemeEditor {
       };
     }),
   );
+  protected readonly scales = SCALES;
+  protected readonly scale = computed(() => this.settings.all().scale ?? 1);
+  protected readonly percent = computed(() => percentOf(this.scale()));
   protected readonly textSize = computed(() => pxOf(this.valueOf(TEXT_SIZE)));
   protected readonly TEXT_FONT = TEXT_FONT;
   /** The faces to pick, each word shown in its own face. */
@@ -173,6 +177,11 @@ export class ThemeEditor {
     if (!(name in this.changes())) return;
     const { [name]: _, ...rest } = this.changes();
     this.settings.setSoon({ theme: rest });
+  }
+
+  /** Draws every window larger or smaller; set once the slider is let go, since the page reflows under it. */
+  protected setScale(scale: number): void {
+    if (scale !== this.scale()) void this.settings.set({ scale });
   }
 
   /** Sets the text in a face; the book's own is no change. */

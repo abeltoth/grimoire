@@ -24,6 +24,7 @@ describe('SettingsStore', () => {
       newChat: { from: 'last-used' },
       themeName: 'grimoire',
       theme: {},
+      scale: 1,
       accounts: [],
       mcpOff: [],
       suggestions: true,
@@ -45,6 +46,9 @@ describe('SettingsStore', () => {
       theme: { '--gr-page': '#fffaf0', '--gr-size-text': '18px' },
     });
     settings.set({ themeName: 'auto' });
+    settings.set({ scale: 1.2 });
+    expect(() => settings.set({ scale: 5 })).toThrow('"scale"');
+    expect(() => settings.set({ scale: '120%' } as never)).toThrow('"scale"');
     expect(() => settings.set({ themeName: 'neon' } as never)).toThrow('"themeName"');
     settings.set({ accounts: ['me@example.com', 'mum@example.com'] });
     settings.set({ mcpOff: ['github', 'claude.ai Gmail'] });
@@ -92,6 +96,7 @@ describe('SettingsStore', () => {
       newChat: { from: 'preset', preset: 'Bug fix' },
       themeName: 'auto',
       theme: { '--gr-page': '#fffaf0', '--gr-size-text': '18px' },
+      scale: 1.2,
       accounts: ['me@example.com', 'mum@example.com'],
       mcpOff: ['github', 'claude.ai Gmail'],
       suggestions: false,

@@ -92,6 +92,7 @@ export function fakeBridge(overrides: Partial<GrimoireBridge> = {}) {
       return () => popoutListeners.delete(listener);
     }),
     openExternal: vi.fn(),
+    zoom: vi.fn(),
     ...overrides,
   };
   const emit = <K extends EventName>(event: K, payload: EventPayload<K>) =>
