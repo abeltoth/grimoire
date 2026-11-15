@@ -1,5 +1,5 @@
-import type { UsageReading, UsageWeek } from '@grimoire/contract';
-import { limitsChart, weekColumns } from './limits-chart';
+import type { UsageReading } from '@grimoire/contract';
+import { limitsChart, sessionChart, weeksChart } from './limits-chart';
 import { HOUR, onDay } from './usage-format';
 
 const DAY = 24 * HOUR;
@@ -85,26 +85,64 @@ describe('limitsChart', () => {
   });
 });
 
-describe('weekColumns', () => {
+describe('sessionChart', () => {
   const now = new Date(2026, 10, 9, 15).getTime();
-  const week = (end: number, peak: number, fullAt: number | null = null): UsageWeek => ({
-    start: end - 7 * DAY,
-    end,
-    peak,
-    fullAt,
+  const end = now + 2 * HOUR;
+
+  it('draws the session under way from when it began to when it resets, with where its pace leads', () => {
+    const history: UsageReading[] = [
+      // The session before: left out.
+      { at: now - 6 * HOUR, span: 'session', used: 90, resetsAt: now - 3 * HOUR },
+      // A reset read a few seconds off is the same session.
+      { at: now - 2 * HOUR, span: 'session', used: 10, resetsAt: end + 30_000 },
+      { at: now - HOUR, span: 'week', used: 30, resetsAt: now + DAY },
+      { at: now, span: 'session', used: 60, resetsAt: end },
+    ];
+    const chart = sessionChart(history, now)!;
+    expect([chart.from, chart.to]).toEqual([end - 5 * HOUR, end]);
+    expect(chart.lines[0]!.points.map((point) => point.value)).toEqual([10, 60]);
+    // A tick each hour, and now marked.
+    expect(chart.ticks).toHaveLength(6);
+    expect(chart.marks).toEqual([{ at: now, label: 'Now' }]);
+    // Three hours gone and 60% used: it runs out in two, as it resets.
+    expect(chart.forecast).toBe(`At this rate, the session’s limit runs out ${onDay(end, now)}.`);
   });
 
-  it('has a column a week, the one under way named so, and none for the week under way alone', () => {
-    expect(weekColumns([week(now + DAY, 30)], now)).toEqual([]);
-    const columns = weekColumns(
-      [week(now - 6 * DAY, 100, now - 7 * DAY), week(now + DAY, 30)],
-      now,
-    );
-    expect(columns.map((column) => [column.label, column.parts])).toEqual([
-      [new Date(now - 13 * DAY).toLocaleDateString([], { month: 'short', day: 'numeric' }), [100]],
-      ['This week', [30]],
+  it('has nothing to draw when no session is under way', () => {
+    const over: UsageReading[] = [
+      { at: now - 4 * HOUR, span: 'session', used: 30, resetsAt: now - HOUR },
+    ];
+    expect(sessionChart(over, now)).toBeNull();
+    expect(sessionChart([], now)).toBeNull();
+  });
+});
+
+describe('weeksChart', () => {
+  const now = new Date(2026, 10, 9, 15).getTime();
+  const week = 7 * DAY;
+
+  it('draws the weeks back as a line broken where each started afresh, a tick where each began', () => {
+    const history: UsageReading[] = [
+      { at: now - 9 * DAY, span: 'week', used: 70, resetsAt: now - 4 * DAY },
+      { at: now - 5 * DAY, span: 'week', used: 100, resetsAt: now - 4 * DAY },
+      { at: now - DAY, span: 'week', used: 20, resetsAt: now + 3 * DAY },
+      // Older than the weeks drawn.
+      { at: now - 3 * week, span: 'week', used: 50, resetsAt: now - 2 * week },
+    ];
+    const chart = weeksChart(history, now, 2)!;
+    expect([chart.from, chart.to]).toEqual([now - 2 * week, now]);
+    expect(chart.lines[0]!.points.map(({ value, run }) => [value, run])).toEqual([
+      [70, now - 4 * DAY],
+      [100, now - 4 * DAY],
+      [20, now + 3 * DAY],
     ]);
-    expect(columns[0]!.name).toMatch(/^Week from .+, ran out .+$/);
-    expect(columns[1]!.name).toMatch(/, so far$/);
+    expect(chart.ticks.map((tick) => tick.at)).toEqual([now - 11 * DAY, now - 4 * DAY]);
+  });
+
+  it('has nothing to draw with only the week under way', () => {
+    const history: UsageReading[] = [
+      { at: now - DAY, span: 'week', used: 20, resetsAt: now + 3 * DAY },
+    ];
+    expect(weeksChart(history, now, 8)).toBeNull();
   });
 });

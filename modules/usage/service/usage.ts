@@ -3,12 +3,10 @@ import type {
   PlanUsage,
   UsageBreakdown,
   UsageReading,
-  UsageWeek,
+  UsageWindow,
 } from '@grimoire/contract';
-import { type UsageReadings, sameAccount, weeks } from './readings';
+import { type UsageReadings, sameAccount, thin } from './readings';
 import type { UsageSource } from './sources';
-
-const WEEK = 7 * 24 * 60 * 60_000;
 
 /** The agents' plans: their limits, read and kept so their history can be drawn, and where their usage went. */
 export class Usage {
@@ -21,7 +19,6 @@ export class Usage {
     private readonly sources: ReadonlyMap<AgentId, UsageSource>,
     private readonly agents: () => AgentId[],
     private readonly kept: (agent: AgentId, usage: PlanUsage) => void = () => {},
-    private readonly now: () => number = Date.now,
   ) {}
 
   /** The agent's plan limits, read now and kept; null when it has no plan. */
@@ -51,14 +48,20 @@ export class Usage {
     if (failed) throw failed.reason;
   }
 
-  /** Each reading of the agent's plan limits kept since a time, oldest first: those of the account signed in now. */
-  history(agent: AgentId, since: number): UsageReading[] {
-    return sameAccount(this.readings.since(agent, since));
-  }
-
-  /** The last `count` weeks of the plan's limit for all models, oldest first: those of the account signed in now. */
-  weeks(agent: AgentId, count: number): UsageWeek[] {
-    return weeks(this.history(agent, this.now() - count * WEEK)).slice(-count);
+  /**
+   * Each reading of the agent's plan limits kept since a time, oldest
+   * first: those of the account signed in now. With `span`, only that
+   * limit's; with `every`, the last of each limit in each stretch that long.
+   */
+  history(
+    agent: AgentId,
+    since: number,
+    span?: UsageWindow['span'],
+    every?: number,
+  ): UsageReading[] {
+    const kept = sameAccount(this.readings.since(agent, since));
+    const shown = span ? kept.filter((r) => r.span === span) : kept;
+    return every ? thin(shown, every) : shown;
   }
 
   /** What the agent's own scan says took the plan's usage; null when it can't say. */

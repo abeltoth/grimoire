@@ -19,8 +19,9 @@ export const usage: ServiceModule = {
       (agent, usage) => events.emit('usage.read', { agent, usage }),
     );
     registry.register('usage.plan', ({ agent }) => usage.plan(agent));
-    registry.register('usage.history', ({ agent, since }) => usage.history(agent, since));
-    registry.register('usage.weeks', ({ agent, count }) => usage.weeks(agent, count));
+    registry.register('usage.history', ({ agent, since, span, every }) =>
+      usage.history(agent, since, span, every),
+    );
     registry.register('usage.breakdown', ({ agent }) => usage.breakdown(agent));
     // Signed in to another account, the plan's limits are read again, as they're that account's.
     events.on('agents.account', ({ agent, account, pending }) => {

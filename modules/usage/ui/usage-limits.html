@@ -77,9 +77,27 @@
               </li>
             }
           </ul>
+          @if (plan.session; as session) {
+            <gr-usage-lines
+              caption="This session"
+              [series]="session.lines"
+              [guides]="session.guides"
+              [from]="session.from"
+              [to]="session.to"
+              [ticks]="session.ticks"
+              [marks]="session.marks"
+              [breakAfter]="weekApart"
+              [step]="true"
+              [tabled]="false"
+              [when]="readingName"
+            />
+            @if (session.forecast; as forecast) {
+              <p class="forecast">{{ forecast }}</p>
+            }
+          }
           @if (plan.chart; as chart) {
             <gr-usage-lines
-              caption="This week’s limit, from one reset to the next"
+              caption="This week"
               [series]="chart.week"
               [guides]="chart.guides"
               [from]="chart.from"
@@ -96,21 +114,26 @@
             }
             @if (chart.sessions.length) {
               <gr-usage-sessions
-                caption="Each five-hour session this week"
+                caption="Sessions"
                 [sessions]="chart.sessions"
                 [from]="chart.from"
                 [now]="now()"
               />
             }
           }
-          @if (plan.weeks.length) {
-            <gr-usage-columns
-              caption="How full each week got"
-              [series]="weekSeries"
-              [columns]="plan.weeks"
-              [format]="percent"
-              [max]="100"
+          @if (plan.weeks; as weeks) {
+            <gr-usage-lines
+              [caption]="'Last ' + weeksBack + ' weeks'"
+              [series]="weeks.lines"
+              [guides]="weeks.guides"
+              [from]="weeks.from"
+              [to]="weeks.to"
+              [ticks]="weeks.ticks"
+              [marks]="weeks.marks"
+              [breakAfter]="weekApart"
+              [step]="true"
               [tabled]="false"
+              [when]="readingName"
             />
           }
         } @else {

@@ -64,20 +64,17 @@ describe('usage-limits', () => {
       ],
       at: now,
     });
-    answers['usage.history'] = (): UsageReading[] => [
-      { at: now - 48 * hour, span: 'week', used: 10, resetsAt: end },
-      { at: now - 2 * hour, span: 'session', used: 40, resetsAt: session },
-      { at: now - 2 * hour, span: 'week', used: 20, resetsAt: end },
-    ];
-    answers['usage.weeks'] = () => [
-      {
-        start: end - 14 * 24 * hour,
-        end: end - 7 * 24 * hour,
-        peak: 100,
-        fullAt: now - 5 * 24 * hour,
-      },
-      { start: end - 7 * 24 * hour, end, peak: 20, fullAt: null },
-    ];
+    answers['usage.history'] = ({ span }: { span?: string }): UsageReading[] =>
+      span === 'week'
+        ? [
+            { at: now - 9 * 24 * hour, span: 'week', used: 100, resetsAt: end - 7 * 24 * hour },
+            { at: now - 2 * hour, span: 'week', used: 20, resetsAt: end },
+          ]
+        : [
+            { at: now - 48 * hour, span: 'week', used: 10, resetsAt: end },
+            { at: now - 2 * hour, span: 'session', used: 40, resetsAt: session },
+            { at: now - 2 * hour, span: 'week', used: 20, resetsAt: end },
+          ];
     const { fixture, el, texts } = await render(bridge);
     [...el.querySelectorAll<HTMLButtonElement>('gr-page-tabs .page-tab')]
       .find((tab) => tab.textContent!.trim() === 'Ledger')!
@@ -85,13 +82,18 @@ describe('usage-limits', () => {
     await fixture.whenStable();
 
     // Read from the session the week began in.
-    const since = (calls.find((c) => c.command === 'usage.history')!.request as { since: number })
-      .since;
-    expect(since).toBe(end - 7 * 24 * hour - 5 * hour);
+    const histories = calls
+      .filter((c) => c.command === 'usage.history')
+      .map((c) => c.request as { since: number; span?: string; every?: number });
+    expect(histories).toEqual([
+      { agent: 'claude-code', since: end - 7 * 24 * hour - 5 * hour },
+      { agent: 'claude-code', since: now - 8 * 7 * 24 * hour, span: 'week', every: hour },
+    ]);
     expect(texts('gr-usage-page .plan figcaption')).toEqual([
-      'This week’s limit, from one reset to the next',
-      'Each five-hour session this week',
-      'How full each week got',
+      'This session',
+      'This week',
+      'Sessions',
+      'Last 8 weeks',
     ]);
     // The session is 3 hours of 5 gone; the week 4 days of 7.
     const meters = [...el.querySelectorAll('gr-usage-page .plan [role="meter"]')];
@@ -99,17 +101,20 @@ describe('usage-limits', () => {
     expect(meters[1]!.getAttribute('aria-valuetext')).toBe('20% used, 57% of the week gone');
     expect(el.querySelectorAll('gr-usage-page .plan .pace')).toHaveLength(2);
     // The week's line, the even pace and where the pace so far leads.
-    expect(texts('gr-usage-page .plan gr-usage-lines .legend li')).toEqual([
+    expect(texts('gr-usage-page .plan gr-usage-lines:nth-of-type(2) .legend li')).toEqual([
       'This week, all models',
       'Even pace',
       'At this rate',
     ]);
     expect(el.querySelector('gr-usage-page .plan gr-usage-lines .table-view')).toBeNull();
-    expect(texts('gr-usage-page .plan .forecast')[0]).toMatch(
-      /^At this rate, you’ll end the week near \d+%\.$/,
-    );
+    const forecasts = texts('gr-usage-page .plan .forecast');
+    expect(forecasts).toHaveLength(2);
+    expect(forecasts[0]).toMatch(/^At this rate, the session’s limit runs out /);
+    expect(forecasts[1]).toMatch(/^At this rate, you’ll end the week near \d+%\.$/);
     expect(el.querySelectorAll('gr-usage-page .plan rect.session').length).toBeGreaterThan(0);
-    expect(el.querySelectorAll('gr-usage-page .plan gr-usage-columns rect.hit')).toHaveLength(2);
+    // The weeks back: last week's and this week's, apart.
+    const weeks = el.querySelectorAll('gr-usage-page .plan gr-usage-lines')[2]!;
+    expect(weeks.querySelectorAll('path.line, circle.dot').length).toBeGreaterThanOrEqual(2);
   });
 
   it('shows the limits the service read meanwhile in the Usage page, without reading them itself', async () => {

@@ -11,8 +11,13 @@ import {
 import type { AgentInfo, PlanUsage } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { AgentCatalog } from '@ui/app/core/agent-catalog';
-import { type ChartSeries, type Column, UsageColumns } from './charts';
-import { type LimitsChart, limitsChart, weekColumns } from './limits-chart';
+import {
+  type LimitLine,
+  type LimitsChart,
+  limitsChart,
+  sessionChart,
+  weeksChart,
+} from './limits-chart';
 import { UsageLines } from './lines-chart';
 import { UsageSessions } from './sessions-chart';
 import {
@@ -31,29 +36,30 @@ import {
   time,
 } from './usage-format';
 
-/** An agent with a plan, how much of its limits is used, its week so far and the weeks before. */
+/** An agent with a plan, how much of its limits is used, its session and week so far, and the weeks before. */
 interface Plan {
   agent: AgentInfo;
   usage: PlanUsage;
   /** The week under way; null until a week's limit has been read. */
   chart: LimitsChart | null;
-  /** How full each week got, oldest first, the one under way last. */
-  weeks: Column[];
+  /** The session under way; null when none is. */
+  session: LimitLine | null;
+  /** The weeks before; null with none read. */
+  weeks: LimitLine | null;
 }
 
 /** How many weeks back the weeks' chart goes, the one under way among them. */
 const WEEKS = 8;
-const WEEK_SERIES: ChartSeries[] = [{ name: 'Most used', color: 'var(--gr-chart-4)' }];
 
 /**
  * The Usage page's limits: how much of each agent's subscription limits is
  * used, each limit with when it resets and how much of its time is gone,
- * the week under way drawn with its sessions, and the weeks before. Read
+ * the session and the week under way drawn, the week's sessions, and the weeks before. Read
  * from the agent when the page opens, and again whenever the service reads them.
  */
 @Component({
   selector: 'gr-usage-limits',
-  imports: [UsageColumns, UsageLines, UsageSessions],
+  imports: [UsageLines, UsageSessions],
   templateUrl: './usage-limits.html',
   styleUrls: ['./usage-lists.css', './usage-limits.css'],
 })
@@ -72,9 +78,9 @@ export class UsageLimits {
   /** When the limits were last drawn, which their time gone counts to. */
   protected readonly now = signal(Date.now());
 
-  protected readonly weekSeries = WEEK_SERIES;
-  /** A week's line holds across the hours nothing was read: its share only grows until it starts afresh. */
+  /** A limit's line holds across the hours nothing was read: its share only grows until it starts afresh. */
   protected readonly weekApart = 7 * DAY;
+  protected readonly weeksBack = WEEKS;
   protected readonly readingName = readingName;
   protected readonly percent = percent;
   protected readonly planName = planName;
@@ -143,14 +149,21 @@ export class UsageLimits {
     const since = week?.resetsAt ? week.resetsAt - 7 * DAY - 5 * HOUR : now - 7 * DAY;
     const [history, weeks] = await Promise.all([
       this.bridge.invoke('usage.history', { agent: agent.id, since }),
-      this.bridge.invoke('usage.weeks', { agent: agent.id, count: WEEKS }),
+      // The last of each hour is enough for weeks back.
+      this.bridge.invoke('usage.history', {
+        agent: agent.id,
+        since: now - WEEKS * 7 * DAY,
+        span: 'week',
+        every: HOUR,
+      }),
     ]);
     this.now.set(now);
     return {
       agent,
       usage,
       chart: limitsChart(history ?? [], now),
-      weeks: weekColumns(weeks ?? [], now),
+      session: sessionChart(history ?? [], now),
+      weeks: weeksChart(weeks ?? [], now, WEEKS),
     };
   }
 }

@@ -29,7 +29,6 @@ function setUp() {
     new Map([['fake', source]]),
     () => ['fake', 'plain'],
     (agent, plan) => kept.push([agent, plan]),
-    () => vi.getMockedSystemTime()!.getTime(),
   );
   return { usage, readings, kept, source };
 }
@@ -66,25 +65,14 @@ describe('Usage', () => {
     await expect(usage.readAll()).rejects.toThrow('Too many requests');
   });
 
-  it('tells the weeks of the limit for all models, the latest last', async () => {
-    const { usage, readings } = setUp();
-    const week = 7 * 24 * 60 * 60_000;
-    vi.setSystemTime(3 * week);
-    for (const [at, used] of [
-      [0.5 * week, 100],
-      [1.5 * week, 40],
-      [2.5 * week, 20],
-    ] as const) {
-      readings.record('fake', {
-        plan: 'max',
-        windows: [{ span: 'week', used, resetsAt: (Math.floor(at / week) + 1) * week }],
-        at,
-      });
+  it('keeps to one limit, and thins a long history, when asked', async () => {
+    const { usage } = setUp();
+    for (const at of [0, 1000, 2000, 61_000]) {
+      vi.setSystemTime(at);
+      await usage.plan('fake');
     }
-    expect(usage.weeks('fake', 2).map(({ end, peak }) => [end / week, peak])).toEqual([
-      [2, 40],
-      [3, 20],
-    ]);
+    expect(usage.history('fake', 0, 'week')).toEqual([]);
+    expect(usage.history('fake', 0, 'session', 60_000).map(({ at }) => at)).toEqual([2000, 61_000]);
   });
 
   it('has no plan limits, nor where they went, for an agent without a plan', async () => {
