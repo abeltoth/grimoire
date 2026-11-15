@@ -220,8 +220,9 @@ function detailsOf(
   if (!changes.has(block))
     changes.set(block, fileChange(block.tool, block.input, block.result) ?? null);
   const change = changes.get(block);
-  // A change that failed wasn't made; what the tool said about it is what counts.
-  if (change && !block.result?.isError) {
+  // A change that failed wasn't made; what the tool said about it is what counts. One whose
+  // input is still being written names no file yet, and has nothing to show as a diff.
+  if (change?.file && change.lines.length && !block.result?.isError) {
     const count = (kind: DiffLine['kind']) => change.lines.filter((l) => l.kind === kind).length;
     const [added, removed] = [count('inserted'), count('removed')];
     return {

@@ -156,6 +156,13 @@ describe('toRows', () => {
     });
   });
 
+  it('shows no diff for a change whose input is still being written', () => {
+    const rows = toRows([agent('a1', tool('Write', {}))]);
+    const notes = rows[0]!.kind === 'notes' ? rows[0]!.notes : [];
+    expect(notes[0]!.counts).toBeUndefined();
+    expect(notes[0]!.details).toMatchObject({ kind: 'output', running: true });
+  });
+
   it('expands a web search as the pages it found and its summary, or as it came when unread', () => {
     const found = [
       'Web search results for query: "signals"',
