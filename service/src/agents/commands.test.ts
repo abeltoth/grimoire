@@ -54,7 +54,8 @@ describe('the agent commands', () => {
     const names: string[] = [];
     const register = registry.register.bind(registry);
     registry.register = ((name: string, handler: never) => {
-      names.push(name);
+      // A picture file is read on its own, without the hub (pictures.test.ts).
+      if (name !== 'agents.picture') names.push(name);
       register(name as never, handler);
     }) as typeof registry.register;
     registerAgentCommands(registry, hub);

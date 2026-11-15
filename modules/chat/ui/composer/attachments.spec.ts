@@ -104,6 +104,28 @@ describe('attachments', () => {
     expect(texts('gr-composer .ref code')).toEqual(['notes.txt']);
   });
 
+  it('shows an attached picture file as a plate, and any other file as a reference', async () => {
+    const { bridge, answers, calls } = fakeBridge({
+      chooseFiles: vi.fn(async () => ['C:/work/grimoire/shot.png', 'C:/work/grimoire/gone.jpg']),
+    });
+    answers['agents.picture'] = ({ path }: { path: string }) =>
+      path.endsWith('shot.png') ? { mediaType: 'image/png', data: 'AQID' } : null;
+    const { fixture, el, texts } = await render(bridge);
+    await write(fixture, el, 'First');
+
+    el.querySelector<HTMLButtonElement>('[aria-label="Attach files or a screenshot"]')!.click();
+    await fixture.whenStable();
+    expect(texts('gr-composer .plate figcaption span')).toEqual(['Plate I. shot.png']);
+    expect(el.querySelector('gr-composer .plate img')!.getAttribute('src')).toBe(
+      'data:image/png;base64,AQID',
+    );
+    expect(texts('gr-composer .ref code')).toEqual(['gone.jpg']);
+    expect(calls.filter((c) => c.command === 'agents.picture').map((c) => c.request)).toEqual([
+      { path: 'C:/work/grimoire/shot.png', cwd: expect.any(String) },
+      { path: 'C:/work/grimoire/gone.jpg', cwd: expect.any(String) },
+    ]);
+  });
+
   it('opens a plate large when clicked, and closes it on a click', async () => {
     // jsdom has no modal dialogs, so here they open and close by their attribute.
     const dialogs = HTMLDialogElement.prototype as Partial<HTMLDialogElement>;

@@ -24,7 +24,7 @@ import type {
 } from './agents';
 import type { Answer, Approval, ApprovalDecision } from './approvals';
 import type { ChatSettings, NewChatSettings, ParallelFrom, SettingsChange } from './chat-settings';
-import type { Attachment, Entry } from './entries';
+import type { Attachment, Entry, PictureAttachment } from './entries';
 
 /**
  * The agent hub's commands and events, which every window uses
@@ -164,6 +164,14 @@ declare module './commands' {
      * opened first after it edits from now on.
      */
     'agents.close': { request: { chatId: ChatId }; response: void };
+    /**
+     * An attached file that is a picture, to show as a plate; null when it
+     * isn't one or can't be read. A relative path is from the chat's folder.
+     */
+    'agents.picture': {
+      request: { path: string; cwd?: string };
+      response: Pick<PictureAttachment, 'mediaType' | 'data'> | null;
+    };
   }
 }
 

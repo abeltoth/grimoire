@@ -1,5 +1,6 @@
 import type { CommandRegistry } from '../registry';
 import type { AgentHub } from './hub';
+import { pictureAt } from './pictures';
 
 /** The agent hub's commands (see contract/src/agents.ts). */
 export function registerAgentCommands(registry: CommandRegistry, hub: AgentHub): void {
@@ -45,4 +46,5 @@ export function registerAgentCommands(registry: CommandRegistry, hub: AgentHub):
   registry.register('agents.restart', ({ chatId }) => hub.restart(chatId));
   registry.register('agents.dismissRestart', ({ chatId }) => hub.dismissRestart(chatId));
   registry.register('agents.close', ({ chatId }) => hub.close(chatId));
+  registry.register('agents.picture', ({ path, cwd }) => pictureAt(path, cwd));
 }

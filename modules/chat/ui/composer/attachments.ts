@@ -1,10 +1,11 @@
 import {
   Component,
-  type PendingTasks,
+  type ElementRef,
+  PendingTasks,
   type WritableSignal,
   booleanAttribute,
-  type ElementRef,
   computed,
+  effect,
   inject,
   input,
   output,
@@ -14,6 +15,7 @@ import {
 import type { Attachment, GrimoireBridge } from '@grimoire/contract';
 import { Icon } from '@ui/design-system/icon';
 import { AgentCatalog } from '@ui/app/core/agent-catalog';
+import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { readPicture } from './pictures';
 
 type Plate = {
@@ -26,9 +28,12 @@ type Plate = {
 type Shown =
   Plate | { kind: 'ref'; attachment: Attachment; number: number; name: string; file: string };
 
+/** A file the service is asked to show as a plate. */
+const PICTURE_FILE = /\.(png|jpe?g|gif|webp)$/i;
+
 /**
- * What's sent with a message: pictures as numbered plates with captions, and
- * files as numbered references. A plate opens large when clicked. On the next
+ * What's sent with a message: pictures, and picture files, as numbered plates
+ * with captions, and other files as numbered references. A plate opens large when clicked. On the next
  * page each has a cross that takes it off.
  */
 @Component({
@@ -39,6 +44,8 @@ type Shown =
 })
 export class Attachments {
   private readonly catalog = inject(AgentCatalog);
+  private readonly bridge = inject(GRIMOIRE_BRIDGE);
+  private readonly pending = inject(PendingTasks);
 
   readonly attachments = input.required<readonly Attachment[]>();
   /** The chat's folder: files inside it are named from it. */
@@ -49,6 +56,31 @@ export class Attachments {
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('enlarged');
   /** The plate shown large, or null. */
   protected readonly large = signal<Plate | null>(null);
+
+  /** Picture files read for showing, by path: a data URL, or null when it couldn't be. */
+  private readonly previews = signal<Readonly<Record<string, string | null>>>({});
+
+  constructor() {
+    // The page may only show pictures it's given, so the service reads each picture file.
+    effect(() => {
+      const cwd = this.cwd();
+      for (const attachment of this.attachments()) {
+        const path = attachment.kind === 'file' ? attachment.path : '';
+        if (!PICTURE_FILE.test(path) || path in this.previews()) continue;
+        this.previews.update((all) => ({ ...all, [path]: null }));
+        this.pending.run(async () => {
+          const picture = await this.bridge
+            .invoke('agents.picture', { path, cwd })
+            .catch(() => null);
+          if (picture)
+            this.previews.update((all) => ({
+              ...all,
+              [path]: `data:${picture.mediaType};base64,${picture.data}`,
+            }));
+        });
+      }
+    });
+  }
 
   protected enlarge(plate: Plate): void {
     this.large.set(plate);
@@ -67,11 +99,16 @@ export class Attachments {
           src: `data:${attachment.mediaType};base64,${attachment.data}`,
           caption: attachment.caption ?? 'Picture',
         };
+      const name =
+        relativeTo(this.cwd(), attachment.path) ?? this.catalog.folderName(attachment.path);
+      const preview = this.previews()[attachment.path];
+      if (preview)
+        return { kind: 'plate', attachment, number: roman(++plates), src: preview, caption: name };
       return {
         kind: 'ref',
         attachment,
         number: ++refs,
-        name: relativeTo(this.cwd(), attachment.path) ?? this.catalog.folderName(attachment.path),
+        name,
         file: attachment.path.split(/[\\/]/).at(-1) ?? attachment.path,
       };
     });
