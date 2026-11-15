@@ -32,7 +32,11 @@ function mergeEdits(notes: readonly Note[]): Note[] {
             details: {
               ...before,
               lines: [...before.lines, ...after.lines],
-              breaks: [...(before.breaks ?? []), before.lines.length],
+              breaks: [
+                ...(before.breaks ?? []),
+                before.lines.length,
+                ...(after.breaks ?? []).map((at) => at + before.lines.length),
+              ],
             },
           }
         : {}),

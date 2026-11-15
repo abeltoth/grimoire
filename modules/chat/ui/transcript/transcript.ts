@@ -175,6 +175,8 @@ export class Transcript {
   private readonly open = signal<ReadonlySet<string>>(new Set());
   /** The note whose details you expanded: one at a time, so opening another closes it. */
   private readonly expandedNote = signal<string | null>(null);
+  /** The diffs you put away, since a diff shows unasked. */
+  private readonly closedDiffs = signal<ReadonlySet<string>>(new Set());
   /** The message being undone, until the agent is done. */
   private readonly undoing = signal<string | null>(null);
   private readonly forking = signal(false);
@@ -196,6 +198,7 @@ export class Transcript {
       void this.chat().followUps;
       this.open();
       this.expandedNote();
+      this.closedDiffs();
       if (this.following) this.element.scrollTop = this.element.scrollHeight;
     });
   }
@@ -266,11 +269,31 @@ export class Transcript {
   protected press(note: Note): void {
     if (this.showsSubagent(note)) this.subagents.show(this.chat().id, note.subagent!);
     else if (this.showsBoard(note)) this.rightPage.openPageTab(BOARD);
+    else if (this.opensUnasked(note)) this.closedDiffs.update((keys) => toggled(keys, note.key));
     else if (note.details) this.expandedNote.update((key) => (key === note.key ? null : note.key));
   }
 
+  /** A change shows its diff unasked, but not while its approval card shows it already. */
+  private opensUnasked(note: Note): boolean {
+    return note.details?.kind === 'diff' && !note.waiting;
+  }
+
   protected isExpanded(note: Note): boolean {
-    return this.expandedNote() === note.key;
+    return this.opensUnasked(note)
+      ? !this.closedDiffs().has(note.key)
+      : this.expandedNote() === note.key;
+  }
+
+  /** The notes whose details show under a row: diffs even when their run is summed up, the rest when it's open. */
+  protected shownDetails(row: Margin): Note[] {
+    const runOpen = !row.summary || this.isOpen(row.summary.key);
+    return row.notes.filter(
+      (note) =>
+        note.details &&
+        this.isExpanded(note) &&
+        !this.turnsPage(note) &&
+        (runOpen || this.opensUnasked(note)),
+    );
   }
 
   /** A running tool's word: it may still wait for your approval. */
@@ -280,10 +303,7 @@ export class Transcript {
 
   /** Whether the details of a note beside the row are open, which then go between its notes and its text. */
   protected opensIn(row: Margin): boolean {
-    return (
-      (!row.summary || this.isOpen(row.summary.key)) &&
-      row.notes.some((note) => note.details && this.isExpanded(note) && !this.turnsPage(note))
-    );
+    return this.shownDetails(row).length > 0;
   }
 
   protected isOpen(key: string): boolean {
@@ -291,14 +311,17 @@ export class Transcript {
   }
 
   protected toggle(key: string): void {
-    this.open.update((open) => {
-      const next = new Set(open);
-      if (!next.delete(key)) next.add(key);
-      return next;
-    });
+    this.open.update((open) => toggled(open, key));
   }
 
   protected time(at: number): string {
     return new Date(at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   }
+}
+
+/** A set with a key added, or taken out if it was in. */
+function toggled(keys: ReadonlySet<string>, key: string): ReadonlySet<string> {
+  const next = new Set(keys);
+  if (!next.delete(key)) next.add(key);
+  return next;
 }

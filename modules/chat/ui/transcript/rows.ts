@@ -232,6 +232,7 @@ function detailsOf(
         file: relativeTo(cwd, change.file),
         path: change.file,
         lines: change.lines,
+        ...(change.breaks ? { breaks: change.breaks } : {}),
       },
     };
   }

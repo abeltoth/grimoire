@@ -24,27 +24,18 @@ describe('files.providers', () => {
         [...rendered.el.querySelectorAll<HTMLButtonElement>(`${where} gr-diff-view .gr-link`)].find(
           (b) => b.textContent!.trim() === 'Open in Files',
         );
-      const expandable = async (name: string) => {
-        rendered.el.querySelector<HTMLButtonElement>('.note.summary')?.click();
-        await rendered.fixture.whenStable();
-        [...rendered.el.querySelectorAll<HTMLButtonElement>('.note')]
-          .find((note) => note.textContent!.includes(name) && !note.classList.contains('summary'))!
-          .click();
-        await rendered.fixture.whenStable();
-      };
-      return { ...rendered, made: monaco.made, openIn, expandable };
+      return { ...rendered, made: monaco.made, openIn };
     }
 
     it('opens a file the agent edited on its changes, from its diff', async () => {
       const { bridge, emit, calls } = repository();
-      const { fixture, el, texts, made, openIn, expandable } = await withEditor(bridge);
+      const { fixture, el, texts, made, openIn } = await withEditor(bridge);
       await write(fixture, el, 'Fix the ribbon');
       emit('agents.entry', {
         chatId: 'chat-1',
         entry: { kind: 'agent', id: 'a1', blocks: [chatTabEdit] },
       });
       await fixture.whenStable();
-      await expandable('ribbon.ts');
 
       openIn()!.click();
       await fixture.whenStable();
@@ -114,7 +105,7 @@ describe('files.providers', () => {
 
     it('keeps a file with changes not saved open, and asks to save or discard them first', async () => {
       const { bridge, emit, calls } = repository();
-      const { fixture, el, texts, openIn, expandable } = await withEditor(bridge);
+      const { fixture, el, texts, openIn } = await withEditor(bridge);
       await write(fixture, el, 'Fix the ribbon');
       [...el.querySelectorAll<HTMLButtonElement>('.tabs button')]
         .find((tab) => tab.textContent!.trim() === 'Files')!
@@ -134,7 +125,6 @@ describe('files.providers', () => {
         entry: { kind: 'agent', id: 'a1', blocks: [chatTabEdit] },
       });
       await fixture.whenStable();
-      await expandable('ribbon.ts');
       openIn()!.click();
       await fixture.whenStable();
       expect(texts('gr-files-page .sub .path')).toEqual(['README.md']);
@@ -146,14 +136,13 @@ describe('files.providers', () => {
 
     it('leaves Open in Files out in focus mode, where there is no right page', async () => {
       const { bridge, emit } = repository();
-      const { fixture, el, openIn, expandable } = await withEditor(bridge);
+      const { fixture, el, openIn } = await withEditor(bridge);
       await write(fixture, el, 'Fix the ribbon');
       emit('agents.entry', {
         chatId: 'chat-1',
         entry: { kind: 'agent', id: 'a1', blocks: [chatTabEdit] },
       });
       await fixture.whenStable();
-      await expandable('ribbon.ts');
       expect(openIn()).toBeDefined();
 
       [...el.querySelectorAll<HTMLButtonElement>('gr-right-page .gr-link')]

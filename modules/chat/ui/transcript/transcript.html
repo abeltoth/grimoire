@@ -267,8 +267,8 @@
       }
     }
   </div>
-  @if (!row.summary || isOpen(row.summary.key)) {
-    <ng-container *ngTemplateOutlet="detailsTemplate; context: { $implicit: row.notes }" />
+  @if (opensIn(row)) {
+    <ng-container *ngTemplateOutlet="detailsTemplate; context: { $implicit: shownDetails(row) }" />
   }
 </ng-template>
 
@@ -339,13 +339,15 @@
   }
 </ng-template>
 
-<!-- The details of the notes you expanded, across the text and the margin. -->
+<!--
+  The details of the notes you expanded, and the diffs, across the text and the
+  margin: in one block, so that several stack under the notes.
+-->
 <ng-template #detailsTemplate let-notes>
-  @for (note of notes; track note.key) {
-    @if (note.details && isExpanded(note) && !turnsPage(note)) {
+  <div class="wide details">
+    @for (note of notes; track note.key) {
       @if (note.details.kind === 'diff') {
         <gr-diff-view
-          class="wide"
           [file]="note.details.file"
           [lines]="note.details.lines"
           [breaks]="note.details.breaks ?? []"
@@ -355,14 +357,12 @@
         />
       } @else if (note.details.kind === 'web') {
         <gr-web-results
-          class="wide"
           [query]="note.details.query"
           [sources]="note.details.sources"
           [summary]="note.details.summary"
         />
       } @else {
         <gr-output
-          class="wide"
           [title]="note.details.title"
           [text]="note.details.text"
           [command]="note.details.command ?? ''"
@@ -370,5 +370,5 @@
         />
       }
     }
-  }
+  </div>
 </ng-template>

@@ -58,6 +58,8 @@ function linesOf(text: string): string[] {
 export interface FileChange {
   file: string;
   lines: DiffLine[];
+  /** Where each edit after the first begins, when the tool makes several. */
+  breaks?: number[];
 }
 
 /** The change a file tool would make, when the tool is one that changes files. */
@@ -71,11 +73,14 @@ export function fileChange(tool: string, input: unknown): FileChange | undefined
       const edits = Array.isArray(fields['edits'])
         ? (fields['edits'] as Record<string, unknown>[])
         : [];
+      const diffs = edits.map((edit) =>
+        diffLines(String(edit['old_string'] ?? ''), String(edit['new_string'] ?? '')),
+      );
+      const starts = diffs.map((_, i) => diffs.slice(0, i).reduce((n, d) => n + d.length, 0));
       return {
         file: text('file_path'),
-        lines: edits.flatMap((edit) =>
-          diffLines(String(edit['old_string'] ?? ''), String(edit['new_string'] ?? '')),
-        ),
+        lines: diffs.flat(),
+        ...(diffs.length > 1 ? { breaks: starts.slice(1) } : {}),
       };
     }
     case 'Write':

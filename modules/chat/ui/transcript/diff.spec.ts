@@ -45,6 +45,15 @@ describe('fileChange', () => {
         ],
       })!.lines.map((l) => l.kind),
     ).toEqual(['removed', 'inserted', 'same', 'inserted']);
+    expect(
+      fileChange('MultiEdit', {
+        file_path: '/r/a.ts',
+        edits: [
+          { old_string: 'a', new_string: 'b' },
+          { old_string: 'c', new_string: 'c\nd' },
+        ],
+      })!.breaks,
+    ).toEqual([2]);
     expect(fileChange('Bash', { command: 'ls' })).toBeUndefined();
   });
 });

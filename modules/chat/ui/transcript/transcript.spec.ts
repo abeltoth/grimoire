@@ -220,7 +220,7 @@ describe('transcript', () => {
     expect(el.querySelector('gr-listing')).toBeNull();
   });
 
-  it('sums up a run of tool notes, and expands them to the diff or the output', async () => {
+  it('sums up a run of tool notes, shows their diffs unasked, and expands the rest', async () => {
     const { bridge, emit } = fakeBridge();
     const { fixture, el, texts } = await render(bridge);
     await write(fixture, el, 'Add the meter');
@@ -261,6 +261,12 @@ describe('transcript', () => {
     ]);
     const run = el.querySelector<HTMLButtonElement>('.note.summary')!;
     expect(run.getAttribute('aria-expanded')).toBe('false');
+    // The diff shows though the run is summed up; the output waits to be asked for.
+    expect(texts('gr-diff-view .head b')).toEqual(['src/meter.ts']);
+    expect(texts('gr-diff-view .head .detail')[0]).toBe('corrections, as marked by Claude Code');
+    // The details open between the reply's notes and its text, not after it.
+    expect(el.querySelector('.row.said.opened gr-diff-view')).not.toBeNull();
+    expect(el.querySelector('gr-output')).toBeNull();
 
     run.click();
     await fixture.whenStable();
@@ -273,28 +279,22 @@ describe('transcript', () => {
       'npm test',
       'failed',
     ]);
-    expect(el.querySelector('gr-diff-view, gr-output')).toBeNull();
 
     const notes = el.querySelectorAll<HTMLButtonElement>('.run .note');
-    notes[0]!.click();
-    await fixture.whenStable();
     expect(notes[0]!.getAttribute('aria-expanded')).toBe('true');
-    expect(texts('gr-diff-view .head b')).toEqual(['src/meter.ts']);
-    expect(texts('gr-diff-view .head .detail')[0]).toBe('corrections, as marked by Claude Code');
-    // The details open between the reply's notes and its text, not after it.
-    expect(el.querySelector('.row.said.opened gr-diff-view')).not.toBeNull();
-
-    // Opening another note closes the one you had open.
+    // The output opens beside the diff, the two stacked in one block.
     notes[1]!.click();
     await fixture.whenStable();
-    expect(notes[0]!.getAttribute('aria-expanded')).toBe('false');
-    expect(el.querySelector('gr-diff-view')).toBeNull();
+    expect(notes[0]!.getAttribute('aria-expanded')).toBe('true');
+    expect(el.querySelectorAll('.wide.details > *').length).toBe(2);
     expect(texts('gr-output .head > *')).toEqual(['npm test', 'output']);
     expect(texts('gr-output .line')).toEqual(['12 passed', '1 failed']);
 
+    notes[0]!.click();
     notes[1]!.click();
     await fixture.whenStable();
-    expect(el.querySelector('gr-output')).toBeNull();
+    expect(notes[0]!.getAttribute('aria-expanded')).toBe('false');
+    expect(el.querySelector('gr-diff-view, gr-output')).toBeNull();
     expect(el.querySelector('.row.said.opened')).toBeNull();
   });
 
