@@ -61,9 +61,10 @@
               type="button"
               class="gr-link chat"
               [attr.title]="'Made in the chat ' + chat.title"
+              [attr.aria-label]="'Open the chat ' + chat.title"
               (click)="openChat(chat)"
             >
-              <gr-icon name="quill" />{{ chat.title }}
+              <gr-icon name="quill" />
             </button>
           }
         </span>

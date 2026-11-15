@@ -171,9 +171,10 @@
   color: var(--gr-rubric);
 }
 
+/* Only the quill: the chat's name shows on hover. */
 .chat {
+  flex: none;
   border: 0;
-  font-style: italic;
 }
 
 .author,

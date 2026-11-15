@@ -86,7 +86,10 @@ describe('GitGraph', () => {
     expect(el.querySelector('gr-git-graph .ref.more')?.getAttribute('title')).toBe(
       'Remote branch origin/feature\nTag v2',
     );
-    expect(texts('gr-git-graph .chat')).toEqual(['Fix it']);
+    const chat = el.querySelector('gr-git-graph .chat')!;
+    expect(chat.textContent!.trim()).toBe('');
+    expect(chat.getAttribute('title')).toBe('Made in the chat Fix it');
+    expect(chat.getAttribute('aria-label')).toBe('Open the chat Fix it');
     expect(texts('gr-git-graph .sha')).toEqual(['m000000', 'f000000', 'b000000', 'a000000']);
     // The merge's dot is in lane 0, the feature's in lane 1.
     const dots = [...el.querySelectorAll('gr-git-lanes circle')].map((c) => c.getAttribute('cx'));
