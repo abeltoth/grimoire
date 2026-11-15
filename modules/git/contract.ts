@@ -70,7 +70,20 @@ export interface CommitChat {
   cwd: string;
 }
 
-/** A commit in a branch's history. */
+/** A name pointing at a commit, as the graph labels it. */
+export interface GitRef {
+  /** Short, such as `main`, `origin/main` or `v1.2`; for a detached HEAD, `HEAD`. */
+  name: string;
+  kind: 'branch' | 'remote' | 'tag' | 'head';
+  /** The branch checked out. */
+  current?: true;
+  /** A local branch's upstream, such as `origin/main`. */
+  upstream?: string;
+  /** The folder of the other worktree a branch is checked out in. */
+  worktree?: string;
+}
+
+/** A commit in the repository's history. */
 export interface GitCommit {
   sha: string;
   short: string;
@@ -79,8 +92,8 @@ export interface GitCommit {
   /** When it was made, in ms since the epoch. */
   at: number;
   parents: string[];
-  /** It's on the branch and not on the trunk. */
-  own?: true;
+  /** The branches, remotes and tags pointing at it. */
+  refs?: GitRef[];
   /** The chat that made it, when a chat's turn did. */
   chat?: CommitChat;
 }
@@ -103,11 +116,13 @@ export interface GitCommitDetail extends GitCommit {
   files: GitCommitFile[];
 }
 
-/** A page of a branch's history, newest first. */
+/** A page of the history, newest first, each branch's commits kept together. */
 export interface GitLog {
   commits: GitCommit[];
   /** Older commits come after these. */
   more: boolean;
+  /** The commit checked out, in full; null before the first commit. */
+  head: string | null;
 }
 
 declare module '@grimoire/contract' {
@@ -119,11 +134,11 @@ declare module '@grimoire/contract' {
     /** A file's uncommitted change, as a diff. The path is from the repository's top folder. */
     'git.diff': { request: { cwd: string; path: string }; response: DiffLine[] };
     /**
-     * A page of a branch's or commit's history, skipping the newest `skip`;
-     * null outside a repository or for a ref it hasn't got.
+     * A page of the history of every branch, remote and tag, in graph order,
+     * skipping the first `skip`; null outside a repository.
      */
     'git.log': {
-      request: { cwd: string; ref: string; skip: number; limit: number };
+      request: { cwd: string; skip: number; limit: number };
       response: GitLog | null;
     };
     /** A commit's message and changed files; null when the repository hasn't got it. */

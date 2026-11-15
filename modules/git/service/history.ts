@@ -1,3 +1,4 @@
+import path from 'node:path';
 import type {
   CommitChat,
   DiffLine,
@@ -5,19 +6,27 @@ import type {
   GitCommitDetail,
   GitCommitFile,
   GitLog,
+  GitRef,
 } from '@grimoire/contract';
 import { type Git, type Run, inside, parseDiff, runTool } from './git';
 
-/** How many of a branch's own commits are looked for, so a long-lived branch stays quick. */
-const MOST_OWN = 500;
 /** Separates a commit's fields; a record ends at a NUL. */
 const FIELD = '\x1f';
 const FORMAT = ['%H', '%h', '%P', '%an', '%at', '%s'].join('%x1f');
+/** What `for-each-ref` gives of each ref; a tag's own object comes before the commit it names. */
+const REF_FIELDS = [
+  '%(objectname)',
+  '%(*objectname)',
+  '%(refname)',
+  '%(HEAD)',
+  '%(upstream:short)',
+  '%(worktreepath)',
+];
 
 /** Which of the commits a chat made, by sha. */
 export type ChatsOf = (shas: string[]) => Map<string, CommitChat>;
 
-/** A repository's history: its commits, what each changed, and the chat that made it. */
+/** A repository's history: its commits and labels, what each changed, and the chat that made it. */
 export class History {
   constructor(
     private readonly git: Git,
@@ -25,30 +34,39 @@ export class History {
     private readonly run: Run = runTool,
   ) {}
 
-  /** A page of the history from a branch or commit, newest first, its own commits marked. */
-  async log(cwd: string, ref: string, skip: number, limit: number): Promise<GitLog | null> {
+  /** A page of every branch's, remote's and tag's history, in graph order, with their labels. */
+  async log(cwd: string, skip: number, limit: number): Promise<GitLog | null> {
     const root = await this.git.root(cwd);
     if (!root) return null;
-    const sha = await this.resolve(root, ref);
-    if (!sha) return null;
-    const out = await this.tool(
-      root,
-      'log',
-      '-z',
-      `--format=${FORMAT}`,
-      `--skip=${Math.max(0, Math.floor(skip))}`,
-      `--max-count=${Math.max(1, Math.floor(limit)) + 1}`,
-      sha,
-    );
+    const count = Math.max(1, Math.floor(limit));
+    const head = await this.resolve(root, 'HEAD');
+    const [out, refs] = await Promise.all([
+      this.tool(
+        root,
+        'log',
+        '-z',
+        `--format=${FORMAT}`,
+        '--topo-order',
+        `--skip=${Math.max(0, Math.floor(skip))}`,
+        `--max-count=${count + 1}`,
+        '--branches',
+        '--remotes',
+        '--tags',
+        'HEAD',
+        '--',
+      ).catch(() => ''),
+      this.refs(root, head),
+    ]);
     const all = parseLog(out);
-    const commits = all.slice(0, limit);
-    const own = await this.ownOf(root, sha);
+    const commits = all.slice(0, count);
     const chats = this.chatsOf(commits.map((commit) => commit.sha));
     return {
-      commits: commits.map((commit) =>
-        withChat(own.has(commit.sha) ? { ...commit, own: true } : commit, chats),
-      ),
-      more: all.length > limit,
+      commits: commits.map((commit) => {
+        const labels = refs.get(commit.sha);
+        return withChat(labels ? { ...commit, refs: labels } : commit, chats);
+      }),
+      more: all.length > count,
+      head,
     };
   }
 
@@ -108,19 +126,22 @@ export class History {
     return sha.trim() || null;
   }
 
-  /** The commits reachable from the sha and not from the trunk. */
-  private async ownOf(root: string, sha: string): Promise<Set<string>> {
-    const trunk = await this.git.trunk(root).catch(() => null);
-    if (!trunk) return new Set();
-    const out = await this.tool(
-      root,
-      'rev-list',
-      `--max-count=${MOST_OWN}`,
-      sha,
-      '--not',
-      `refs/heads/${trunk}`,
-    ).catch(() => '');
-    return new Set(out.split(/\s+/).filter(Boolean));
+  /** The branches, remotes and tags by the commit they point at, and HEAD when it's detached. */
+  private async refs(root: string, head: string | null): Promise<Map<string, GitRef[]>> {
+    const [out, detached] = await Promise.all([
+      this.tool(
+        root,
+        'for-each-ref',
+        `--format=${REF_FIELDS.join('%00')}`,
+        'refs/heads',
+        'refs/remotes',
+        'refs/tags',
+      ).catch(() => ''),
+      this.tool(root, 'rev-parse', '--symbolic-full-name', 'HEAD')
+        .then((name) => name.trim() === 'HEAD')
+        .catch(() => false),
+    ]);
+    return parseRefs(out, root, detached ? head : null);
   }
 
   private tool(root: string, ...args: string[]): Promise<string> {
@@ -205,4 +226,40 @@ export function parseNumstat(
     counts.set(path, { added: count(match[1]!), removed: count(match[2]!) });
   }
   return counts;
+}
+
+const ORDER: Record<GitRef['kind'], number> = { head: 0, branch: 1, remote: 2, tag: 3 };
+
+/**
+ * `git for-each-ref` with the fields above, read: each commit's labels, the
+ * branch checked out first. `head` is HEAD's commit when it's detached.
+ */
+export function parseRefs(out: string, root: string, head: string | null): Map<string, GitRef[]> {
+  const here = path.resolve(root).toLowerCase();
+  const refs = new Map<string, GitRef[]>();
+  const add = (sha: string, ref: GitRef) => refs.set(sha, [...(refs.get(sha) ?? []), ref]);
+  if (head) add(head, { name: 'HEAD', kind: 'head', current: true });
+  for (const line of out.split('\n')) {
+    const [object = '', peeled = '', full = '', star, upstream, worktree] = line.split('\0');
+    const sha = peeled || object;
+    if (!sha) continue;
+    if (full.startsWith('refs/heads/')) {
+      const elsewhere = worktree && path.resolve(worktree).toLowerCase() !== here;
+      add(sha, {
+        name: full.slice('refs/heads/'.length),
+        kind: 'branch',
+        ...(star === '*' ? { current: true as const } : {}),
+        ...(upstream ? { upstream } : {}),
+        ...(elsewhere ? { worktree } : {}),
+      });
+    } else if (full.startsWith('refs/remotes/') && !full.endsWith('/HEAD')) {
+      add(sha, { name: full.slice('refs/remotes/'.length), kind: 'remote' });
+    } else if (full.startsWith('refs/tags/')) {
+      add(sha, { name: full.slice('refs/tags/'.length), kind: 'tag' });
+    }
+  }
+  for (const list of refs.values()) {
+    list.sort((a, b) => Number(!!b.current) - Number(!!a.current) || ORDER[a.kind] - ORDER[b.kind]);
+  }
+  return refs;
 }

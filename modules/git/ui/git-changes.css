@@ -1,0 +1,82 @@
+:host {
+  display: block;
+  max-width: var(--gr-git-width);
+}
+
+.back {
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+}
+
+h3 {
+  margin: var(--gr-git-head-gap) 0;
+  font-family: var(--gr-font-display);
+  font-weight: 400;
+  font-size: var(--gr-size-git-head);
+  color: var(--gr-ink);
+}
+
+.none {
+  margin: var(--gr-aside-gap) 0 0;
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.changes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-git-gap);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* A change: its file, then dotted leaders to what happened to it. */
+.change {
+  display: flex;
+  align-items: baseline;
+  width: 100%;
+  text-align: left;
+}
+
+.path {
+  min-width: 0;
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-git-file);
+  color: var(--gr-ink);
+  overflow-wrap: anywhere;
+}
+
+.folder {
+  color: var(--gr-ink-soft);
+}
+
+.change:hover .path,
+.change[aria-expanded='true'] .path {
+  color: var(--gr-link);
+}
+
+.leader {
+  flex: 1;
+  min-width: var(--gr-plan-leader-min);
+  margin: 0 var(--gr-plan-leader-gap);
+  border-bottom: var(--gr-leader);
+  transform: translateY(var(--gr-plan-leader-lift));
+}
+
+.kind {
+  font-style: italic;
+  font-size: var(--gr-size-plan-status);
+  color: var(--gr-ink-soft);
+  white-space: nowrap;
+}
+
+.kind.alert {
+  color: var(--gr-rubric);
+}
+
+gr-diff-view,
+li > .none {
+  margin-top: var(--gr-git-expanded-gap);
+}

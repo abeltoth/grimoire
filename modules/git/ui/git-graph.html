@@ -1,0 +1,82 @@
+<div class="head">
+  <span class="graph-head" #graphHead>
+    Graph
+    <span
+      class="resize"
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="The graph's width"
+      tabindex="0"
+      (pointerdown)="startResize($event)"
+      (keydown)="resizeBy($event)"
+    ></span>
+  </span>
+  <span>Description</span>
+  <span>Author</span>
+  <span>Date</span>
+  <span>Commit</span>
+</div>
+
+@let list = commits();
+@if (list === null) {
+  <p class="none">Reading the history…</p>
+} @else {
+  @let laid = rows();
+  <ol class="rows">
+    @if (laid.changes; as row) {
+      <li class="row changes">
+        <span class="graph"><gr-git-lanes [row]="row" [open]="true" /></span>
+        <span class="description">
+          <button type="button" class="open" (click)="openChanges.emit()">
+            Not committed yet · {{ changes() }} {{ changes() === 1 ? 'file' : 'files' }}
+          </button>
+        </span>
+      </li>
+    }
+    @for (entry of laid.commits; track entry.commit.sha) {
+      @let commit = entry.commit;
+      <li class="row">
+        <span class="graph"><gr-git-lanes [row]="entry.row" /></span>
+        <span class="description">
+          @for (label of labelsOf(commit.refs); track label.kind + label.name) {
+            <span
+              [class]="'ref ' + label.kind"
+              [class.current]="label.current"
+              [class.synced]="label.synced"
+              [attr.title]="label.title"
+              ><gr-icon [name]="label.kind === 'tag' ? 'tag' : 'branch'" />{{ label.name }}</span
+            >
+          }
+          <button type="button" class="open" (click)="pick.emit(commit.sha)">
+            {{ commit.subject }}
+          </button>
+          @if (commit.chat; as chat) {
+            <button
+              type="button"
+              class="gr-link chat"
+              [attr.title]="'Made in the chat ' + chat.title"
+              (click)="openChat(chat)"
+            >
+              <gr-icon name="quill" />{{ chat.title }}
+            </button>
+          }
+        </span>
+        <span class="author">{{ commit.author }}</span>
+        <span class="date">{{ when(commit.at) }}</span>
+        <code class="sha">{{ commit.short }}</code>
+      </li>
+    }
+  </ol>
+  @if (!laid.commits.length && !laid.changes) {
+    <p class="none">No commits yet.</p>
+  }
+  @if (more()) {
+    @if (observes) {
+      <div class="end" #end></div>
+    } @else {
+      <button type="button" class="gr-link older" [disabled]="reading()" (click)="showOlder()">
+        Show older
+      </button>
+    }
+  }
+}

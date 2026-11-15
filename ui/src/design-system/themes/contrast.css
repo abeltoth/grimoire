@@ -65,6 +65,15 @@
 
   /* Git and Files */
   --gr-git-tree-rule: rgba(0, 0, 0, 0.6);
+  --gr-git-row-hover: rgba(0, 0, 0, 0.08);
+  --gr-git-lane-0: #0b2a66;
+  --gr-git-lane-1: #8a1200;
+  --gr-git-lane-2: #1d4d24;
+  --gr-git-lane-3: #5c4000;
+  --gr-git-lane-4: #3d1f5c;
+  --gr-git-lane-5: #0b4f4a;
+  --gr-git-lane-6: #4f2a0a;
+  --gr-git-lane-7: #6b0f3a;
   --gr-editor-current-line: rgba(0, 0, 0, 0.08);
   --gr-editor-guide: rgba(0, 0, 0, 0.3);
   --gr-editor-inserted: rgba(11, 90, 63, 0.3);

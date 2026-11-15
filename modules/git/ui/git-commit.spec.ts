@@ -13,6 +13,7 @@ const status: GitStatus = {
 const log: GitLog = {
   commits: [{ sha: 'sha1', short: 's1', subject: 'Move it', author: 'Me', at: now, parents: [] }],
   more: false,
+  head: 'sha1',
 };
 
 const detail = (sha: string): GitCommitDetail => ({
@@ -40,7 +41,6 @@ describe('GitCommitPage', () => {
   it('opens a commit from the history, its files expanding as diffs, and goes back', async () => {
     const { bridge, answers, calls } = fakeBridge();
     answers['git.status'] = () => status;
-    answers['git.branches'] = () => ({ trunk: 'main', branches: [] });
     answers['git.log'] = () => log;
     answers['git.commit'] = ({ sha }: { sha: string }) => detail(sha);
     answers['git.commitDiff'] = () => [
@@ -53,7 +53,7 @@ describe('GitCommitPage', () => {
       .click();
     await fixture.whenStable();
 
-    el.querySelector<HTMLButtonElement>('gr-git-history .open')!.click();
+    el.querySelector<HTMLButtonElement>('gr-git-graph .open')!.click();
     await fixture.whenStable();
     expect(el.querySelector('gr-git-page #git-changes')).toBeNull();
     expect(texts('gr-git-commit h2')).toEqual(['Move it']);
@@ -82,13 +82,12 @@ describe('GitCommitPage', () => {
     el.querySelector<HTMLButtonElement>('gr-git-commit .back')!.click();
     await fixture.whenStable();
     expect(el.querySelector('gr-git-commit')).toBeNull();
-    expect(texts('gr-git-page #git-history')).toEqual(['History of main']);
+    expect(el.querySelector<HTMLElement>('gr-git-page .overview')!.hidden).toBe(false);
   });
 
   it("says so when the repository hasn't got the commit", async () => {
     const { bridge, answers } = fakeBridge();
     answers['git.status'] = () => status;
-    answers['git.branches'] = () => ({ trunk: 'main', branches: [] });
     answers['git.log'] = () => log;
     answers['git.commit'] = () => null;
     const { fixture, el, texts } = await render(bridge);
@@ -96,7 +95,7 @@ describe('GitCommitPage', () => {
       .find((tab) => tab.textContent!.trim() === 'Git')!
       .click();
     await fixture.whenStable();
-    el.querySelector<HTMLButtonElement>('gr-git-history .open')!.click();
+    el.querySelector<HTMLButtonElement>('gr-git-graph .open')!.click();
     await fixture.whenStable();
     expect(texts('gr-git-commit .none')).toEqual(['The repository hasn’t got this commit.']);
   });

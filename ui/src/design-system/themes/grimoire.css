@@ -675,13 +675,37 @@
   --gr-size-git-head: 19px;
   --gr-size-git-file: 13.5px;
   --gr-git-row-gap: 6px;
-  --gr-git-tree-indent: 7px;
-  --gr-git-tree-tick: 14px;
-  --gr-git-tree-tick-w: 10px;
-  --gr-git-tree-tick-top: 0.7em;
   --gr-git-tree-rule: rgba(74, 48, 22, 0.3);
-  --gr-git-last-indent: 20px;
   --gr-git-expanded-gap: 8px;
+  /* Git: the commit graph, its lanes in units of a lane's width */
+  --gr-git-lane-w: 14px;
+  --gr-git-row-h: calc(var(--gr-git-lane-w) * 2);
+  --gr-git-line-w: 0.14;
+  --gr-git-node-r: 0.28;
+  --gr-git-dash: 0.25 0.2;
+  --gr-git-graph-max: 220px;
+  --gr-git-author-w: 120px;
+  --gr-git-date-w: 84px;
+  --gr-git-sha-w: 64px;
+  --gr-git-col-gap: 10px;
+  --gr-git-head-pad: 4px;
+  --gr-git-head-rule: 1px solid var(--gr-git-tree-rule);
+  --gr-git-resize-w: 6px;
+  --gr-git-row-hover: rgba(74, 48, 22, 0.06);
+  --gr-git-ref-gap: 3px;
+  --gr-git-ref-max: 180px;
+  --gr-git-ref-pad: 5px;
+  --gr-git-ref-rule: 1px solid var(--gr-git-tree-rule);
+  --gr-git-ref-radius: 3px;
+  --gr-git-ref-leading: 1.5;
+  --gr-git-lane-0: #2f5d8a;
+  --gr-git-lane-1: #a5321e;
+  --gr-git-lane-2: #3f7a4a;
+  --gr-git-lane-3: #a07a1f;
+  --gr-git-lane-4: #6b4a8a;
+  --gr-git-lane-5: #2f7f7a;
+  --gr-git-lane-6: #8a5a2a;
+  --gr-git-lane-7: #a0466a;
 
   /* Files: the Files page on the facing page */
   --gr-files-width: 640px;

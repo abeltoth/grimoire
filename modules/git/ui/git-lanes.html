@@ -1,0 +1,15 @@
+@let r = row();
+<svg [attr.viewBox]="'0 0 ' + r.width + ' 2'" preserveAspectRatio="xMinYMid meet">
+  @for (line of r.top; track $index) {
+    <path [attr.d]="path(line, 0)" [class]="'line lane-' + line.colour" />
+  }
+  @for (line of r.bottom; track $index) {
+    <path [attr.d]="path(line, 1)" [class]="'line lane-' + line.colour" [class.hollow]="open()" />
+  }
+  <circle
+    [attr.cx]="r.lane + 0.5"
+    cy="1"
+    [class]="'dot lane-' + r.colour"
+    [class.hollow]="open()"
+  />
+</svg>

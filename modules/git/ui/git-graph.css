@@ -1,0 +1,190 @@
+/* The graph column fits its lanes, up to a cap, until you drag its edge. */
+:host {
+  --graph-col: var(
+    --graph-width,
+    min(calc(var(--graph-lanes) * var(--gr-git-lane-w)), var(--gr-git-graph-max))
+  );
+  display: block;
+}
+
+.head,
+.row {
+  display: grid;
+  grid-template-columns:
+    var(--graph-col) minmax(0, 1fr) var(--gr-git-author-w) var(--gr-git-date-w)
+    var(--gr-git-sha-w);
+  column-gap: var(--gr-git-col-gap);
+  align-items: center;
+}
+
+.head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding-bottom: var(--gr-git-head-pad);
+  border-bottom: var(--gr-git-head-rule);
+  background: var(--gr-page);
+  font-family: var(--gr-font-display-sc);
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.head > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.graph-head {
+  position: relative;
+}
+
+/* The graph column's edge, dragged or moved with the arrow keys. */
+.resize {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: var(--gr-git-resize-w);
+  cursor: col-resize;
+  border-right: var(--gr-git-head-rule);
+}
+
+.resize:hover,
+.resize:focus-visible {
+  border-right-color: var(--gr-link);
+}
+
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  position: relative;
+  height: var(--gr-git-row-h);
+  font-size: var(--gr-size-git-file);
+  color: var(--gr-ink);
+}
+
+.row:hover {
+  background: var(--gr-git-row-hover);
+}
+
+.graph {
+  height: 100%;
+  overflow: hidden;
+}
+
+.description {
+  display: flex;
+  align-items: center;
+  gap: var(--gr-git-row-gap);
+  min-width: 0;
+  white-space: nowrap;
+}
+
+/* The subject opens the commit, and its click reaches across the whole row. */
+.open {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+.open::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.row:hover .open {
+  color: var(--gr-link);
+}
+
+.changes .open {
+  font-style: italic;
+  color: var(--gr-ink-soft);
+}
+
+.ref,
+.chat {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gr-git-ref-gap);
+  max-width: var(--gr-git-ref-max);
+  padding: 0 var(--gr-git-ref-pad);
+  border: var(--gr-git-ref-rule);
+  border-radius: var(--gr-git-ref-radius);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--gr-size-aside);
+  line-height: var(--gr-git-ref-leading);
+}
+
+.ref.current {
+  font-weight: 600;
+  border-color: var(--gr-gilt-ink);
+  color: var(--gr-gilt-ink);
+}
+
+.ref.remote {
+  border-style: dashed;
+  color: var(--gr-ink-soft);
+}
+
+.ref.synced {
+  border-style: double;
+}
+
+.ref.tag {
+  font-style: italic;
+}
+
+.ref.head {
+  border-color: var(--gr-rubric);
+  color: var(--gr-rubric);
+}
+
+.chat {
+  border: 0;
+  font-style: italic;
+}
+
+.author,
+.date,
+.sha {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.sha {
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-code);
+}
+
+.none {
+  margin: var(--gr-aside-gap) 0 0;
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.end {
+  height: var(--gr-git-row-h);
+}
+
+.older {
+  margin-top: var(--gr-git-gap);
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+}

@@ -61,6 +61,8 @@ describe('files.providers', () => {
         .find((tab) => tab.textContent!.trim() === 'Git')!
         .click();
       await fixture.whenStable();
+      el.querySelector<HTMLButtonElement>('gr-git-graph .changes .open')!.click();
+      await fixture.whenStable();
       el.querySelector<HTMLButtonElement>('gr-git-page .change')!.click();
       await fixture.whenStable();
 

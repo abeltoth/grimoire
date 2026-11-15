@@ -15,7 +15,7 @@ export const git: ServiceModule = {
     registry.register('git.status', ({ cwd }) => git.status(cwd));
     registry.register('git.branches', ({ cwd }) => git.branches(cwd));
     registry.register('git.diff', ({ cwd, path }) => git.diff(cwd, path));
-    registry.register('git.log', ({ cwd, ref, skip, limit }) => history.log(cwd, ref, skip, limit));
+    registry.register('git.log', ({ cwd, skip, limit }) => history.log(cwd, skip, limit));
     registry.register('git.commit', ({ cwd, sha }) => history.commit(cwd, sha));
     registry.register('git.commitDiff', ({ cwd, sha, path, from }) =>
       history.commitDiff(cwd, sha, path, from),

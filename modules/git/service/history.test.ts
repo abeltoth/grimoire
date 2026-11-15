@@ -29,35 +29,83 @@ beforeEach(() => {
 afterEach(() => rmSync(repo, { recursive: true, force: true }));
 
 describe('History', () => {
-  it("gives a branch's history a page at a time, its own commits marked", async () => {
+  it('gives every branch, remote and tag in graph order, labelled, a page at a time', async () => {
+    const first = git('rev-parse', 'HEAD').trim();
+    git('tag', '-a', 'v1', '-m', 'One');
     git('switch', '--quiet', '-c', 'feature');
     write('b.txt', 'bee\n');
-    const second = commit('Second');
+    commit('F1');
     write('b.txt', 'bee\nbuzz\n');
-    const third = commit('Third');
+    const featureTip = commit('F2');
+    git('switch', '--quiet', 'main');
+    write('a.txt', 'one\n2\nthree\n');
+    const m1 = commit('M1');
+    git('update-ref', 'refs/remotes/origin/main', m1);
+    git('symbolic-ref', 'refs/remotes/origin/HEAD', 'refs/remotes/origin/main');
+    git('config', 'remote.origin.url', repo);
+    git('config', 'remote.origin.fetch', '+refs/heads/*:refs/remotes/origin/*');
+    git('config', 'branch.main.remote', 'origin');
+    git('config', 'branch.main.merge', 'refs/heads/main');
+    git('merge', '--quiet', '--no-ff', '-m', 'Merge', 'feature');
+    const merge = git('rev-parse', 'HEAD').trim();
+    git('switch', '--quiet', '-c', 'side', first);
+    write('c.txt', 'sea\n');
+    const side = commit('S1');
+    git('switch', '--quiet', 'main');
     const history = new History(new Git());
 
-    const first = await history.log(repo, 'feature', 0, 2);
-    expect(first?.more).toBe(true);
-    expect(first?.commits.map((c) => [c.subject, c.own, c.author])).toEqual([
-      ['Third', true, 'Test'],
-      ['Second', true, 'Test'],
+    const all = (await history.log(repo, 0, 50))!;
+    expect(all.more).toBe(false);
+    expect(all.head).toBe(merge);
+    expect(all.commits.map((c) => c.subject).sort()).toEqual(
+      ['F1', 'F2', 'First', 'M1', 'Merge', 'S1'].sort(),
+    );
+    // Every commit comes after the commits made on it.
+    const at = new Map(all.commits.map((c, i) => [c.sha, i]));
+    for (const c of all.commits)
+      for (const p of c.parents) expect(at.get(p)!).toBeGreaterThan(at.get(c.sha)!);
+    const refsOf = (sha: string) => all.commits.find((c) => c.sha === sha)?.refs;
+    expect(refsOf(merge)).toEqual([
+      { name: 'main', kind: 'branch', current: true, upstream: 'origin/main' },
     ]);
-    expect(first?.commits[0]).toMatchObject({ sha: third, parents: [second] });
-    expect(first?.commits[0]?.short).toMatch(/^[0-9a-f]{7,}$/);
+    expect(refsOf(m1)).toEqual([{ name: 'origin/main', kind: 'remote' }]);
+    expect(refsOf(featureTip)).toEqual([{ name: 'feature', kind: 'branch' }]);
+    expect(refsOf(side)).toEqual([{ name: 'side', kind: 'branch' }]);
+    expect(refsOf(first)).toEqual([{ name: 'v1', kind: 'tag' }]);
 
-    const older = await history.log(repo, 'feature', 2, 2);
-    expect(older).toMatchObject({ more: false, commits: [{ subject: 'First', parents: [] }] });
-    expect(older?.commits[0]?.own).toBeUndefined();
-    expect((await history.log(repo, 'main', 0, 50))?.commits.map((c) => c.own)).toEqual([
-      undefined,
-    ]);
+    const pages = [(await history.log(repo, 0, 4))!, (await history.log(repo, 4, 4))!];
+    expect(pages.map((page) => page.more)).toEqual([true, false]);
+    expect(pages.flatMap((page) => page.commits)).toEqual(all.commits);
   });
 
-  it("refuses a ref it hasn't got, or one that reads as an option", async () => {
+  it('labels a detached HEAD, and gives nothing before the first commit or outside a repository', async () => {
+    const first = git('rev-parse', 'HEAD').trim();
+    git('switch', '--quiet', '--detach', first);
+    const log = await new History(new Git()).log(repo, 0, 10);
+    expect(log?.commits[0]?.refs).toEqual([
+      { name: 'HEAD', kind: 'head', current: true },
+      { name: 'main', kind: 'branch' },
+    ]);
+
+    const empty = realpathSync.native(mkdtempSync(path.join(tmpdir(), 'grimoire-empty-')));
+    const outside = mkdtempSync(path.join(tmpdir(), 'grimoire-nogit-'));
+    try {
+      execFileSync('git', ['init', '--quiet'], { cwd: empty, windowsHide: true });
+      expect(await new History(new Git()).log(empty, 0, 10)).toEqual({
+        commits: [],
+        more: false,
+        head: null,
+      });
+      expect(await new History(new Git()).log(outside, 0, 10)).toBeNull();
+    } finally {
+      rmSync(empty, { recursive: true, force: true });
+      rmSync(outside, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses a commit it hasn't got, or one that reads as an option", async () => {
     const history = new History(new Git());
-    expect(await history.log(repo, 'nowhere', 0, 10)).toBeNull();
-    expect(await history.log(repo, '--all', 0, 10)).toBeNull();
+    expect(await history.commit(repo, 'nowhere')).toBeNull();
     expect(await history.commit(repo, '-p')).toBeNull();
     expect(await history.commitDiff(repo, '--root', 'a.txt')).toEqual([]);
   });
@@ -104,7 +152,7 @@ describe('History', () => {
     const sha = git('rev-parse', 'HEAD').trim();
     const chat = { id: 'c1', agent: 'claude-code', title: 'Start', cwd: repo };
     const history = new History(new Git(), (shas) => new Map(shas.map((s) => [s, chat])));
-    expect((await history.log(repo, 'HEAD', 0, 10))?.commits[0]?.chat).toEqual(chat);
+    expect((await history.log(repo, 0, 10))?.commits[0]?.chat).toEqual(chat);
     expect((await history.commit(repo, sha))?.chat).toEqual(chat);
   });
 });

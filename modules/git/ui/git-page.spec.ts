@@ -1,55 +1,45 @@
-import type { GitBranches, GitStatus, PullRequest } from '@grimoire/contract';
+import type { GitCommitDetail, GitLog, GitStatus, PullRequest } from '@grimoire/contract';
 import { fakeBridge, render } from '@ui/testing/app-testing';
 
+const now = new Date(2026, 10, 9, 15, 30).getTime();
+
+const status: GitStatus = {
+  root: 'C:/Users/me/git/grimoire',
+  branch: 'feature/context-meter',
+  head: 'abc1234',
+  upstream: { name: 'origin/feature/context-meter', ahead: 2, behind: 0 },
+  changes: [{ path: 'ui/src/context-meter.ts', kind: 'modified', staged: false }],
+};
+
+const log: GitLog = {
+  commits: [
+    {
+      sha: 'abc1234000',
+      short: 'abc1234',
+      subject: 'Draw the meter',
+      author: 'Me',
+      at: now,
+      parents: [],
+      refs: [{ name: 'feature/context-meter', kind: 'branch', current: true }],
+    },
+  ],
+  more: false,
+  head: 'abc1234000',
+};
+
+const detail: GitCommitDetail = { ...log.commits[0]!, body: '', files: [] };
+
 describe('git', () => {
-  it("shows the chat's repository on the Git page, opened from its branch", async () => {
-    const { bridge, calls, answers } = fakeBridge();
-    const now = new Date(2026, 10, 9, 15, 30).getTime();
-    answers['git.status'] = (): GitStatus => ({
-      root: 'C:/Users/me/git/grimoire',
-      branch: 'feature/context-meter',
-      head: 'abc1234',
-      upstream: { name: 'origin/feature/context-meter', ahead: 2, behind: 0 },
-      changes: [
-        { path: 'ui/src/context-meter.component.ts', kind: 'modified', staged: false },
-        { path: 'ui/src/context-meter.component.spec.ts', kind: 'new', staged: true },
-      ],
-    });
-    answers['git.branches'] = (): GitBranches => ({
-      trunk: 'master',
-      branches: [
-        {
-          name: 'master',
-          current: false,
-          ahead: 0,
-          behind: 0,
-          subject: 'Merge the outline',
-          at: now,
-        },
-        {
-          name: 'feature/context-meter',
-          current: true,
-          ahead: 3,
-          behind: 1,
-          subject: 'Draw the meter',
-          at: now,
-        },
-        {
-          name: 'feature/storage-migrations',
-          current: false,
-          ahead: 1,
-          behind: 4,
-          subject: 'Add the migrations table',
-          at: now,
-          worktree: 'C:/Users/me/git/grimoire/.claude/worktrees/storage',
-        },
-      ],
-    });
-    answers['git.diff'] = () => [
-      { kind: 'same', text: 'export class ContextMeter {' },
-      { kind: 'removed', text: '  used = 0;' },
-      { kind: 'inserted', text: '  used = input(0);' },
-    ];
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(now);
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it("shows the chat's repository and its graph on the Git page, opened from its branch", async () => {
+    const { bridge, answers } = fakeBridge();
+    answers['git.status'] = () => status;
+    answers['git.log'] = () => log;
     answers['git.pullRequest'] = (): PullRequest => ({
       number: 12,
       title: 'Context meter',
@@ -60,9 +50,7 @@ describe('git', () => {
     });
     const { fixture, el, texts } = await render(bridge);
 
-    const branch = el.querySelector<HTMLButtonElement>('gr-status-indicators button')!;
-
-    branch.click();
+    el.querySelector<HTMLButtonElement>('gr-status-indicators button')!.click();
     await fixture.whenStable();
     expect(texts('.tabs [aria-pressed="true"]')).toEqual(['Git']);
     expect(texts('gr-git-page h2')).toEqual(['~/git/grimoire']);
@@ -70,42 +58,40 @@ describe('git', () => {
       'On feature/context-meter at abc1234· 2 ahead of origin/feature/context-meter',
       'Pull request #12: Context meter',
     ]);
-    expect(texts('gr-git-page .change')).toEqual([
-      'ui/src/context-meter.component.ts modified',
-      'ui/src/context-meter.component.spec.ts new · staged',
+    expect(texts('gr-git-graph .row .open')).toEqual([
+      'Not committed yet · 1 file',
+      'Draw the meter',
     ]);
-    expect(texts('gr-git-page .branch-row .name')).toEqual([
-      'master',
-      'feature/context-meter',
-      'feature/storage-migrations',
-    ]);
-    expect(texts('gr-git-page .branch-row .distance')).toEqual([
-      'the trunk',
-      '3 ahead, 1 behind',
-      '1 ahead, 4 behind',
-    ]);
-    expect(texts('gr-git-page .current .here')).toEqual(['checked out']);
-    expect(texts('gr-git-page .grown .branch-row .name')).toHaveLength(2);
-    expect(texts('gr-git-page .last')[2]).toContain(
-      'in the worktree at ~/git/grimoire/.claude/worktrees/storage',
-    );
+  });
 
-    el.querySelector<HTMLButtonElement>('gr-git-page .change')!.click();
+  it('opens the changes and a commit in place of the graph, and comes back to it', async () => {
+    const { bridge, answers, calls } = fakeBridge();
+    answers['git.status'] = () => status;
+    answers['git.log'] = () => log;
+    answers['git.commit'] = () => detail;
+    const { fixture, el, texts } = await render(bridge);
+    [...el.querySelectorAll<HTMLButtonElement>('.tabs button')]
+      .find((tab) => tab.textContent!.trim() === 'Git')!
+      .click();
     await fixture.whenStable();
-    expect(calls.filter((c) => c.command === 'git.diff').map((c) => c.request)).toEqual([
-      { cwd: 'C:/Users/me', path: 'ui/src/context-meter.component.ts' },
-    ]);
-    expect(texts('gr-git-page gr-diff-view .code')).toEqual([
-      'export class ContextMeter {',
-      'used = 0;',
-      'used = input(0);',
-    ]);
-    expect(texts('gr-git-page gr-diff-view .head .detail')).toEqual(['+1 −1']);
+    const overview = () => el.querySelector<HTMLElement>('gr-git-page .overview')!;
 
-    // Collapsed again.
-    el.querySelector<HTMLButtonElement>('gr-git-page .change')!.click();
+    el.querySelectorAll<HTMLButtonElement>('gr-git-graph .open')[0]!.click();
     await fixture.whenStable();
-    expect(el.querySelector('gr-git-page gr-diff-view')).toBeNull();
+    expect(overview().hidden).toBe(true);
+    expect(texts('gr-git-changes .change')).toEqual(['ui/src/context-meter.ts modified']);
+    el.querySelector<HTMLButtonElement>('gr-git-changes .back')!.click();
+    await fixture.whenStable();
+    expect(overview().hidden).toBe(false);
+
+    el.querySelectorAll<HTMLButtonElement>('gr-git-graph .open')[1]!.click();
+    await fixture.whenStable();
+    expect(texts('gr-git-commit h2')).toEqual(['Draw the meter']);
+    el.querySelector<HTMLButtonElement>('gr-git-commit .back')!.click();
+    await fixture.whenStable();
+    expect(el.querySelector('gr-git-commit')).toBeNull();
+    // The graph was kept, not read again.
+    expect(calls.filter((c) => c.command === 'git.log')).toHaveLength(1);
   });
 
   it('says so on the Git page when the folder is not in a repository', async () => {
