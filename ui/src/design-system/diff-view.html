@@ -10,10 +10,15 @@
   @for (line of marked(); track line.key) {
     <div
       class="line"
+      [class.numbered]="digits()"
+      [class.same]="line.kind === 'same'"
       [class.removed]="line.kind === 'removed'"
       [class.inserted]="line.kind === 'inserted'"
       [class.break]="line.break"
     >
+      @if (digits()) {
+        <span class="at" [style.width.ch]="digits()">{{ line.at }}</span>
+      }
       <span class="number">{{ sign[line.kind] }}</span>
       <span class="code">{{ line.text }}</span>
     </div>

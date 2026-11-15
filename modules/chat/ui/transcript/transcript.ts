@@ -31,6 +31,7 @@ import { duration } from './duration';
 import { Subagents } from '../subagents/subagents';
 import type { Margin, Note, TurnSpent } from './row';
 import { toRows } from './rows';
+import { diffsOpenUnasked } from './unasked';
 import { hookOutcome, hookTook, hookWhen, hooksRan } from './hook-log';
 import { WebResults } from './web-results';
 import { tokenCount, usesInWords } from '@ui/app/core/tokens';
@@ -273,9 +274,10 @@ export class Transcript {
     else if (note.details) this.expandedNote.update((key) => (key === note.key ? null : note.key));
   }
 
-  /** A change shows its diff unasked, but not while its approval card shows it already. */
+  /** The short changes, a few to a row, show their diffs unasked. */
+  private readonly unasked = computed(() => diffsOpenUnasked(this.rows()));
   private opensUnasked(note: Note): boolean {
-    return note.details?.kind === 'diff' && !note.waiting;
+    return this.unasked().has(note.key);
   }
 
   protected isExpanded(note: Note): boolean {

@@ -120,4 +120,13 @@ export interface ToolBlock {
 export interface ToolResult {
   text: string;
   isError: boolean;
+  /** What a tool that changes a file changed, as the agent reports it once done. */
+  hunks?: DiffHunk[];
+}
+
+/** A changed part of a file: its lines as in a unified diff, led by ' ' kept, '-' removed or '+' inserted. */
+export interface DiffHunk {
+  oldStart: number;
+  newStart: number;
+  lines: string[];
 }

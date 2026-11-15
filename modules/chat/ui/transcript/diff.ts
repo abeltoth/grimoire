@@ -1,6 +1,7 @@
-import type { DiffLine } from '@grimoire/contract';
+import type { DiffHunk, DiffLine, ToolResult } from '@grimoire/contract';
+import type { NumberedLine } from '@ui/design-system/diff-view';
 
-export type { DiffLine };
+export type { DiffLine, NumberedLine };
 
 // Beyond this many line pairs the diff gives up on matching lines and shows
 // the old text struck and the new text inserted.
@@ -57,15 +58,28 @@ function linesOf(text: string): string[] {
 /** A file the agent wants to change, and how. */
 export interface FileChange {
   file: string;
-  lines: DiffLine[];
+  lines: NumberedLine[];
   /** Where each edit after the first begins, when the tool makes several. */
   breaks?: number[];
 }
 
-/** The change a file tool would make, when the tool is one that changes files. */
-export function fileChange(tool: string, input: unknown): FileChange | undefined {
+/**
+ * The change a file tool makes, when the tool is one that changes files: as
+ * the agent reported it once done, numbered and with the lines around it, or
+ * else as its input asks for it.
+ */
+export function fileChange(
+  tool: string,
+  input: unknown,
+  result?: ToolResult,
+): FileChange | undefined {
   const fields = (input ?? {}) as Record<string, unknown>;
   const text = (name: string) => (typeof fields[name] === 'string' ? (fields[name] as string) : '');
+  if (result?.hunks?.length && FILE_TOOLS.has(tool))
+    return {
+      file: text(tool === 'NotebookEdit' ? 'notebook_path' : 'file_path'),
+      ...fromHunks(result.hunks),
+    };
   switch (tool) {
     case 'Edit':
       return { file: text('file_path'), lines: diffLines(text('old_string'), text('new_string')) };
@@ -90,4 +104,28 @@ export function fileChange(tool: string, input: unknown): FileChange | undefined
     default:
       return undefined;
   }
+}
+
+const FILE_TOOLS = new Set(['Edit', 'MultiEdit', 'Write', 'NotebookEdit']);
+
+/** A patch's lines, numbered as the file has them now, or had them for a removed line; each hunk after the first set apart. */
+function fromHunks(hunks: readonly DiffHunk[]): Pick<FileChange, 'lines' | 'breaks'> {
+  const lines: NumberedLine[] = [];
+  const breaks: number[] = [];
+  for (const hunk of hunks) {
+    if (lines.length) breaks.push(lines.length);
+    let before = hunk.oldStart;
+    let after = hunk.newStart;
+    for (const line of hunk.lines) {
+      const text = line.slice(1);
+      if (line[0] === '+') lines.push({ kind: 'inserted', text, at: after++ });
+      else if (line[0] === '-') lines.push({ kind: 'removed', text, at: before++ });
+      // A patch marks a file with no newline at its end with a line of its own, which isn't the file's.
+      else if (line[0] !== '\\') {
+        lines.push({ kind: 'same', text, at: after++ });
+        before++;
+      }
+    }
+  }
+  return breaks.length ? { lines, breaks } : { lines };
 }

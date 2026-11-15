@@ -5,6 +5,7 @@ import { savedFollowUps } from './follow-ups';
 import { sdk } from './probe';
 import { turnEnd, wholeRun } from './entries';
 import { runBeganWith, savedSubagentState, subagentAgentId, subagentCallIn } from './subagent-runs';
+import { savedFileResults, withSavedResult } from './saved-patches';
 import { savedSubagentStats } from './subagent-stats';
 import type { ClaudeMessage } from './messages';
 import { ClaudeTranscript } from './transcript';
@@ -31,10 +32,13 @@ export async function history(chatId: ChatId, cwd: string): Promise<ChatHistory>
   const cache = new CacheTracker();
   let model: string | undefined;
   const saved = await savedIn(chatId, cwd);
-  const messages = await getSessionMessages(chatId, saved);
+  const [messages, results] = await Promise.all([
+    getSessionMessages(chatId, saved),
+    savedFileResults(chatId).catch(() => new Map<string, unknown>()),
+  ]);
   for (const message of messages) {
     const at = timeOf(message);
-    transcript.apply(message, at);
+    transcript.apply(withSavedResult(message, results), at);
     if (
       message.type === 'assistant' &&
       message.parent_tool_use_id === null &&

@@ -1,13 +1,21 @@
 import { Component, computed, input, output } from '@angular/core';
 import type { DiffLine } from '@grimoire/contract';
 
-interface Line extends DiffLine {
+/** A diff's line, with its number in the file when that's known. */
+export interface NumberedLine extends DiffLine {
+  at?: number;
+}
+
+interface Line extends NumberedLine {
   key: number;
   /** It begins another edit, when several are stacked. */
   break: boolean;
 }
 
-/** An expandable with a file's diff: removed lines struck through and signed −, inserted ones in green and signed +. */
+/**
+ * An expandable with a file's diff: removed lines struck through and signed
+ * −, inserted ones in green and signed +, the lines around them dimmed.
+ */
 @Component({
   selector: 'gr-diff-view',
   templateUrl: './diff-view.html',
@@ -16,7 +24,7 @@ interface Line extends DiffLine {
 })
 export class DiffView {
   readonly file = input.required<string>();
-  readonly lines = input.required<readonly DiffLine[]>();
+  readonly lines = input.required<readonly NumberedLine[]>();
   /** Where each stacked edit after the first begins, as line indexes. */
   readonly breaks = input<readonly number[]>([]);
   /** Whether it offers to open the file in Files. */
@@ -33,6 +41,13 @@ export class DiffView {
     const breaks = new Set(this.breaks());
     return this.lines().map((line, key) => ({ ...line, key, break: breaks.has(key) }));
   });
+  /** How many digits the widest line number has; 0 when the lines aren't numbered. */
+  protected readonly digits = computed(() =>
+    Math.max(
+      0,
+      ...this.lines().map((line) => (line.at === undefined ? 0 : String(line.at).length)),
+    ),
+  );
   protected readonly inserted = computed(
     () => this.lines().filter((line) => line.kind === 'inserted').length,
   );

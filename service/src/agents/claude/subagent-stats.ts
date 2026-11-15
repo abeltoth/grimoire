@@ -108,7 +108,7 @@ export async function savedSubagentStats(
 }
 
 /** The folder under Claude Code's projects the chat is saved in; undefined when it's in none. */
-async function chatFolder(chatId: string, home: string): Promise<string | undefined> {
+export async function chatFolder(chatId: string, home: string): Promise<string | undefined> {
   const projects = path.join(home, 'projects');
   for (const name of await readdir(projects).catch(() => [] as string[])) {
     const folder = path.join(projects, name);

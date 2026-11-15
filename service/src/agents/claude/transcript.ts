@@ -15,6 +15,7 @@ import type {
   UserEntry,
 } from '@grimoire/contract';
 import { addTokens } from '@grimoire/contract';
+import { hunksOf } from './file-patch';
 import {
   type CompactMessage,
   LiveCompaction,
@@ -201,7 +202,7 @@ export class ClaudeTranscript {
         : this.savedCompactions.take(message, this.entries, this.nextId('compaction'), at);
       if (this.live && compaction) this.listener?.entry(compaction as CompactionEntry);
       else if (typeof compaction === 'object') this.addCompaction(compaction);
-      else if (!compaction) this.applyUser(message.uuid, message.message as ApiMessage);
+      else if (!compaction) this.applyUser(message, message.message as ApiMessage);
     }
     if (at === undefined || !Number.isFinite(at)) return;
     const last = this.entries.at(-1);
@@ -289,7 +290,7 @@ export class ClaudeTranscript {
     this.listener?.entry(entry);
   }
 
-  private applyUser(uuid: string | undefined, message: ApiMessage): void {
+  private applyUser({ uuid, tool_use_result }: ClaudeMessage, message: ApiMessage): void {
     const content = message.content;
     if (typeof content === 'string') return this.addUserText(uuid, content, []);
     if (!Array.isArray(content)) return;
@@ -298,7 +299,7 @@ export class ClaudeTranscript {
     const pictures: PictureAttachment[] = [];
     for (const block of content) {
       if (block.type === 'tool_result' && block.tool_use_id)
-        this.attachResult(block.tool_use_id, block);
+        this.attachResult(block.tool_use_id, block, tool_use_result);
       else if (block.type === 'text' && block.text) texts.push(block.text);
       else if (block.type === 'image' && block.source?.type === 'base64' && block.source.data)
         pictures.push({
@@ -340,13 +341,14 @@ export class ClaudeTranscript {
     });
   }
 
-  private attachResult(toolUseId: string, block: ApiBlock): void {
+  private attachResult(toolUseId: string, block: ApiBlock, structured: unknown): void {
     for (let i = this.entries.length - 1; i >= 0; i--) {
       const entry = this.entries[i]!;
       if (entry.kind !== 'agent') continue;
       const tool = entry.blocks.find((b) => b.kind === 'tool' && b.id === toolUseId);
       if (tool?.kind !== 'tool') continue;
-      tool.result = toolResult(block);
+      const hunks = hunksOf(structured);
+      tool.result = { ...toolResult(block), ...(hunks ? { hunks } : {}) };
       this.listener?.entry(entry);
       if (!tool.result.isError && this.applyPlan(tool)) this.listener?.plan(this.plan);
       return;

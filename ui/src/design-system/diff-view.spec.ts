@@ -1,8 +1,7 @@
 import { TestBed } from '@angular/core/testing';
-import type { DiffLine } from '@grimoire/contract';
-import { DiffView } from './diff-view';
+import { DiffView, type NumberedLine } from './diff-view';
 
-async function diff(lines: DiffLine[], breaks: number[] = []) {
+async function diff(lines: NumberedLine[], breaks: number[] = []) {
   const fixture = TestBed.createComponent(DiffView);
   fixture.componentRef.setInput('file', 'src/a.ts');
   fixture.componentRef.setInput('lines', lines);
@@ -50,5 +49,21 @@ describe('DiffView', () => {
     fixture.componentInstance.open.subscribe(() => opened++);
     el.querySelector<HTMLButtonElement>('button')!.click();
     expect(opened).toBe(1);
+  });
+
+  it('numbers its lines when they come numbered, and dims the ones around the change', async () => {
+    const { el, texts } = await diff([
+      { kind: 'same', text: 'a', at: 9 },
+      { kind: 'removed', text: 'b', at: 10 },
+      { kind: 'inserted', text: 'c', at: 10 },
+    ]);
+    expect(texts('.line .at')).toEqual(['9', '10', '10']);
+    expect(el.querySelectorAll('.line.numbered')).toHaveLength(3);
+    expect(el.querySelectorAll('.line.same')).toHaveLength(1);
+  });
+
+  it('leaves the number column out when the lines come unnumbered', async () => {
+    const { el } = await diff([{ kind: 'inserted', text: 'a' }]);
+    expect(el.querySelector('.at, .numbered')).toBeNull();
   });
 });

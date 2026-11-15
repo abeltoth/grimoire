@@ -1,5 +1,5 @@
 import type { Attachment, CompactionEntry, HookRun, TokenUse, ToolBlock } from '@grimoire/contract';
-import type { DiffLine } from './diff';
+import type { NumberedLine } from './diff';
 import type { WebSearch } from './web-search';
 
 /** What a tool note expands: a file's diff, a web search's pages and summary, or what a tool printed. */
@@ -8,7 +8,7 @@ export type NoteDetails =
       kind: 'diff';
       file: string;
       path: string;
-      lines: DiffLine[];
+      lines: NumberedLine[];
       /** Where each edit after the first begins, when edits in a row to the file are merged. */
       breaks?: number[];
     }

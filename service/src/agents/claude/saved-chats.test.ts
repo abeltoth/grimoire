@@ -28,7 +28,10 @@ vi.mock('./probe', async (original) => ({
 }));
 
 // The stats are read from Claude Code's files, which the tests leave alone.
-vi.mock('./subagent-stats', () => ({ savedSubagentStats: async () => ({}) }));
+vi.mock('./subagent-stats', () => ({
+  savedSubagentStats: async () => ({}),
+  chatFolder: async () => undefined,
+}));
 
 beforeEach(() => {
   saved.info = undefined;

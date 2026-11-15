@@ -56,4 +56,44 @@ describe('fileChange', () => {
     ).toEqual([2]);
     expect(fileChange('Bash', { command: 'ls' })).toBeUndefined();
   });
+
+  it('reads what the agent reported it changed, numbered, each hunk set apart', () => {
+    const change = fileChange(
+      'Edit',
+      { file_path: '/r/a.ts', old_string: 'b', new_string: 'c' },
+      {
+        text: 'Updated.',
+        isError: false,
+        hunks: [
+          { oldStart: 9, newStart: 9, lines: [' a', '-b', '+c', '+d', ' e'] },
+          { oldStart: 40, newStart: 41, lines: ['-f', '+g', '\\ No newline at end of file'] },
+        ],
+      },
+    )!;
+    expect(change.file).toBe('/r/a.ts');
+    expect(change.lines).toEqual([
+      { kind: 'same', text: 'a', at: 9 },
+      { kind: 'removed', text: 'b', at: 10 },
+      { kind: 'inserted', text: 'c', at: 10 },
+      { kind: 'inserted', text: 'd', at: 11 },
+      { kind: 'same', text: 'e', at: 12 },
+      { kind: 'removed', text: 'f', at: 40 },
+      { kind: 'inserted', text: 'g', at: 41 },
+    ]);
+    expect(change.breaks).toEqual([5]);
+    // Without a report, the change is read from what the tool was asked.
+    expect(
+      fileChange(
+        'Edit',
+        { file_path: '/r/a.ts', old_string: 'b', new_string: 'c' },
+        {
+          text: 'Failed.',
+          isError: true,
+        },
+      )!.lines,
+    ).toEqual([
+      { kind: 'removed', text: 'b' },
+      { kind: 'inserted', text: 'c' },
+    ]);
+  });
 });

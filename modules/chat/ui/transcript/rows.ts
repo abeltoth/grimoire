@@ -217,7 +217,8 @@ function detailsOf(
   { title, command }: { title: string; command?: string },
   cwd?: string,
 ): Pick<Note, 'counts' | 'added' | 'removed' | 'details'> {
-  if (!changes.has(block)) changes.set(block, fileChange(block.tool, block.input) ?? null);
+  if (!changes.has(block))
+    changes.set(block, fileChange(block.tool, block.input, block.result) ?? null);
   const change = changes.get(block);
   // A change that failed wasn't made; what the tool said about it is what counts.
   if (change && !block.result?.isError) {

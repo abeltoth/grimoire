@@ -52,6 +52,7 @@
   font-family: var(--gr-font-mono);
   font-size: var(--gr-size-code);
   line-height: var(--gr-leading-code);
+  tab-size: 4;
   outline: none;
 }
 
@@ -61,6 +62,23 @@
       --gr-expandable-mark-col
     );
   white-space: pre;
+}
+
+/* Numbered lines lead with their number, its column as wide as the widest. */
+.line.numbered {
+  grid-template-columns: auto var(--gr-expandable-line-number) minmax(0, 1fr) var(
+      --gr-expandable-mark-col
+    );
+}
+
+.at {
+  text-align: right;
+  color: var(--gr-ink-soft);
+}
+
+/* The lines around a change are there to place it, so the change stands out. */
+.same .code {
+  color: var(--gr-ink-soft);
 }
 
 .number {
