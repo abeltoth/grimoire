@@ -2,11 +2,14 @@ import type {
   AgentId,
   PlanUsage,
   UsageBreakdown,
+  SpendReading,
+  UsageMonth,
   UsageReading,
   UsageWeek,
 } from '@grimoire/contract';
 import { type UsageReadings, accountWeeks, sameAccount } from './readings';
 import type { UsageSource } from './sources';
+import type { SpendReadings } from './spend';
 
 /** The agents' plans: their limits, read and kept so their history can be drawn, and where their usage went. */
 export class Usage {
@@ -16,6 +19,7 @@ export class Usage {
   /** `agents` are the agents the hub knows; `sources` read each one's plan; `kept` hears each reading kept. */
   constructor(
     private readonly readings: UsageReadings,
+    private readonly spend: SpendReadings,
     private readonly sources: ReadonlyMap<AgentId, UsageSource>,
     private readonly agents: () => AgentId[],
     private readonly kept: (agent: AgentId, usage: PlanUsage) => void = () => {},
@@ -35,6 +39,7 @@ export class Usage {
     if (!source) return null;
     const usage = await source.plan();
     this.readings.record(agent, usage);
+    this.spend.record(agent, usage);
     this.kept(agent, usage);
     return usage;
   }
@@ -57,6 +62,16 @@ export class Usage {
   weeks(agent: AgentId): UsageWeek[] {
     const latest = this.readings.latestWeek(agent);
     return accountWeeks(this.readings.weeks(agent), latest);
+  }
+
+  /** Each reading of the usage credits spent kept since a time, oldest first: those of the account signed in now. */
+  spending(agent: AgentId, since: number): SpendReading[] {
+    return this.spend.since(agent, since);
+  }
+
+  /** Every month of usage credits kept, oldest first: those of the account signed in now. */
+  months(agent: AgentId): UsageMonth[] {
+    return this.spend.months(agent);
   }
 
   /** What the agent's own scan says took the plan's usage; null when it can't say. */

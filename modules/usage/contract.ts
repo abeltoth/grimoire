@@ -87,6 +87,28 @@ export interface UsageWeek {
   used: number;
 }
 
+/** How much of the month's usage credits was spent, as read at one moment. */
+export interface SpendReading {
+  /** When it was read, in ms since the epoch. */
+  at: number;
+  /** Spent this month so far, in the currency's minor units. */
+  spent: number;
+  /** The month's limit, in the same units; null when there's none. */
+  limit: number | null;
+  currency: string;
+}
+
+/** A month of usage credits, and how much of them was spent. */
+export interface UsageMonth {
+  /** Its first day's start, local time, in ms since the epoch. */
+  start: number;
+  /** The most read spent in it, in the currency's minor units: by its end, what it cost. */
+  spent: number;
+  /** Its limit, in the same units; null when there was none. */
+  limit: number | null;
+  currency: string;
+}
+
 declare module '@grimoire/contract' {
   interface CommandMap {
     /** The agent's plan limits, read now and kept; null when it has no plan. */
@@ -95,6 +117,10 @@ declare module '@grimoire/contract' {
     'usage.history': { request: { agent: AgentId; since: number }; response: UsageReading[] };
     /** What the agent's own scan says took your plan's usage; null where it has none. */
     'usage.breakdown': { request: { agent: AgentId }; response: UsageBreakdown | null };
+    /** Each reading of the usage credits spent kept since a time, oldest first: those of the account signed in now. */
+    'usage.spend': { request: { agent: AgentId; since: number }; response: SpendReading[] };
+    /** Every month of usage credits kept, oldest first: those of the account signed in now. */
+    'usage.months': { request: { agent: AgentId }; response: UsageMonth[] };
     /** Every week of the plan's limit for all models kept, oldest first: those of the account signed in now. */
     'usage.weeks': { request: { agent: AgentId }; response: UsageWeek[] };
   }

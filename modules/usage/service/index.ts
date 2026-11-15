@@ -3,6 +3,7 @@ import { MIGRATIONS } from './migrations';
 import { UsageReadings } from './readings';
 import { ReadSchedule } from './schedule';
 import { USAGE_SOURCES } from './sources';
+import { SpendReadings } from './spend';
 import { Usage } from './usage';
 
 const MINUTE = 60_000;
@@ -14,6 +15,7 @@ export const usage: ServiceModule = {
   start({ registry, db, events, hub }) {
     const usage = new Usage(
       new UsageReadings(db),
+      new SpendReadings(db),
       USAGE_SOURCES,
       () => hub.agents().map((agent) => agent.id),
       (agent, usage) => events.emit('usage.read', { agent, usage }),
@@ -21,6 +23,8 @@ export const usage: ServiceModule = {
     registry.register('usage.plan', ({ agent }) => usage.plan(agent));
     registry.register('usage.history', ({ agent, since }) => usage.history(agent, since));
     registry.register('usage.weeks', ({ agent }) => usage.weeks(agent));
+    registry.register('usage.spend', ({ agent, since }) => usage.spending(agent, since));
+    registry.register('usage.months', ({ agent }) => usage.months(agent));
     registry.register('usage.breakdown', ({ agent }) => usage.breakdown(agent));
     // Signed in to another account, the plan's limits are read again, as they're that account's.
     events.on('agents.account', ({ agent, account, pending }) => {

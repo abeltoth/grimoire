@@ -145,11 +145,11 @@ function pace(
 }
 
 /**
- * The last reading of each stretch of a week, and the latest: read every
- * few minutes, a week's line would follow each pause and burst, where the
- * week's trend is what's drawn.
+ * The last reading of each stretch of a week or a month, and the latest:
+ * read every few minutes, its line would follow each pause and burst, where
+ * its trend is what's drawn.
  */
-function smoothed(points: readonly LinePoint[]): LinePoint[] {
+export function smoothed(points: readonly LinePoint[]): LinePoint[] {
   const last = new Map<number, LinePoint>();
   for (const point of points) last.set(Math.floor(point.at / STRETCH), point);
   const kept = [...last.values()];
@@ -158,7 +158,7 @@ function smoothed(points: readonly LinePoint[]): LinePoint[] {
 }
 
 /** A window starts with nothing used: drawn from there, as the readings came later. */
-function fromNothing(points: readonly LinePoint[], from: number, run?: number): LinePoint[] {
+export function fromNothing(points: readonly LinePoint[], from: number, run?: number): LinePoint[] {
   const first = points[0];
   if (!first || first.at <= from) return [...points];
   return [{ at: from, value: 0, ...(run === undefined ? {} : { run }) }, ...points];

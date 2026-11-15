@@ -73,6 +73,23 @@ export function money(minor: number, currency: string): string {
   return format.format(minor / 10 ** digits);
 }
 
+/** An amount in the currency's minor units to the whole unit, for a chart's scale: "$123". */
+export function wholeMoney(minor: number, currency: string): string {
+  let format: Intl.NumberFormat;
+  try {
+    format = new Intl.NumberFormat([], { style: 'currency', currency });
+  } catch {
+    return `${Math.round(minor / 100)} ${currency}`;
+  }
+  const digits = format.resolvedOptions().maximumFractionDigits ?? 2;
+  return new Intl.NumberFormat([], {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(minor / 10 ** digits);
+}
+
 export function planName(plan: string): string {
   return `${plan.charAt(0).toUpperCase()}${plan.slice(1)} plan`;
 }

@@ -132,6 +132,49 @@
               [when]="weekOf"
             />
           }
+          @if (plan.spend; as spend) {
+            <gr-usage-lines
+              caption="This month"
+              [series]="spend.month.lines"
+              [guides]="spend.month.guides"
+              [from]="spend.month.from"
+              [to]="spend.month.to"
+              [ticks]="spend.month.ticks"
+              [marks]="spend.month.marks"
+              [max]="spend.month.max"
+              [format]="spend.month.format"
+              [breakAfter]="weekApart"
+              curve="smooth"
+              [tabled]="false"
+              [area]="true"
+              [when]="readingName"
+            />
+            <gr-usage-columns
+              caption="Days"
+              [series]="daySeries"
+              [columns]="spend.days"
+              [format]="spend.format"
+              [rule]="spend.budget"
+              [tabled]="false"
+            />
+          }
+          @if (plan.months; as months) {
+            <gr-usage-lines
+              caption="Months"
+              [series]="months.lines"
+              [guides]="months.guides"
+              [from]="months.from"
+              [to]="months.to"
+              [ticks]="months.ticks"
+              [max]="months.max"
+              [format]="months.format"
+              [breakAfter]="monthGap"
+              [tabled]="false"
+              [area]="true"
+              [dots]="true"
+              [when]="monthName"
+            />
+          }
         } @else {
           <p class="none">
             No limits to show: {{ plan.agent.name }} isn’t signed in with a Claude subscription.

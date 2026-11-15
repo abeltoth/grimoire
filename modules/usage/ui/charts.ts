@@ -79,6 +79,8 @@ export class UsageColumns {
   readonly max = input<number | null>(null);
   /** Off where another chart's table already has the numbers. */
   readonly tabled = input(true);
+  /** A value marked across the chart, dashed and named at its end, such as a budget to keep to. */
+  readonly rule = input<{ value: number; label: string } | null>(null);
 
   protected readonly width = W;
   protected readonly height = H;
@@ -92,12 +94,14 @@ export class UsageColumns {
     const max = this.max();
     const ticks = max
       ? [0, 1, 2, 3, 4].map((n) => (n * max) / 4)
-      : niceTicks(Math.max(0, ...totals));
+      : niceTicks(Math.max(0, this.rule()?.value ?? 0, ...totals));
     const top = ticks[ticks.length - 1]!;
     const y = (value: number) => BASE - (value / top) * PLOT_H;
+    const rule = this.rule();
     const band = (W - LEFT) / Math.max(columns.length, 1);
     const width = Math.min(BAR, band * 0.6);
     return {
+      rule: rule ? { label: rule.label, y: y(rule.value) } : null,
       ticks: ticks.map((value) => ({ value, y: y(value) })),
       columns: columns.map((column, i) => {
         const center = LEFT + band * (i + 0.5);

@@ -138,7 +138,7 @@ describe('usage-limits', () => {
   });
 
   it("shows an organization's monthly allowance in the Usage page, with no session or week limits", async () => {
-    const { bridge, answers } = fakeBridge();
+    const { bridge, answers, calls } = fakeBridge();
     answers['usage.plan'] = () => ({
       plan: 'enterprise',
       windows: [],
@@ -151,6 +151,15 @@ describe('usage-limits', () => {
       },
       at: 0,
     });
+    const day = 24 * 60 * 60_000;
+    answers['usage.spend'] = () => [
+      { at: now - 2 * day, spent: 8000, limit: 60000, currency: 'USD' },
+      { at: now, spent: 12345, limit: 60000, currency: 'USD' },
+    ];
+    answers['usage.months'] = () => [
+      { start: new Date(2026, 9, 1).getTime(), spent: 58000, limit: 60000, currency: 'USD' },
+      { start: new Date(2026, 10, 1).getTime(), spent: 12345, limit: 60000, currency: 'USD' },
+    ];
     const { fixture, el, texts } = await render(bridge);
     [...el.querySelectorAll<HTMLButtonElement>('gr-page-tabs .page-tab')]
       .find((tab) => tab.textContent!.trim() === 'Ledger')!
@@ -158,6 +167,17 @@ describe('usage-limits', () => {
     await fixture.whenStable();
 
     expect(texts('gr-usage-page .sub')[0]).toMatch(/^Enterprise plan, read at /);
+    // The month, its days with what's left to spend a day, and the months before.
+    expect(
+      (calls.find((c) => c.command === 'usage.spend')!.request as { since: number }).since,
+    ).toBe(new Date(2026, 10, 1).getTime());
+    expect(texts('gr-usage-page .plan figcaption')).toEqual(['This month', 'Days', 'Months']);
+    expect(texts('gr-usage-page .plan gr-usage-columns .guide-label')[0]).toMatch(
+      / a day to last the month$/,
+    );
+    expect(texts('gr-usage-page .plan .guide-label')).toContain(
+      `${(123).toLocaleString([], { style: 'currency', currency: 'USD', maximumFractionDigits: 0, minimumFractionDigits: 0 })} so far`,
+    );
     expect(texts('gr-usage-page .plan .none')).toEqual([]);
     const spent = (12345 / 100).toLocaleString([], { style: 'currency', currency: 'USD' });
     const limit = (600).toLocaleString([], { style: 'currency', currency: 'USD' });

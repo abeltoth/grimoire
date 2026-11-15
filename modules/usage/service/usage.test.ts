@@ -3,6 +3,7 @@ import { migrate, openDatabase } from '@grimoire/service/testing/database';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MIGRATIONS } from './migrations';
 import { UsageReadings } from './readings';
+import { SpendReadings } from './spend';
 import type { UsageSource } from './sources';
 import { Usage } from './usage';
 
@@ -26,6 +27,7 @@ function setUp() {
   };
   const usage = new Usage(
     readings,
+    new SpendReadings(db),
     new Map([['fake', source]]),
     () => ['fake', 'plain'],
     (agent, plan) => kept.push([agent, plan]),

@@ -58,4 +58,16 @@ describe('UsageColumns', () => {
     await fixture.whenStable();
     expect(texts(el, '.tip strong')).toEqual(['60']);
   });
+
+  it('marks a value across the columns, named at its end, and scales to reach it', async () => {
+    const { fixture, el } = await columns(
+      [{ name: 'Spent', color: 'var(--gr-chart-1)' }],
+      [{ label: '1', name: 'Day 1', parts: [100] }],
+    );
+    fixture.componentRef.setInput('rule', { value: 450, label: '$4.50 a day' });
+    await fixture.whenStable();
+    expect(texts(el, '.guide-label')).toEqual(['$4.50 a day']);
+    expect(el.querySelectorAll('line.rule')).toHaveLength(1);
+    expect(texts(el, '.y-tick').at(-1)).toBe('600');
+  });
 });

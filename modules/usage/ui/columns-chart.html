@@ -54,6 +54,18 @@
         />
       }
       <line class="axis" [attr.x1]="left" [attr.x2]="width" [attr.y1]="base" [attr.y2]="base" />
+      @if (drawn.rule; as rule) {
+        <line
+          class="guide rule"
+          [attr.x1]="left"
+          [attr.x2]="width"
+          [attr.y1]="rule.y"
+          [attr.y2]="rule.y"
+        />
+        <text class="guide-label" [attr.x]="width" [attr.y]="rule.y - 6" text-anchor="end">
+          {{ rule.label }}
+        </text>
+      }
     </svg>
 
     @let i = hovered();

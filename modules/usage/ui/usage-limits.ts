@@ -11,6 +11,15 @@ import {
 import type { AgentInfo, PlanUsage } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { AgentCatalog } from '@ui/app/core/agent-catalog';
+import { type ChartSeries, UsageColumns } from './charts';
+import {
+  type MoneyLine,
+  type SpendCharts,
+  monthName,
+  monthStart,
+  monthsChart,
+  spendCharts,
+} from './credits-chart';
 import {
   type LimitLine,
   type LimitsChart,
@@ -45,19 +54,26 @@ interface Plan {
   chart: LimitsChart | null;
   /** The session under way; null when none is. */
   session: LimitLine | null;
-  /** How much of each week ended was used; null with fewer than two. */
+  /** How much of each week ended was used; null until a week has ended. */
   weeks: LimitLine | null;
+  /** The month under way of usage credits; null without them, or with none read. */
+  spend: SpendCharts | null;
+  /** What each month of usage credits cost; null until a month has ended. */
+  months: MoneyLine | null;
 }
+
+const DAY_SERIES: ChartSeries[] = [{ name: 'Spent', color: 'var(--gr-chart-4)' }];
 
 /**
  * The Usage page's limits: how much of each agent's subscription limits is
  * used, each limit with when it resets and how much of its time is gone,
- * the session and the week under way drawn, the week's sessions, and the weeks before. Read
+ * the session and the week under way drawn, the week's sessions, and the weeks before;
+ * with usage credits, the month, its days and the months before. Read
  * from the agent when the page opens, and again whenever the service reads them.
  */
 @Component({
   selector: 'gr-usage-limits',
-  imports: [UsageLines, UsageSessions],
+  imports: [UsageColumns, UsageLines, UsageSessions],
   templateUrl: './usage-limits.html',
   styleUrls: ['./usage-lists.css', './usage-limits.css'],
 })
@@ -81,6 +97,10 @@ export class UsageLimits {
   /** A week's line breaks where a week went unread. */
   protected readonly weekGap = 10 * DAY;
   protected readonly weekOf = weekOf;
+  protected readonly monthName = monthName;
+  /** A month's line breaks where a month went unread. */
+  protected readonly monthGap = 45 * DAY;
+  protected readonly daySeries = DAY_SERIES;
   protected readonly readingName = readingName;
   protected readonly percent = percent;
   protected readonly planName = planName;
@@ -141,15 +161,18 @@ export class UsageLimits {
     }
   }
 
-  /** An agent's limits with the week under way and the weeks before, as kept. */
+  /** An agent's limits with the week and the month under way and those before, as kept. */
   private async drawn(agent: AgentInfo, usage: PlanUsage): Promise<Plan> {
     const now = Date.now();
     const week = usage.windows.find((window) => window.span === 'week' && !window.model);
     // The week under way, and the session it began in.
     const since = week?.resetsAt ? week.resetsAt - 7 * DAY - 5 * HOUR : now - 7 * DAY;
-    const [history, weeks] = await Promise.all([
+    const credits = usage.credits;
+    const [history, weeks, spending, months] = await Promise.all([
       this.bridge.invoke('usage.history', { agent: agent.id, since }),
       this.bridge.invoke('usage.weeks', { agent: agent.id }),
+      credits ? this.bridge.invoke('usage.spend', { agent: agent.id, since: monthStart(now) }) : [],
+      credits ? this.bridge.invoke('usage.months', { agent: agent.id }) : [],
     ]);
     this.now.set(now);
     return {
@@ -158,6 +181,8 @@ export class UsageLimits {
       chart: limitsChart(history ?? [], now),
       session: sessionChart(history ?? [], now),
       weeks: weeksChart(weeks ?? [], now),
+      spend: credits ? spendCharts(spending ?? [], credits, now) : null,
+      months: monthsChart(months ?? [], now),
     };
   }
 }

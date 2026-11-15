@@ -139,6 +139,11 @@ svg {
   fill: var(--gr-ink-soft);
 }
 
+/* A value marked across the columns, such as a budget to keep to. */
+.rule {
+  stroke: var(--gr-ink-soft);
+}
+
 /* The ground under a line, a wash of its colour. */
 .area {
   stroke: none;
