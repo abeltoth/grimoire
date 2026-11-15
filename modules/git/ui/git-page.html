@@ -1,6 +1,13 @@
 @let status = git.status();
 @if (status === undefined) {
   <p class="none">Reading the repository…</p>
+} @else if (status && commit(); as sha) {
+  <gr-git-commit
+    [cwd]="git.cwd()!"
+    [sha]="sha"
+    (pick)="commit.set($event)"
+    (back)="commit.set(null)"
+  />
 } @else if (status === null) {
   <h2>Git</h2>
   <p class="none">{{ catalog.folderName(git.cwd()) }} isn’t in a git repository.</p>
@@ -103,10 +110,26 @@
       <p class="none">Nothing: the folder matches the last commit.</p>
     }
   </section>
+
+  <section aria-labelledby="git-history">
+    <h3 id="git-history">History of {{ historyRef() }}</h3>
+    <gr-git-history
+      [cwd]="git.cwd()!"
+      [ref]="historyRef()"
+      [head]="status.head"
+      (pick)="commit.set($event)"
+    />
+  </section>
 }
 
 <ng-template #row let-branch let-isTrunk="isTrunk">
-  <div class="branch-row" [class.current]="branch.current">
+  <button
+    type="button"
+    class="branch-row"
+    [class.current]="branch.current"
+    [attr.aria-pressed]="branch.name === historyRef()"
+    (click)="selected.set(branch.name)"
+  >
     <span class="name"><gr-icon name="branch" />{{ branch.name }}</span>
     @if (branch.current) {
       <span class="here">checked out</span>
@@ -122,5 +145,5 @@
         in the worktree at {{ catalog.folderName(branch.worktree) }}
       }
     </span>
-  </div>
+  </button>
 </ng-template>

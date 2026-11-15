@@ -15,7 +15,9 @@ import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { ShellRegistry } from '@ui/app/shell/shell-registry';
 import { DiffView } from '@ui/design-system/diff-view';
 import { Icon } from '@ui/design-system/icon';
-import { GitState, branchLabel, upstreamDistance } from './git-state';
+import { GitCommitPage } from './git-commit';
+import { GitHistory } from './git-history';
+import { GitState, branchLabel, upstreamDistance, whenOf } from './git-state';
 
 /** How often the page reads the repository again while it's open. */
 const READ_EVERY_MS = 10_000;
@@ -29,13 +31,13 @@ const KINDS: Record<GitChange['kind'], string> = {
 };
 
 /**
- * The Git page: the open chat's branch tree, and what isn't committed
- * yet, each change expanding as a diff. It only reads; the agent
- * does the committing.
+ * The Git page: the open chat's branch tree, what isn't committed yet,
+ * each change expanding as a diff, and a branch's history, each commit
+ * opening on its own. It only reads; the agent does the committing.
  */
 @Component({
   selector: 'gr-git-page',
-  imports: [DiffView, Icon, NgTemplateOutlet],
+  imports: [DiffView, GitCommitPage, GitHistory, Icon, NgTemplateOutlet],
   templateUrl: './git-page.html',
   styleUrl: './git-page.css',
 })
@@ -50,6 +52,10 @@ export class GitPage {
   /** The change expanded, and its diff once read. */
   protected readonly open = signal<string | null>(null);
   protected readonly diff = signal<readonly DiffLine[] | null>(null);
+  /** The branch whose history shows, when you picked one. */
+  protected readonly selected = signal<string | null>(null);
+  /** The commit shown instead of the overview. */
+  protected readonly commit = signal<string | null>(null);
 
   protected readonly branchLabel = computed(() => {
     const status = this.git.status();
@@ -64,11 +70,26 @@ export class GitPage {
     const trunk = this.trunk();
     return (this.branches()?.branches ?? []).filter((branch) => branch !== trunk);
   });
+  /** Whose history shows: the branch picked, else the one checked out, else the trunk. */
+  protected readonly historyRef = computed(() => {
+    const names = this.branches()?.branches.map((branch) => branch.name);
+    const selected = this.selected();
+    if (selected && names?.includes(selected)) return selected;
+    return this.git.status()?.branch ?? this.trunk()?.name ?? 'HEAD';
+  });
 
   constructor() {
     const every = setInterval(() => void this.git.read(), READ_EVERY_MS);
     inject(DestroyRef).onDestroy(() => clearInterval(every));
 
+    // Another folder starts the page over.
+    effect(() => {
+      this.git.cwd();
+      untracked(() => {
+        this.selected.set(null);
+        this.commit.set(null);
+      });
+    });
     // The branches and the open change are read again with the repository.
     effect(() => {
       const status = this.git.status();
@@ -120,18 +141,8 @@ export class GitPage {
     return counts.length ? counts.join(', ') : 'even';
   }
 
-  /** When a commit was made: a time today, yesterday, or a date. */
   protected when(at: number): string {
-    const date = new Date(at);
-    const days = Math.round((startOfDay(new Date()) - startOfDay(date)) / 86_400_000);
-    if (days === 0) return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-    if (days === 1) return 'yesterday';
-    if (days < 7) return date.toLocaleDateString([], { weekday: 'long' });
-    return date.toLocaleDateString([], {
-      day: 'numeric',
-      month: 'short',
-      ...(date.getFullYear() === new Date().getFullYear() ? {} : { year: 'numeric' }),
-    });
+    return whenOf(at, Date.now());
   }
 
   private async readBranches(cwd: string | undefined): Promise<void> {
@@ -157,8 +168,4 @@ export class GitPage {
       done();
     }
   }
-}
-
-function startOfDay(date: Date): number {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
 }

@@ -71,20 +71,7 @@ export class Git {
   async branches(cwd: string): Promise<GitBranches | null> {
     const root = await this.root(cwd);
     if (!root) return null;
-    const names = (await this.git(root, 'for-each-ref', '--format=%(refname:short)', 'refs/heads'))
-      .split('\n')
-      .filter(Boolean);
-    const remoteDefault = await this.git(
-      root,
-      'symbolic-ref',
-      '--quiet',
-      '--short',
-      'refs/remotes/origin/HEAD',
-    )
-      .then((ref) => ref.trim().replace(/^origin\//, ''))
-      .catch(() => '');
-    const trunk =
-      [remoteDefault, 'main', 'master'].find((name) => name && names.includes(name)) ?? null;
+    const trunk = await this.trunk(root);
     const fields = [
       '%(refname:short)',
       '%(HEAD)',
@@ -122,15 +109,28 @@ export class Git {
     return { trunk, branches };
   }
 
+  /** The main line: the remote's default branch, or main or master; null when it has none of them. */
+  async trunk(root: string): Promise<string | null> {
+    const names = (await this.git(root, 'for-each-ref', '--format=%(refname:short)', 'refs/heads'))
+      .split('\n')
+      .filter(Boolean);
+    const remoteDefault = await this.git(
+      root,
+      'symbolic-ref',
+      '--quiet',
+      '--short',
+      'refs/remotes/origin/HEAD',
+    )
+      .then((ref) => ref.trim().replace(/^origin\//, ''))
+      .catch(() => '');
+    return [remoteDefault, 'main', 'master'].find((name) => name && names.includes(name)) ?? null;
+  }
+
   /** A file's change since the last commit, staged or not; a new file is all inserted. */
   async diff(cwd: string, file: string): Promise<DiffLine[]> {
     const root = await this.root(cwd);
-    if (!root) return [];
+    if (!root || !inside(root, file)) return [];
     const full = path.resolve(root, file);
-    // Only files inside the repository.
-    if (path.relative(root, full).startsWith('..') || path.isAbsolute(path.relative(root, full))) {
-      return [];
-    }
     const out = await this.git(
       root,
       'diff',
@@ -224,6 +224,12 @@ export class Git {
   private git(cwd: string, ...args: string[]): Promise<string> {
     return this.run('git', args, cwd);
   }
+}
+
+/** Whether a path from the repository's top folder stays inside it. */
+export function inside(root: string, file: string): boolean {
+  const relative = path.relative(root, path.resolve(root, file));
+  return !relative.startsWith('..') && !path.isAbsolute(relative);
 }
 
 /** `git status --porcelain=v2 --branch -z`, read. */

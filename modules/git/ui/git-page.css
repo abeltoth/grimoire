@@ -143,6 +143,14 @@ ul {
   flex-wrap: wrap;
   align-items: baseline;
   column-gap: var(--gr-git-row-gap);
+  width: 100%;
+  text-align: left;
+}
+
+/* The branch whose history shows below. */
+.branch-row:hover .name,
+.branch-row[aria-pressed='true'] .name {
+  color: var(--gr-link);
 }
 
 .name {

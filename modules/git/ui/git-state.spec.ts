@@ -1,5 +1,5 @@
 import type { GitStatus, PullRequest } from '@grimoire/contract';
-import { branchLabel, badgesOf, statusDetail } from './git-state';
+import { branchLabel, badgesOf, statusDetail, whenOf } from './git-state';
 
 const status = (over: Partial<GitStatus> = {}): GitStatus => ({
   root: '/repo',
@@ -77,5 +77,19 @@ describe('badgesOf', () => {
       { id: 'git.pullRequest', label: 'PR #7: merged', tone: 'quiet', detail: 'Seven' },
     ]);
     expect(badgesOf(pr({ state: 'draft' }))[0]!.label).toBe('PR #7: draft');
+  });
+});
+
+describe('whenOf', () => {
+  const now = new Date(2026, 10, 9, 15, 30).getTime();
+
+  it('gives a time today, yesterday, a weekday this week, then a date', () => {
+    expect(whenOf(new Date(2026, 10, 9, 9, 5).getTime(), now)).toMatch(/9.05/);
+    expect(whenOf(new Date(2026, 10, 8, 23, 0).getTime(), now)).toBe('yesterday');
+    expect(whenOf(new Date(2026, 10, 5).getTime(), now)).toBe(
+      new Date(2026, 10, 5).toLocaleDateString([], { weekday: 'long' }),
+    );
+    expect(whenOf(new Date(2026, 9, 1).getTime(), now)).not.toMatch(/2026/);
+    expect(whenOf(new Date(2025, 9, 1).getTime(), now)).toMatch(/2025/);
   });
 });

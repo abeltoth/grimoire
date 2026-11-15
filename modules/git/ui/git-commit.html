@@ -1,0 +1,77 @@
+<button type="button" class="gr-link back" (click)="back.emit()">Back to the repository</button>
+
+@let detail = commit();
+@if (detail === undefined) {
+  <p class="none">Reading the commit…</p>
+} @else if (detail === null) {
+  <p class="none">The repository hasn’t got this commit.</p>
+} @else {
+  <h2>{{ detail.subject }}</h2>
+  <p class="sub">
+    <code>{{ detail.short }}</code>
+    <span class="dot" aria-hidden="true">·</span>
+    {{ detail.author }}
+    <span class="dot" aria-hidden="true">·</span>
+    {{ when(detail.at) }}
+  </p>
+  @if (detail.chat; as chat) {
+    <p class="sub">
+      Made in the chat
+      <button type="button" class="gr-link chat" (click)="openChat(chat)">{{ chat.title }}</button>
+    </p>
+  }
+  @if (detail.parents.length) {
+    <p class="sub">
+      {{ detail.parents.length === 1 ? 'After' : 'Merging' }}
+      @for (parent of detail.parents; track parent; let last = $last) {
+        <button type="button" class="gr-link parent" (click)="pick.emit(parent)">
+          <code>{{ parent.slice(0, 7) }}</code></button
+        >{{ last ? '' : ',' }}
+      }
+    </p>
+  }
+  @if (detail.body) {
+    <p class="body">{{ detail.body }}</p>
+  }
+
+  <section aria-labelledby="git-commit-files">
+    <h3 id="git-commit-files">Files changed</h3>
+    @if (detail.files.length) {
+      <ul class="files">
+        @for (file of detail.files; track file.path) {
+          <li>
+            <button
+              type="button"
+              class="file"
+              [attr.aria-expanded]="open() === file.path"
+              (click)="toggle(file)"
+            >
+              <span class="path">{{ file.path }}</span>
+              <span class="leader" aria-hidden="true"></span>
+              <span class="kind">
+                {{ file.kind }}
+                @if (file.from) {
+                  from {{ file.from }}
+                }
+                <span class="counts">· {{ counts(file) }}</span>
+              </span>
+            </button>
+            @if (open() === file.path) {
+              @if (diff(); as lines) {
+                @if (lines.length) {
+                  <gr-diff-view [file]="file.path" [lines]="lines" />
+                } @else {
+                  <p class="none">No lines to show: it isn’t text, or nothing in it changed.</p>
+                }
+              } @else {
+                <p class="none">Reading the change…</p>
+              }
+            }
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="none">No files: it changed nothing against its first parent.</p>
+    }
+  </section>
+}

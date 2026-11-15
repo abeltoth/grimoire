@@ -1,3 +1,5 @@
+import type { AgentId, ChatId } from '@grimoire/contract';
+
 /** One line of a file's diff. */
 export interface DiffLine {
   kind: 'same' | 'removed' | 'inserted';
@@ -60,6 +62,54 @@ export interface PullRequest {
   checks: { passed: number; failed: number; pending: number };
 }
 
+/** The chat whose turn made a commit, enough to open it again. */
+export interface CommitChat {
+  id: ChatId;
+  agent: AgentId;
+  title: string;
+  cwd: string;
+}
+
+/** A commit in a branch's history. */
+export interface GitCommit {
+  sha: string;
+  short: string;
+  subject: string;
+  author: string;
+  /** When it was made, in ms since the epoch. */
+  at: number;
+  parents: string[];
+  /** It's on the branch and not on the trunk. */
+  own?: true;
+  /** The chat that made it, when a chat's turn did. */
+  chat?: CommitChat;
+}
+
+/** A file a commit changed, against its first parent. */
+export interface GitCommitFile {
+  path: string;
+  kind: 'modified' | 'new' | 'deleted' | 'renamed';
+  /** Where a renamed file was. */
+  from?: string;
+  /** Lines inserted and removed; null for a file that isn't text. */
+  added: number | null;
+  removed: number | null;
+}
+
+/** A commit with its whole message and the files it changed. */
+export interface GitCommitDetail extends GitCommit {
+  /** The message after the subject. */
+  body: string;
+  files: GitCommitFile[];
+}
+
+/** A page of a branch's history, newest first. */
+export interface GitLog {
+  commits: GitCommit[];
+  /** Older commits come after these. */
+  more: boolean;
+}
+
 declare module '@grimoire/contract' {
   interface CommandMap {
     /** The folder's repository now; null when the folder isn't in one. */
@@ -68,6 +118,21 @@ declare module '@grimoire/contract' {
     'git.branches': { request: { cwd: string }; response: GitBranches | null };
     /** A file's uncommitted change, as a diff. The path is from the repository's top folder. */
     'git.diff': { request: { cwd: string; path: string }; response: DiffLine[] };
+    /**
+     * A page of a branch's or commit's history, skipping the newest `skip`;
+     * null outside a repository or for a ref it hasn't got.
+     */
+    'git.log': {
+      request: { cwd: string; ref: string; skip: number; limit: number };
+      response: GitLog | null;
+    };
+    /** A commit's message and changed files; null when the repository hasn't got it. */
+    'git.commit': { request: { cwd: string; sha: string }; response: GitCommitDetail | null };
+    /** A file's change in a commit, against its first parent; `from` is where a renamed file was. Paths are from the repository's top folder. */
+    'git.commitDiff': {
+      request: { cwd: string; sha: string; path: string; from?: string };
+      response: DiffLine[];
+    };
     /** The pull request for the folder's branch; null when it has none or GitHub can't be asked. */
     'git.pullRequest': { request: { cwd: string }; response: PullRequest | null };
     /** The top folder of the folder's repository; null when the folder isn't in one. */

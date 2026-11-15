@@ -1,0 +1,78 @@
+:host {
+  display: block;
+  max-width: var(--gr-git-width);
+}
+
+.commits {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-git-gap);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* A commit: its sha and subject, then who made it and when on a line below. */
+.open {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-git-row-gap);
+  width: 100%;
+  text-align: left;
+  color: var(--gr-ink);
+}
+
+.open:hover .subject {
+  color: var(--gr-link);
+}
+
+.sha {
+  flex: none;
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-code);
+  color: var(--gr-ink-soft);
+}
+
+.own .sha {
+  color: var(--gr-gilt-ink);
+}
+
+.subject {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  display: block;
+  margin-top: var(--gr-aside-gap);
+  padding-left: var(--gr-git-last-indent);
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.mark {
+  color: var(--gr-gilt-ink);
+}
+
+.dot {
+  margin: 0 var(--gr-space-1);
+}
+
+.chat {
+  font-style: italic;
+}
+
+.older {
+  margin-top: var(--gr-git-gap);
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+}
+
+.none {
+  margin: var(--gr-aside-gap) 0 0;
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}

@@ -97,6 +97,25 @@ export function upstreamDistance({
   return `${ahead ? `${ahead} ahead, ` : ''}${behind} behind ${name}`;
 }
 
+/** When a commit was made, seen at `now`: a time today, yesterday, a weekday, or a date. */
+export function whenOf(at: number, now: number): string {
+  const date = new Date(at);
+  const today = new Date(now);
+  const days = Math.round((startOfDay(today) - startOfDay(date)) / 86_400_000);
+  if (days === 0) return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  if (days === 1) return 'yesterday';
+  if (days > 1 && days < 7) return date.toLocaleDateString([], { weekday: 'long' });
+  return date.toLocaleDateString([], {
+    day: 'numeric',
+    month: 'short',
+    ...(date.getFullYear() === today.getFullYear() ? {} : { year: 'numeric' }),
+  });
+}
+
+function startOfDay(date: Date): number {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+}
+
 /** The branch as the page footer names it. */
 export function branchLabel(status: GitStatus): string {
   if (status.branch) return status.branch;
