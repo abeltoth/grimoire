@@ -66,4 +66,15 @@ describe('DiffView', () => {
     const { el } = await diff([{ kind: 'inserted', text: 'a' }]);
     expect(el.querySelector('.at, .numbered')).toBeNull();
   });
+
+  it('offers to be put away only when asked to', async () => {
+    const { fixture, el } = await diff([{ kind: 'same', text: 'a' }]);
+    expect(el.querySelector('button')).toBeNull();
+    fixture.componentRef.setInput('closable', true);
+    await fixture.whenStable();
+    let closed = 0;
+    fixture.componentInstance.hide.subscribe(() => closed++);
+    el.querySelector<HTMLButtonElement>('button')!.click();
+    expect(closed).toBe(1);
+  });
 });

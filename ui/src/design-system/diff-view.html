@@ -5,6 +5,9 @@
   @if (openable()) {
     <button type="button" class="gr-link" (click)="open.emit()">Open in Files</button>
   }
+  @if (closable()) {
+    <button type="button" class="gr-link" (click)="hide.emit()">Hide</button>
+  }
 </div>
 <div class="body" tabindex="0">
   @for (line of marked(); track line.key) {

@@ -31,6 +31,10 @@ export class DiffView {
   readonly openable = input(false);
   /** Asks to open the file in Files. */
   readonly open = output<void>();
+  /** Whether it offers to be put away. */
+  readonly closable = input(false);
+  /** Asks to be put away. */
+  readonly hide = output<void>();
 
   protected readonly sign: Record<DiffLine['kind'], string> = {
     same: '',

@@ -1,4 +1,5 @@
 import { createReadStream } from 'node:fs';
+import { readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
 import { claudeHome } from './config-dir';
@@ -6,9 +7,9 @@ import type { ApiBlock, ClaudeMessage } from './messages';
 import { chatFolder } from './subagent-stats';
 
 /**
- * The structured results of a saved chat's file tools, by tool call: the SDK
- * leaves them out of the saved messages it reads, so they're read from the
- * chat's file, only the lines that could hold one parsed.
+ * The structured results of a saved chat's file tools, its subagents' runs
+ * included, by tool call: the SDK leaves them out of the saved messages it
+ * reads, so they're read from its files, only the lines that could hold one parsed.
  */
 export async function savedFileResults(
   chatId: string,
@@ -17,7 +18,19 @@ export async function savedFileResults(
   const results = new Map<string, unknown>();
   const folder = await chatFolder(chatId, home);
   if (!folder) return results;
-  const stream = createReadStream(path.join(folder, `${chatId}.jsonl`), 'utf8');
+  const runs = path.join(folder, chatId, 'subagents');
+  const names = await readdir(runs).catch(() => [] as string[]);
+  const files = [
+    path.join(folder, `${chatId}.jsonl`),
+    ...names.filter((name) => name.endsWith('.jsonl')).map((name) => path.join(runs, name)),
+  ];
+  for (const file of files) await readResults(file, results);
+  return results;
+}
+
+/** Adds the file tools' results one saved file holds. */
+async function readResults(file: string, results: Map<string, unknown>): Promise<void> {
+  const stream = createReadStream(file, 'utf8');
   stream.on('error', () => {});
   const lines = createInterface({ input: stream, crlfDelay: Infinity });
   try {
@@ -29,12 +42,11 @@ export async function savedFileResults(
       if (id) results.set(id, message.toolUseResult);
     }
   } catch {
-    return results;
+    return;
   } finally {
     lines.close();
     stream.destroy();
   }
-  return results;
 }
 
 /** A saved message with the structured result of the tool call it answers, as a live one has it. */

@@ -57,6 +57,7 @@ const VALID: { [K in keyof GrimoireSettings]: (value: unknown) => boolean } = {
   suggestions: (value) => typeof value === 'boolean',
   followUps: (value) => typeof value === 'boolean',
   autoCompact: (value) => typeof value === 'boolean',
+  diffsOpen: (value) => typeof value === 'boolean',
   jira: (value) => typeof value === 'boolean',
   jiraQuery: (value) =>
     typeof value === 'string' && value.trim() !== '' && value.length <= MAX_JIRA_QUERY,

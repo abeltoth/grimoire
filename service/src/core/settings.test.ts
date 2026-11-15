@@ -29,6 +29,7 @@ describe('SettingsStore', () => {
       suggestions: true,
       followUps: true,
       autoCompact: false,
+      diffsOpen: true,
       jira: true,
       jiraQuery:
         'assignee = currentUser() AND (statusCategory != Done OR statusCategoryChangedDate >= -14d) ORDER BY updated DESC',
@@ -53,6 +54,8 @@ describe('SettingsStore', () => {
     expect(() => settings.set({ followUps: 'rarely' } as never)).toThrow('"followUps"');
     settings.set({ autoCompact: true });
     expect(() => settings.set({ autoCompact: 'yes' } as never)).toThrow('"autoCompact"');
+    settings.set({ diffsOpen: false });
+    expect(() => settings.set({ diffsOpen: 'no' } as never)).toThrow('"diffsOpen"');
     settings.set({ jira: false });
     expect(() => settings.set({ jira: 'maybe' } as never)).toThrow('"jira"');
     settings.set({ jiraQuery: 'project = GRIM ORDER BY rank' });
@@ -94,6 +97,7 @@ describe('SettingsStore', () => {
       suggestions: false,
       followUps: false,
       autoCompact: true,
+      diffsOpen: false,
       jira: false,
       jiraQuery: 'project = GRIM ORDER BY rank',
       historyGroup: 'project',

@@ -36,6 +36,7 @@ import { hookOutcome, hookTook, hookWhen, hooksRan } from './hook-log';
 import { WebResults } from './web-results';
 import { tokenCount, usesInWords } from '@ui/app/core/tokens';
 import { Wording } from '@ui/app/core/wording';
+import { Settings } from '@ui/app/core/settings';
 
 /** The Kanban board's page tab, which a note for a task the agent added there turns to. */
 const BOARD = 'kanban';
@@ -77,6 +78,7 @@ export class Transcript {
   protected readonly shell = inject(ShellRegistry);
   protected readonly rightPage = inject(RightPageState);
   protected readonly wording = inject(Wording);
+  private readonly settings = inject(Settings);
   private readonly element = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
 
   readonly chat = input.required<Chat>();
@@ -274,8 +276,10 @@ export class Transcript {
     else if (note.details) this.expandedNote.update((key) => (key === note.key ? null : note.key));
   }
 
-  /** The short changes, a few to a row, show their diffs unasked. */
-  private readonly unasked = computed(() => diffsOpenUnasked(this.rows()));
+  /** The short changes, a few to a row, show their diffs unasked, unless you'd rather click for them. */
+  private readonly unasked = computed(() =>
+    this.settings.all().diffsOpen ? diffsOpenUnasked(this.rows()) : new Set<string>(),
+  );
   private opensUnasked(note: Note): boolean {
     return this.unasked().has(note.key);
   }

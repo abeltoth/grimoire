@@ -35,6 +35,7 @@ describe('general-settings', () => {
       'Suggest the next entry',
       'Suggest separate chapters',
       'Compact before the cache runs out',
+      'Changes to files',
       'MCP servers in every chapter',
       'Jira issues on the Kanban board',
       'Jira query',
@@ -47,6 +48,7 @@ describe('general-settings', () => {
       'On',
       'On',
       'Off',
+      'Open',
       'On',
     ]);
     expect(texts('gr-settings-page [aria-labelledby="gr-settings-mcp"] .none')).toEqual(['None']);
@@ -113,6 +115,14 @@ describe('general-settings', () => {
     await fixture.whenStable();
     expect(calls.filter((c) => c.command === 'settings.set').at(-1)!.request).toEqual({
       autoCompact: true,
+    });
+
+    [...el.querySelectorAll<HTMLButtonElement>('[aria-labelledby="gr-settings-diffs-open"] .word')]
+      .find((button) => button.textContent!.trim() === 'Closed')!
+      .click();
+    await fixture.whenStable();
+    expect(calls.filter((c) => c.command === 'settings.set').at(-1)!.request).toEqual({
+      diffsOpen: false,
     });
 
     // Another window changed them back.

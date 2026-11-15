@@ -353,6 +353,8 @@
           [breaks]="note.details.breaks ?? []"
           [openable]="!!shell.openFile()"
           (open)="shell.openFile()?.(note.details.path)"
+          [closable]="true"
+          (hide)="press(note)"
         />
       } @else if (note.details.kind === 'web') {
         <gr-web-results

@@ -82,9 +82,16 @@ async function savedRun(chatId: ChatId, cwd: string, toolId: string): Promise<Su
   const { getSessionMessages, getSubagentMessages, listSubagents } = await sdk();
   const saved = await savedIn(chatId, cwd);
   const ids = await listSubagents(chatId, saved);
+  const results = savedFileResults(chatId).catch(() => new Map<string, unknown>());
   const runs = new Map<string, Promise<ClaudeMessage[]>>();
   const runOf = (id: string) => {
-    if (!runs.has(id)) runs.set(id, getSubagentMessages(chatId, id, saved));
+    if (!runs.has(id))
+      runs.set(
+        id,
+        Promise.all([getSubagentMessages(chatId, id, saved), results]).then(([messages, found]) =>
+          messages.map((message) => withSavedResult(message, found)),
+        ),
+      );
     return runs.get(id)!;
   };
   // The chat made the tool call; a subagent's subagent is started from inside its run.

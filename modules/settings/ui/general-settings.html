@@ -214,6 +214,32 @@
       while compacting still reads from the cache; chats under 40K tokens are left whole.
     </p>
 
+    <span class="label" id="gr-settings-diffs-open">Changes to files</span>
+    <span class="words" role="radiogroup" aria-labelledby="gr-settings-diffs-open">
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="all.diffsOpen"
+        (click)="set({ diffsOpen: true })"
+      >
+        Open
+      </button>
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="!all.diffsOpen"
+        (click)="set({ diffsOpen: false })"
+      >
+        Closed
+      </button>
+    </span>
+    <p class="note">
+      Open, a short change shows under the reply as it's made; closed, it opens when you click its
+      line.
+    </p>
+
     <span class="label" id="gr-settings-mcp">{{
       wording.say('MCP servers in every chapter', 'MCP servers in every chat')
     }}</span>

@@ -1,4 +1,4 @@
-import type { TokenUse } from '@grimoire/contract';
+import { DEFAULT_SETTINGS, type TokenUse } from '@grimoire/contract';
 import { Diagrams } from '../markdown/diagrams';
 import { fakeBridge, render, write } from '@ui/testing/app-testing';
 
@@ -296,6 +296,46 @@ describe('transcript', () => {
     expect(notes[0]!.getAttribute('aria-expanded')).toBe('false');
     expect(el.querySelector('gr-diff-view, gr-output')).toBeNull();
     expect(el.querySelector('.row.said.opened')).toBeNull();
+  });
+
+  const anEdit = {
+    kind: 'agent' as const,
+    id: 'a1',
+    blocks: [
+      {
+        kind: 'tool' as const,
+        id: 't1',
+        tool: 'Edit',
+        input: { file_path: 'C:/work/grimoire/a.ts', old_string: 'a', new_string: 'b' },
+        result: { text: 'Updated.', isError: false },
+      },
+    ],
+  };
+
+  it('puts a diff away by its Hide', async () => {
+    const { bridge, emit } = fakeBridge();
+    const { fixture, el } = await render(bridge);
+    await write(fixture, el, 'Change a');
+    emit('agents.entry', { chatId: 'chat-1', entry: anEdit });
+    await fixture.whenStable();
+    [...el.querySelectorAll<HTMLButtonElement>('gr-diff-view .gr-link')]
+      .find((button) => button.textContent!.trim() === 'Hide')!
+      .click();
+    await fixture.whenStable();
+    expect(el.querySelector('gr-diff-view')).toBeNull();
+  });
+
+  it('keeps diffs closed until clicked when the setting says so', async () => {
+    const { bridge, emit, answers } = fakeBridge();
+    answers['settings.get'] = () => ({ ...DEFAULT_SETTINGS, diffsOpen: false });
+    const { fixture, el } = await render(bridge);
+    await write(fixture, el, 'Change a');
+    emit('agents.entry', { chatId: 'chat-1', entry: anEdit });
+    await fixture.whenStable();
+    expect(el.querySelector('gr-diff-view')).toBeNull();
+    el.querySelector<HTMLButtonElement>('.note')!.click();
+    await fixture.whenStable();
+    expect(el.querySelector('gr-diff-view')).not.toBeNull();
   });
 
   it('shows a compaction while it runs, timed, then how it went on the same line', async () => {

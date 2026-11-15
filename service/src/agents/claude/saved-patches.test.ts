@@ -35,6 +35,22 @@ describe('saved file results', () => {
   });
   afterEach(() => rmSync(home, { recursive: true, force: true }));
 
+  it('reads them from the subagents’ runs too', async () => {
+    const runs = path.join(home, 'projects', 'C--work', 'chat-1', 'subagents');
+    mkdirSync(runs, { recursive: true });
+    const patch = { structuredPatch: [{ oldStart: 2, newStart: 2, lines: ['+x'] }] };
+    writeFileSync(
+      path.join(runs, 'agent-a1.jsonl'),
+      JSON.stringify({ type: 'user', message: answer('toolu_s1'), toolUseResult: patch }),
+    );
+    writeFileSync(path.join(runs, 'agent-a1.meta.json'), '{}');
+    expect([...(await savedFileResults('chat-1', home)).keys()]).toEqual([
+      'toolu_1',
+      'toolu_3',
+      'toolu_s1',
+    ]);
+  });
+
   it('reads the file tools’ results, by tool call, and nothing else', async () => {
     const results = await savedFileResults('chat-1', home);
     expect([...results.keys()]).toEqual(['toolu_1', 'toolu_3']);

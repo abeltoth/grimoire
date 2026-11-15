@@ -39,6 +39,8 @@ export interface GrimoireSettings {
    * runs out, so going on later re-reads the summary instead of the whole chat.
    */
   autoCompact: boolean;
+  /** Whether a short change to a file shows its diff in the chat unasked; closed, it opens when you click its line. */
+  diffsOpen: boolean;
   /**
    * Whether your Jira issues show on the Kanban board; turned off, they're
    * never fetched, which spends no tokens.
@@ -80,6 +82,7 @@ export const DEFAULT_SETTINGS: GrimoireSettings = {
   suggestions: true,
   followUps: true,
   autoCompact: false,
+  diffsOpen: true,
   jira: true,
   jiraQuery: DEFAULT_JIRA_QUERY,
   historyGroup: 'date',
