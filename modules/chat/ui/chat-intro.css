@@ -11,6 +11,9 @@
   margin: 0 auto;
   padding-top: var(--gr-opening-pad-top);
   text-align: center;
+  /* Drawn at the drawn text size and zoomed to yours, as the transcript is. */
+  --gr-size-text: var(--gr-size-text-drawn);
+  zoom: var(--gr-chat-zoom);
 }
 
 .headpiece {

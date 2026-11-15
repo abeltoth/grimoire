@@ -10,6 +10,13 @@
     var(--page-inset-start);
   scrollbar-gutter: stable;
   mask-image: linear-gradient(transparent, black var(--gr-transcript-fade));
+  /* The chat is drawn at the drawn text size and zoomed to yours, so all of it grows in proportion. */
+  --gr-size-text: var(--gr-size-text-drawn);
+}
+
+/* Its rows, not the scroller, are zoomed, so the text still lines up with the page header. */
+:host > * {
+  zoom: var(--gr-chat-zoom);
 }
 
 /* A thin ink scrollbar; its room is always kept, so nothing shifts when it appears. */
