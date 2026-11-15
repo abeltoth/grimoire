@@ -104,9 +104,13 @@
   text-decoration-thickness: var(--gr-strike);
 }
 
-.removed .number,
-.inserted .number {
+.removed .number {
   color: var(--gr-rubric);
+}
+
+.inserted .number,
+.inserted .code {
+  color: var(--gr-verdigris);
 }
 
 /* Where a running tool's output will come. */

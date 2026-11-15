@@ -7,7 +7,7 @@ interface Line extends DiffLine {
   break: boolean;
 }
 
-/** An expandable with a file's diff: removed lines struck through and signed −, inserted ones signed +. */
+/** An expandable with a file's diff: removed lines struck through and signed −, inserted ones in green and signed +. */
 @Component({
   selector: 'gr-diff-view',
   templateUrl: './diff-view.html',
