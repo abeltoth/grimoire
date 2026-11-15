@@ -65,9 +65,7 @@
   @if (searchingCommands()) {
     <span class="slash-hint"
       >{{ catalog.agentName(agent()) }}’s commands are
-      @if (popout) {
-        listed above ↑
-      } @else if (beside()) {
+      @if (beside()) {
         on the {{ wording.say('facing page', 'left') }} ←
       } @else {
         on the {{ wording.say('facing page', 'right') }} →

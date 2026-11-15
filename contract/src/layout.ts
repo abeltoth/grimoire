@@ -1,7 +1,7 @@
 import type { AgentId, ChatId } from './agents';
 import type { NewChatSettings } from './chat-settings';
 
-/** How you left the main window, so it opens the same way (Grimoire's own data). */
+/** How you left the window, so it opens the same way (Grimoire's own data). */
 export interface Layout {
   /** The chat you were on; null for a blank page. */
   current: ChatId | null;
@@ -11,15 +11,6 @@ export interface Layout {
   lastUsed: { agent: AgentId; settings: NewChatSettings } | null;
   /** Whether the book lies at a single page, the chat alone on the desk. */
   focus: boolean;
-  /** The chats popped out, each in a window of its own, and where. */
-  popouts: Popout[];
-}
-
-/** A chat popped out of the main window into a window of its own. */
-export interface Popout {
-  chatId: ChatId;
-  /** Where its window was when it last closed with the main window. */
-  bounds?: { x: number; y: number; width: number; height: number };
 }
 
 declare module './commands' {

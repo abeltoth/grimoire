@@ -16,19 +16,15 @@ import {
   viewChildren,
 } from '@angular/core';
 import { Icon } from '@ui/design-system/icon';
-import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { type Setting } from '@ui/app/core/chat';
 import { ChatList } from '@ui/app/core/chat-list';
 import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { ChatActions } from '@ui/app/core/chat-actions';
-import { POPOUT } from '@ui/app/core/popout';
 import { effortName } from '@ui/app/core/efforts';
 import { modeName } from '@ui/app/core/modes';
 import { Presets } from '@ui/app/core/presets';
 import { Wording } from '@ui/app/core/wording';
 import { RestartNotice } from './transcript/restart-notice';
-import { AgentCommands } from '@ui/app/shell/agent-commands';
-import { CommandPalette } from '@ui/app/shell/command-palette';
 import { CommandRuns } from '@ui/app/shell/command-runs';
 import { RightPageState } from '@ui/app/shell/right-page/right-page-state';
 import { RightPageTabs } from '@ui/app/shell/right-page/right-page-tabs';
@@ -64,15 +60,13 @@ export const SECOND_CHAT = 'second-chat';
  * the right page's tabs head it, and its settings, without the title's
  * pen, tags or pins. Esc is the page's you're working in.
  *
- * Pop out puts a chat that has begun in a window of its own, a
- * popout; there, Back to the main window puts it back. A popout has no right page,
- * so its command palette shows on its own page, above the message field.
+ * Single page puts the chat alone on the desk, focus mode; Two pages
+ * brings the book back.
  */
 @Component({
   selector: 'gr-chat-page',
   imports: [
     ChatIntro,
-    CommandPalette,
     Composer,
     NgComponentOutlet,
     RightPageTabs,
@@ -103,12 +97,8 @@ export class ChatPage {
   protected readonly wording = inject(Wording);
   protected readonly focus = inject(Focus);
   protected readonly shell = inject(ShellRegistry);
-  private readonly commands = inject(AgentCommands);
   private readonly runs = inject(CommandRuns);
-  private readonly bridge = inject(GRIMOIRE_BRIDGE);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
-  /** In a popout's window, popped out of the main window. */
-  protected readonly popout = !!inject(POPOUT);
 
   /** The chat it shows; the one you're on when unset. */
   readonly chatId = input<string>();
@@ -120,10 +110,6 @@ export class ChatPage {
     return id === undefined ? this.list.current() : this.list.all().find((c) => c.id === id);
   });
   protected readonly composer = viewChild(Composer);
-  /** Whether a popout's page shows its command palette. */
-  protected readonly searchingCommands = computed(
-    () => this.popout && this.commands.search()?.chatId === this.chat()?.id,
-  );
   private readonly running = computed(() =>
     ['thinking', 'writing', 'waiting'].includes(this.chat()?.status ?? ''),
   );
@@ -155,11 +141,6 @@ export class ChatPage {
       field.focus();
       field.select();
     });
-  }
-
-  /** Puts a popout back in the main window: its window closes, and the main window turns to it. */
-  protected backInMainWindow(): void {
-    this.bridge.window.close();
   }
 
   /** Keeps the rewritten title, or not; Enter and Esc hand the focus back to the pen. */

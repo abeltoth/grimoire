@@ -8,7 +8,6 @@ import type {
 } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { ChatList } from '@ui/app/core/chat-list';
-import { POPOUT } from '@ui/app/core/popout';
 import { RightPageState } from '@ui/app/shell/right-page/right-page-state';
 import { Focus } from '@ui/app/shell/focus';
 
@@ -26,7 +25,7 @@ interface Shown {
 /**
  * The subagent shown on the right page: the subagent one of a chat's tool
  * calls handed a task to, and what it did, kept current while it works.
- * A popout and the single page have no right page to show it on.
+ * The single page has no right page to show it on.
  */
 @Injectable({ providedIn: 'root' })
 export class Subagents {
@@ -34,7 +33,6 @@ export class Subagents {
   private readonly list = inject(ChatList);
   private readonly rightPage = inject(RightPageState);
   private readonly focus = inject(Focus);
-  private readonly popout = inject(POPOUT);
 
   private readonly shown = signal<Shown | null>(null);
   /** What the subagent shown did, its replies and tools; empty until it's read. */
@@ -53,7 +51,7 @@ export class Subagents {
   private cameLive = false;
 
   /** Whether there's a right page to show a subagent on. */
-  readonly canShow = computed(() => !this.popout && !this.focus.on());
+  readonly canShow = computed(() => !this.focus.on());
 
   /** The chat the subagent shown works for. */
   readonly chat = computed(() => {

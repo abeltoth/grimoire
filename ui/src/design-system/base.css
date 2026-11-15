@@ -61,7 +61,7 @@ body {
   border-radius: var(--gr-radius-key);
 }
 
-/* A plain-text control, such as Undo, Fork or Pop out. */
+/* A plain-text control, such as Undo, Fork or Close. */
 .gr-link {
   display: inline-flex;
   align-items: center;

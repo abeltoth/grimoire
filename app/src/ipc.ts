@@ -1,18 +1,13 @@
 import { BrowserWindow, type WebFrameMain, dialog, ipcMain, shell } from 'electron';
-import type { Popout } from '@grimoire/contract';
 import type { ServiceClient } from './service-client';
 import { originOf } from './windows';
 
 /**
  * What a window asks of the app through the preload script: commands for
- * the service, file pickers, its own frame, popouts and links. Anything
+ * the service, file pickers, its own frame and links. Anything
  * not from `origin`, where the UI comes from, is refused.
  */
-export function registerIpc(
-  origin: string,
-  service: () => Promise<ServiceClient>,
-  popOut: (popout: Popout) => void,
-): void {
+export function registerIpc(origin: string, service: () => Promise<ServiceClient>): void {
   const isTrusted = (frame: WebFrameMain | null): boolean =>
     frame !== null && originOf(frame.url) === origin;
 
@@ -50,11 +45,6 @@ export function registerIpc(
     else if (action === 'toggleMaximize' && win.isMaximized()) win.unmaximize();
     else if (action === 'toggleMaximize') win.maximize();
     else if (action === 'close') win.close();
-  });
-
-  ipcMain.on('grimoire:popOut', (event, chatId: unknown) => {
-    if (!isTrusted(event.senderFrame) || typeof chatId !== 'string' || !chatId) return;
-    popOut({ chatId });
   });
 
   // A web page, such as a Jira issue, opens in the system's browser; nothing but https does.

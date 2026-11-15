@@ -10,7 +10,6 @@ describe('LayoutStore', () => {
       beside: null,
       lastUsed: null,
       focus: false,
-      popouts: [],
     });
     const lastUsed = { agent: 'claude-code', settings: { cwd: '/work', mode: 'plan' as const } };
     layout.set({ current: 'a', beside: 'b', lastUsed });
@@ -20,10 +19,8 @@ describe('LayoutStore', () => {
       beside: 'b',
       lastUsed,
       focus: false,
-      popouts: [],
     });
-    const popouts = [{ chatId: 'c', bounds: { x: 10, y: 20, width: 800, height: 900 } }];
-    layout.set({ current: null, beside: null, focus: true, popouts });
-    expect(layout.get()).toEqual({ current: null, beside: null, lastUsed, focus: true, popouts });
+    layout.set({ current: null, beside: null, focus: true });
+    expect(layout.get()).toEqual({ current: null, beside: null, lastUsed, focus: true });
   });
 });

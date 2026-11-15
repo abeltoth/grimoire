@@ -1,139 +1,119 @@
 @if (chat(); as c) {
-  @if (searchingCommands()) {
-    <gr-command-palette [backTo]="wording.say('chapter', 'chat')" [foot]="false" />
-  } @else {
-    @if (!beside()) {
-      @for (part of shell.chatCorners.all(); track part.id) {
-        <ng-container *ngComponentOutlet="part.component; inputs: { chat: c }" />
-      }
+  @if (!beside()) {
+    @for (part of shell.chatCorners.all(); track part.id) {
+      <ng-container *ngComponentOutlet="part.component; inputs: { chat: c }" />
     }
-    <gr-page-header>
-      @if (beside()) {
-        <div class="row">
-          <gr-right-page-tabs [current]="secondChat" />
-        </div>
-      } @else {
-        <div class="row">
-          @if (renaming()) {
-            <input
-              #titleField
-              class="title rename"
-              [attr.aria-label]="wording.say('Chapter title', 'Chat title')"
-              [placeholder]="wording.untitled()"
-              [value]="c.title"
-              (keydown.enter)="finishRenaming(titleField, true, true)"
-              (keydown.escape)="$event.preventDefault(); finishRenaming(titleField, false, true)"
-              (blur)="finishRenaming(titleField, true, false)"
-            />
-          } @else {
-            <h1 class="title" [class.untitled]="!c.title" [attr.title]="c.title || null">
-              {{ c.title || wording.untitled() }}
-            </h1>
-            @if (canRename()) {
-              <button
-                #renameButton
-                type="button"
-                class="icon-button"
-                [attr.aria-label]="wording.say('Rename chapter', 'Rename chat')"
-                (click)="renaming.set(true)"
-              >
-                <gr-icon name="pen" />
-              </button>
-            }
-          }
-          @for (part of shell.afterTitle.all(); track part.id) {
-            <ng-container *ngComponentOutlet="part.component; inputs: { chat: c }" />
-          }
-          <gr-header-badges />
-        </div>
-      }
+  }
+  <gr-page-header>
+    @if (beside()) {
       <div class="row">
-        <div
-          class="meta"
-          role="group"
-          [attr.aria-label]="wording.say('Chapter settings', 'Chat settings')"
-        >
-          @for (setting of settings(); track setting.key; let first = $first) {
-            @if (!first) {
-              <span aria-hidden="true">·</span>
-            }
-            <button
-              #setting
-              type="button"
-              [attr.data-setting]="setting.key"
-              [class.on]="card()?.on === setting.key"
-              aria-haspopup="dialog"
-              [attr.aria-expanded]="card()?.on === setting.key"
-              (click)="toggle(setting.key)"
-            >
-              {{ setting.label }}
-            </button>
-          }
-        </div>
-        <span class="spacer"></span>
-        @if (popout) {
-          <button type="button" class="gr-link" (click)="backInMainWindow()">
-            <gr-icon name="two-pages" />{{
-              wording.say('Back in the book', 'Back to the main window')
-            }}
-          </button>
-        } @else {
-          @if (beside()) {
-            <button type="button" class="gr-link" (click)="list.setAside()">
-              {{ wording.say('Another chapter', 'Another chat') }}
-            </button>
-          } @else if (focus.on()) {
-            <button type="button" class="gr-link" (click)="focus.leave()">
-              <gr-icon name="two-pages" />{{ wording.say('Two pages', 'Leave focus') }}
-            </button>
-          }
-          @if (c.status !== 'blank') {
-            <button
-              type="button"
-              class="gr-link"
-              [attr.title]="
-                wording.say('Into a window of its own, as a loose leaf', 'Into a window of its own')
-              "
-              (click)="list.popOut(c.id)"
-            >
-              <gr-icon name="pop-out" />Pop out
-            </button>
-          }
-        }
-        <button type="button" class="gr-link" (click)="list.close(c.id)">Close</button>
+        <gr-right-page-tabs [current]="secondChat" />
       </div>
-      @if (c.readOnly; as editing) {
-        <div class="row read-only">
-          <p>Read-only — “{{ editing.title || wording.untitled() }}” is editing</p>
-          <button type="button" class="gr-link" (click)="actions.takeOver(c.id)">
-            {{ wording.say('Make this the editing chapter', 'Make this the editing chat') }}
-          </button>
-        </div>
-      }
-    </gr-page-header>
-
-    @if (card(); as open) {
-      <gr-settings-card [chat]="c" [on]="open.on" [anchor]="anchorFor(open.on)" />
-    }
-
-    @if (c.status === 'blank') {
-      <gr-chat-intro
-        [agentName]="catalog.agentName(c.agent)"
-        [cwd]="c.settings.cwd"
-        [mode]="c.settings.mode"
-        [begunAt]="c.begunAt ?? 0"
-        [error]="c.error"
-      />
     } @else {
-      <gr-transcript [chat]="c" (stop)="stop()">
-        @if (c.outdated; as outdated) {
-          <gr-restart-notice [chatId]="c.id" [outdated]="outdated" />
+      <div class="row">
+        @if (renaming()) {
+          <input
+            #titleField
+            class="title rename"
+            [attr.aria-label]="wording.say('Chapter title', 'Chat title')"
+            [placeholder]="wording.untitled()"
+            [value]="c.title"
+            (keydown.enter)="finishRenaming(titleField, true, true)"
+            (keydown.escape)="$event.preventDefault(); finishRenaming(titleField, false, true)"
+            (blur)="finishRenaming(titleField, true, false)"
+          />
+        } @else {
+          <h1 class="title" [class.untitled]="!c.title" [attr.title]="c.title || null">
+            {{ c.title || wording.untitled() }}
+          </h1>
+          @if (canRename()) {
+            <button
+              #renameButton
+              type="button"
+              class="icon-button"
+              [attr.aria-label]="wording.say('Rename chapter', 'Rename chat')"
+              (click)="renaming.set(true)"
+            >
+              <gr-icon name="pen" />
+            </button>
+          }
         }
-        @if (c.status === 'idle' && c.followUps?.length) {
-          <gr-follow-ups [chatId]="c.id" [followUps]="c.followUps!" />
+        @for (part of shell.afterTitle.all(); track part.id) {
+          <ng-container *ngComponentOutlet="part.component; inputs: { chat: c }" />
         }
-      </gr-transcript>
+        <gr-header-badges />
+      </div>
     }
+    <div class="row">
+      <div
+        class="meta"
+        role="group"
+        [attr.aria-label]="wording.say('Chapter settings', 'Chat settings')"
+      >
+        @for (setting of settings(); track setting.key; let first = $first) {
+          @if (!first) {
+            <span aria-hidden="true">·</span>
+          }
+          <button
+            #setting
+            type="button"
+            [attr.data-setting]="setting.key"
+            [class.on]="card()?.on === setting.key"
+            aria-haspopup="dialog"
+            [attr.aria-expanded]="card()?.on === setting.key"
+            (click)="toggle(setting.key)"
+          >
+            {{ setting.label }}
+          </button>
+        }
+      </div>
+      <span class="spacer"></span>
+      @if (beside()) {
+        <button type="button" class="gr-link" (click)="list.setAside()">
+          {{ wording.say('Another chapter', 'Another chat') }}
+        </button>
+      } @else if (focus.on()) {
+        <button type="button" class="gr-link" (click)="focus.leave()">
+          <gr-icon name="two-pages" />{{ wording.say('Two pages', 'Leave focus') }}
+        </button>
+      } @else {
+        <button type="button" class="gr-link" (click)="focus.enter()">
+          <gr-icon name="single-page" />{{ wording.say('Single page', 'Focus') }}
+        </button>
+      }
+      <button type="button" class="gr-link" (click)="list.close(c.id)">Close</button>
+    </div>
+    @if (c.readOnly; as editing) {
+      <div class="row read-only">
+        <p>Read-only — “{{ editing.title || wording.untitled() }}” is editing</p>
+        <button type="button" class="gr-link" (click)="actions.takeOver(c.id)">
+          {{ wording.say('Make this the editing chapter', 'Make this the editing chat') }}
+        </button>
+      </div>
+    }
+  </gr-page-header>
+
+  @if (card(); as open) {
+    <gr-settings-card [chat]="c" [on]="open.on" [anchor]="anchorFor(open.on)" />
+  }
+
+  @if (c.status === 'blank') {
+    <gr-chat-intro
+      [agentName]="catalog.agentName(c.agent)"
+      [cwd]="c.settings.cwd"
+      [mode]="c.settings.mode"
+      [begunAt]="c.begunAt ?? 0"
+      [error]="c.error"
+    />
+  } @else {
+    <gr-transcript [chat]="c" (stop)="stop()">
+      @if (c.outdated; as outdated) {
+        <gr-restart-notice [chatId]="c.id" [outdated]="outdated" />
+      }
+      @if (c.status === 'idle' && c.followUps?.length) {
+        <gr-follow-ups [chatId]="c.id" [followUps]="c.followUps!" />
+      }
+    </gr-transcript>
   }
   <gr-composer
     [chatId]="c.id"

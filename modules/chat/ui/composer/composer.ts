@@ -25,7 +25,6 @@ import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { ChatList } from '@ui/app/core/chat-list';
 import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { ChatActions } from '@ui/app/core/chat-actions';
-import { POPOUT } from '@ui/app/core/popout';
 import { Settings } from '@ui/app/core/settings';
 import { Wording } from '@ui/app/core/wording';
 import { AgentCommands } from '@ui/app/shell/agent-commands';
@@ -64,8 +63,6 @@ export class Composer {
   private readonly drafts = inject(Drafts);
   private readonly focus = inject(Focus);
   private readonly settings = inject(Settings);
-  /** In a popout's window: no right page, so its commands are listed above it. */
-  protected readonly popout = !!inject(POPOUT);
 
   readonly chatId = input.required<string>();
   readonly agent = input.required<AgentId>();
@@ -103,12 +100,12 @@ export class Composer {
   });
   /**
    * Whether the message can go to two models, the second on the right page:
-   * not from the right page or a popout, and from a chat that has
+   * not from the right page, and from a chat that has
    * begun only when the agent can copy it.
    */
   protected readonly canParallel = computed(() => {
     const chat = this.list.all().find((c) => c.id === this.chatId());
-    if (!chat || this.beside() || this.popout || !this.otherModels().length) return false;
+    if (!chat || this.beside() || !this.otherModels().length) return false;
     return chat.status === 'blank' || this.catalog.can(this.agent(), 'fork');
   });
   /** Whether it can go now: a chat that has begun is copied between turns. */

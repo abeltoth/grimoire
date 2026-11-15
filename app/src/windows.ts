@@ -2,8 +2,6 @@ import { BrowserWindow, net } from 'electron';
 import { existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import type { Popout } from '@grimoire/contract';
-import type { Popouts } from './popouts';
 
 export const APP_ORIGIN = 'app://grimoire';
 
@@ -53,12 +51,12 @@ export function serveUi(uiDir: string, request: Request): Promise<Response> {
   return net.fetch(pathToFileURL(file).toString());
 }
 
-/** The main window, or a popout's: a window on one chat. */
-export function createWindow(setup: WindowSetup, size: WindowSize, popout?: Popout): BrowserWindow {
+/** Grimoire's window. */
+export function createWindow(setup: WindowSetup, size: WindowSize): BrowserWindow {
   const isMac = process.platform === 'darwin';
   const win = new BrowserWindow({
     ...size,
-    minWidth: popout ? 560 : 960,
+    minWidth: 960,
     minHeight: 600,
     show: false,
     title: 'Grimoire',
@@ -82,38 +80,29 @@ export function createWindow(setup: WindowSetup, size: WindowSize, popout?: Popo
   });
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   if (!setup.headless) win.once('ready-to-show', () => win.show());
-  const page = setup.devUrl ?? `${APP_ORIGIN}/index.html`;
-  void win.loadURL(popout ? `${page}?popout=${encodeURIComponent(popout.chatId)}` : page);
+  void win.loadURL(setup.devUrl ?? `${APP_ORIGIN}/index.html`);
   return win;
 }
 
-/** The main window: the one that holds every chat not popped out. Its popouts open again with it, and close with it. */
+/** The main window, which holds every open chat. */
 export class MainWindow {
   private win: BrowserWindow | undefined;
 
   constructor(
     private readonly setup: WindowSetup,
-    private readonly popouts: Popouts,
     private readonly create: typeof createWindow = createWindow,
   ) {}
 
-  get current(): BrowserWindow | undefined {
-    return this.win;
-  }
-
   open(): BrowserWindow {
-    this.popouts.mainOpens();
     // Captures use the design's 1920×1080 frame.
     const size = this.setup.capture
       ? { width: 1920, height: 1080, useContentSize: true, enableLargerThanScreen: true }
       : { width: 1600, height: 960 };
     const win = this.create(this.setup, size);
     this.win = win;
-    win.on('close', () => this.popouts.closeWithMain());
     win.on('closed', () => {
       if (this.win === win) this.win = undefined;
     });
-    if (!this.setup.headless) this.popouts.reopen();
     return win;
   }
 
@@ -126,15 +115,8 @@ export class MainWindow {
     }
   }
 
-  /**
-   * Another profile is in use: the last one's popouts close, kept in its
-   * layout as they were, and the main window opens again on the new one's
-   * chats, with the popouts it had.
-   */
+  /** Another profile is in use: the main window opens again on its chats. */
   openProfile(): void {
-    this.popouts.forget();
-    if (!this.win) return;
-    this.win.webContents.reload();
-    if (!this.setup.headless) this.popouts.reopen();
+    this.win?.webContents.reload();
   }
 }

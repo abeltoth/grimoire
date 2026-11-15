@@ -1,4 +1,3 @@
-import type { Popout } from '@grimoire/contract';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { registerIpc } from './ipc';
 import type { ServiceClient } from './service-client';
@@ -33,7 +32,6 @@ const send = (channel: string, event: unknown, ...args: unknown[]) =>
   electron.handlers.get(channel)!(event, ...args);
 
 let requests: unknown[][];
-let popouts: Popout[];
 beforeAll(() => {
   const client = {
     request: async (...args: unknown[]) => {
@@ -41,15 +39,10 @@ beforeAll(() => {
       return 'answer';
     },
   } as unknown as ServiceClient;
-  registerIpc(
-    ORIGIN,
-    async () => client,
-    (popout) => popouts.push(popout),
-  );
+  registerIpc(ORIGIN, async () => client);
 });
 beforeEach(() => {
   requests = [];
-  popouts = [];
   electron.opened.length = 0;
 });
 
@@ -68,10 +61,8 @@ describe('registerIpc', () => {
     await expect(
       send('grimoire:invoke', { senderFrame: null, sender: {} }, 'chats.list', {}),
     ).rejects.toThrow('Untrusted sender');
-    send('grimoire:popOut', untrusted, 'chat');
     send('grimoire:openExternal', untrusted, 'https://example.com');
     expect(requests).toEqual([]);
-    expect(popouts).toEqual([]);
     expect(electron.opened).toEqual([]);
   });
 
@@ -82,13 +73,6 @@ describe('registerIpc', () => {
   it('gives the folder or files picked', async () => {
     expect(await send('grimoire:chooseFolder', trusted)).toBe('/picked');
     expect(await send('grimoire:chooseFiles', trusted)).toEqual(['/picked']);
-  });
-
-  it('pops a chat out only by its id', () => {
-    send('grimoire:popOut', trusted, '');
-    send('grimoire:popOut', trusted, 7);
-    send('grimoire:popOut', trusted, 'chat');
-    expect(popouts).toEqual([{ chatId: 'chat' }]);
   });
 
   it('opens only https pages in the browser', () => {

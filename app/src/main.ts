@@ -5,10 +5,9 @@
 import { app, BrowserWindow, protocol } from 'electron';
 import path from 'node:path';
 import { registerIpc } from './ipc';
-import { Popouts } from './popouts';
 import { Service } from './service';
 import { runCapture, runSmokeTest } from './smoke';
-import { MainWindow, type WindowSetup, createWindow, serveUi, uiOrigin } from './windows';
+import { MainWindow, type WindowSetup, serveUi, uiOrigin } from './windows';
 
 const devUrl = process.env['GRIMOIRE_DEV_URL'];
 const smoke = process.argv.includes('--smoke');
@@ -52,20 +51,9 @@ const service = new Service(
   },
   () => mainWindow.openProfile(),
 );
-const popouts: Popouts = new Popouts(
-  setup,
-  () => service.get(),
-  createWindow,
-  () => mainWindow.current,
-);
-const mainWindow: MainWindow = new MainWindow(setup, popouts);
+const mainWindow: MainWindow = new MainWindow(setup);
 
-registerIpc(
-  uiOrigin(devUrl),
-  () => service.get(),
-  (popout) => popouts.open(popout),
-);
-app.on('before-quit', () => popouts.appQuits());
+registerIpc(uiOrigin(devUrl), () => service.get());
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();

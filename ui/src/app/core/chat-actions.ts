@@ -191,13 +191,12 @@ export class ChatActions {
 
   /**
    * Forks the chat after the turn one of your messages began, and turns
-   * to the variant; from a popout, it's popped out as one too.
+   * to the variant.
    */
   async fork(id: string, entryId: string): Promise<void> {
     this.list.update(id, ({ error: _, ...c }) => c);
     try {
       const chat = await this.bridge.invoke('agents.fork', { chatId: id, entryId });
-      if (this.list.popout) return this.bridge.popOut(chat.id);
       this.list.all.update((all) => [...all.filter((c) => c.id !== chat.id), fromOpenChat(chat)]);
       this.list.open(chat.id);
     } catch (error) {

@@ -147,7 +147,7 @@ describe('files.providers', () => {
       await fixture.whenStable();
       expect(openIn()).toBeDefined();
 
-      [...el.querySelectorAll<HTMLButtonElement>('gr-right-page .gr-link')]
+      [...el.querySelectorAll<HTMLButtonElement>('gr-page-header .gr-link')]
         .find((link) => link.textContent!.includes('Single page'))!
         .click();
       await fixture.whenStable();

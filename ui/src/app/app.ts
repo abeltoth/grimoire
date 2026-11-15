@@ -3,7 +3,6 @@ import { Component, computed, effect, inject } from '@angular/core';
 import { DesignSettings } from '../design-system/design-settings';
 import { GRIMOIRE_BRIDGE } from './core/bridge';
 import { ChatList } from './core/chat-list';
-import { POPOUT } from './core/popout';
 import { ServiceStatus } from './core/service-status';
 import { Wording } from './core/wording';
 import { Frame } from './shell/window/frame';
@@ -27,7 +26,7 @@ import { WindowControls } from './shell/window/window-controls';
  * module registers, or the command palette of the chat on the right
  * page. Registered commands run from their
  * shortcuts. In focus mode the chat's page lies alone in the middle of
- * the desk; so does a popout's, in a window of its own.
+ * the desk.
  */
 @Component({
   selector: 'gr-root',
@@ -62,18 +61,14 @@ export class App {
   protected readonly wording = inject(Wording);
   protected readonly focus = inject(Focus);
   private readonly rightPage = inject(RightPageState);
-  /** The chat this window holds as a popout; null in the main window. */
-  protected readonly popout = inject(POPOUT);
-  /** The page on the desk without the book's title bar, chat tabs and page tabs: in focus mode, and in a popout. */
-  protected readonly bare = computed(() => !!this.popout || this.focus.on());
+  /** The page on the desk without the book's title bar, chat tabs and page tabs: in focus mode. */
+  protected readonly bare = computed(() => this.focus.on());
   /**
-   * The chat's page alone: in a popout, and in focus mode until the right
+   * The chat's page alone: in focus mode until the right
    * page is turned to the command palette, the approvals or a page
    * tab's page, which bring it back beside the chat while they show.
    */
-  protected readonly single = computed(
-    () => !!this.popout || (this.focus.on() && !this.rightPage.turned()),
-  );
+  protected readonly single = computed(() => this.focus.on() && !this.rightPage.turned());
   /** Whether the command palette shows on this page: that of the chat on the right page. */
   protected readonly paletteHere = computed(() => {
     const search = this.rightPage.commandPalette();
@@ -96,18 +91,9 @@ export class App {
       });
       onCleanup(remove);
     });
-
-    // A popout's window is named for its chat, so you can tell it from the main window.
-    effect(() => {
-      if (!this.popout) return;
-      const title = this.list.current()?.title || this.wording.untitled();
-      document.title = `${title} · Grimoire`;
-    });
   }
 
   protected runShortcut(event: KeyboardEvent): void {
-    // The main window's shortcuts are its own.
-    if (this.popout) return;
     const command = this.registry.commands
       .all()
       .find(

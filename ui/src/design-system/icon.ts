@@ -16,7 +16,6 @@ export type IconName =
   | 'close'
   | 'pen'
   | 'tag'
-  | 'pop-out'
   | 'attach'
   | 'parallel'
   | 'hourglass'

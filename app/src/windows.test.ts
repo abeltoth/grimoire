@@ -3,7 +3,6 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Popouts } from './popouts';
 import { MainWindow, type WindowSetup, originOf, serveUi, uiOrigin } from './windows';
 
 vi.mock('electron', () => ({
@@ -54,7 +53,14 @@ describe('serveUi', () => {
 class FakeWindow {
   readonly handlers = new Map<string, () => void>();
   reloads = 0;
+  focused = 0;
   readonly webContents = { reload: () => this.reloads++ };
+  isMinimized() {
+    return false;
+  }
+  focus() {
+    this.focused++;
+  }
   constructor(readonly size: object) {}
   on(event: string, handler: () => void) {
     this.handlers.set(event, handler);
@@ -65,18 +71,10 @@ class FakeWindow {
 }
 
 describe('MainWindow', () => {
-  let calls: string[];
   let created: FakeWindow[];
-  const popouts = {
-    mainOpens: () => calls.push('mainOpens'),
-    closeWithMain: () => calls.push('closeWithMain'),
-    reopen: () => calls.push('reopen'),
-    forget: () => calls.push('forget'),
-  } as unknown as Popouts;
   const main = (setup: Partial<WindowSetup> = {}) =>
     new MainWindow(
       { preload: '', devUrl: undefined, headless: false, capture: false, ...setup },
-      popouts,
       (_setup, size) => {
         const win = new FakeWindow(size);
         created.push(win);
@@ -84,22 +82,20 @@ describe('MainWindow', () => {
       },
     );
   beforeEach(() => {
-    calls = [];
     created = [];
   });
 
-  it('opens with its popouts, and closes with them', () => {
+  it('opens, and forgets the window once it has closed', () => {
     const window = main();
     window.open();
     expect(created[0]!.size).toEqual({ width: 1600, height: 960 });
-    expect(calls).toEqual(['mainOpens', 'reopen']);
-    created[0]!.happen('close');
+    window.focus();
     created[0]!.happen('closed');
-    expect(calls.at(-1)).toBe('closeWithMain');
-    expect(window.current).toBeUndefined();
+    window.focus();
+    expect(created[0]!.focused).toBe(1);
   });
 
-  it("opens a capture on the design's frame, without popouts", () => {
+  it("opens a capture on the design's frame", () => {
     main({ headless: true, capture: true }).open();
     expect(created[0]!.size).toEqual({
       width: 1920,
@@ -107,7 +103,6 @@ describe('MainWindow', () => {
       useContentSize: true,
       enableLargerThanScreen: true,
     });
-    expect(calls).toEqual(['mainOpens']);
   });
 
   it("keeps the window opened since, when an older one's closed", () => {
@@ -115,17 +110,15 @@ describe('MainWindow', () => {
     window.open();
     window.open();
     created[0]!.happen('closed');
-    expect(window.current).toBe(created[1]);
+    window.focus();
+    expect(created[1]!.focused).toBe(1);
   });
 
-  it("opens again on another profile's chats and popouts", () => {
+  it("opens again on another profile's chats", () => {
     const window = main();
     window.openProfile();
-    expect(calls).toEqual(['forget']);
     window.open();
-    calls = [];
     window.openProfile();
     expect(created[0]!.reloads).toBe(1);
-    expect(calls).toEqual(['forget', 'reopen']);
   });
 });

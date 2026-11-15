@@ -1,4 +1,3 @@
-import type { ChatId } from './agents';
 import type { CommandName, CommandRequest, CommandResponse } from './commands';
 import type { EventName, EventPayload } from './events';
 
@@ -23,16 +22,6 @@ export interface GrimoireBridge {
   /** Where a dropped file is on disk; empty when it isn't a file on disk, such as a picture dragged from a web page. */
   pathOf(file: File): string;
   readonly window: WindowControls;
-  /**
-   * Pops a chat out of the main window into a window of its own, a popout,
-   * or brings its window to the front when it's out already.
-   */
-  popOut(chatId: ChatId): void;
-  /**
-   * Tells the main window when a popout's window closes, so its chat comes
-   * back. Returns a function that stops listening.
-   */
-  onPopoutClosed(listener: (chatId: ChatId) => void): () => void;
   /** Opens a web page in the system's browser; only https addresses open. */
   openExternal(url: string): void;
   /** Draws everything in the window larger or smaller by a factor, 1 as drawn; the windows share it. */

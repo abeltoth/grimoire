@@ -4,7 +4,6 @@ import type { OpenChat } from '@grimoire/contract';
 import { fakeBridge } from '../../testing/app-testing';
 import { GRIMOIRE_BRIDGE } from './bridge';
 import { ChatList } from './chat-list';
-import { POPOUT } from './popout';
 
 const chat = (id: string, title = id): OpenChat => ({
   id,
@@ -20,17 +19,11 @@ const chat = (id: string, title = id): OpenChat => ({
   copied: [],
 });
 
-async function list(
-  setup: (fake: ReturnType<typeof fakeBridge>) => void = () => {},
-  popout: string | null = null,
-) {
+async function list(setup: (fake: ReturnType<typeof fakeBridge>) => void = () => {}) {
   const fake = fakeBridge();
   setup(fake);
   TestBed.configureTestingModule({
-    providers: [
-      { provide: GRIMOIRE_BRIDGE, useValue: fake.bridge },
-      { provide: POPOUT, useValue: popout },
-    ],
+    providers: [{ provide: GRIMOIRE_BRIDGE, useValue: fake.bridge }],
   });
   const chats = TestBed.inject(ChatList);
   await TestBed.inject(ApplicationRef).whenStable();
@@ -44,9 +37,9 @@ describe('ChatList', () => {
   it('opens the chats the hub has open, on the pages you were on', async () => {
     const { chats, ids } = await list(({ answers }) => {
       answers['agents.openChats'] = () => [chat('c1'), chat('c2'), chat('c3')];
-      answers['layout.get'] = () => ({ current: 'c2', beside: 'c3', popouts: [{ chatId: 'c1' }] });
+      answers['layout.get'] = () => ({ current: 'c2', beside: 'c3' });
     });
-    expect(ids()).toEqual(['c2', 'c3']);
+    expect(ids()).toEqual(['c1', 'c2', 'c3']);
     expect(chats.currentId()).toBe('c2');
     expect(chats.besideId()).toBe('c3');
   });
@@ -106,34 +99,6 @@ describe('ChatList', () => {
     expect(chats.settingsCard()).toEqual({ id: 'c1', on: 'model' });
     chats.open('c2');
     expect(chats.settingsCard()).toBeNull();
-  });
-
-  it('pops a chat out, and takes it back when its window closes', async () => {
-    const { chats, fake, ids } = await list(({ answers }) => {
-      answers['agents.openChats'] = () => [chat('c1'), chat('c2')];
-      answers['layout.get'] = () => ({ current: 'c1' });
-    });
-    chats.popOut('c2');
-    expect(ids()).toEqual(['c1']);
-    expect(fake.bridge.popOut).toHaveBeenCalledWith('c2');
-    fake.closePopout('c2');
-    await TestBed.inject(ApplicationRef).whenStable();
-    await new Promise((resolve) => setTimeout(resolve));
-    expect(ids()).toEqual(['c1', 'c2']);
-    expect(chats.currentId()).toBe('c2');
-  });
-
-  it("holds only its chat in a popout's window", async () => {
-    const popout = await list(({ answers }) => {
-      answers['agents.openChats'] = () => [chat('c1'), chat('c2')];
-    }, 'c2');
-    expect(popout.ids()).toEqual(['c2']);
-    expect(popout.chats.currentId()).toBe('c2');
-  });
-
-  it("closes a popout's window when its chat isn't open", async () => {
-    const gone = await list(() => {}, 'c9');
-    expect(gone.fake.bridge.window.close).toHaveBeenCalled();
   });
 
   it('opens a saved chat, in your home folder when it names none', async () => {

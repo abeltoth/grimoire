@@ -1,5 +1,4 @@
 import { type EnvironmentProviders, effect, inject } from '@angular/core';
-import { POPOUT } from '@ui/app/core/popout';
 import { RightPageState } from '@ui/app/shell/right-page/right-page-state';
 import { Focus } from '@ui/app/shell/focus';
 import { provideShellEntries } from '@ui/app/shell/shell-registry';
@@ -16,7 +15,6 @@ export function provideFiles(): EnvironmentProviders {
 
     const rightPage = inject(RightPageState);
     const focus = inject(Focus);
-    const popout = inject(POPOUT);
     const views = inject(FilesViews);
     const open = (path: string) => {
       rightPage.showPage('files');
@@ -25,7 +23,7 @@ export function provideFiles(): EnvironmentProviders {
       const cwd = views.cwd();
       void views.open(views.of(cwd), inFull(path, cwd), true);
     };
-    effect(() => shell.openFile.set(popout || focus.on() ? undefined : open));
+    effect(() => shell.openFile.set(focus.on() ? undefined : open));
   });
 }
 

@@ -17,7 +17,6 @@ const NAMES: IconName[] = [
   'close',
   'pen',
   'tag',
-  'pop-out',
   'attach',
   'parallel',
   'hourglass',

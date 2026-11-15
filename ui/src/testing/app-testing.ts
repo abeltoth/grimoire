@@ -24,7 +24,6 @@ const ping: PingResult = {
 /** A bridge to a fake service: answers commands and lets tests send events. */
 export function fakeBridge(overrides: Partial<GrimoireBridge> = {}) {
   const listeners = new Map<string, Set<(payload: unknown) => void>>();
-  const popoutListeners = new Set<(chatId: string) => void>();
   const calls: { command: string; request: unknown }[] = [];
   const answers: Partial<Record<CommandName, (request: never) => unknown>> = {
     'core.ping': () => ping,
@@ -86,20 +85,13 @@ export function fakeBridge(overrides: Partial<GrimoireBridge> = {}) {
     chooseFolder: vi.fn(async () => 'C:/Users/me/git/new'),
     chooseFiles: vi.fn(async (): Promise<string[]> => []),
     pathOf: vi.fn(() => ''),
-    popOut: vi.fn(),
-    onPopoutClosed: vi.fn((listener: (chatId: string) => void) => {
-      popoutListeners.add(listener);
-      return () => popoutListeners.delete(listener);
-    }),
     openExternal: vi.fn(),
     zoom: vi.fn(),
     ...overrides,
   };
   const emit = <K extends EventName>(event: K, payload: EventPayload<K>) =>
     listeners.get(event)?.forEach((listener) => listener(payload));
-  /** A popout's window closed. */
-  const closePopout = (chatId: string) => popoutListeners.forEach((listener) => listener(chatId));
-  return { bridge, calls, emit, answers, closePopout };
+  return { bridge, calls, emit, answers };
 }
 
 /** A fake service behind the bridge, for a component or service tested on its own, without the app. */

@@ -4,19 +4,16 @@ import { AgentCatalog } from './agent-catalog';
 import { GRIMOIRE_BRIDGE } from './bridge';
 import { type Chat, type ChatStart, type Setting, appendText, fromOpenChat, upsert } from './chat';
 import { NewChats } from './new-chats';
-import { POPOUT } from './popout';
 
 /**
  * The open chats, as the window sees them: a mirror of the agent hub's
  * open chats, kept current by its events. The hub remembers
- * which chats are open, and the layout which one you were on, so the main window
+ * which chats are open, and the layout which one you were on, so the window
  * opens where you left it.
  */
 @Injectable({ providedIn: 'root' })
 export class ChatList {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
-  /** The chat this window holds as a popout; null in the main window. */
-  readonly popout = inject(POPOUT);
   private readonly newChats = inject(NewChats);
   private readonly catalog = inject(AgentCatalog);
 
@@ -30,8 +27,6 @@ export class ChatList {
   readonly beside = computed(() => this.all().find((chat) => chat.id === this.besideId()));
 
   constructor() {
-    // A popout's window closed: its chat comes back into the main window.
-    if (!this.popout) this.bridge.onPopoutClosed((chatId) => void this.comeBack(chatId));
     this.listen('agents.entry', ({ chatId, entry }) =>
       this.update(chatId, (c) => ({ ...c, entries: upsert(c.entries, entry) })),
     );
@@ -139,14 +134,14 @@ export class ChatList {
     this.all.update((all) => [...all, fromOpenChat(chat)]);
   }
 
-  /** Whether a chat is open in the main window. */
+  /** Whether a chat is open. */
   has(id: string): boolean {
     return !!this.find(id);
   }
 
   /**
    * Closes a chat and turns to the next one, or to a blank page. The
-   * chat itself stays with the agent. A popout's window closes with it.
+   * chat itself stays with the agent.
    */
   async close(id: string): Promise<void> {
     const chat = this.find(id);
@@ -154,18 +149,6 @@ export class ChatList {
     this.takeOut(id);
     if (chat.status !== 'blank')
       await this.bridge.invoke('agents.close', { chatId: id }).catch(() => {});
-    if (this.popout) this.bridge.window.close();
-  }
-
-  /**
-   * Pops a chat that has begun out of the main window, into a window of its
-   * own: a popout. It's out of the main window until that window closes.
-   */
-  popOut(id: string): void {
-    const chat = this.find(id);
-    if (!chat || chat.status === 'blank' || this.popout) return;
-    this.takeOut(id);
-    this.bridge.popOut(id);
   }
 
   /** Opens a saved chat, or turns to it when it's open already. */
@@ -218,7 +201,7 @@ export class ChatList {
     return blank;
   }
 
-  /** Takes a chat out of the main window; when it was open, turns to the next one, or a blank page. */
+  /** Takes a chat out of the open chats; when it was open, turns to the next one, or a blank page. */
   private takeOut(id: string): void {
     const all = this.all();
     const index = all.findIndex((chat) => chat.id === id);
@@ -226,26 +209,15 @@ export class ChatList {
     const rest = all.filter((chat) => chat.id !== id);
     this.all.set(rest);
     if (this.besideId() === id) this.setAside();
-    if (this.currentId() === id && !this.popout) {
+    if (this.currentId() === id) {
       const next = rest[Math.min(index, rest.length - 1)];
       if (next) this.turnTo(next.id);
       else this.newChat();
     }
   }
 
-  /** A popout's chat comes back into the main window, open, unless it was closed. */
-  private async comeBack(id: string): Promise<void> {
-    if (this.find(id)) return this.turnTo(id);
-    const open = await this.bridge.invoke('agents.openChats', {}).catch(() => []);
-    const chat = open?.find((c) => c.id === id);
-    if (!chat || this.find(id)) return;
-    this.all.update((all) => [...all, fromOpenChat(chat)]);
-    this.turnTo(id);
-  }
-
   /** Opens the chats the hub has open, on the one you were on; else a blank page. */
   private async restore(): Promise<void> {
-    if (this.popout) return this.restorePopout(this.popout);
     try {
       // A blank page begins as the settings say, so they're asked for too.
       const [chats, layout] = await Promise.all([
@@ -253,9 +225,7 @@ export class ChatList {
         this.bridge.invoke('layout.get', {}),
         this.newChats.ready(),
       ]);
-      // The chats popped out are in windows of their own.
-      const popouts = new Set((layout?.popouts ?? []).map((popout) => popout.chatId));
-      this.all.set((chats ?? []).filter((chat) => !popouts.has(chat.id)).map(fromOpenChat));
+      this.all.set((chats ?? []).map(fromOpenChat));
       this.newChats.restored(layout?.lastUsed ?? null);
       const current = layout?.current;
       const beside = layout?.beside;
@@ -267,17 +237,8 @@ export class ChatList {
     this.newChat();
   }
 
-  /** A popout's window holds its one chat; it closes when the chat isn't open. */
-  private async restorePopout(id: string): Promise<void> {
-    const chats = await this.bridge.invoke('agents.openChats', {}).catch(() => []);
-    const chat = chats?.find((c) => c.id === id);
-    if (!chat) return this.bridge.window.close();
-    this.all.set([fromOpenChat(chat)]);
-    this.currentId.set(id);
-  }
-
   /**
-   * Turns to a chat and remembers it, so the main window opens there next time.
+   * Turns to a chat and remembers it, so the window opens there next time.
    * Turning to the chat on the right page swaps the two pages.
    */
   private turnTo(id: string): void {
@@ -286,7 +247,6 @@ export class ChatList {
     if (id === this.besideId())
       this.setBeside(was && was !== id && this.find(was) ? was : undefined);
     this.currentId.set(id);
-    if (this.popout) return;
     const chat = this.find(id);
     this.bridge
       .invoke('layout.set', { current: chat && chat.status !== 'blank' ? id : null })

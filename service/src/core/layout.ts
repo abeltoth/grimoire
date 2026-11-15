@@ -3,9 +3,9 @@ import type { Layout } from '@grimoire/contract';
 import type { CommandRegistry } from '../registry';
 import { activeProfile } from './app-state';
 
-const DEFAULTS: Layout = { current: null, beside: null, lastUsed: null, focus: false, popouts: [] };
+const DEFAULTS: Layout = { current: null, beside: null, lastUsed: null, focus: false };
 
-/** How you left the main window in the profile in use, as `profile` says, kept in SQLite. */
+/** How you left the window in the profile in use, as `profile` says, kept in SQLite. */
 export class LayoutStore {
   constructor(
     private readonly db: DatabaseSync,

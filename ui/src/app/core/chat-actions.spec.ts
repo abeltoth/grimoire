@@ -6,7 +6,6 @@ import { GRIMOIRE_BRIDGE } from './bridge';
 import { ChatActions } from './chat-actions';
 import { ChatList } from './chat-list';
 import { NewChats } from './new-chats';
-import { POPOUT } from './popout';
 
 const chat = (id: string, title = id): OpenChat => ({
   id,
@@ -26,10 +25,7 @@ async function actions(setup: (fake: ReturnType<typeof fakeBridge>) => void = ()
   const fake = fakeBridge();
   setup(fake);
   TestBed.configureTestingModule({
-    providers: [
-      { provide: GRIMOIRE_BRIDGE, useValue: fake.bridge },
-      { provide: POPOUT, useValue: null },
-    ],
+    providers: [{ provide: GRIMOIRE_BRIDGE, useValue: fake.bridge }],
   });
   const act = TestBed.inject(ChatActions);
   const list = TestBed.inject(ChatList);
