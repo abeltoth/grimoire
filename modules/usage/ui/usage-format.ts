@@ -26,6 +26,13 @@ export const hourName = (at: number) => new Date(at).toLocaleTimeString([], { ho
 export const time = (at: number) =>
   new Date(at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
+/** A day by its month, such as "Nov 5". */
+export const monthDay = (at: number) =>
+  new Date(at).toLocaleDateString([], { month: 'short', day: 'numeric' });
+
+/** A week by the day it began, such as "Week of Nov 5". */
+export const weekOf = (at: number) => `Week of ${monthDay(at)}`;
+
 /** A day, such as "Thursday, November 5". */
 export function dayName(day: string): string {
   const [year, month, date] = day.split('-').map(Number);

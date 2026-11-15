@@ -46,15 +46,24 @@ describe('UsageLines', () => {
 });
 
 describe('UsageLines guides', () => {
-  it('draws dashed guides named in the legend, and no table when told not to', async () => {
+  it('draws dashed guides named by their ends, a dot on each reading and the ground shaded, and no table when told not to', async () => {
     const fixture = TestBed.createComponent(UsageLines);
     fixture.componentRef.setInput('caption', 'The week');
     fixture.componentRef.setInput('series', [
-      { name: 'This week', color: 'var(--gr-chart-1)', points: [{ at: 1_000, value: 10 }] },
+      {
+        name: 'This week',
+        color: 'var(--gr-chart-1)',
+        points: [
+          { at: 1_000, value: 10 },
+          { at: 2_000, value: 15 },
+          { at: 3_000, value: 20 },
+        ],
+      },
     ]);
     fixture.componentRef.setInput('guides', [
       {
         name: 'Even pace',
+        label: 'even pace',
         color: 'var(--gr-ink-soft)',
         from: { at: 0, value: 0 },
         to: { at: 4_000, value: 100 },
@@ -64,12 +73,17 @@ describe('UsageLines guides', () => {
     fixture.componentRef.setInput('to', 4_000);
     fixture.componentRef.setInput('breakAfter', 1_500);
     fixture.componentRef.setInput('tabled', false);
+    fixture.componentRef.setInput('dots', true);
+    fixture.componentRef.setInput('area', true);
     fixture.componentRef.setInput('when', (at: number) => `at ${at}`);
     await fixture.whenStable();
     const el = fixture.nativeElement as HTMLElement;
 
-    expect(texts(el, '.legend li')).toEqual(['This week', 'Even pace']);
+    expect(el.querySelector('.legend')).toBeNull();
+    expect(texts(el, '.guide-label')).toEqual(['even pace']);
     expect(el.querySelectorAll('path.guide')).toHaveLength(1);
+    expect(el.querySelectorAll('path.area')).toHaveLength(1);
+    expect(el.querySelectorAll('circle.dot')).toHaveLength(3);
     expect(el.querySelector('.table-view')).toBeNull();
   });
 });

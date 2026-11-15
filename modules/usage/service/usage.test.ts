@@ -65,16 +65,6 @@ describe('Usage', () => {
     await expect(usage.readAll()).rejects.toThrow('Too many requests');
   });
 
-  it('keeps to one limit, and thins a long history, when asked', async () => {
-    const { usage } = setUp();
-    for (const at of [0, 1000, 2000, 61_000]) {
-      vi.setSystemTime(at);
-      await usage.plan('fake');
-    }
-    expect(usage.history('fake', 0, 'week')).toEqual([]);
-    expect(usage.history('fake', 0, 'session', 60_000).map(({ at }) => at)).toEqual([2000, 61_000]);
-  });
-
   it('has no plan limits, nor where they went, for an agent without a plan', async () => {
     const { usage } = setUp();
     expect(await usage.plan('plain')).toBeNull();

@@ -89,11 +89,9 @@
               [breakAfter]="weekApart"
               [step]="true"
               [tabled]="false"
+              [area]="true"
               [when]="readingName"
             />
-            @if (session.forecast; as forecast) {
-              <p class="forecast">{{ forecast }}</p>
-            }
           }
           @if (plan.chart; as chart) {
             <gr-usage-lines
@@ -107,11 +105,9 @@
               [breakAfter]="weekApart"
               [step]="true"
               [tabled]="false"
+              [area]="true"
               [when]="readingName"
             />
-            @if (chart.forecast; as forecast) {
-              <p class="forecast">{{ forecast }}</p>
-            }
             @if (chart.sessions.length) {
               <gr-usage-sessions
                 caption="Sessions"
@@ -123,17 +119,16 @@
           }
           @if (plan.weeks; as weeks) {
             <gr-usage-lines
-              [caption]="'Last ' + weeksBack + ' weeks'"
+              caption="Weeks"
               [series]="weeks.lines"
-              [guides]="weeks.guides"
               [from]="weeks.from"
               [to]="weeks.to"
               [ticks]="weeks.ticks"
-              [marks]="weeks.marks"
-              [breakAfter]="weekApart"
-              [step]="true"
+              [breakAfter]="weekGap"
               [tabled]="false"
-              [when]="readingName"
+              [area]="true"
+              [dots]="true"
+              [when]="weekOf"
             />
           }
         } @else {

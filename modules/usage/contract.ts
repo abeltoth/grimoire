@@ -77,22 +77,26 @@ export interface UsageSpan {
   sources: { kind: 'agent' | 'skill' | 'plugin' | 'mcp'; name: string; share: number }[];
 }
 
+/** A week of the plan's limit for all models, and how much of it was used. */
+export interface UsageWeek {
+  /** When it started afresh, in ms since the epoch. */
+  start: number;
+  /** When it starts afresh again: in the future for the week under way. */
+  end: number;
+  /** The most of it read used, in percent: by its end, how much of it was used. */
+  used: number;
+}
+
 declare module '@grimoire/contract' {
   interface CommandMap {
     /** The agent's plan limits, read now and kept; null when it has no plan. */
     'usage.plan': { request: { agent: AgentId }; response: PlanUsage | null };
-    /**
-     * Each reading of the agent's plan limits kept since a time, oldest
-     * first: those of the account signed in now. With `span`, only that
-     * limit's; with `every`, the last of each limit in each stretch that
-     * long, in ms, so a long time back stays small.
-     */
-    'usage.history': {
-      request: { agent: AgentId; since: number; span?: UsageWindow['span']; every?: number };
-      response: UsageReading[];
-    };
+    /** Each reading of the agent's plan limits kept since a time, oldest first: those of the account signed in now. */
+    'usage.history': { request: { agent: AgentId; since: number }; response: UsageReading[] };
     /** What the agent's own scan says took your plan's usage; null where it has none. */
     'usage.breakdown': { request: { agent: AgentId }; response: UsageBreakdown | null };
+    /** Every week of the plan's limit for all models kept, oldest first: those of the account signed in now. */
+    'usage.weeks': { request: { agent: AgentId }; response: UsageWeek[] };
   }
 
   interface EventMap {

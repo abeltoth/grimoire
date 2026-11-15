@@ -1,12 +1,9 @@
 <figure class="chart">
   <figcaption>{{ caption() }}</figcaption>
-  @if (series().length + guides().length > 1) {
+  @if (series().length > 1) {
     <ul class="legend">
       @for (each of series(); track each.name) {
         <li><span class="line-key" [style.background]="each.color"></span>{{ each.name }}</li>
-      }
-      @for (each of guides(); track each.name) {
-        <li><span class="guide-key" [style.color]="each.color"></span>{{ each.name }}</li>
       }
     </ul>
   }
@@ -45,10 +42,23 @@
       <line class="axis" [attr.x1]="left" [attr.x2]="right" [attr.y1]="base" [attr.y2]="base" />
 
       @for (each of drawn.guides; track each.guide.name) {
-        <path class="guide" [attr.d]="each.d" [style.stroke]="each.guide.color" />
+        <path
+          class="guide"
+          [attr.d]="each.d"
+          [style.stroke]="each.guide.color"
+          [attr.aria-label]="each.guide.name"
+        />
+        @if (each.guide.label) {
+          <text class="guide-label" [attr.x]="each.end.x" [attr.y]="each.end.y - 6">
+            {{ each.guide.label }}
+          </text>
+        }
       }
 
       @for (line of drawn.lines; track line.series.name) {
+        @for (d of line.areas; track $index) {
+          <path class="area" [attr.d]="d" [style.fill]="line.series.color" />
+        }
         @for (d of line.lines; track $index) {
           <path class="line" [attr.d]="d" [style.stroke]="line.series.color" />
         }
@@ -61,7 +71,8 @@
             [style.fill]="line.series.color"
           />
         }
-        @if (line.end; as end) {
+        @if (line.end && !dots()) {
+          @let end = line.end;
           <circle
             class="dot"
             [attr.cx]="end.x"

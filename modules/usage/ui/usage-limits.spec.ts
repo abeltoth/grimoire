@@ -64,17 +64,17 @@ describe('usage-limits', () => {
       ],
       at: now,
     });
-    answers['usage.history'] = ({ span }: { span?: string }): UsageReading[] =>
-      span === 'week'
-        ? [
-            { at: now - 9 * 24 * hour, span: 'week', used: 100, resetsAt: end - 7 * 24 * hour },
-            { at: now - 2 * hour, span: 'week', used: 20, resetsAt: end },
-          ]
-        : [
-            { at: now - 48 * hour, span: 'week', used: 10, resetsAt: end },
-            { at: now - 2 * hour, span: 'session', used: 40, resetsAt: session },
-            { at: now - 2 * hour, span: 'week', used: 20, resetsAt: end },
-          ];
+    answers['usage.history'] = (): UsageReading[] => [
+      { at: now - 48 * hour, span: 'week', used: 10, resetsAt: end },
+      { at: now - 2 * hour, span: 'session', used: 40, resetsAt: session },
+      { at: now - 2 * hour, span: 'week', used: 20, resetsAt: end },
+    ];
+    const week = 7 * 24 * hour;
+    answers['usage.weeks'] = () => [
+      { start: end - 3 * week, end: end - 2 * week, used: 100 },
+      { start: end - 2 * week, end: end - week, used: 60 },
+      { start: end - week, end, used: 20 },
+    ];
     const { fixture, el, texts } = await render(bridge);
     [...el.querySelectorAll<HTMLButtonElement>('gr-page-tabs .page-tab')]
       .find((tab) => tab.textContent!.trim() === 'Ledger')!
@@ -82,39 +82,31 @@ describe('usage-limits', () => {
     await fixture.whenStable();
 
     // Read from the session the week began in.
-    const histories = calls
-      .filter((c) => c.command === 'usage.history')
-      .map((c) => c.request as { since: number; span?: string; every?: number });
-    expect(histories).toEqual([
-      { agent: 'claude-code', since: end - 7 * 24 * hour - 5 * hour },
-      { agent: 'claude-code', since: now - 8 * 7 * 24 * hour, span: 'week', every: hour },
-    ]);
+    const since = (calls.find((c) => c.command === 'usage.history')!.request as { since: number })
+      .since;
+    expect(since).toBe(end - 7 * 24 * hour - 5 * hour);
     expect(texts('gr-usage-page .plan figcaption')).toEqual([
       'This session',
       'This week',
       'Sessions',
-      'Last 8 weeks',
+      'Weeks',
     ]);
     // The session is 3 hours of 5 gone; the week 4 days of 7.
     const meters = [...el.querySelectorAll('gr-usage-page .plan [role="meter"]')];
     expect(meters[0]!.getAttribute('aria-valuetext')).toBe('40% used, 60% of the session gone');
     expect(meters[1]!.getAttribute('aria-valuetext')).toBe('20% used, 57% of the week gone');
     expect(el.querySelectorAll('gr-usage-page .plan .pace')).toHaveLength(2);
-    // The week's line, the even pace and where the pace so far leads.
-    expect(texts('gr-usage-page .plan gr-usage-lines:nth-of-type(2) .legend li')).toEqual([
-      'This week, all models',
-      'Even pace',
-      'At this rate',
-    ]);
+    // One line each, so no legend; the even pace named by its end, and where the pace so far leads.
+    expect(el.querySelector('gr-usage-page .plan .legend')).toBeNull();
+    expect(texts('gr-usage-page .plan .guide-label')).toEqual(['even pace', 'even pace']);
+    expect(el.querySelectorAll('gr-usage-page .plan path.guide')).toHaveLength(4);
+    expect(el.querySelectorAll('gr-usage-page .plan path.area').length).toBeGreaterThan(0);
     expect(el.querySelector('gr-usage-page .plan gr-usage-lines .table-view')).toBeNull();
-    const forecasts = texts('gr-usage-page .plan .forecast');
-    expect(forecasts).toHaveLength(2);
-    expect(forecasts[0]).toMatch(/^At this rate, the session’s limit runs out /);
-    expect(forecasts[1]).toMatch(/^At this rate, you’ll end the week near \d+%\.$/);
+    expect(el.querySelector('gr-usage-page .plan .forecast')).toBeNull();
     expect(el.querySelectorAll('gr-usage-page .plan rect.session').length).toBeGreaterThan(0);
-    // The weeks back: last week's and this week's, apart.
+    // The two weeks ended, a dot each; the week under way is drawn above.
     const weeks = el.querySelectorAll('gr-usage-page .plan gr-usage-lines')[2]!;
-    expect(weeks.querySelectorAll('path.line, circle.dot').length).toBeGreaterThanOrEqual(2);
+    expect(weeks.querySelectorAll('circle.dot')).toHaveLength(2);
   });
 
   it('shows the limits the service read meanwhile in the Usage page, without reading them itself', async () => {

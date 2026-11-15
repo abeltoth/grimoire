@@ -17,13 +17,15 @@ export interface LineSeries extends ChartSeries {
 export interface ChartGuide extends ChartSeries {
   from: LinePoint;
   to: LinePoint;
+  /** Written by its end, in place of a legend; none when the line it leads on from says what it is. */
+  label?: string;
 }
 
 /**
  * A line chart over time with a fixed scale, by default 0-100%: a line for
- * each series, broken where nothing was read for a while, with a legend,
- * a crosshair and tooltip that snap to the nearest reading, any dashed
- * guides, and the same numbers as a table.
+ * each series, broken where nothing was read for a while, the ground under
+ * it shaded if asked, with a legend, a crosshair and tooltip that snap to
+ * the nearest reading, any dashed guides, and the same numbers as a table.
  */
 @Component({
   selector: 'gr-usage-lines',
@@ -43,8 +45,12 @@ export class UsageLines {
   readonly breakAfter = input.required<number>();
   /** Each reading holds until the next, as a limit's share does, rather than sloping to it. */
   readonly step = input(false);
-  /** Dashed lines drawn under the series, named in the legend. */
+  /** Dashed lines drawn under the series, each named by its end. */
   readonly guides = input<readonly ChartGuide[]>([]);
+  /** The ground under each line shaded in its colour. */
+  readonly area = input(false);
+  /** A dot on every reading, for lines of few, such as one a week. */
+  readonly dots = input(false);
   /** Off where the page already says what the lines show. */
   readonly tabled = input(true);
   readonly max = input(100);
@@ -101,13 +107,18 @@ export class UsageLines {
           })
           .join('');
       const end = series.points[series.points.length - 1];
+      const joined = runs.filter((run) => run.length > 1);
       return {
         series,
-        lines: runs.filter((run) => run.length > 1).map(path),
+        lines: joined.map(path),
+        areas: this.area()
+          ? joined.map((run) => `${path(run)}V${BASE}H${x(run[0]!.at).toFixed(1)}Z`)
+          : [],
         // A reading with none beside it would draw no line: it gets a dot.
-        dots: runs
-          .filter((run) => run.length === 1)
-          .map(([p]) => ({ x: x(p!.at), y: y(p!.value) })),
+        dots: (this.dots()
+          ? series.points
+          : runs.filter((run) => run.length === 1).map(([p]) => p!)
+        ).map((p) => ({ x: x(p.at), y: y(p.value) })),
         end: end ? { x: x(end.at), y: y(end.value), value: end.value } : null,
       };
     });
@@ -121,14 +132,15 @@ export class UsageLines {
         labelled.push(end.y);
         return true;
       });
-    const step = max / 4;
     const guides = this.guides().map((guide) => ({
       guide,
       d: `M${x(guide.from.at).toFixed(1)},${y(guide.from.value).toFixed(1)}L${x(guide.to.at).toFixed(1)},${y(guide.to.value).toFixed(1)}`,
+      end: { x: x(guide.to.at), y: y(guide.to.value) },
     }));
     return {
       guides,
-      ticks: [0, 1, 2, 3, 4].map((n) => ({ value: n * step, y: y(n * step) })),
+      // Three lines across are enough to read a share by.
+      ticks: [0, 1, 2].map((n) => ({ value: (n * max) / 2, y: y((n * max) / 2) })),
       lines,
       labels,
       xTicks: this.ticks().map((tick) => ({ ...tick, x: x(tick.at) })),

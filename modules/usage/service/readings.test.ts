@@ -2,7 +2,7 @@ import type { UsageReading } from '@grimoire/contract';
 import { describe, expect, it } from 'vitest';
 import { migrate, openDatabase } from '@grimoire/service/testing/database';
 import { MIGRATIONS } from './migrations';
-import { UsageReadings, sameAccount, thin } from './readings';
+import { UsageReadings, accountWeeks, sameAccount } from './readings';
 
 const HOUR = 60 * 60_000;
 /** Thursday 15:00 and Saturday 00:00, a week on: two accounts' weeks. */
@@ -68,20 +68,33 @@ describe('sameAccount', () => {
   });
 });
 
-describe('thin', () => {
-  it('keeps the last reading of each limit in each stretch', () => {
-    const history: UsageReading[] = [
-      { at: 10, span: 'week', used: 1, resetsAt: THURSDAY },
-      { at: 10, span: 'session', used: 5, resetsAt: 500 },
-      { at: 50, span: 'week', used: 2, resetsAt: THURSDAY },
-      { at: 60, span: 'week', model: 'Opus', used: 0, resetsAt: null },
-      { at: 120, span: 'week', used: 3, resetsAt: THURSDAY },
-    ];
-    expect(thin(history, 100).map((r) => [r.at, r.span, r.used])).toEqual([
-      [10, 'session', 5],
-      [50, 'week', 2],
-      [60, 'week', 0],
-      [120, 'week', 3],
-    ]);
+describe('weeks', () => {
+  it('tells every week of the account read last, by when it starts afresh, at the most used', () => {
+    const db = openDatabase(':memory:');
+    migrate(db, 'usage', MIGRATIONS);
+    const readings = new UsageReadings(db);
+    const week = (at: number, used: number, resetsAt: number, account?: string) =>
+      readings.record('claude-code', {
+        plan: 'max',
+        windows: [
+          { span: 'week', used, resetsAt },
+          { span: 'week', model: 'Opus', used: 100, resetsAt },
+        ],
+        ...(account ? { account } : {}),
+        at,
+      });
+    const next = THURSDAY + 7 * 24 * HOUR;
+    // Kept before the account was noted, then under it: one week.
+    week(1000, 60, THURSDAY);
+    week(2000, 90, THURSDAY + 60_000, 'work@example.com');
+    week(3000, 40, SATURDAY, 'home@example.com');
+    week(4000, 10, next, 'work@example.com');
+    expect(accountWeeks(readings.weeks('claude-code'), readings.latestWeek('claude-code'))).toEqual(
+      [
+        { start: THURSDAY - 7 * 24 * HOUR, end: THURSDAY, used: 90 },
+        { start: THURSDAY, end: next, used: 10 },
+      ],
+    );
+    expect(accountWeeks([], undefined)).toEqual([]);
   });
 });

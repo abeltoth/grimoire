@@ -1,7 +1,7 @@
-import type { UsageReading } from '@grimoire/contract';
+import type { UsageReading, UsageWeek } from '@grimoire/contract';
 import type { ChartTick } from './charts';
 import type { ChartGuide, LinePoint, LineSeries } from './lines-chart';
-import { DAY, HOUR, dayTick, hourName, limitName, onDay, percent, startOf } from './usage-format';
+import { DAY, HOUR, dayTick, hourName, limitName, monthDay, startOf } from './usage-format';
 
 /** A five-hour session: when it ran, the most of it used, and when it was first read full. */
 export interface LimitSession {
@@ -17,8 +17,6 @@ export interface LimitsChart {
   week: LineSeries[];
   /** The pace that would use the week up just as it ends, and where the pace so far leads. */
   guides: ChartGuide[];
-  /** Where the pace so far leads, in a sentence; null with too little read to say. */
-  forecast: string | null;
   /** The week's five-hour sessions, oldest first. */
   sessions: LimitSession[];
   from: number;
@@ -31,8 +29,6 @@ export interface LimitsChart {
 export interface LimitLine {
   lines: LineSeries[];
   guides: ChartGuide[];
-  /** Where the pace so far leads, in a sentence; null with too little read to say. */
-  forecast: string | null;
   from: number;
   to: number;
   ticks: ChartTick[];
@@ -81,23 +77,24 @@ export function limitsChart(history: readonly UsageReading[], now: number): Limi
       ...(r.resetsAt === null ? {} : { run: toHour(r.resetsAt) }),
     });
   }
-  // Past three the colours would repeat: the rest stay in the list above.
-  const week = [...weeks.values()].slice(0, WEEK_COLORS.length).map((limit, i) => ({
-    name: limitName(limit.window),
-    color: WEEK_COLORS[i]!,
-    points: limit.points,
-  }));
+  // A week kept for one model that's gone unused says nothing; past three the colours would repeat.
+  const week = [...weeks.values()]
+    .filter((limit) => !limit.window.model || limit.points.some((point) => point.value > 0))
+    .slice(0, WEEK_COLORS.length)
+    .map((limit, i) => ({
+      name: limitName(limit.window),
+      color: WEEK_COLORS[i]!,
+      points: limit.points,
+    }));
 
   const ticks: ChartTick[] = [];
   for (const day = startOf(from, 'day'); day.getTime() < to; day.setDate(day.getDate() + 1)) {
     const noon = day.getTime() + 12 * HOUR;
     if (noon >= from && noon <= to) ticks.push({ at: noon, label: dayTick(noon) });
   }
-  const { guides, forecast } = pace(latest, from, to, now, 'week');
   return {
     week,
-    guides,
-    forecast,
+    guides: pace(latest, from, to, 'week'),
     sessions: sessions(shown, from),
     from,
     to,
@@ -111,12 +108,12 @@ function pace(
   latest: UsageReading,
   from: number,
   to: number,
-  now: number,
   span: UsageReading['span'],
-): { guides: ChartGuide[]; forecast: string | null } {
+): ChartGuide[] {
   const guides: ChartGuide[] = [
     {
       name: 'Even pace',
+      label: 'even pace',
       color: 'var(--gr-ink-soft)',
       from: { at: from, value: 0 },
       to: { at: to, value: 100 },
@@ -124,24 +121,17 @@ function pace(
   ];
   const used = latest.used!;
   const gone = latest.at - from;
-  if (used >= 100) return { guides, forecast: `The ${span}’s limit is used up.` };
-  if (gone < TOO_SOON[span] || used <= 0) return { guides, forecast: null };
+  if (used >= 100 || used <= 0 || gone < TOO_SOON[span]) return guides;
   const rate = used / gone;
   const fullAt = latest.at + (100 - used) / rate;
-  const reaches = fullAt <= to;
-  const atEnd = used + rate * (to - latest.at);
   guides.push({
     name: 'At this rate',
     color: WEEK_COLORS[0]!,
     from: { at: latest.at, value: used },
-    to: reaches ? { at: fullAt, value: 100 } : { at: to, value: atEnd },
+    to:
+      fullAt <= to ? { at: fullAt, value: 100 } : { at: to, value: used + rate * (to - latest.at) },
   });
-  return {
-    guides,
-    forecast: reaches
-      ? `At this rate, the ${span}’s limit runs out ${onDay(fullAt, now)}.`
-      : `At this rate, you’ll end the ${span} near ${percent(atEnd)}.`,
-  };
+  return guides;
 }
 
 /** Each five-hour session that used any of the limit and ended after the week began, oldest first. */
@@ -187,7 +177,7 @@ export function sessionChart(history: readonly UsageReading[], now: number): Lim
   }
   return {
     lines: [{ name: limitName(latest), color: WEEK_COLORS[0]!, points }],
-    ...pace(latest, from, to, now, 'session'),
+    guides: pace(latest, from, to, 'session'),
     from,
     to,
     ticks,
@@ -196,33 +186,28 @@ export function sessionChart(history: readonly UsageReading[], now: number): Lim
 }
 
 /**
- * The limit for all models over the last `weeks` weeks: a step line each
- * week, broken where it started afresh. Null with less than two weeks read,
- * as the week under way alone is drawn above.
+ * How much of each week's limit was used by its end, a point a week, the
+ * week under way left out. Null with fewer than two weeks ended.
  */
-export function weeksChart(
-  history: readonly UsageReading[],
-  now: number,
-  weeks: number,
-): LimitLine | null {
-  const from = now - weeks * WEEK;
-  const read = history.filter(
-    (r) => r.span === 'week' && !r.model && r.used !== null && r.resetsAt !== null && r.at >= from,
-  );
-  const runs = new Set(read.map((r) => toHour(r.resetsAt!)));
-  if (runs.size < 2) return null;
-  const points = read.map((r) => ({ at: r.at, value: r.used!, run: toHour(r.resetsAt!) }));
-  // A tick where each week began.
-  const ticks = [...runs]
-    .map((end) => end - WEEK)
-    .filter((start) => start >= from)
-    .map((start) => ({ at: start, label: dayTick(start) }));
+export function weeksChart(weeks: readonly UsageWeek[], now: number): LimitLine | null {
+  const ended = weeks.filter((week) => week.end <= now);
+  if (ended.length < 2) return null;
+  // About six labels, however many weeks, the latest among them.
+  const every = Math.ceil(ended.length / 6);
+  const ticks = ended
+    .filter((_, i) => (ended.length - 1 - i) % every === 0)
+    .map((week) => ({ at: week.start, label: monthDay(week.start) }));
   return {
-    lines: [{ name: limitName(read[0]!), color: WEEK_COLORS[0]!, points }],
+    lines: [
+      {
+        name: 'Used by the week’s end',
+        color: WEEK_COLORS[0]!,
+        points: ended.map((week) => ({ at: week.start, value: week.used })),
+      },
+    ],
     guides: [],
-    forecast: null,
-    from,
-    to: now,
+    from: ended[0]!.start,
+    to: ended[ended.length - 1]!.start,
     ticks,
     marks: [],
   };

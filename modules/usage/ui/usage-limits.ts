@@ -34,6 +34,7 @@ import {
   resetsOn,
   spent,
   time,
+  weekOf,
 } from './usage-format';
 
 /** An agent with a plan, how much of its limits is used, its session and week so far, and the weeks before. */
@@ -44,12 +45,9 @@ interface Plan {
   chart: LimitsChart | null;
   /** The session under way; null when none is. */
   session: LimitLine | null;
-  /** The weeks before; null with none read. */
+  /** How much of each week ended was used; null with fewer than two. */
   weeks: LimitLine | null;
 }
-
-/** How many weeks back the weeks' chart goes, the one under way among them. */
-const WEEKS = 8;
 
 /**
  * The Usage page's limits: how much of each agent's subscription limits is
@@ -80,7 +78,9 @@ export class UsageLimits {
 
   /** A limit's line holds across the hours nothing was read: its share only grows until it starts afresh. */
   protected readonly weekApart = 7 * DAY;
-  protected readonly weeksBack = WEEKS;
+  /** A week's line breaks where a week went unread. */
+  protected readonly weekGap = 10 * DAY;
+  protected readonly weekOf = weekOf;
   protected readonly readingName = readingName;
   protected readonly percent = percent;
   protected readonly planName = planName;
@@ -149,13 +149,7 @@ export class UsageLimits {
     const since = week?.resetsAt ? week.resetsAt - 7 * DAY - 5 * HOUR : now - 7 * DAY;
     const [history, weeks] = await Promise.all([
       this.bridge.invoke('usage.history', { agent: agent.id, since }),
-      // The last of each hour is enough for weeks back.
-      this.bridge.invoke('usage.history', {
-        agent: agent.id,
-        since: now - WEEKS * 7 * DAY,
-        span: 'week',
-        every: HOUR,
-      }),
+      this.bridge.invoke('usage.weeks', { agent: agent.id }),
     ]);
     this.now.set(now);
     return {
@@ -163,7 +157,7 @@ export class UsageLimits {
       usage,
       chart: limitsChart(history ?? [], now),
       session: sessionChart(history ?? [], now),
-      weeks: weeksChart(weeks ?? [], now, WEEKS),
+      weeks: weeksChart(weeks ?? [], now),
     };
   }
 }

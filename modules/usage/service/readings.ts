@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { AgentId, PlanUsage, UsageReading, UsageWindow } from '@grimoire/contract';
+import type { AgentId, PlanUsage, UsageReading, UsageWeek, UsageWindow } from '@grimoire/contract';
 
 /**
  * Each reading of how much of the plan's limits is used, kept so their
@@ -50,6 +50,38 @@ export class UsageReadings {
       ...(account ? { account } : {}),
     }));
   }
+
+  /** The latest reading of the limit for all models that says when it starts afresh. */
+  latestWeek(agent: AgentId): UsageReading | undefined {
+    const row = this.db
+      .prepare(
+        `SELECT at, used, resets_at, account FROM usage_readings
+         WHERE agent = ? AND span = 'week' AND model = '' AND resets_at IS NOT NULL
+         ORDER BY at DESC LIMIT 1`,
+      )
+      .get(agent) as
+      { at: number; used: number | null; resets_at: number; account: string } | undefined;
+    if (!row) return undefined;
+    const { at, used, resets_at, account } = row;
+    return { at, span: 'week', used, resetsAt: resets_at, ...(account ? { account } : {}) };
+  }
+
+  /**
+   * Every week of the limit for all models: when it starts afresh, to the
+   * hour, the most of it used, and whose it is, as kept, oldest first.
+   */
+  weeks(agent: AgentId): { end: number; used: number; account: string }[] {
+    return this.db
+      .prepare(
+        `SELECT CAST(ROUND(resets_at / 3600000.0) AS INTEGER) * 3600000 AS end,
+                MAX(used) AS used, account
+         FROM usage_readings
+         WHERE agent = ? AND span = 'week' AND model = '' AND resets_at IS NOT NULL
+           AND used IS NOT NULL
+         GROUP BY end, account ORDER BY end`,
+      )
+      .all(agent) as { end: number; used: number; account: string }[];
+  }
 }
 
 const HOUR = 60 * 60_000;
@@ -82,9 +114,30 @@ export function sameAccount(readings: readonly UsageReading[]): UsageReading[] {
   );
 }
 
-/** The last reading of each limit in each stretch of `every` ms, oldest first. */
-export function thin(readings: readonly UsageReading[], every: number): UsageReading[] {
-  const last = new Map<string, UsageReading>();
-  for (const r of readings) last.set(`${r.span} ${r.model ?? ''} ${Math.floor(r.at / every)}`, r);
-  return [...last.values()].sort((a, b) => a.at - b.at);
+/**
+ * The weeks of the account the latest reading is of, as `sameAccount`
+ * tells them: a week kept before the account was noted goes by when it
+ * starts afresh. A week read under both is one.
+ */
+export function accountWeeks(
+  weeks: readonly { end: number; used: number; account: string }[],
+  latest: UsageReading | undefined,
+): UsageWeek[] {
+  if (!latest) return [];
+  const phase = latest.resetsAt === null ? null : weekPhase(latest.resetsAt);
+  const found = new Map<number, UsageWeek>();
+  for (const week of weeks) {
+    const ours =
+      latest.account && week.account
+        ? week.account === latest.account
+        : phase !== null && weekPhase(week.end) === phase;
+    if (!ours) continue;
+    const kept = found.get(week.end);
+    found.set(week.end, {
+      start: week.end - WEEK,
+      end: week.end,
+      used: Math.max(kept?.used ?? 0, week.used),
+    });
+  }
+  return [...found.values()].sort((a, b) => a.end - b.end);
 }

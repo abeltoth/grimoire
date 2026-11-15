@@ -3,9 +3,9 @@ import type {
   PlanUsage,
   UsageBreakdown,
   UsageReading,
-  UsageWindow,
+  UsageWeek,
 } from '@grimoire/contract';
-import { type UsageReadings, sameAccount, thin } from './readings';
+import { type UsageReadings, accountWeeks, sameAccount } from './readings';
 import type { UsageSource } from './sources';
 
 /** The agents' plans: their limits, read and kept so their history can be drawn, and where their usage went. */
@@ -48,20 +48,15 @@ export class Usage {
     if (failed) throw failed.reason;
   }
 
-  /**
-   * Each reading of the agent's plan limits kept since a time, oldest
-   * first: those of the account signed in now. With `span`, only that
-   * limit's; with `every`, the last of each limit in each stretch that long.
-   */
-  history(
-    agent: AgentId,
-    since: number,
-    span?: UsageWindow['span'],
-    every?: number,
-  ): UsageReading[] {
-    const kept = sameAccount(this.readings.since(agent, since));
-    const shown = span ? kept.filter((r) => r.span === span) : kept;
-    return every ? thin(shown, every) : shown;
+  /** Each reading of the agent's plan limits kept since a time, oldest first: those of the account signed in now. */
+  history(agent: AgentId, since: number): UsageReading[] {
+    return sameAccount(this.readings.since(agent, since));
+  }
+
+  /** Every week of the plan's limit for all models kept, oldest first: those of the account signed in now. */
+  weeks(agent: AgentId): UsageWeek[] {
+    const latest = this.readings.latestWeek(agent);
+    return accountWeeks(this.readings.weeks(agent), latest);
   }
 
   /** What the agent's own scan says took the plan's usage; null when it can't say. */

@@ -44,12 +44,6 @@ figcaption {
   border-radius: 1px;
 }
 
-/* A guide's key is dashed as the guide is, in its colour. */
-.guide-key {
-  width: var(--gr-chart-key);
-  border-top: var(--gr-chart-stroke) dashed currentColor;
-}
-
 .plot {
   position: relative;
   margin-top: var(--gr-aside-gap);
@@ -130,13 +124,26 @@ svg {
   vector-effect: non-scaling-stroke;
 }
 
-/* A guide, such as the pace to keep, stays behind the readings. */
+/* A guide, such as the pace to keep, stays a hairline behind the readings. */
 .guide {
   fill: none;
-  stroke-width: var(--gr-chart-stroke);
+  stroke-width: 1px;
   stroke-dasharray: var(--gr-chart-dash);
   vector-effect: non-scaling-stroke;
-  opacity: 0.7;
+  opacity: 0.6;
+}
+
+.guide-label {
+  font-size: var(--gr-chart-tick-size);
+  font-style: italic;
+  fill: var(--gr-ink-soft);
+  text-anchor: end;
+}
+
+/* The ground under a line, a wash of its colour. */
+.area {
+  stroke: none;
+  opacity: 0.12;
 }
 
 /* A ring of the page's colour keeps a dot clear of the lines it sits on. */
