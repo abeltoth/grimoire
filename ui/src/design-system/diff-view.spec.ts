@@ -7,7 +7,6 @@ async function diff(lines: DiffLine[], breaks: number[] = []) {
   fixture.componentRef.setInput('file', 'src/a.ts');
   fixture.componentRef.setInput('lines', lines);
   fixture.componentRef.setInput('breaks', breaks);
-  fixture.componentRef.setInput('caption', 'as marked by Claude Code');
   await fixture.whenStable();
   const el = fixture.nativeElement as HTMLElement;
   const texts = (selector: string) =>
@@ -16,7 +15,7 @@ async function diff(lines: DiffLine[], breaks: number[] = []) {
 }
 
 describe('DiffView', () => {
-  it('strikes removed lines and marks a run of inserted ones once', async () => {
+  it('strikes and signs removed lines, and signs inserted ones', async () => {
     const { el, texts } = await diff([
       { kind: 'same', text: 'import { a } from "./a";' },
       { kind: 'removed', text: 'const a = 1;' },
@@ -24,14 +23,14 @@ describe('DiffView', () => {
       { kind: 'inserted', text: 'const c = 2;' },
     ]);
     expect(el.getAttribute('aria-label')).toBe('Corrections to src/a.ts');
-    expect(texts('.head .detail')).toEqual(['corrections, as marked by Claude Code', '+2 −1']);
-    expect(texts('.line .mark')).toEqual(['', 'dele', '‸ insert 2 lines', '']);
+    expect(texts('.head .detail')).toEqual(['+2 −1']);
+    expect(texts('.line .number')).toEqual(['', '−', '+', '+']);
     expect(el.querySelectorAll('.line.removed')).toHaveLength(1);
     expect(el.querySelectorAll('.line.inserted')).toHaveLength(2);
   });
 
-  it('marks each stacked edit’s insertion apart', async () => {
-    const { el, texts } = await diff(
+  it('sets each stacked edit apart', async () => {
+    const { el } = await diff(
       [
         { kind: 'inserted', text: 'one' },
         { kind: 'inserted', text: 'two' },
@@ -39,7 +38,6 @@ describe('DiffView', () => {
       ],
       [1],
     );
-    expect(texts('.line .mark')).toEqual(['‸ insert', '‸ insert 2 lines', '']);
     expect(el.querySelectorAll('.line.break')).toHaveLength(1);
   });
 

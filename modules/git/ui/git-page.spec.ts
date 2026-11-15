@@ -100,9 +100,7 @@ describe('git', () => {
       'used = 0;',
       'used = input(0);',
     ]);
-    expect(texts('gr-git-page gr-diff-view .head .detail')[0]).toBe(
-      'corrections, not committed yet',
-    );
+    expect(texts('gr-git-page gr-diff-view .head .detail')).toEqual(['+1 −1']);
 
     // Collapsed again.
     el.querySelector<HTMLButtonElement>('gr-git-page .change')!.click();

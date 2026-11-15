@@ -86,7 +86,6 @@
                   <gr-diff-view
                     [file]="change.path"
                     [lines]="lines"
-                    caption="not committed yet"
                     [openable]="!!shell.openFile()"
                     (open)="shell.openFile()?.(status.root + '/' + change.path)"
                   />

@@ -141,7 +141,7 @@ describe('approval-card', () => {
     });
     await fixture.whenStable();
     expect(texts('gr-diff-view .head b')).toEqual(['src/a.ts']);
-    expect(texts('gr-diff-view .line .mark')).toEqual(['dele', 'dele', '‸ insert 2 lines', '']);
+    expect(texts('gr-diff-view .line .number')).toEqual(['−', '−', '+', '+']);
     expect(texts('gr-approval-card .choice')).toEqual([
       'Always allow edits in this chapter ⇧⏎',
       'Deny Esc',

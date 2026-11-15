@@ -97,15 +97,6 @@
   content: ' ';
 }
 
-.mark {
-  font-family: var(--gr-font-text);
-  font-style: italic;
-  font-size: var(--gr-size-expandable-mark);
-  color: var(--gr-rubric);
-  padding-left: var(--gr-expandable-mark-pad);
-  white-space: nowrap;
-}
-
 .removed .code {
   color: var(--gr-ink-soft);
   text-decoration: line-through;
@@ -113,22 +104,9 @@
   text-decoration-thickness: var(--gr-strike);
 }
 
+.removed .number,
 .inserted .number {
   color: var(--gr-rubric);
-  font-family: var(--gr-font-text);
-  font-size: var(--gr-size-caret);
-  line-height: 1;
-}
-
-.foot {
-  display: flex;
-  align-items: baseline;
-  gap: var(--gr-expandable-foot-gap);
-  padding: var(--gr-expandable-foot-pad);
-  border-top: 1px solid var(--gr-hairline);
-  font-size: var(--gr-size-expandable-mark);
-  font-style: italic;
-  color: var(--gr-ink-soft);
 }
 
 /* Where a running tool's output will come. */

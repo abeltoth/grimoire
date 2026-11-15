@@ -1,6 +1,5 @@
 <div class="head">
   <b>{{ file() }}</b>
-  <span class="detail">corrections, {{ caption() }}</span>
   <span class="spacer"></span>
   <span class="detail">+{{ inserted() }} −{{ removed() }}</span>
   @if (openable()) {
@@ -15,13 +14,8 @@
       [class.inserted]="line.kind === 'inserted'"
       [class.break]="line.break"
     >
-      <span class="number">{{ line.kind === 'inserted' ? '‸' : '' }}</span>
+      <span class="number">{{ sign[line.kind] }}</span>
       <span class="code">{{ line.text }}</span>
-      <span class="mark">{{ line.mark }}</span>
     </div>
   }
-</div>
-<div class="foot">
-  <span class="spacer"></span>
-  <span>struck: removed · ‸ inserted</span>
 </div>

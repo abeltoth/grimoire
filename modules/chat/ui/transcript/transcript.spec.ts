@@ -263,7 +263,7 @@ describe('transcript', () => {
     expect(run.getAttribute('aria-expanded')).toBe('false');
     // The diff shows though the run is summed up; the output waits to be asked for.
     expect(texts('gr-diff-view .head b')).toEqual(['src/meter.ts']);
-    expect(texts('gr-diff-view .head .detail')[0]).toBe('corrections, as marked by Claude Code');
+    expect(texts('gr-diff-view .head .detail')).toEqual(['+2 −1']);
     // The details open between the reply's notes and its text, not after it.
     expect(el.querySelector('.row.said.opened gr-diff-view')).not.toBeNull();
     expect(el.querySelector('gr-output')).toBeNull();

@@ -47,7 +47,6 @@
     <gr-diff-view
       [file]="a.file"
       [lines]="a.lines"
-      [caption]="'as proposed by ' + agentName()"
       [openable]="!!shell.openFile()"
       (open)="shell.openFile()?.(a.path)"
     />
