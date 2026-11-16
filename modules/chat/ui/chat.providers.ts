@@ -7,6 +7,7 @@ import { SubagentPage } from './subagents/subagent-page';
 import { SUBAGENT_PAGE, Subagents } from './subagents/subagents';
 import { Plan, planFoot } from './transcript/plan';
 import { ApprovalsPage } from './approvals/approvals-page';
+import { Drafts } from './composer/drafts';
 import { SecondChat } from './second-chat';
 
 /**
@@ -14,13 +15,19 @@ import { SecondChat } from './second-chat';
  * the right page's Plan with its plan, its Second chat with
  * another chat beside it, its Subagent with what a subagent one of a
  * chat's tool calls started did, and the right page with the waiting
- * approvals when it's turned there.
+ * approvals when it's turned there. Text from elsewhere, such as a part
+ * of a file in Files, is written into the open chat's message.
  */
 export function provideChat(): EnvironmentProviders {
   return provideShellEntries((shell) => {
     shell.chatPage.set(ChatPage);
     shell.approvalsPage.set(ApprovalsPage);
     const list = inject(ChatList);
+    const drafts = inject(Drafts);
+    shell.addToChat.set((text) => {
+      const chatId = list.currentId();
+      if (chatId) drafts.add(chatId, text);
+    });
     shell.rightPages.add({
       id: 'plan',
       label: 'Outline',

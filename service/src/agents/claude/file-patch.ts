@@ -6,6 +6,21 @@ import type { DiffHunk } from '@grimoire/contract';
  * notebook cell's old and new source. Undefined for any other result, and
  * for a new file, whose content the tool's input already shows.
  */
+/** The tools that change a file, and the field of their input that names it. */
+const FILE_FIELDS: Record<string, string> = {
+  Edit: 'file_path',
+  MultiEdit: 'file_path',
+  Write: 'file_path',
+  NotebookEdit: 'notebook_path',
+};
+
+/** The file a tool changes, as its input names it; undefined for a tool that changes none. */
+export function changedFileOf(tool: string, input: unknown): string | undefined {
+  const field = FILE_FIELDS[tool];
+  const file = field ? ((input ?? {}) as Record<string, unknown>)[field] : undefined;
+  return typeof file === 'string' && file ? file : undefined;
+}
+
 export function hunksOf(result: unknown): DiffHunk[] | undefined {
   if (!result || typeof result !== 'object') return undefined;
   const fields = result as Record<string, unknown>;

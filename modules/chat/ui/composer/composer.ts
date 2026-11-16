@@ -31,6 +31,7 @@ import { AgentCommands } from '@ui/app/shell/agent-commands';
 import { CommandRuns } from '@ui/app/shell/command-runs';
 import { Focus } from '@ui/app/shell/focus';
 import { Drafts } from './drafts';
+import { ago, tokens } from './cache-words';
 import { Attachments, Enclosing } from './attachments';
 import { ContextMeter } from './context-meter';
 import { Recall } from './recall';
@@ -208,6 +209,15 @@ export class Composer {
         field.focus();
       });
     });
+    // Text written in from elsewhere, such as Files, goes after what you're writing.
+    effect(() => {
+      const added = this.drafts.added();
+      if (added?.chatId !== this.chatId()) return;
+      untracked(() => {
+        this.drafts.added.set(null);
+        this.append([added.text], []);
+      });
+    });
     // Another chat's entries to bring back.
     effect(() => {
       this.chatId();
@@ -360,10 +370,15 @@ export class Composer {
   /** Puts messages back on the page, after what you're writing, to edit or send again. */
   takeBack(messages: readonly QueuedEntry[]): void {
     if (!messages.length) return;
-    this.draft.update((draft) =>
-      [draft.trim(), ...messages.map((queued) => queued.text)].filter(Boolean).join('\n\n'),
+    this.append(
+      messages.map((queued) => queued.text),
+      messages.flatMap((queued) => queued.attachments ?? []),
     );
-    this.enclosing.add(messages.flatMap((queued) => queued.attachments ?? []));
+  }
+
+  private append(texts: readonly string[], attachments: readonly Attachment[]): void {
+    this.draft.update((draft) => [draft.trim(), ...texts].filter(Boolean).join('\n\n'));
+    this.enclosing.add(attachments);
     const field = this.messageField().nativeElement;
     field.value = this.draft();
     field.focus();
@@ -377,22 +392,4 @@ export class Composer {
   protected remove(queued: QueuedEntry): void {
     void this.actions.unqueue(this.chatId(), queued.id);
   }
-}
-
-/** How long ago, in words: "20 minutes ago", "3 hours ago", "2 days ago". */
-function ago(ms: number): string {
-  const minutes = Math.floor(ms / 60_000);
-  if (minutes < 1) return 'Just now';
-  if (minutes < 60) return minutes === 1 ? 'A minute ago' : `${minutes} minutes ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return hours === 1 ? 'An hour ago' : `${hours} hours ago`;
-  const days = Math.floor(hours / 24);
-  return days === 1 ? 'A day ago' : `${days} days ago`;
-}
-
-/** A count of tokens, rounded: "850", "283k", "1.2M". */
-function tokens(count: number): string {
-  if (count < 1_000) return String(count);
-  if (count < 1_000_000) return `${Math.round(count / 1_000)}k`;
-  return `${(count / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
 }

@@ -1,3 +1,4 @@
+import { write } from '@ui/testing/app-testing';
 import { repository, openFiles } from './files-testing';
 
 describe('files-page', () => {
@@ -189,5 +190,77 @@ describe('files-page', () => {
     await fixture.whenStable();
     expect(texts('gr-files-page .none')).toEqual(['It isn’t text, so it can’t be shown here.']);
     expect(el.querySelector('gr-code-editor')).toBeNull();
+  });
+
+  it('lists the files the open chat’s agent changed, the latest first', async () => {
+    const { bridge, emit, calls } = repository();
+    const { fixture, el, texts, button } = await openFiles(bridge);
+    await write(fixture, el, 'Fix the ribbon');
+    const edit = (id: string, file: string, isError = false) => ({
+      kind: 'tool' as const,
+      id,
+      tool: 'Edit',
+      input: { file_path: file },
+      result: { text: '', isError, ...(isError ? {} : { changed: file }) },
+    });
+    emit('agents.entry', {
+      chatId: 'chat-1',
+      entry: {
+        kind: 'agent',
+        id: 'a1',
+        blocks: [
+          edit('t1', 'C:/Users/me/git/grimoire/ui/src/seal.ts'),
+          edit('t2', 'C:\\Users\\me\\git\\grimoire\\ui\\src\\ribbon.ts'),
+          edit('t3', 'C:/Users/me/git/grimoire/README.md', true),
+        ],
+      },
+    });
+    await fixture.whenStable();
+    expect(texts('gr-files-page h3')).toEqual([
+      'Changed in this chapter',
+      'Not committed yet',
+      'All its files',
+    ]);
+    expect(texts('gr-files-page .touched .file')).toEqual(['ui/src/ribbon.ts', 'ui/src/seal.ts']);
+
+    button('.touched .file', 'ui/src/ribbon.ts').click();
+    await fixture.whenStable();
+    expect(calls.filter((c) => c.command === 'files.open').at(-1)?.request).toEqual({
+      cwd: 'C:/work/grimoire',
+      path: 'C:\\Users\\me\\git\\grimoire\\ui\\src\\ribbon.ts',
+    });
+  });
+
+  it('adds what’s selected in a file to the chat’s message, with where it’s from', async () => {
+    const { bridge } = repository();
+    const { fixture, el, button, actions } = await openFiles(bridge);
+    button('.entry', 'README.md').click();
+    await fixture.whenStable();
+    const add = actions.find((action) => action.id === 'grimoire.addToChat')!;
+    expect(add.label).toBe('Add to the chapter');
+
+    const editor = (selected: string, from: number, to: number, endColumn: number) => ({
+      getModel: () => ({
+        getValueInRange: () => selected,
+        getLineContent: () => '# Grimoire',
+      }),
+      getSelection: () => ({
+        startLineNumber: from,
+        endLineNumber: to,
+        endColumn,
+        isEmpty: () => !selected,
+      }),
+    });
+    add.run(editor('# Grimoire\n', 1, 2, 1));
+    await fixture.whenStable();
+    const message = el.querySelector<HTMLTextAreaElement>('#gr-next-message')!;
+    expect(message.value).toBe('`README.md:1`\n\n```md\n# Grimoire\n```');
+
+    // With nothing selected, the cursor's line goes.
+    add.run(editor('', 3, 3, 1));
+    await fixture.whenStable();
+    expect(message.value).toBe(
+      '`README.md:1`\n\n```md\n# Grimoire\n```\n\n`README.md:3`\n\n```md\n# Grimoire\n```',
+    );
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hunksOf } from './file-patch';
+import { changedFileOf, hunksOf } from './file-patch';
 import { ClaudeTranscript } from './transcript';
 
 describe('hunksOf', () => {
@@ -70,7 +70,46 @@ describe('a file tool’s result in the transcript', () => {
         text: 'Updated.',
         isError: false,
         hunks: [{ oldStart: 3, newStart: 3, lines: ['-a', '+b'] }],
+        changed: 'a.ts',
       },
     });
+  });
+
+  it('names no file changed when the tool failed', () => {
+    const transcript = new ClaudeTranscript(false);
+    transcript.apply({
+      type: 'assistant',
+      parent_tool_use_id: null,
+      message: {
+        id: 'msg_1',
+        content: [{ type: 'tool_use', id: 'toolu_1', name: 'Write', input: { file_path: 'a.ts' } }],
+      },
+    });
+    transcript.apply({
+      type: 'user',
+      parent_tool_use_id: null,
+      message: {
+        content: [
+          { type: 'tool_result', tool_use_id: 'toolu_1', content: 'Denied.', is_error: true },
+        ],
+      },
+    });
+    const [entry] = transcript.entries;
+    expect(entry?.kind === 'agent' && entry.blocks[0]).toMatchObject({
+      result: { isError: true },
+    });
+    expect(
+      entry?.kind === 'agent' && entry.blocks[0]?.kind === 'tool' && entry.blocks[0].result,
+    ).not.toHaveProperty('changed');
+  });
+});
+
+describe('changedFileOf', () => {
+  it('names the file a tool that changes files was given, and none for another tool', () => {
+    expect(changedFileOf('Edit', { file_path: 'C:/work/a.ts' })).toBe('C:/work/a.ts');
+    expect(changedFileOf('Write', { file_path: '/work/b.md' })).toBe('/work/b.md');
+    expect(changedFileOf('NotebookEdit', { notebook_path: 'c.ipynb' })).toBe('c.ipynb');
+    expect(changedFileOf('Read', { file_path: 'a.ts' })).toBeUndefined();
+    expect(changedFileOf('Edit', {})).toBeUndefined();
   });
 });

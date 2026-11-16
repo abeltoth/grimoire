@@ -16,13 +16,21 @@ import type * as Monaco from 'monaco-editor';
 import { editorLook } from './editor-theme';
 import { MONACO, type MonacoApi, languageOf } from './monaco';
 
+/** Part of a file picked to add to the chat: its text, and its first and last lines. */
+export interface FilePart {
+  text: string;
+  from: number;
+  to: number;
+}
+
 /** Each file's models are named apart, so one closing can't take another's. */
 let opened = 0;
 
 /**
  * A file's text in the VS Code editor (Monaco), in the book's colours: on
  * its own, or beside the file as last committed, its changes marked and
- * the file still yours to change. Ctrl+S asks to save, Ctrl+W to close.
+ * the file still yours to change. Ctrl+S asks to save, Ctrl+W to close,
+ * and its menu adds what's selected, or the line, to the chat.
  */
 @Component({
   selector: 'gr-code-editor',
@@ -49,6 +57,9 @@ export class CodeEditor {
   readonly changes = input(false);
   /** A line to turn to and put the cursor on; a new one each time it's asked for. */
   readonly reveal = input<{ line: number } | null>(null);
+  /** What adding a part of the file to the chat is called in the editor's menu; without it, it isn't offered. */
+  readonly addLabel = input<string | null>(null);
+  readonly addToChat = output<FilePart>();
   readonly save = output<void>();
   readonly closeFile = output<void>();
 
@@ -161,6 +172,16 @@ export class CodeEditor {
     focused.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => this.save.emit());
     // Taken here, Mod+W closes the file rather than reaching the window, where it closes the chat.
     focused.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyW, () => this.closeFile.emit());
+    const label = this.addLabel();
+    if (label) {
+      focused.addAction({
+        id: 'grimoire.addToChat',
+        label,
+        contextMenuGroupId: 'navigation',
+        contextMenuOrder: 0,
+        run: (editor) => this.addPart(editor),
+      });
+    }
   }
 
   /** The editor that holds the file: the editor alone, or the diff's side that can be changed. */
@@ -168,6 +189,24 @@ export class CodeEditor {
     const editor = this.editor;
     if (!editor) return undefined;
     return 'getModifiedEditor' in editor ? editor.getModifiedEditor() : editor;
+  }
+
+  /** The selection, or without one the line the cursor is on. */
+  private addPart(editor: Monaco.editor.ICodeEditor): void {
+    const model = editor.getModel();
+    const selection = editor.getSelection();
+    if (!model || !selection) return;
+    const from = selection.startLineNumber;
+    if (selection.isEmpty()) {
+      this.addToChat.emit({ text: model.getLineContent(from), from, to: from });
+      return;
+    }
+    // A selection that ends at the start of a line doesn't take that line.
+    const to =
+      selection.endColumn === 1 && selection.endLineNumber > from
+        ? selection.endLineNumber - 1
+        : selection.endLineNumber;
+    this.addToChat.emit({ text: model.getValueInRange(selection), from, to });
   }
 
   private turnTo(line: number): void {

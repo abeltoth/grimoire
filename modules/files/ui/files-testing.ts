@@ -8,8 +8,16 @@ import type {
 import { MONACO, type MonacoApi } from './monaco';
 import { fakeBridge, render } from '@ui/testing/app-testing';
 
+/** An action added to the editor's menu, run with the editor it was added to. */
+export interface FakeAction {
+  id: string;
+  label: string;
+  run: (editor: unknown) => void;
+}
+
 /** What the Files specs share, first the VS Code editor, faked as a text box for each side it shows. */
 export function fakeMonaco() {
+  const actions: FakeAction[] = [];
   const made: {
     editors: number;
     diffs: number;
@@ -65,6 +73,7 @@ export function fakeMonaco() {
       setPosition: () => undefined,
       revealLineInCenter: (line: number) => void made.lines.push(line),
       focus: () => undefined,
+      addAction: (action: FakeAction) => void actions.push(action),
       dispose: () => {
         shown.dispose();
         area.remove();
@@ -106,7 +115,7 @@ export function fakeMonaco() {
       },
     },
   };
-  return { load: async () => monaco as unknown as MonacoApi, made };
+  return { load: async () => monaco as unknown as MonacoApi, made, actions };
 }
 
 export const entries = (folder: string, names: string[], ignored: string[] = []): FolderEntry[] =>
@@ -201,5 +210,5 @@ export async function openFiles(bridge: GrimoireBridge) {
     area.dispatchEvent(new Event('input'));
     await rendered.fixture.whenStable();
   };
-  return { ...rendered, made: monaco.made, page, button, editor, type };
+  return { ...rendered, made: monaco.made, actions: monaco.actions, page, button, editor, type };
 }

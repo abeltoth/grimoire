@@ -43,6 +43,27 @@
           }
         </section>
       } @else {
+        @if (touched().length) {
+          <section aria-labelledby="files-touched">
+            <h3 id="files-touched">
+              {{ wording.say('Changed in this chapter', 'Changed in this chat') }}
+            </h3>
+            <ul class="list touched">
+              @for (file of touched(); track file) {
+                @let name = touchedName(file);
+                <li>
+                  <button type="button" class="file" (click)="open(file, true)">
+                    <span class="path"
+                      ><span class="folder">{{ folderOf(name) }}</span
+                      >{{ nameOf(name) }}</span
+                    >
+                  </button>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+
         @if (changes().length) {
           <section aria-labelledby="files-changed">
             <h3 id="files-changed">Not committed yet</h3>
@@ -192,6 +213,10 @@
               [committed]="tab.comparing() ? tab.onDisk()?.text : file.committed"
               [changes]="tab.comparing() || tab.showsChanges()"
               [reveal]="tab.reveal()"
+              [addLabel]="
+                shell.addToChat() ? wording.say('Add to the chapter', 'Add to chat') : null
+              "
+              (addToChat)="addToChat(tab, $event)"
               (save)="save(tab)"
               (closeFile)="close(tab)"
             />

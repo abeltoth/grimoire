@@ -122,6 +122,8 @@ export interface ToolResult {
   isError: boolean;
   /** What a tool that changes a file changed, as the agent reports it once done. */
   hunks?: DiffHunk[];
+  /** The file a tool that changes files changed or wrote, as the agent named it, once it's done. */
+  changed?: string;
 }
 
 /** A changed part of a file: its lines as in a unified diff, led by ' ' kept, '-' removed or '+' inserted. */

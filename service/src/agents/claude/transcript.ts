@@ -15,7 +15,7 @@ import type {
   UserEntry,
 } from '@grimoire/contract';
 import { addTokens } from '@grimoire/contract';
-import { hunksOf } from './file-patch';
+import { changedFileOf, hunksOf } from './file-patch';
 import {
   type CompactMessage,
   LiveCompaction,
@@ -348,7 +348,9 @@ export class ClaudeTranscript {
       const tool = entry.blocks.find((b) => b.kind === 'tool' && b.id === toolUseId);
       if (tool?.kind !== 'tool') continue;
       const hunks = hunksOf(structured);
-      tool.result = { ...toolResult(block), ...(hunks ? { hunks } : {}) };
+      const result = toolResult(block);
+      const changed = result.isError ? undefined : changedFileOf(tool.tool, tool.input);
+      tool.result = { ...result, ...(hunks ? { hunks } : {}), ...(changed ? { changed } : {}) };
       this.listener?.entry(entry);
       if (!tool.result.isError && this.applyPlan(tool)) this.listener?.plan(this.plan);
       return;

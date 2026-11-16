@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import type { Attachment } from '@grimoire/contract';
 
 /** What's written on a chat's next page, and what goes with it, not yet sent. */
@@ -13,9 +13,15 @@ const BLANK: Draft = { text: '', attachments: [] };
 @Injectable({ providedIn: 'root' })
 export class Drafts {
   private readonly kept = new Map<string, Draft>();
+  /** Text written in from elsewhere, such as Files, waiting for its chat's message field to take it. */
+  readonly added = signal<{ chatId: string; text: string } | null>(null);
 
   of(chatId: string): Draft {
     return this.kept.get(chatId) ?? BLANK;
+  }
+
+  add(chatId: string, text: string): void {
+    this.added.set({ chatId, text });
   }
 
   keep(chatId: string, draft: Draft): void {

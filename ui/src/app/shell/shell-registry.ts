@@ -139,6 +139,11 @@ export class ShellRegistry {
    * Missing without the files module, so nothing offers to.
    */
   readonly openFile = signal<((path: string, line?: number) => void) | undefined>(undefined);
+  /**
+   * Writes text into the open chat's message, after what's there, such as
+   * a part of a file from Files: the chat module's.
+   */
+  readonly addToChat = signal<((text: string) => void) | undefined>(undefined);
 }
 
 /** How a feature adds its entries to the shell, from its providers. */
