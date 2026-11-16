@@ -11,6 +11,7 @@ describe('SettingsPage', () => {
     expect([...page.children].map((child) => child.tagName.toLowerCase())).toEqual([
       'gr-general-settings',
       'gr-quick-model-settings',
+      'gr-tag-settings',
       'gr-label-settings',
       'gr-preset-settings',
       'section',

@@ -65,7 +65,7 @@
   white-space: nowrap;
 }
 
-/* The tags panel, opened from the bar: the tags to narrow the list by, then your tag list. */
+/* The tags panel, opened from the bar: the tags to narrow the list by. */
 .tags-panel {
   margin-bottom: var(--gr-history-narrow-gap);
 }

@@ -31,7 +31,6 @@ import {
 } from './chat-groups';
 import { byDate } from './date-groups';
 import { PinsAndTags } from './pins-and-tags';
-import { TagListPanel } from './tag-list-panel';
 
 /** How long the search field waits for you to stop writing before it searches. */
 const SEARCH_DELAY_MS = 150;
@@ -64,7 +63,6 @@ interface Section {
  */
 @Component({
   selector: 'gr-history-page',
-  imports: [TagListPanel],
   templateUrl: './history-page.html',
   styleUrl: './history-page.css',
 })
@@ -91,7 +89,7 @@ export class HistoryPage {
   );
   /** The tags the list is narrowed to. */
   private readonly picked = signal<readonly string[]>([]);
-  /** Whether the tags panel shows: the tags to narrow by, and your tag list. */
+  /** Whether the tags panel shows: the tags to narrow by. */
   protected readonly showTags = signal(false);
   /** What's searched for. */
   protected readonly query = signal('');

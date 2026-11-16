@@ -1,7 +1,7 @@
-import { fakeBridge, render } from '@ui/testing/app-testing';
+import { fakeBridge, openPageTab, render } from '@ui/testing/app-testing';
 
-describe('tag-list-panel', () => {
-  it('keeps your tag list from the History: adds, moves, renames and removes tags', async () => {
+describe('TagSettings', () => {
+  it('keeps your tag list on the Settings page: adds, moves, renames and removes tags', async () => {
     const { bridge, answers, calls, emit } = fakeBridge();
     answers['agents.chats'] = () => [
       { id: 'c1', agent: 'claude-code', title: 'Context meter', updatedAt: 9 },
@@ -9,24 +9,16 @@ describe('tag-list-panel', () => {
     answers['history.tagList'] = () => ['bug', 'ui'];
     answers['history.pinsAndTags'] = () => ({ pins: {}, tags: { c1: ['docs', 'bug'] } });
     const { fixture, el, texts } = await render(bridge);
-    [...el.querySelectorAll<HTMLButtonElement>('gr-page-tabs .page-tab')]
-      .find((t) => t.textContent!.trim() === 'Table of contents')!
-      .click();
-    await fixture.whenStable();
-    const toggle = el.querySelector<HTMLButtonElement>('gr-history-page .tags-toggle')!;
-    expect(toggle.getAttribute('aria-expanded')).toBe('false');
-    toggle.click();
-    await fixture.whenStable();
-    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    await openPageTab(fixture, el, 'Colophon');
 
-    const panel = () => el.querySelector<HTMLElement>('gr-tag-list-panel')!;
+    const panel = () => el.querySelector<HTMLElement>('gr-tag-settings')!;
     const button = (label: string) =>
       panel().querySelector<HTMLButtonElement>(`[aria-label="${label}"]`)!;
     const sent = (command: string) =>
       calls.filter((c) => c.command === command).map((c) => c.request);
-    expect(texts('gr-tag-list-panel .tag')).toEqual(['bug', 'ui']);
+    expect(texts('gr-tag-settings .tag')).toEqual(['bug', 'ui']);
     // A tag chats have that isn't on the list can be added to it.
-    expect(texts('gr-tag-list-panel .others .gr-link')).toEqual(['+ docs']);
+    expect(texts('gr-tag-settings .others .gr-link')).toEqual(['+ docs']);
 
     button('Add docs to the list').click();
     button('Move ui up').click();
@@ -46,8 +38,8 @@ describe('tag-list-panel', () => {
     // The list shows as the service keeps it.
     emit('history.tagListChanged', { tags: ['ui', 'docs'] });
     await fixture.whenStable();
-    expect(texts('gr-tag-list-panel .tag')).toEqual(['ui', 'docs']);
-    expect(texts('gr-tag-list-panel .others .gr-link')).toEqual(['+ bug']);
+    expect(texts('gr-tag-settings .tag')).toEqual(['ui', 'docs']);
+    expect(texts('gr-tag-settings .others .gr-link')).toEqual(['+ bug']);
 
     // Renaming writes the new name in place; Esc keeps the old one.
     const rename = async (tag: string, to: string, key: string) => {
@@ -70,7 +62,7 @@ describe('tag-list-panel', () => {
     answers['history.setTagList'] = () => Promise.reject(new Error('gone'));
     button('Remove ui from the list').click();
     await fixture.whenStable();
-    expect(texts('gr-tag-list-panel [role="alert"]')).toEqual([
+    expect(texts('gr-tag-settings [role="alert"]')).toEqual([
       'The tag list couldn’t be kept: gone',
     ]);
   });

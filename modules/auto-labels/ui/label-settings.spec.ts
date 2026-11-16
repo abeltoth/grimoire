@@ -39,12 +39,11 @@ describe('LabelSettings', () => {
     expect(sent('settings.set')).toEqual([{ autoTags: true }]);
   });
 
-  it('shows your tag list, and adds tags the agent suggests to the end of it', async () => {
+  it('adds tags the agent suggests to the end of your tag list', async () => {
     const { click, sent, texts, emit, fixture } = await withLabels((fake) => {
       fake.answers['labels.suggestTags'] = () => ['bug', 'API', 'ui', 'docs'];
       fake.answers['history.tagList'] = () => ['api'];
     });
-    expect(texts('gr-label-settings .tag')).toEqual(['api']);
     await click('Suggest tags from my chats');
     // A tag already on the list isn't suggested again.
     expect(texts('gr-label-settings .suggestions .gr-link')).toEqual([
@@ -56,7 +55,12 @@ describe('LabelSettings', () => {
     await click('Add ui to the tag list');
     emit('history.tagListChanged', { tags: ['api', 'ui'] });
     await fixture.whenStable();
-    expect(texts('gr-label-settings .tag')).toEqual(['api', 'ui']);
+    // A suggestion that joined the list isn't offered again.
+    expect(texts('gr-label-settings .suggestions .gr-link')).toEqual([
+      '+ bug',
+      '+ docs',
+      'Add them all',
+    ]);
     await click('Add them all');
     expect(sent('history.setTagList')).toEqual([
       { tags: ['api', 'ui'] },

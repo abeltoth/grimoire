@@ -38,18 +38,11 @@
 
       <span class="label">Tag list</span>
       <span class="words">
-        @for (tag of tagList(); track tag) {
-          <span class="tag">{{ tag }}</span>
-        } @empty {
-          <span class="state">None yet.</span>
-        }
-      </span>
-      <p class="note">
-        Tag chats picks only from these; change them from the History’s Tag list.
         <button type="button" class="gr-link" [disabled]="suggesting()" (click)="suggest()">
           {{ suggesting() ? 'Reading your chats…' : 'Suggest tags from my chats' }}
         </button>
-      </p>
+      </span>
+      <p class="note">Tag chats picks only from your tag list, under Tags.</p>
       @if (fresh(); as tags) {
         <p class="note suggestions">
           @if (tags.length) {

@@ -10,18 +10,17 @@ import {
 import { PinsAndTags } from './pins-and-tags';
 
 /**
- * Your tag list, kept beside the History: the tags you mean to use, in
+ * Your tag list, on the Settings page: the tags you mean to use, in
  * your order. Naming a tag anew renames it on every chat, and naming it as
  * another tag merges the two. Tags chats have that aren't on the list can
  * be added to it.
  */
 @Component({
-  selector: 'gr-tag-list-panel',
-  templateUrl: './tag-list-panel.html',
-  styleUrl: './tag-list-panel.css',
-  host: { role: 'region', 'aria-label': 'Tag list' },
+  selector: 'gr-tag-settings',
+  templateUrl: './tag-settings.html',
+  styleUrl: './tag-settings.css',
 })
-export class TagListPanel {
+export class TagSettings {
   private readonly pinsAndTags = inject(PinsAndTags);
   private readonly field = viewChild<ElementRef<HTMLInputElement>>('field');
 

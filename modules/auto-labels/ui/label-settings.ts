@@ -9,7 +9,7 @@ type LabelSetting = 'autoTitles' | 'autoTags' | 'autoSummaries';
 /**
  * When chats are named, tagged and summed up on the model for quick tasks,
  * each off until you turn it on, since each spends tokens. Tags come from
- * your tag list, shown here, which the agent can suggest from your chats' titles.
+ * your tag list, which the agent can suggest tags for from your chats' titles.
  */
 @Component({
   selector: 'gr-label-settings',
@@ -30,7 +30,7 @@ export class LabelSettings {
     {
       key: 'autoTags',
       label: 'Tag chats',
-      note: 'Tags from your tag list, kept in the History; a tag you take off stays off.',
+      note: 'Tags from your tag list, under Tags; a tag you take off stays off.',
     },
     {
       key: 'autoSummaries',
@@ -43,8 +43,8 @@ export class LabelSettings {
   protected readonly able = computed(() =>
     this.catalog.agents().some((agent) => agent.capabilities.includes('ask')),
   );
-  /** Your tag list, as the History keeps it. */
-  protected readonly tagList = signal<readonly string[]>([]);
+  /** Your tag list, so a suggestion already on it isn't offered. */
+  private readonly tagList = signal<readonly string[]>([]);
   /** Tags the agent suggested, until you add them or ask again. */
   private readonly suggested = signal<readonly string[] | null>(null);
   /** The suggested tags not on your list yet. */

@@ -4,6 +4,7 @@ import { ShellRegistry } from '@ui/app/shell/shell-registry';
 import { fakeBridge, openPageTab, render } from '@ui/testing/app-testing';
 import { ChatTags } from './chat-tags';
 import { Pins } from './pins';
+import { TagSettings } from './tag-settings';
 
 describe('history.providers', () => {
   it('adds the Table of contents page tab, which turns the right page to the History', async () => {
@@ -22,5 +23,12 @@ describe('history.providers', () => {
     const shell = TestBed.inject(ShellRegistry);
     expect(shell.chatCorners.all().map((part) => part.component)).toContain(Pins);
     expect(shell.afterTitle.all().map((part) => part.component)).toContain(ChatTags);
+  });
+
+  it('puts your tag list on the Settings page, before the labels', async () => {
+    const { bridge } = fakeBridge();
+    await render(bridge);
+    const sections = TestBed.inject(ShellRegistry).settingsSections.all();
+    expect(sections[0]?.component).toBe(TagSettings);
   });
 });
