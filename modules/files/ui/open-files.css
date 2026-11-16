@@ -1,0 +1,199 @@
+/* The open files: their tabs, then the one shown, its editor filling what is left. */
+:host {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.opened-file {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.opened-file.hidden {
+  display: none;
+}
+
+/* The open files' tabs, a ribbon of names; the one shown is underlined in rubric. */
+.file-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--gr-files-tab-gap);
+  row-gap: var(--gr-files-gap);
+  padding-bottom: var(--gr-files-gap);
+  border-bottom: var(--gr-files-side-rule);
+}
+
+.file-tabs li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-files-tab-shut-gap);
+}
+
+.file-tab {
+  max-width: var(--gr-files-tab-max);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-git-file);
+  color: var(--gr-ink-soft);
+}
+
+.file-tab:hover,
+.file-tab[aria-pressed='true'] {
+  color: var(--gr-ink);
+}
+
+.file-tab[aria-pressed='true'] {
+  box-shadow: inset 0 calc(var(--gr-underline-active) * -1) 0 var(--gr-rubric);
+}
+
+.unsaved {
+  color: var(--gr-rubric);
+}
+
+.shut {
+  align-self: center;
+  display: inline-flex;
+  color: var(--gr-ink-faint);
+}
+
+.shut:hover {
+  color: var(--gr-ink);
+}
+
+/* A file as it reads, Markdown set as text or a picture, in the editor's place between its rules. */
+.preview,
+.pictured {
+  flex: 1;
+  min-height: var(--gr-file-editor-min);
+  overflow: auto;
+  border-top: var(--gr-editor-rule);
+  border-bottom: var(--gr-editor-rule);
+}
+
+.preview {
+  padding: var(--gr-files-preview-pad);
+}
+
+.pictured {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--gr-files-preview-pad);
+}
+
+.picture {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+gr-code-editor.hidden {
+  display: none;
+}
+
+/* The file changed on disk under your changes: what to do about it, in rubric. */
+.disk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--gr-space-1);
+  margin: var(--gr-files-head-gap) 0;
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-rubric);
+}
+
+/* The open file's path, and what to do with the page around it. */
+.sub,
+.none {
+  margin: var(--gr-aside-gap) 0 0;
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.sub {
+  margin-bottom: var(--gr-files-head-gap);
+}
+
+.path {
+  min-width: 0;
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-git-file);
+  font-style: normal;
+  color: var(--gr-ink);
+  overflow-wrap: anywhere;
+}
+
+.folder {
+  color: var(--gr-ink-soft);
+}
+
+.dot {
+  margin: 0 var(--gr-space-1);
+}
+
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Whether the open file shows alone, its changes since the last commit, or as it reads. */
+.show {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--gr-files-show-gap);
+  margin: var(--gr-files-head-gap) 0;
+}
+
+.show button {
+  padding: var(--gr-settings-word-pad);
+  border-bottom: var(--gr-settings-word-rule-off);
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.show button:hover {
+  color: var(--gr-ink);
+}
+
+.show button[aria-checked='true'] {
+  color: var(--gr-ink);
+  border-bottom: var(--gr-settings-word-rule);
+}
+
+gr-code-editor {
+  margin-top: var(--gr-files-head-gap);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--gr-file-editor-actions-gap);
+  margin: 0;
+  padding: var(--gr-files-actions-pad);
+}
+
+.actions .dot {
+  margin: 0;
+}
+
+.note {
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+.note.alert {
+  color: var(--gr-rubric);
+}

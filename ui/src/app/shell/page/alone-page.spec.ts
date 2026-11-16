@@ -26,10 +26,23 @@ describe('alone-page', () => {
     expect(el.querySelector('gr-page[side="left"]')!.getAttribute('aria-label')).toBe('Ledger');
     expect(calls).toContainEqual({ command: 'layout.set', request: { focusPage: 'ledger' } });
 
-    el.querySelector<HTMLButtonElement>('gr-alone-page .gr-link')!.click();
+    const link = (text: string) =>
+      [...el.querySelectorAll<HTMLButtonElement>('gr-alone-page .gr-link')].find((button) =>
+        button.textContent!.includes(text),
+      )!;
+    link('Back to the chapter').click();
     await fixture.whenStable();
     expect(el.querySelector('gr-alone-page')).toBeNull();
+    expect(el.classList).toContain('single');
     expect(calls).toContainEqual({ command: 'layout.set', request: { focusPage: null } });
+
+    // Two pages opens the book with the page on the right, beside the chat.
+    focus.lay('ledger');
+    await fixture.whenStable();
+    link('Two pages').click();
+    await fixture.whenStable();
+    expect(el.classList).not.toContain('focus');
+    expect(texts('gr-right-page .ledger')).toEqual(['The ledger']);
   });
 
   it('isn’t shown out of focus mode, and going in lays the chat', async () => {

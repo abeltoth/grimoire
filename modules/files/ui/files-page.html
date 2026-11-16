@@ -1,10 +1,16 @@
 @let v = view();
-@let current = v.active();
 @let editing = v.tabs().length > 0;
 <div class="desk" [class.editing]="editing">
   @if (!editing || v.folderShown()) {
     <div class="side">
-      <h2>{{ catalog.folderName(v.root() ?? cwd()) }}</h2>
+      <div class="head">
+        <h2>{{ catalog.folderName(v.root() ?? cwd()) }}</h2>
+        @if (!focus.on()) {
+          <button type="button" class="gr-link single-page" (click)="layAlone()">
+            <gr-icon name="single-page" />{{ wording.say('Single page', 'Focus') }}
+          </button>
+        }
+      </div>
       <div class="search">
         <label for="gr-files-search">{{ wording.say('Look up', 'Find') }}</label>
         <input
@@ -20,6 +26,27 @@
       </div>
       @if (v.note(); as note) {
         <p class="none" [class.alert]="note.alert" role="alert">{{ note.text }}</p>
+      }
+      @if (!v.found() && touched().length) {
+        <p class="show side-tabs" role="radiogroup" aria-label="Show">
+          <button
+            type="button"
+            role="radio"
+            [attr.aria-checked]="!touchedShown()"
+            (click)="v.touchedShown.set(false)"
+          >
+            The folder
+          </button>
+          <button
+            type="button"
+            role="radio"
+            [attr.aria-checked]="touchedShown()"
+            (click)="v.touchedShown.set(true)"
+          >
+            {{ wording.say('Changed in this chapter', 'Changed in this chat') }}
+            <span class="count">{{ touched().length }}</span>
+          </button>
+        </p>
       }
 
       @if (v.found(); as found) {
@@ -42,28 +69,23 @@
             <p class="none">No file’s path has those words in it.</p>
           }
         </section>
+      } @else if (touchedShown()) {
+        <section [attr.aria-label]="wording.say('Changed in this chapter', 'Changed in this chat')">
+          <ul class="list touched">
+            @for (file of touched(); track file) {
+              @let name = touchedName(file);
+              <li>
+                <button type="button" class="file" (click)="open(file, true)">
+                  <span class="path"
+                    ><span class="folder">{{ folderOf(name) }}</span
+                    >{{ nameOf(name) }}</span
+                  >
+                </button>
+              </li>
+            }
+          </ul>
+        </section>
       } @else {
-        @if (touched().length) {
-          <section aria-labelledby="files-touched">
-            <h3 id="files-touched">
-              {{ wording.say('Changed in this chapter', 'Changed in this chat') }}
-            </h3>
-            <ul class="list touched">
-              @for (file of touched(); track file) {
-                @let name = touchedName(file);
-                <li>
-                  <button type="button" class="file" (click)="open(file, true)">
-                    <span class="path"
-                      ><span class="folder">{{ folderOf(name) }}</span
-                      >{{ nameOf(name) }}</span
-                    >
-                  </button>
-                </li>
-              }
-            </ul>
-          </section>
-        }
-
         @if (changes().length) {
           <section aria-labelledby="files-changed">
             <h3 id="files-changed">Not committed yet</h3>
@@ -112,177 +134,7 @@
   }
 
   @if (editing) {
-    <div class="opened">
-      <ul class="file-tabs" aria-label="Open files">
-        @for (tab of v.tabs(); track tab) {
-          <li [class.current]="tab === current">
-            <button
-              type="button"
-              class="file-tab"
-              [attr.aria-pressed]="tab === current"
-              [attr.title]="shownPath(tab.path)"
-              (click)="pick(tab)"
-            >
-              {{ nameOf(tab.path) }}
-              @if (tab.changed()) {
-                <span class="unsaved" title="Not saved">●</span>
-              }
-            </button>
-            <button
-              type="button"
-              class="shut"
-              [attr.aria-label]="'Close ' + nameOf(tab.path)"
-              (click)="close(tab)"
-            >
-              <gr-icon name="close" />
-            </button>
-          </li>
-        }
-      </ul>
-
-      @for (tab of v.tabs(); track tab) {
-        @let file = tab.file();
-        @let shown = shownPath(file.path);
-        <section class="opened-file" [class.hidden]="tab !== current" [attr.aria-label]="shown">
-          <p class="sub">
-            <span class="path" [attr.title]="file.path"
-              ><span class="folder">{{ folderOf(shown) }}</span
-              >{{ nameOf(shown) }}</span
-            >
-            <span class="dot" aria-hidden="true">·</span>
-            <button type="button" class="gr-link" (click)="showFolder(!v.folderShown())">
-              {{ v.folderShown() ? 'Hide the folder' : 'Show the folder' }}
-            </button>
-          </p>
-          @if (file.picture) {
-            <div class="pictured">
-              <img class="picture" [src]="file.picture" [alt]="nameOf(shown)" />
-            </div>
-          } @else if (file.unshown) {
-            <p class="none">
-              @if (file.unshown === 'binary') {
-                It isn’t text, so it can’t be shown here.
-              } @else {
-                It’s too large to open here.
-              }
-            </p>
-          } @else {
-            @if (tab.onDisk()) {
-              <p class="disk" role="alert">
-                <span>
-                  {{
-                    tab.comparing()
-                      ? 'On disk, beside your changes:'
-                      : 'It changed on disk under your changes.'
-                  }}
-                </span>
-                <button type="button" class="gr-link" (click)="takeDisk(tab)">
-                  Take the disk’s
-                </button>
-                <span class="dot" aria-hidden="true">·</span>
-                <button type="button" class="gr-link" (click)="keepMine(tab)">Keep mine</button>
-                <span class="dot" aria-hidden="true">·</span>
-                <button type="button" class="gr-link" (click)="tab.comparing.set(!tab.comparing())">
-                  {{ tab.comparing() ? 'Stop comparing' : 'Compare' }}
-                </button>
-              </p>
-            } @else if (file.committed !== undefined || previewOf(file.path)) {
-              @let mode = modeOf(tab);
-              <p class="show" role="radiogroup" aria-label="Show">
-                <button
-                  type="button"
-                  role="radio"
-                  [attr.aria-checked]="mode === 'file'"
-                  (click)="show(tab, 'file')"
-                >
-                  The file
-                </button>
-                @if (file.committed !== undefined) {
-                  <button
-                    type="button"
-                    role="radio"
-                    [attr.aria-checked]="mode === 'changes'"
-                    (click)="show(tab, 'changes')"
-                  >
-                    {{
-                      file.committed === null
-                        ? 'All new since the last commit'
-                        : 'Its changes since the last commit'
-                    }}
-                  </button>
-                }
-                @if (previewOf(file.path)) {
-                  <button
-                    type="button"
-                    role="radio"
-                    [attr.aria-checked]="mode === 'preview'"
-                    (click)="show(tab, 'preview')"
-                  >
-                    {{ wording.say('As it reads', 'Preview') }}
-                  </button>
-                }
-              </p>
-            }
-            @if (tab.preview() && !tab.onDisk()) {
-              @switch (previewOf(file.path)) {
-                @case ('markdown') {
-                  <div class="preview">
-                    <ng-container
-                      *ngComponentOutlet="shell.markdownView()!; inputs: { text: tab.draft() }"
-                    />
-                  </div>
-                }
-                @case ('svg') {
-                  <div class="pictured">
-                    <img class="picture" [src]="drawing(tab.draft())" [alt]="nameOf(shown)" />
-                  </div>
-                }
-              }
-            }
-            <gr-code-editor
-              [class.hidden]="tab.preview() && !tab.onDisk()"
-              [path]="file.path"
-              [text]="tab.draft()"
-              (textChange)="tab.draft.set($event)"
-              [committed]="tab.comparing() ? tab.onDisk()?.text : file.committed"
-              [changes]="tab.comparing() || tab.showsChanges()"
-              [reveal]="tab.reveal()"
-              [addLabel]="
-                shell.addToChat() ? wording.say('Add to the chapter', 'Add to chat') : null
-              "
-              (addToChat)="addToChat(tab, $event)"
-              (save)="save(tab)"
-              (closeFile)="close(tab)"
-            />
-            <p class="actions">
-              <button
-                type="button"
-                class="gr-link"
-                [attr.aria-disabled]="tab.saving() || !tab.changed() || null"
-                (click)="save(tab)"
-              >
-                Save <span class="gr-kbd">{{ saveKey | shortcut }}</span>
-              </button>
-              @if (tab.changed()) {
-                <span class="dot" aria-hidden="true">·</span>
-                <button type="button" class="gr-link" (click)="discard(tab)">
-                  Discard changes
-                </button>
-              }
-              @if (tab.note(); as note) {
-                <span
-                  class="note"
-                  [class.alert]="note.alert"
-                  [attr.role]="note.alert ? 'alert' : 'status'"
-                >
-                  {{ note.text }}
-                </span>
-              }
-            </p>
-          }
-        </section>
-      }
-    </div>
+    <gr-open-files [view]="v" />
   }
 </div>
 

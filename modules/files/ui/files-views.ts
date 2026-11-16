@@ -10,6 +10,7 @@ import type { FolderEntry, OpenFile } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { ChatList } from '@ui/app/core/chat-list';
 import { AgentCatalog } from '@ui/app/core/agent-catalog';
+import { Focus } from '@ui/app/shell/focus';
 
 /** How long typing has to pause before files are looked for, in ms. */
 const FIND_AFTER_MS = 150;
@@ -86,6 +87,8 @@ export class FilesView {
   readonly note = signal<FilesNote | null>(null);
   /** Whether the folder shows beside the open files; put away, it gives them the page. */
   readonly folderShown = signal(true);
+  /** Whether the side shows the files the open chat's agent changed, rather than the folder. */
+  readonly touchedShown = signal(false);
 
   /** Which search is the latest, the wait before it's made, and what's waiting on it. */
   finds = 0;
@@ -106,6 +109,7 @@ export class FilesViews {
   private readonly pending = inject(PendingTasks);
   private readonly list = inject(ChatList);
   private readonly catalog = inject(AgentCatalog);
+  private readonly focus = inject(Focus);
   private readonly views = new Map<string, FilesView>();
 
   /** The folder the page shows: the open chat's; your home folder until you pick another. */
@@ -119,6 +123,12 @@ export class FilesViews {
         if (tab) void this.reload(view, tab);
       }
     });
+  }
+
+  /** Lays the book at a single page with Files alone on it, in the chat's place. */
+  layAlone(): void {
+    this.focus.enter();
+    if (this.focus.on()) this.focus.lay('files');
   }
 
   of(cwd: string): FilesView {

@@ -25,122 +25,37 @@
   border-right: var(--gr-files-side-rule);
 }
 
-.opened {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.opened-file {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.opened-file.hidden {
-  display: none;
-}
-
-/* The open files' tabs, a ribbon of names; the one shown is underlined in rubric. */
-.file-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  column-gap: var(--gr-files-tab-gap);
-  row-gap: var(--gr-files-gap);
-  padding-bottom: var(--gr-files-gap);
-  border-bottom: var(--gr-files-side-rule);
-}
-
-.file-tabs li {
-  display: flex;
-  align-items: baseline;
-  gap: var(--gr-files-tab-shut-gap);
-}
-
-.file-tab {
-  max-width: var(--gr-files-tab-max);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: var(--gr-font-mono);
-  font-size: var(--gr-size-git-file);
-  color: var(--gr-ink-soft);
-}
-
-.file-tab:hover,
-.file-tab[aria-pressed='true'] {
-  color: var(--gr-ink);
-}
-
-.file-tab[aria-pressed='true'] {
-  box-shadow: inset 0 calc(var(--gr-underline-active) * -1) 0 var(--gr-rubric);
-}
-
-.unsaved {
-  color: var(--gr-rubric);
-}
-
-.shut {
-  align-self: center;
-  display: inline-flex;
-  color: var(--gr-ink-faint);
-}
-
-.shut:hover {
-  color: var(--gr-ink);
-}
-
+/* The tree's entry for the file shown. */
 .entry.current {
   color: var(--gr-rubric);
 }
 
-/* A file as it reads, Markdown set as text or a picture, in the editor's place between its rules. */
-.preview,
-.pictured {
-  flex: 1;
-  min-height: var(--gr-file-editor-min);
-  overflow: auto;
-  border-top: var(--gr-editor-rule);
-  border-bottom: var(--gr-editor-rule);
-}
-
-.preview {
-  padding: var(--gr-files-preview-pad);
-}
-
-.pictured {
+/* The folder's name, and the link that lays Files alone on a single page. */
+.head {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--gr-files-preview-pad);
-}
-
-.picture {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-
-gr-code-editor.hidden {
-  display: none;
-}
-
-/* The file changed on disk under your changes: what to do about it, in rubric. */
-.disk {
-  display: flex;
-  flex-wrap: wrap;
   align-items: baseline;
-  column-gap: var(--gr-space-1);
-  margin: var(--gr-files-head-gap) 0;
-  font-style: italic;
-  font-size: var(--gr-size-aside);
-  color: var(--gr-rubric);
+  justify-content: space-between;
+  gap: var(--gr-files-desk-gap);
+  margin: 0 0 var(--gr-files-head-gap);
+}
+
+.head .single-page {
+  flex: none;
+}
+
+/* The folder, or the files the open chat's agent changed, and how many. */
+.side-tabs {
+  margin-top: var(--gr-files-section-gap);
+}
+
+.count {
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  color: var(--gr-ink-faint);
 }
 
 h2 {
-  margin: 0 0 var(--gr-files-head-gap);
+  margin: 0;
   font-family: var(--gr-font-display-sc);
   font-weight: 400;
   font-size: var(--gr-size-section-head);
@@ -157,7 +72,6 @@ h3 {
   color: var(--gr-ink);
 }
 
-.sub,
 .none {
   margin: var(--gr-aside-gap) 0 0;
   font-style: italic;
@@ -319,7 +233,7 @@ button.file:hover .path {
   padding-left: var(--gr-files-twist-w);
 }
 
-/* Whether the open file shows alone, or its changes since the last commit. */
+/* Words to pick one of, underlined when picked. */
 .show {
   display: flex;
   flex-wrap: wrap;
@@ -343,39 +257,4 @@ button.file:hover .path {
 .show button[aria-checked='true'] {
   color: var(--gr-ink);
   border-bottom: var(--gr-settings-word-rule);
-}
-
-.sub {
-  margin-bottom: var(--gr-files-head-gap);
-}
-
-.sub .path {
-  font-style: normal;
-}
-
-gr-code-editor {
-  margin-top: var(--gr-files-head-gap);
-}
-
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  column-gap: var(--gr-file-editor-actions-gap);
-  margin: 0;
-  padding: var(--gr-files-actions-pad);
-}
-
-.actions .dot {
-  margin: 0;
-}
-
-.note {
-  font-style: italic;
-  font-size: var(--gr-size-aside);
-  color: var(--gr-ink-soft);
-}
-
-.note.alert {
-  color: var(--gr-rubric);
 }

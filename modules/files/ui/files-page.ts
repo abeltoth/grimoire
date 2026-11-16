@@ -1,4 +1,4 @@
-import { NgComponentOutlet, NgTemplateOutlet } from '@angular/common';
+import { NgTemplateOutlet } from '@angular/common';
 import {
   Component,
   PendingTasks,
@@ -14,24 +14,21 @@ import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { ChatList } from '@ui/app/core/chat-list';
 import { Wording } from '@ui/app/core/wording';
 import { Focus } from '@ui/app/shell/focus';
-import { ShellRegistry } from '@ui/app/shell/shell-registry';
-import { type Shortcut, ShortcutPipe } from '@ui/app/shell/shortcut';
 import { Icon } from '@ui/design-system/icon';
-import { CodeEditor, type FilePart } from './code-editor';
-import { type FileTab, FilesViews } from './files-views';
+import { FilesViews } from './files-views';
+import { OpenFiles } from './open-files';
+import { folderOf, nameOf, shownPath } from './paths';
 import { fromFolder, touchedFiles } from './touched';
 
 /**
- * The Files page: the open chat's folder, what's changed in it since
- * the last commit first, and those the open chat's agent changed; its
- * files as a tree, or found by name. Files open in tabs beside it, each
- * in the VS Code editor to read and change, its changes since the last
- * commit beside it if you like, a part of it to add to the chat. A
- * picture shows; Markdown and SVG can show as they read.
+ * The Files page: the open chat's folder, what's changed in it since the
+ * last commit first, and its files as a tree, or found by name; or, a tab
+ * away, the files the open chat's agent changed. Files open in tabs beside
+ * it. A link lays it alone on a single page, in the chat's place.
  */
 @Component({
   selector: 'gr-files-page',
-  imports: [CodeEditor, Icon, NgComponentOutlet, NgTemplateOutlet, ShortcutPipe],
+  imports: [Icon, NgTemplateOutlet, OpenFiles],
   templateUrl: './files-page.html',
   styleUrl: './files-page.css',
 })
@@ -40,11 +37,11 @@ export class FilesPage {
   private readonly pending = inject(PendingTasks);
   private readonly views = inject(FilesViews);
   private readonly list = inject(ChatList);
-  private readonly focus = inject(Focus);
-  protected readonly shell = inject(ShellRegistry);
+  protected readonly focus = inject(Focus);
   protected readonly catalog = inject(AgentCatalog);
   protected readonly wording = inject(Wording);
-  protected readonly saveKey: Shortcut = 'Mod+S';
+  protected readonly folderOf = folderOf;
+  protected readonly nameOf = nameOf;
 
   /** The open chat's folder; your home folder until you pick another. */
   protected readonly cwd = this.views.cwd;
@@ -53,6 +50,10 @@ export class FilesPage {
   protected readonly changes = signal<readonly GitChange[]>([]);
   /** The files the open chat's agent changed, the latest first, named in full. */
   protected readonly touched = computed(() => touchedFiles(this.list.current()?.entries ?? []));
+  /** The changed files show in the folder's place while you've turned to them and there are some. */
+  protected readonly touchedShown = computed(
+    () => this.view().touchedShown() && this.touched().length > 0,
+  );
   /** Which read of the changes is the latest, so an earlier one answering late is dropped. */
   private reads = 0;
 
@@ -83,95 +84,13 @@ export class FilesPage {
     void this.views.open(this.view(), path, changes);
   }
 
-  protected pick(tab: FileTab): void {
-    this.view().active.set(tab);
+  protected layAlone(): void {
+    this.views.layAlone();
   }
 
-  protected save(tab: FileTab): void {
-    void this.views.save(this.view(), tab);
-  }
-
-  protected discard(tab: FileTab): void {
-    this.views.discard(tab);
-  }
-
-  protected takeDisk(tab: FileTab): void {
-    this.views.takeDisk(tab);
-  }
-
-  protected keepMine(tab: FileTab): void {
-    this.views.keepMine(tab);
-  }
-
-  protected close(tab: FileTab): void {
-    this.views.close(this.view(), tab);
-  }
-
-  protected showFolder(shown: boolean): void {
-    this.view().folderShown.set(shown);
-  }
-
-  /** A file's path as the page names it: from the folder, or in full, from your home folder when it's in it. */
-  protected shownPath(path: string): string {
-    if (!/^([a-zA-Z]:)?\//.test(path)) return path;
-    const home = this.catalog.folders().home.replaceAll('\\', '/').replace(/\/$/, '');
-    return home && path.toLowerCase().startsWith(`${home.toLowerCase()}/`)
-      ? `~${path.slice(home.length)}`
-      : path;
-  }
-
-  /** A file the agent changed, named from the folder when it's in it. */
+  /** A file the agent changed, named from the folder when it's in it, or else in full. */
   protected touchedName(file: string): string {
-    return this.shownPath(fromFolder(file, this.view().root()));
-  }
-
-  /** Writes part of a file into the chat's message, with where it's from; in focus mode the chat lies there again. */
-  protected addToChat(tab: FileTab, part: FilePart): void {
-    const add = this.shell.addToChat();
-    if (!add) return;
-    const lines = part.from === part.to ? `${part.from}` : `${part.from}-${part.to}`;
-    const language = /\.(\w+)$/.exec(tab.path)?.[1] ?? '';
-    // A fence longer than any run of backticks in the text, so the text can't close it.
-    const longest = Math.max(0, ...(part.text.match(/`+/g) ?? []).map((run) => run.length));
-    const fence = '`'.repeat(Math.max(3, longest + 1));
-    const where = '`' + `${this.shownPath(tab.path)}:${lines}` + '`';
-    // A selection that takes its last line's end brings a line break the fence already makes.
-    const text = part.text.replace(/\r?\n$/, '');
-    add([where, '', `${fence}${language}`, text, fence].join('\n'));
-    if (this.focus.on() && this.focus.alone() === 'files') this.focus.lay(null);
-  }
-
-  /** How a file can show as it reads: Markdown set as text, where the chat's view of it is, or an SVG drawn. */
-  protected previewOf(path: string): 'markdown' | 'svg' | null {
-    const name = path.toLowerCase();
-    if (name.endsWith('.svg')) return 'svg';
-    if (/\.(md|markdown)$/.test(name) && this.shell.markdownView()) return 'markdown';
-    return null;
-  }
-
-  protected modeOf(tab: FileTab): 'file' | 'changes' | 'preview' {
-    if (tab.preview()) return 'preview';
-    return tab.showsChanges() ? 'changes' : 'file';
-  }
-
-  protected show(tab: FileTab, mode: 'file' | 'changes' | 'preview'): void {
-    tab.preview.set(mode === 'preview');
-    tab.changes.set(mode === 'changes');
-  }
-
-  /** An SVG's text as a picture's address, drawn as an image, where its scripts don't run. */
-  protected drawing(text: string): string {
-    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(text)}`;
-  }
-
-  /** The folder a file is in, with a slash; empty at the top. */
-  protected folderOf(file: string): string {
-    const slash = file.lastIndexOf('/');
-    return slash < 0 ? '' : file.slice(0, slash + 1);
-  }
-
-  protected nameOf(file: string): string {
-    return file.slice(file.lastIndexOf('/') + 1);
+    return shownPath(fromFolder(file, this.view().root()), this.catalog.folders().home);
   }
 
   private async readChanges(cwd: string): Promise<void> {
