@@ -1,47 +1,36 @@
-@let tabs = order.all();
 <section aria-labelledby="gr-settings-page-tabs">
   <h2 id="gr-settings-page-tabs">{{ wording.say('The thumb index', 'Page tabs') }}</h2>
   <p class="lead">
-    The tabs on the right, in their order. {{ settingsLabel() }} always shows, to show the others
-    again.
+    The tabs on the right, in their order: drag one to move it. {{ settingsLabel() }} always shows,
+    to show the others again.
   </p>
 
-  <ol class="tabs">
-    @for (tab of tabs; track tab.id; let first = $first, last = $last) {
+  <ol class="tabs" (dragleave)="$event.target === $event.currentTarget && over.set(null)">
+    @for (tab of order.all(); track tab.id) {
       @let hidden = order.hidden(tab.id);
       @let name = wording.label(tab);
-      <li [class.hidden]="hidden">
+      <li
+        draggable="true"
+        [class.hidden]="hidden"
+        [class.dragged]="dragging() === tab.id"
+        [class.before]="over()?.id === tab.id && !over()?.after"
+        [class.after]="over()?.id === tab.id && over()?.after"
+        (dragstart)="dragStart($event, tab.id)"
+        (dragover)="dragOver($event, tab.id)"
+        (drop)="drop($event)"
+        (dragend)="dragEnd()"
+      >
         <span class="name">{{ name }}</span>
-        <span class="actions">
+        @if (tab.id !== settingsTab) {
           <button
             type="button"
-            class="act up"
-            [attr.aria-label]="'Move ' + name + ' up'"
-            [disabled]="first"
-            (click)="order.move(tab.id, -1)"
+            class="gr-link"
+            [attr.aria-label]="(hidden ? 'Show ' : 'Hide ') + name"
+            (click)="order.toggle(tab.id)"
           >
-            <gr-icon name="chevron-down" />
+            {{ hidden ? 'Show' : 'Hide' }}
           </button>
-          <button
-            type="button"
-            class="act"
-            [attr.aria-label]="'Move ' + name + ' down'"
-            [disabled]="last"
-            (click)="order.move(tab.id, 1)"
-          >
-            <gr-icon name="chevron-down" />
-          </button>
-          @if (tab.id !== settingsTab) {
-            <button
-              type="button"
-              class="gr-link"
-              [attr.aria-label]="(hidden ? 'Show ' : 'Hide ') + name"
-              (click)="order.toggle(tab.id)"
-            >
-              {{ hidden ? 'Show' : 'Hide' }}
-            </button>
-          }
-        </span>
+        }
       </li>
     }
   </ol>

@@ -56,8 +56,9 @@ export class PageTabs {
   /** Draws the tabs as large as fits them all between the book's head and foot. */
   private fit(host: HTMLElement): void {
     const tabs = [...host.children];
-    const room = host.clientHeight;
-    if (!tabs.length || !room) return;
+    // A pixel a tab to spare, so rounding never cuts off a label that fits.
+    const room = host.clientHeight - tabs.length;
+    if (!tabs.length || room <= 0) return;
     let spacing = (parseFloat(getComputedStyle(host).rowGap) || 0) * (tabs.length - 1);
     let labels = 0;
     for (const tab of tabs) {

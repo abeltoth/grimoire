@@ -27,13 +27,16 @@ export class PageTabOrder {
     return id !== SETTINGS_TAB && this.hiddenIds().includes(id);
   }
 
-  /** Moves a tab one place up (-1) or down (1) among all of them. */
-  move(id: string, by: -1 | 1): void {
-    const ids = this.all().map((tab) => tab.id);
-    const from = ids.indexOf(id);
-    const to = from + by;
-    if (from < 0 || to < 0 || to >= ids.length) return;
-    [ids[from], ids[to]] = [ids[to]!, ids[from]!];
+  /** Moves a tab to just before another, or to the end when that's null. */
+  place(id: string, before: string | null): void {
+    if (id === before) return;
+    const ids = this.all()
+      .map((tab) => tab.id)
+      .filter((other) => other !== id);
+    const at = before === null ? ids.length : ids.indexOf(before);
+    if (at < 0) return;
+    ids.splice(at, 0, id);
+    if (ids.every((other, i) => other === this.all()[i]?.id)) return;
     void this.settings.set({ pageTabOrder: ids });
   }
 

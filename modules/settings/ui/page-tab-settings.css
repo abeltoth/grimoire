@@ -4,18 +4,18 @@
 }
 
 .tabs {
-  display: flex;
-  flex-direction: column;
-  gap: var(--gr-aside-gap);
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
+/* Each tab is picked up anywhere on its line. */
 li {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: var(--gr-tags-gap);
+  padding: var(--gr-untag-gap) 0;
+  cursor: grab;
 }
 
 .name {
@@ -32,33 +32,19 @@ li {
   color: var(--gr-ink-faint);
 }
 
-.actions {
-  display: flex;
-  align-items: center;
-  gap: var(--gr-untag-gap);
+li.dragged {
+  opacity: var(--gr-kanban-dragged);
 }
 
-.act {
-  display: inline-grid;
-  place-items: center;
-  width: var(--gr-icon-button);
-  height: var(--gr-icon-button);
-  color: var(--gr-ink-soft);
+/* Where the tab dragged would go: a line in pen above or below the tab it's over. */
+li.before {
+  box-shadow: 0 calc(var(--gr-underline-active) * -1) 0 var(--gr-pen);
 }
 
-.act:hover:not(:disabled) {
-  color: var(--gr-ink);
+li.after {
+  box-shadow: 0 var(--gr-underline-active) 0 var(--gr-pen);
 }
 
-.act:disabled {
-  color: var(--gr-ink-faint);
-  cursor: default;
-}
-
-.up gr-icon {
-  rotate: 180deg;
-}
-
-.actions .gr-link {
+li .gr-link {
   font-size: var(--gr-size-aside);
 }
