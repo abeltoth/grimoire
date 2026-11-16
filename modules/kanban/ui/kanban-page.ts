@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import {
   Component,
   ElementRef,
@@ -47,7 +48,8 @@ interface ListedChat {
  * folder, lists the chats it began with the latest one's live status, and
  * stays until you close it; one an agent added says so, and links back to
  * the chat it was added in; closed cards are kept, to open again. An empty
- * card at the foot of To do writes a new one. The board can show one
+ * card at the foot of To do writes a new one. Clicking a card opens it
+ * large, written out to change, with its buttons. The board can show one
  * folder's cards only.
  *
  * Your Jira issues are cards too, on a Jira tab of their own beside your
@@ -68,7 +70,7 @@ interface ListedChat {
  */
 @Component({
   selector: 'gr-kanban-page',
-  imports: [CardForm, CardLarge, Icon],
+  imports: [CardForm, CardLarge, Icon, NgTemplateOutlet],
   templateUrl: './kanban-page.html',
   styleUrl: './kanban-page.css',
 })
@@ -82,8 +84,8 @@ export class KanbanPage {
   private readonly injector = inject(Injector);
   protected readonly columns = COLUMNS;
 
-  /** The card written out to change, or 'new' for one being added. */
-  protected readonly editing = signal<string | null>(null);
+  /** 'new' while a card is being added. */
+  protected readonly editing = signal<'new' | null>(null);
   /** The card whose Move to is open. */
   protected readonly moving = signal<string | null>(null);
   /**
@@ -319,7 +321,7 @@ export class KanbanPage {
   }
 
   protected dragStart(event: DragEvent, card: Card): void {
-    if (this.editing() === card.id || this.movingInJira(card)) return event.preventDefault();
+    if (this.movingInJira(card)) return event.preventDefault();
     this.dragging.set(card.id);
     this.moving.set(null);
     if (event.dataTransfer) {

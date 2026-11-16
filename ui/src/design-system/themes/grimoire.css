@@ -519,7 +519,10 @@
   --gr-kanban-word-gap: 10px;
   --gr-kanban-actions-gap: 10px;
   --gr-kanban-form-gap: 8px;
-  /* A card opened large to read */
+  /* How tall a card's notes box starts, and grows to before it scrolls */
+  --gr-kanban-box-min: 2lh;
+  --gr-kanban-box-max: 50vh;
+  /* A card opened large to work on */
   --gr-kanban-large-width: 640px;
   --gr-kanban-large-pad: 20px 24px 18px;
   --gr-size-kanban-large: 17px;
@@ -543,7 +546,10 @@
   --gr-notes-word-gap: 10px;
   --gr-notes-actions-gap: 10px;
   --gr-notes-form-gap: 8px;
-  /* A note opened large to read */
+  /* How tall a note's text box starts, and grows to before it scrolls */
+  --gr-notes-box-min: 3lh;
+  --gr-notes-box-max: 60vh;
+  /* A note opened large to work on */
   --gr-notes-large-width: 640px;
   --gr-notes-large-pad: 20px 24px 18px;
   --gr-size-notes-large: 17px;

@@ -93,177 +93,76 @@
               [class.jira]="card.kind === 'jira'"
               [attr.data-card]="card.id"
               [class.dragged]="dragging() === card.id"
-              [attr.draggable]="editing() !== card.id && !movingInJira(card)"
+              [attr.draggable]="!movingInJira(card)"
               (dragstart)="dragStart($event, card)"
               (dragend)="dragEnd()"
             >
-              @if (editing() === card.id) {
-                <gr-card-form [card]="card" (done)="editing.set(null)" />
+              @if (card.jira; as issue) {
+                <p class="issue">
+                  <span class="mark" title="From Jira">Jira</span>
+                  <span class="key">{{ issue.key }}</span>
+                  @if (issue.type) {
+                    <span class="type">{{ issue.type }}</span>
+                  }
+                  @if (issue.priority) {
+                    <span class="priority" [attr.title]="issue.priority + ' priority'">{{
+                      issue.priority
+                    }}</span>
+                  }
+                </p>
+              }
+              <button type="button" class="open" title="Open the card" (click)="large.open(card)">
+                <span class="name">{{ card.title }}</span>
+                @if (card.notes) {
+                  <span class="notes">{{ card.notes }}</span>
+                }
+              </button>
+              @if (card.jira; as issue) {
+                @if (issue.status) {
+                  <p class="where status-name">{{ issue.status }}</p>
+                }
               } @else {
-                @if (card.jira; as issue) {
-                  <p class="issue">
-                    <span class="mark" title="From Jira">Jira</span>
-                    <span class="key">{{ issue.key }}</span>
-                    @if (issue.type) {
-                      <span class="type">{{ issue.type }}</span>
-                    }
-                    @if (issue.priority) {
-                      <span class="priority" [attr.title]="issue.priority + ' priority'">{{
-                        issue.priority
-                      }}</span>
-                    }
-                  </p>
-                }
-                <button type="button" class="open" title="Enlarge" (click)="large.open(card)">
-                  <span class="name">{{ card.title }}</span>
-                  @if (card.notes) {
-                    <span class="notes">{{ card.notes }}</span>
-                  }
-                </button>
-                @if (card.jira; as issue) {
-                  @if (issue.status) {
-                    <p class="where status-name">{{ issue.status }}</p>
-                  }
-                } @else {
-                  <p class="where">
-                    <code>{{ catalog.folderName(card.cwd) }}</code>
-                  </p>
-                }
-                @if (card.madeIn; as made) {
-                  <p class="made-in">
-                    From {{ catalog.agentName(made.agent) }}, in
-                    <button
-                      type="button"
-                      class="chat"
-                      [attr.title]="
-                        wording.say('The chapter it was added in', 'The chat it was added in')
-                      "
-                      (click)="openMadeIn(card)"
-                    >
-                      {{ titleOf(made.chatId) }}
-                    </button>
-                  </p>
-                }
+                <p class="where">
+                  <code>{{ catalog.folderName(card.cwd) }}</code>
+                </p>
+              }
+              @if (card.madeIn; as made) {
+                <p class="made-in">
+                  From {{ catalog.agentName(made.agent) }}, in
+                  <button
+                    type="button"
+                    class="chat"
+                    [attr.title]="
+                      wording.say('The chapter it was added in', 'The chat it was added in')
+                    "
+                    (click)="openMadeIn(card)"
+                  >
+                    {{ titleOf(made.chatId) }}
+                  </button>
+                </p>
+              }
 
-                @if (card.chats.length) {
-                  <ul class="chats" [attr.aria-label]="wording.say('Its chapters', 'Its chats')">
-                    @for (listed of chatsOf(card); track listed.chat.chatId) {
-                      <li>
-                        <button type="button" class="chat" (click)="board.openChat(listed.chat)">
-                          {{ listed.title }}
-                        </button>
-                        @if (listed.status; as status) {
-                          <span class="status" [attr.data-status]="status.tone">
-                            @if (status.icon) {
-                              <gr-icon [name]="status.icon" [class]="status.motion ?? ''" />
-                            }
-                            {{ status.text }}
-                          </span>
-                        }
-                      </li>
-                    }
-                  </ul>
-                }
-
-                @if (board.jiraNote(); as note) {
-                  @if (note.card === card.id) {
-                    <p class="jira-note" role="alert">
-                      {{ note.text }}
-                      @if (note.openInJira && card.jira?.url) {
-                        <button type="button" class="gr-link" (click)="board.openInJira(card)">
-                          Open in Jira
-                        </button>
+              @if (card.chats.length) {
+                <ul class="chats" [attr.aria-label]="wording.say('Its chapters', 'Its chats')">
+                  @for (listed of chatsOf(card); track listed.chat.chatId) {
+                    <li>
+                      <button type="button" class="chat" (click)="board.openChat(listed.chat)">
+                        {{ listed.title }}
+                      </button>
+                      @if (listed.status; as status) {
+                        <span class="status" [attr.data-status]="status.tone">
+                          @if (status.icon) {
+                            <gr-icon [name]="status.icon" [class]="status.motion ?? ''" />
+                          }
+                          {{ status.text }}
+                        </span>
                       }
-                    </p>
+                    </li>
                   }
-                }
-
-                <div class="actions">
-                  @if (moving() === card.id) {
-                    <span
-                      class="moves"
-                      role="group"
-                      aria-label="Move to"
-                      (keydown.escape)="$event.preventDefault(); closeMoves(card)"
-                    >
-                      <span class="ask">Move to</span>
-                      @for (to of movesOf(card); track to.label) {
-                        <button type="button" class="gr-link" (click)="move(card, to)">
-                          {{ to.label }}
-                        </button>
-                      }
-                      <button type="button" class="gr-link" (click)="closeMoves(card)">
-                        Cancel
-                      </button>
-                    </span>
-                  } @else if (board.moving(card.id)) {
-                    <span class="ask" role="status">Moving in Jira…</span>
-                  } @else if (inJira()?.card === card.id) {
-                    @if (inJira()!.choices; as choices) {
-                      <span
-                        class="moves"
-                        role="group"
-                        [attr.aria-label]="inJira()!.column ? 'Move to' : 'Change status to'"
-                        (keydown.escape)="$event.preventDefault(); endInJira(card)"
-                      >
-                        <span class="ask">{{
-                          inJira()!.column ? 'Move to' : 'Change status to'
-                        }}</span>
-                        @for (choice of choices; track choice.id) {
-                          <button
-                            type="button"
-                            class="gr-link"
-                            [attr.title]="choice.name"
-                            (click)="transition(card, choice)"
-                          >
-                            {{ choiceLabel(choice, choices) }}
-                          </button>
-                        }
-                        <button type="button" class="gr-link" (click)="endInJira(card)">
-                          Cancel
-                        </button>
-                      </span>
-                    } @else {
-                      <span class="ask" role="status">Asking Jira…</span>
-                      <button type="button" class="gr-link" (click)="endInJira(card)">
-                        Cancel
-                      </button>
-                    }
-                  } @else {
-                    <button
-                      type="button"
-                      class="gr-link begin"
-                      (click)="board.newChat(card, folder() ?? undefined)"
-                    >
-                      {{ wording.say('New chapter', 'New chat') }}
-                    </button>
-                    <button type="button" class="gr-link move" (click)="openMoves(card)">
-                      Move to…
-                    </button>
-                    @if (card.jira; as issue) {
-                      <button type="button" class="gr-link" (click)="moveInJira(card)">
-                        Change status…
-                      </button>
-                      @if (issue.url) {
-                        <button
-                          type="button"
-                          class="gr-link"
-                          [attr.title]="issue.url"
-                          (click)="board.openInJira(card)"
-                        >
-                          Open in Jira
-                        </button>
-                      }
-                    } @else {
-                      <button type="button" class="gr-link" (click)="editing.set(card.id)">
-                        Change
-                      </button>
-                    }
-                    <button type="button" class="gr-link" (click)="board.close(card.id, true)">
-                      Close
-                    </button>
-                  }
-                </div>
+                </ul>
+              }
+              @if (large.card()?.id !== card.id) {
+                <ng-container *ngTemplateOutlet="actions; context: { $implicit: card }" />
               }
             </li>
           }
@@ -281,7 +180,112 @@
     }
   </div>
 
-  <gr-card-large #large />
+  <gr-card-large #large>
+    @if (large.card(); as card) {
+      <div class="held" [attr.data-card]="card.id">
+        @if (card.jira; as issue) {
+          <p class="issue">
+            <span class="mark">Jira</span>
+            <span class="key">{{ issue.key }}</span>
+            @if (issue.status) {
+              <span class="type">{{ issue.status }}</span>
+            }
+          </p>
+          <p class="name">{{ card.title }}</p>
+          @if (card.notes) {
+            <p class="notes whole">{{ card.notes }}</p>
+          }
+        } @else {
+          <gr-card-form [card]="card" (done)="large.close()" />
+        }
+        <ng-container *ngTemplateOutlet="actions; context: { $implicit: card }" />
+      </div>
+    }
+  </gr-card-large>
+
+  <ng-template #actions let-card>
+    @if (board.jiraNote(); as note) {
+      @if (note.card === card.id) {
+        <p class="jira-note" role="alert">
+          {{ note.text }}
+          @if (note.openInJira && card.jira?.url) {
+            <button type="button" class="gr-link" (click)="board.openInJira(card)">
+              Open in Jira
+            </button>
+          }
+        </p>
+      }
+    }
+
+    <div class="actions">
+      @if (moving() === card.id) {
+        <span
+          class="moves"
+          role="group"
+          aria-label="Move to"
+          (keydown.escape)="$event.preventDefault(); closeMoves(card)"
+        >
+          <span class="ask">Move to</span>
+          @for (to of movesOf(card); track to.label) {
+            <button type="button" class="gr-link" (click)="move(card, to)">
+              {{ to.label }}
+            </button>
+          }
+          <button type="button" class="gr-link" (click)="closeMoves(card)">Cancel</button>
+        </span>
+      } @else if (board.moving(card.id)) {
+        <span class="ask" role="status">Moving in Jira…</span>
+      } @else if (inJira()?.card === card.id) {
+        @if (inJira()!.choices; as choices) {
+          <span
+            class="moves"
+            role="group"
+            [attr.aria-label]="inJira()!.column ? 'Move to' : 'Change status to'"
+            (keydown.escape)="$event.preventDefault(); endInJira(card)"
+          >
+            <span class="ask">{{ inJira()!.column ? 'Move to' : 'Change status to' }}</span>
+            @for (choice of choices; track choice.id) {
+              <button
+                type="button"
+                class="gr-link"
+                [attr.title]="choice.name"
+                (click)="transition(card, choice)"
+              >
+                {{ choiceLabel(choice, choices) }}
+              </button>
+            }
+            <button type="button" class="gr-link" (click)="endInJira(card)">Cancel</button>
+          </span>
+        } @else {
+          <span class="ask" role="status">Asking Jira…</span>
+          <button type="button" class="gr-link" (click)="endInJira(card)">Cancel</button>
+        }
+      } @else {
+        <button
+          type="button"
+          class="gr-link begin"
+          (click)="large.close(); board.newChat(card, folder() ?? undefined)"
+        >
+          {{ wording.say('New chapter', 'New chat') }}
+        </button>
+        <button type="button" class="gr-link move" (click)="openMoves(card)">Move to…</button>
+        @if (card.jira; as issue) {
+          <button type="button" class="gr-link" (click)="moveInJira(card)">Change status…</button>
+          @if (issue.url) {
+            <button
+              type="button"
+              class="gr-link"
+              [attr.title]="issue.url"
+              (click)="board.openInJira(card)"
+            >
+              Open in Jira
+            </button>
+          }
+        }
+        <button type="button" class="gr-link" (click)="board.close(card.id, true)">Close</button>
+      }
+    </div>
+  </ng-template>
 
   @if (closed().length) {
     <section class="closed" aria-labelledby="gr-kanban-closed">

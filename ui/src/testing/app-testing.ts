@@ -166,3 +166,22 @@ export function withFiles(type: 'paste' | 'drop', files: File[]): Event {
   Object.defineProperty(event, holder, { value: { files, types: ['Files'] } });
   return event;
 }
+
+/** jsdom has no modal dialogs, so in the specs of the describe this is called in they open and close by their attribute. */
+export function fakeDialogs(): void {
+  const dialogs = HTMLDialogElement.prototype as Partial<HTMLDialogElement>;
+  beforeEach(() => {
+    dialogs.showModal = function (this: HTMLDialogElement) {
+      this.setAttribute('open', '');
+    };
+    dialogs.close = function (this: HTMLDialogElement) {
+      if (!this.hasAttribute('open')) return;
+      this.removeAttribute('open');
+      this.dispatchEvent(new Event('close'));
+    };
+  });
+  afterEach(() => {
+    delete dialogs.showModal;
+    delete dialogs.close;
+  });
+}

@@ -1,4 +1,4 @@
-/* The card held up to read: the same index card, wider, in a larger hand. */
+/* The card held up to work on: the same index card, wider, in a larger hand. */
 .large {
   padding: 0;
   border: 0;
@@ -23,30 +23,4 @@
   font-size: var(--gr-size-kanban-large);
   line-height: var(--gr-kanban-card-leading);
   color: var(--gr-ink);
-}
-
-.key,
-.title,
-.notes {
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-
-.key {
-  margin-bottom: var(--gr-aside-gap);
-  font-family: var(--gr-font-mono);
-  font-size: var(--gr-size-kanban-code);
-  color: var(--gr-ink-soft);
-}
-
-.title {
-  font: inherit;
-  font-weight: 500;
-}
-
-.notes {
-  margin-top: var(--gr-kanban-card-line-gap);
-  font-style: italic;
-  color: var(--gr-ink-soft);
-  white-space: pre-line;
 }

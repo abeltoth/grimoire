@@ -298,12 +298,7 @@ describe('kanban-page', () => {
     expect(texts('gr-kanban-page .tabs [aria-selected="true"]')).toEqual(['My tasks']);
     expect(board(texts).doing).toEqual(['Mine']);
     expect(cardEl(el, 'Mine').classList).not.toContain('jira');
-    expect(texts('[data-card="a"] .actions button')).toEqual([
-      'New chapter',
-      'Move to…',
-      'Change',
-      'Close',
-    ]);
+    expect(texts('[data-card="a"] .actions button')).toEqual(['New chapter', 'Move to…', 'Close']);
     expect(el.querySelector('gr-kanban-page .jira-sync')).toBeNull();
     await showTab(fixture, el, 'Jira');
     expect(board(texts)).toEqual({ todo: [], doing: ['Context meter'], done: [] });

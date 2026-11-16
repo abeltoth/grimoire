@@ -1,14 +1,15 @@
-import { render } from '@ui/testing/app-testing';
+import { fakeDialogs, render } from '@ui/testing/app-testing';
 import { button, field, note, noteEl, openNotes, withNotes } from './notes-testing';
 
 describe('note-form', () => {
+  fakeDialogs();
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date(2026, 10, 11, 15, 20));
   });
   afterEach(() => vi.useRealTimers());
 
-  it('writes a new note with a reminder for tomorrow morning, and changes it in place', async () => {
+  it('writes a new note with a reminder for tomorrow morning, and changes it opened large', async () => {
     const { bridge, calls } = withNotes([note('a', 'Buy ink')]);
     const { fixture, el, texts } = await render(bridge);
     await openNotes(fixture, el);
@@ -32,7 +33,7 @@ describe('note-form', () => {
     expect(el.querySelector('gr-note-form')).toBeNull();
     expect(texts('gr-notes-page .note[data-note] .text')).toEqual(['Call the binder', 'Buy ink']);
 
-    button(noteEl(el, 'note-2'), 'Change').click();
+    noteEl(el, 'note-2').querySelector<HTMLButtonElement>('.open')!.click();
     await fixture.whenStable();
     expect(el.querySelector<HTMLTextAreaElement>('gr-note-form .text')!.value).toBe(
       'Call the binder',

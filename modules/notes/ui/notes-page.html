@@ -19,51 +19,55 @@
         [class.due]="note.due"
         [class.pinned]="note.pinned && !note.due"
       >
-        @if (editing() === note.id) {
-          <gr-note-form [note]="note" (done)="editing.set(null)" />
-        } @else {
-          <button type="button" class="open" title="Enlarge" (click)="large.open(note)">
-            <span class="text">{{ note.text }}</span>
-          </button>
-          @if (note.remindAt !== undefined || note.madeIn) {
-            <p class="meta">
-              @if (note.remindAt !== undefined) {
-                <span class="when" [class.alert]="note.due">{{ reminderLine(note) }}</span>
-              }
-              @if (note.madeIn; as chat) {
-                <button type="button" class="gr-link" (click)="notes.openChat(chat)">
-                  {{ wording.say('From a chapter', 'From a chat') }}
-                </button>
-              }
-            </p>
-          }
-          <div class="actions">
-            @if (note.due) {
-              <span class="ask">Snooze</span>
-              <button type="button" class="gr-link" (click)="snooze(note, 'hour')">An hour</button>
-              <button type="button" class="gr-link" (click)="snooze(note, 'tomorrow')">
-                Till tomorrow
+        <button type="button" class="open" title="Open the note" (click)="large.open(note)">
+          <span class="text">{{ note.text }}</span>
+        </button>
+        @if (note.remindAt !== undefined || note.madeIn) {
+          <p class="meta">
+            @if (note.remindAt !== undefined) {
+              <span class="when" [class.alert]="note.due">{{ reminderLine(note) }}</span>
+            }
+            @if (note.madeIn; as chat) {
+              <button type="button" class="gr-link" (click)="notes.openChat(chat)">
+                {{ wording.say('From a chapter', 'From a chat') }}
               </button>
             }
-            <button type="button" class="gr-link done" (click)="notes.markDone(note.id, true)">
-              Done
-            </button>
-            <button type="button" class="gr-link" (click)="notes.pin(note, !note.pinned)">
-              {{ note.pinned ? 'Unpin' : 'Pin' }}
-            </button>
-            <button type="button" class="gr-link" (click)="editing.set(note.id)">Change</button>
-            <button type="button" class="gr-link" (click)="notes.newChat(note)">
-              {{ wording.say('New chapter', 'New chat') }}
-            </button>
-            <button type="button" class="gr-link" (click)="notes.toKanban(note)">To Kanban</button>
-            <button type="button" class="gr-link" (click)="notes.remove(note.id)">Delete</button>
-          </div>
+          </p>
         }
+        <ng-container *ngTemplateOutlet="actions; context: { $implicit: note }" />
       </li>
     }
   </ul>
 
-  <gr-note-large #large />
+  <gr-note-large #large>
+    @if (large.note(); as note) {
+      <gr-note-form [note]="note" (done)="large.close()" />
+      <ng-container *ngTemplateOutlet="actions; context: { $implicit: note }" />
+    }
+  </gr-note-large>
+
+  <ng-template #actions let-note>
+    <div class="actions">
+      @if (note.due) {
+        <span class="ask">Snooze</span>
+        <button type="button" class="gr-link" (click)="snooze(note, 'hour')">An hour</button>
+        <button type="button" class="gr-link" (click)="snooze(note, 'tomorrow')">
+          Till tomorrow
+        </button>
+      }
+      <button type="button" class="gr-link done" (click)="notes.markDone(note.id, true)">
+        Done
+      </button>
+      <button type="button" class="gr-link" (click)="notes.pin(note, !note.pinned)">
+        {{ note.pinned ? 'Unpin' : 'Pin' }}
+      </button>
+      <button type="button" class="gr-link" (click)="large.close(); notes.newChat(note)">
+        {{ wording.say('New chapter', 'New chat') }}
+      </button>
+      <button type="button" class="gr-link" (click)="notes.toKanban(note)">To Kanban</button>
+      <button type="button" class="gr-link" (click)="notes.remove(note.id)">Delete</button>
+    </div>
+  </ng-template>
 
   @if (notes.done().length) {
     <section class="finished" aria-labelledby="gr-notes-done">

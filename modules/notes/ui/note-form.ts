@@ -42,7 +42,12 @@ export class NoteForm {
 
   constructor() {
     const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
-    afterNextRender(() => host.querySelector<HTMLTextAreaElement>('.text')?.focus());
+    // The caret goes after the text, to write on where the note ends.
+    afterNextRender(() => {
+      const text = host.querySelector<HTMLTextAreaElement>('.text');
+      text?.focus();
+      text?.setSelectionRange(text.value.length, text.value.length);
+    });
   }
 
   protected inAnHour(): void {

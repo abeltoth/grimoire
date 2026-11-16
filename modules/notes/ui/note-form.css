@@ -18,9 +18,18 @@
   outline: none;
 }
 
+/* The text box grows with the note, up to a height it then scrolls in. */
 .line.text {
   width: 100%;
-  resize: vertical;
+  min-height: var(--gr-notes-box-min);
+  max-height: var(--gr-notes-box-max);
+  field-sizing: content;
+  resize: none;
+}
+
+/* Opened large, the note is written in the larger hand too. */
+:host-context(.large) .line.text {
+  font-size: var(--gr-size-notes-large);
 }
 
 .line::placeholder {

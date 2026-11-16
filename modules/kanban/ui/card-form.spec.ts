@@ -1,8 +1,10 @@
-import { render } from '@ui/testing/app-testing';
+import { fakeDialogs, render } from '@ui/testing/app-testing';
 import { card, withBoard, openBoard, cardEl, button, board, field } from './kanban-testing';
 
 describe('card-form', () => {
-  it('writes a new card at the foot of To do, in the folder of the chat you’re on, and changes it in place', async () => {
+  fakeDialogs();
+
+  it('writes a new card at the foot of To do, in the folder of the chat you’re on, and changes it opened large', async () => {
     const { bridge, calls, answers } = withBoard([card('a', 'Write ribbon tests', 'todo')]);
     answers['layout.get'] = () => ({
       current: null,
@@ -30,7 +32,7 @@ describe('card-form', () => {
     expect(texts('[data-card="card-2"] .notes')).toEqual(['The night theme first.']);
     expect(texts('[data-card="card-2"] .where')).toEqual(['~/git/breeder']);
 
-    button(cardEl(el, 'Add dark theme tokens'), 'Change').click();
+    cardEl(el, 'Add dark theme tokens').querySelector<HTMLButtonElement>('.open')!.click();
     await fixture.whenStable();
     expect(el.querySelector<HTMLInputElement>('gr-card-form .name')!.value).toBe(
       'Add dark theme tokens',

@@ -1,13 +1,9 @@
 <dialog
   #dialog
   class="large"
-  aria-label="The note, enlarged"
+  aria-label="The note"
   (click)="closeBeside($event)"
   (close)="shown.set(null)"
 >
-  @if (note(); as note) {
-    <div class="slip">
-      <p class="full">{{ note.text }}</p>
-    </div>
-  }
+  <div class="slip"><ng-content /></div>
 </dialog>

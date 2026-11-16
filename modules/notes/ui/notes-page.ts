@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import type { Note } from '@grimoire/contract';
 import { Wording } from '@ui/app/core/wording';
@@ -11,11 +12,12 @@ import { inAnHour, tomorrowMorning, whenLabel } from './when';
  * edged in rubric with a quick snooze, then pinned ones, then the rest,
  * newest first. A note begins a chat with its text written in, goes on
  * the Kanban board as a task, or opens the chat whose agent made it.
+ * Clicking a note opens it large, written out to change, with its buttons.
  * Done notes are kept below, folded away, to open again.
  */
 @Component({
   selector: 'gr-notes-page',
-  imports: [NoteForm, NoteLarge],
+  imports: [NgTemplateOutlet, NoteForm, NoteLarge],
   templateUrl: './notes-page.html',
   styleUrl: './notes-page.css',
 })
@@ -23,8 +25,6 @@ export class NotesPage {
   protected readonly notes = inject(NoteList);
   protected readonly wording = inject(Wording);
 
-  /** The note written out to change. */
-  protected readonly editing = signal<string | null>(null);
   protected readonly showDone = signal(false);
 
   /** What a note's reminder line says: when it's due, or was. */

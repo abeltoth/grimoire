@@ -24,6 +24,19 @@
   font-weight: 500;
 }
 
+/* The notes box grows with the notes, up to a height it then scrolls in. */
+.line.notes {
+  min-height: var(--gr-kanban-box-min);
+  max-height: var(--gr-kanban-box-max);
+  field-sizing: content;
+  resize: none;
+}
+
+/* Opened large, the card is written in the larger hand too. */
+:host-context(.large) .line {
+  font-size: var(--gr-size-kanban-large);
+}
+
 .line::placeholder {
   font-style: italic;
   font-weight: 400;

@@ -1,19 +1,9 @@
 <dialog
   #dialog
   class="large"
-  aria-label="The card, enlarged"
+  aria-label="The card"
   (click)="closeBeside($event)"
   (close)="shown.set(null)"
 >
-  @if (card(); as card) {
-    <div class="slip">
-      @if (card.jira; as issue) {
-        <p class="key">{{ issue.key }}</p>
-      }
-      <h2 class="title">{{ card.title }}</h2>
-      @if (card.notes) {
-        <p class="notes">{{ card.notes }}</p>
-      }
-    </div>
-  }
+  <div class="slip"><ng-content /></div>
 </dialog>
