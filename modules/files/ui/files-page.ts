@@ -84,6 +84,14 @@ export class FilesPage {
     this.views.discard(tab);
   }
 
+  protected takeDisk(tab: FileTab): void {
+    this.views.takeDisk(tab);
+  }
+
+  protected keepMine(tab: FileTab): void {
+    this.views.keepMine(tab);
+  }
+
   protected close(tab: FileTab): void {
     this.views.close(this.view(), tab);
   }

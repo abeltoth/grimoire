@@ -22,17 +22,17 @@ describe('FilesViews', () => {
     expect(views.of('C:/Users/me/git/other')).not.toBe(view);
   });
 
-  it('reads a file open again when it changes on disk, over changes not saved', async () => {
+  it('reads a file open again when it changes on disk', async () => {
     const { views, view, emit, disk } = await withViews();
     await views.open(view, 'README.md');
     const tab = view.active()!;
-    tab.draft.set('# Mine\n');
 
     disk['README.md'] = { path: 'README.md', text: '# Grimoire, by the agent\n', changedAt: 3 };
     emit('files.changed', { root: 'C:/Users/me/git/grimoire', path: 'README.md' });
     await TestBed.inject(ApplicationRef).whenStable();
     expect(tab.draft()).toBe('# Grimoire, by the agent\n');
     expect(tab.changed()).toBe(false);
+    expect(tab.onDisk()).toBeNull();
     expect(tab.note()).toEqual({ text: 'It changed on disk, and was read again.' });
 
     // Another folder's file of the same name isn't this one.
@@ -40,6 +40,44 @@ describe('FilesViews', () => {
     emit('files.changed', { root: 'C:/Users/me/git/other', path: 'README.md' });
     await TestBed.inject(ApplicationRef).whenStable();
     expect(tab.draft()).toBe('# Grimoire, by the agent\n');
+  });
+
+  it('keeps your changes when the file changes on disk under them, for you to choose', async () => {
+    const { views, view, emit, disk } = await withViews();
+    const changeOnDisk = async (text: string, changedAt: number) => {
+      disk['README.md'] = { path: 'README.md', text, changedAt };
+      emit('files.changed', { root: 'C:/Users/me/git/grimoire', path: 'README.md' });
+      await TestBed.inject(ApplicationRef).whenStable();
+    };
+    await views.open(view, 'README.md');
+    const tab = view.active()!;
+    tab.draft.set('# Mine\n');
+
+    await changeOnDisk('# By the agent\n', 3);
+    expect(tab.draft()).toBe('# Mine\n');
+    expect(tab.onDisk()?.text).toBe('# By the agent\n');
+    views.takeDisk(tab);
+    expect(tab.draft()).toBe('# By the agent\n');
+    expect(tab.changed()).toBe(false);
+    expect(tab.onDisk()).toBeNull();
+
+    // Kept, your changes save over the file as it is on disk now.
+    tab.draft.set('# Mine\n');
+    await changeOnDisk('# By the agent, again\n', 4);
+    tab.comparing.set(true);
+    views.keepMine(tab);
+    expect(tab.comparing()).toBe(false);
+    expect(tab.draft()).toBe('# Mine\n');
+    expect(tab.file().changedAt).toBe(4);
+    await views.save(view, tab);
+    expect(disk['README.md']!.text).toBe('# Mine\n');
+
+    // Discarded, they leave the file as it is on disk now.
+    tab.draft.set('# Mine again\n');
+    await changeOnDisk('# The agent’s last\n', 5);
+    views.discard(tab);
+    expect(tab.draft()).toBe('# The agent’s last\n');
+    expect(tab.onDisk()).toBeNull();
   });
 
   it('saves the changes, and says why when it can’t', async () => {

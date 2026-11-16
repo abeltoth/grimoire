@@ -108,6 +108,33 @@ describe('files-page', () => {
     });
   });
 
+  it('asks what to do when a file changes on disk under your changes, comparing them if you like', async () => {
+    const { bridge, emit, disk } = repository();
+    const { fixture, texts, button, editor, type } = await openFiles(bridge);
+    button('.entry', 'README.md').click();
+    await fixture.whenStable();
+    await type('# Mine\n');
+
+    disk['README.md'] = { path: 'README.md', text: '# By the agent\n', changedAt: 3 };
+    emit('files.changed', { root: 'C:/Users/me/git/grimoire', path: 'README.md' });
+    await fixture.whenStable();
+    expect(texts('gr-files-page .disk span:first-child')).toEqual([
+      'It changed on disk under your changes.',
+    ]);
+    expect(editor()!.value).toBe('# Mine\n');
+
+    button('.disk .gr-link', 'Compare').click();
+    await fixture.whenStable();
+    expect(editor('committed')!.value).toBe('# By the agent\n');
+    expect(editor()!.value).toBe('# Mine\n');
+
+    button('.disk .gr-link', 'Keep mine').click();
+    await fixture.whenStable();
+    expect(texts('gr-files-page .disk')).toEqual([]);
+    expect(editor('committed')).toBeNull();
+    expect(editor()!.value).toBe('# Mine\n');
+  });
+
   it('keeps the open file and its changes while the right page shows another', async () => {
     const { bridge } = repository();
     const { fixture, el, button, editor, type } = await openFiles(bridge);

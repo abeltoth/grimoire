@@ -38,6 +38,10 @@ export class FileTab {
   readonly changes: WritableSignal<boolean>;
   readonly note = signal<FilesNote | null>(null);
   readonly saving = signal(false);
+  /** The file as it is on disk now, when it changed there under changes not saved; null otherwise. */
+  readonly onDisk = signal<OpenFile | null>(null);
+  /** Whether it shows your changes beside the file on disk, to choose between them. */
+  readonly comparing = signal(false);
 
   readonly changed = computed(() => {
     const file = this.file();
@@ -90,7 +94,7 @@ export class FilesView {
 /**
  * The Files page's folders, each as you left it, in the background service
  * and the files on disk. A file open on it that changes on disk,
- * as when the agent edits it, is read again over what's shown.
+ * as when the agent edits it, is read again, unless you have changes to it.
  */
 @Injectable({ providedIn: 'root' })
 export class FilesViews {
@@ -233,6 +237,8 @@ export class FilesViews {
   }
 
   discard(tab: FileTab): void {
+    // Changes dropped, what's on disk now is what's left.
+    if (tab.onDisk()) return this.takeDisk(tab);
     tab.draft.set(tab.file().text);
     tab.note.set(null);
   }
@@ -262,14 +268,47 @@ export class FilesViews {
     void this.bridge.invoke('files.close', { cwd: view.cwd, path }).catch(() => undefined);
   }
 
-  /** The file as it is on disk now, over what's shown, changes and all. */
+  /** Takes the file as it is on disk now, over your changes. */
+  takeDisk(tab: FileTab): void {
+    const disk = tab.onDisk();
+    if (!disk) return;
+    tab.file.set(disk);
+    tab.draft.set(disk.text);
+    this.settle(tab);
+    tab.note.set({ text: 'Read again from disk.' });
+  }
+
+  /** Keeps your changes, to save over the file as it is on disk now. */
+  keepMine(tab: FileTab): void {
+    const disk = tab.onDisk();
+    if (!disk) return;
+    tab.file.set(disk);
+    this.settle(tab);
+    tab.note.set(null);
+  }
+
+  private settle(tab: FileTab): void {
+    tab.onDisk.set(null);
+    tab.comparing.set(false);
+  }
+
+  /**
+   * The file as it is on disk now: over what's shown when you've changed
+   * nothing, or else kept aside for you to take, compare or save over.
+   */
   private async reload(view: FilesView, tab: FileTab): Promise<void> {
     const done = this.pending.add();
     try {
       const file = await this.bridge.invoke('files.open', { cwd: view.cwd, path: tab.path });
       if (!view.tabs().includes(tab)) return;
+      if (tab.changed()) {
+        tab.onDisk.set(file);
+        tab.note.set(null);
+        return;
+      }
       tab.file.set(file);
       tab.draft.set(file.text);
+      this.settle(tab);
       tab.note.set({ text: 'It changed on disk, and was read again.' });
     } catch {
       if (view.tabs().includes(tab)) {

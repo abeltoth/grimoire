@@ -142,7 +142,26 @@
               }
             </p>
           } @else {
-            @if (file.committed !== undefined) {
+            @if (tab.onDisk()) {
+              <p class="disk" role="alert">
+                <span>
+                  {{
+                    tab.comparing()
+                      ? 'On disk, beside your changes:'
+                      : 'It changed on disk under your changes.'
+                  }}
+                </span>
+                <button type="button" class="gr-link" (click)="takeDisk(tab)">
+                  Take the disk’s
+                </button>
+                <span class="dot" aria-hidden="true">·</span>
+                <button type="button" class="gr-link" (click)="keepMine(tab)">Keep mine</button>
+                <span class="dot" aria-hidden="true">·</span>
+                <button type="button" class="gr-link" (click)="tab.comparing.set(!tab.comparing())">
+                  {{ tab.comparing() ? 'Stop comparing' : 'Compare' }}
+                </button>
+              </p>
+            } @else if (file.committed !== undefined) {
               <p class="show" role="radiogroup" aria-label="Show">
                 <button
                   type="button"
@@ -170,8 +189,8 @@
               [path]="file.path"
               [text]="tab.draft()"
               (textChange)="tab.draft.set($event)"
-              [committed]="file.committed"
-              [changes]="tab.showsChanges()"
+              [committed]="tab.comparing() ? tab.onDisk()?.text : file.committed"
+              [changes]="tab.comparing() || tab.showsChanges()"
               (save)="save(tab)"
               (closeFile)="close(tab)"
             />

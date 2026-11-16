@@ -96,6 +96,18 @@
   color: var(--gr-rubric);
 }
 
+/* The file changed on disk under your changes: what to do about it, in rubric. */
+.disk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--gr-space-1);
+  margin: var(--gr-files-head-gap) 0;
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-rubric);
+}
+
 h2 {
   margin: 0 0 var(--gr-files-head-gap);
   font-family: var(--gr-font-display-sc);
