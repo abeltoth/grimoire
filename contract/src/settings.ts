@@ -66,7 +66,17 @@ export interface GrimoireSettings {
   autoTags: boolean;
   /** Whether a chat gets a one-line summary on the model for quick jobs; spends tokens. */
   autoSummaries: boolean;
+  /**
+   * The page tabs in the order you put them, by id; a tab not in it keeps
+   * the place its feature gives it.
+   */
+  pageTabOrder: readonly string[];
+  /** The page tabs you hid, by id; Settings always shows, so they can be shown again. */
+  pageTabsHidden: readonly string[];
 }
+
+/** The page tab that can't be hidden, since it's where hidden tabs are shown again. */
+export const SETTINGS_TAB = 'settings';
 
 /** How small and large the windows may be scaled, and the step a shortcut takes. */
 export const SCALES = { min: 0.8, max: 1.6, step: 0.1 } as const;
@@ -96,6 +106,8 @@ export const DEFAULT_SETTINGS: GrimoireSettings = {
   autoTitles: false,
   autoTags: false,
   autoSummaries: false,
+  pageTabOrder: [],
+  pageTabsHidden: [],
 };
 
 declare module './commands' {

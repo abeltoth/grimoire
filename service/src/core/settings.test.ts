@@ -39,6 +39,8 @@ describe('SettingsStore', () => {
       autoTitles: false,
       autoTags: false,
       autoSummaries: false,
+      pageTabOrder: [],
+      pageTabsHidden: [],
     });
     settings.set({ wording: 'plain', newChat: { from: 'preset', preset: 'Bug fix' } });
     settings.set({
@@ -71,6 +73,9 @@ describe('SettingsStore', () => {
     expect(() => settings.set({ quickModels: ['haiku'] } as never)).toThrow('"quickModels"');
     settings.set({ autoTitles: true, autoTags: true, autoSummaries: true });
     expect(() => settings.set({ autoTags: 'yes' } as never)).toThrow('"autoTags"');
+    settings.set({ pageTabOrder: ['notes', 'history'], pageTabsHidden: ['kanban'] });
+    expect(() => settings.set({ pageTabOrder: ['notes', 'notes'] })).toThrow('"pageTabOrder"');
+    expect(() => settings.set({ pageTabsHidden: ['settings'] })).toThrow('"pageTabsHidden"');
     expect(() => settings.set({ wording: 'fancy' } as never)).toThrow(`"wording" can't be "fancy"`);
     expect(() => settings.set({ newChat: { from: 'preset', preset: '' } })).toThrow('"newChat"');
     expect(() => settings.set({ shelf: 'x' } as never)).toThrow(`There's no setting "shelf"`);
@@ -110,6 +115,8 @@ describe('SettingsStore', () => {
       autoTitles: true,
       autoTags: true,
       autoSummaries: true,
+      pageTabOrder: ['notes', 'history'],
+      pageTabsHidden: ['kanban'],
     });
     again.close();
   });

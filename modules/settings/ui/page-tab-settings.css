@@ -1,0 +1,64 @@
+:host {
+  display: block;
+  margin-top: var(--gr-settings-section-gap);
+}
+
+.tabs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-aside-gap);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+li {
+  display: flex;
+  align-items: center;
+  gap: var(--gr-tags-gap);
+}
+
+.name {
+  min-width: var(--gr-settings-label-col);
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-control);
+  letter-spacing: var(--gr-tracking-control);
+  color: var(--gr-ink);
+}
+
+/* A hidden tab is written faint, in italic. */
+.hidden .name {
+  font-style: italic;
+  color: var(--gr-ink-faint);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--gr-untag-gap);
+}
+
+.act {
+  display: inline-grid;
+  place-items: center;
+  width: var(--gr-icon-button);
+  height: var(--gr-icon-button);
+  color: var(--gr-ink-soft);
+}
+
+.act:hover:not(:disabled) {
+  color: var(--gr-ink);
+}
+
+.act:disabled {
+  color: var(--gr-ink-faint);
+  cursor: default;
+}
+
+.up gr-icon {
+  rotate: 180deg;
+}
+
+.actions .gr-link {
+  font-size: var(--gr-size-aside);
+}

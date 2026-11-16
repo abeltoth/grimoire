@@ -5,6 +5,7 @@ import {
   type EventPayload,
   type GrimoireSettings,
   SCALES,
+  SETTINGS_TAB,
   THEME_NAMES,
 } from '@grimoire/contract';
 import type { CommandRegistry } from '../registry';
@@ -74,7 +75,21 @@ const VALID: { [K in keyof GrimoireSettings]: (value: unknown) => boolean } = {
   autoTitles: (value) => typeof value === 'boolean',
   autoTags: (value) => typeof value === 'boolean',
   autoSummaries: (value) => typeof value === 'boolean',
+  pageTabOrder: (value) => tabIds(value),
+  pageTabsHidden: (value) => tabIds(value) && !value.includes(SETTINGS_TAB),
 };
+
+/** The most page tabs kept in order or hidden: more than there are. */
+const MAX_TABS = 100;
+
+function tabIds(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) &&
+    value.length <= MAX_TABS &&
+    value.every((id) => typeof id === 'string' && id !== '' && id.length <= 100) &&
+    new Set(value).size === value.length
+  );
+}
 
 /** The longest Jira query kept: longer than anyone writes by hand. */
 const MAX_JIRA_QUERY = 2000;

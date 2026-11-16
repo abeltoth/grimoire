@@ -3,6 +3,7 @@ import { Component, inject } from '@angular/core';
 import { ShellRegistry } from '@ui/app/shell/shell-registry';
 import { Wording } from '@ui/app/core/wording';
 import { GeneralSettings } from './general-settings';
+import { PageTabSettings } from './page-tab-settings';
 import { PresetSettings } from './preset-settings';
 import { ProfileSettings } from './profile-settings';
 import { QuickModelSettings } from './quick-model-settings';
@@ -12,7 +13,7 @@ import { ThemeEditor } from './theme-editor';
  * The Settings page: how the book is made. Its settings are written out as
  * words to pick, the picked one underlined, and each is kept by the
  * service as soon as it's picked; among them, the account the agent signs
- * in as. Below them, the model each agent does Grimoire's quick jobs on,
+ * in as. Then the page tabs, to reorder or hide. Below them, the model each agent does Grimoire's quick jobs on,
  * and the sections features add; then the presets, each with the first
  * message its chats begin with, to rename or remove; then the theme. The
  * MCP servers your agents load in your home folder, and those turned off,
@@ -24,6 +25,7 @@ import { ThemeEditor } from './theme-editor';
   selector: 'gr-settings-page',
   imports: [
     GeneralSettings,
+    PageTabSettings,
     QuickModelSettings,
     NgComponentOutlet,
     PresetSettings,

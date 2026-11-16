@@ -4,6 +4,7 @@ import { Wording } from '../../core/wording';
 import { RightPageState } from '../right-page/right-page-state';
 import { ShellRegistry } from '../shell-registry';
 import { ShortcutPipe } from '../shortcut';
+import { PageTabOrder } from './page-tab-order';
 
 /** How close the tabs may be drawn, as a share of their full spacing. */
 const CLOSEST = 0.25;
@@ -12,7 +13,8 @@ const SMALLEST = 0.7;
 
 /**
  * The page tabs: tabs cut into the right-hand page block, one per
- * registered page, and the gilt command palette tab at the bottom. When the book is
+ * registered page, in the order Settings gives them and less those hidden
+ * there, and the gilt command palette tab at the bottom. When the book is
  * too short for them, they're drawn closer together, then their labels
  * smaller, and at the last the longest labels are cut off.
  */
@@ -30,6 +32,7 @@ const SMALLEST = 0.7;
 })
 export class PageTabs {
   protected readonly registry = inject(ShellRegistry);
+  protected readonly tabs = inject(PageTabOrder);
   protected readonly platform = inject(GRIMOIRE_BRIDGE).platform;
   protected readonly rightPage = inject(RightPageState);
   protected readonly wording = inject(Wording);
@@ -43,7 +46,7 @@ export class PageTabs {
     if (typeof ResizeObserver === 'undefined') return;
     const resized = new ResizeObserver(() => this.fit(host));
     afterRenderEffect((onCleanup) => {
-      this.registry.pageTabs.all();
+      this.tabs.shown();
       resized.observe(host);
       for (const tab of host.children) resized.observe(tab);
       onCleanup(() => resized.disconnect());
