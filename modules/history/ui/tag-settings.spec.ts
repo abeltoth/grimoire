@@ -65,10 +65,7 @@ describe('TagSettings', () => {
 
     // Renaming writes the new name in place; Esc keeps the old one.
     const rename = async (tag: string, to: string, key: string) => {
-      [...panel().querySelectorAll<HTMLButtonElement>('li')]
-        .find((li) => li.querySelector('.tag')?.textContent!.trim() === tag)!
-        .querySelector<HTMLButtonElement>('.gr-link')!
-        .click();
+      button(`Rename ${tag}`).click();
       await fixture.whenStable();
       const name = panel().querySelector<HTMLInputElement>(`[aria-label="New name for ${tag}"]`)!;
       expect(document.activeElement).toBe(name);

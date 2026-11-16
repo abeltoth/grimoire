@@ -63,26 +63,33 @@
                   (blur)="finishRename(tag, field, true)"
                 />
               } @else {
-                <span class="tag" [title]="tag">{{ tag }}</span>
+                <span class="tag">{{ tag }}</span>
                 <span class="actions">
-                  <button type="button" class="gr-link" (click)="renaming.set(tag)">Rename</button>
+                  <button
+                    type="button"
+                    class="act"
+                    [attr.aria-label]="'Rename ' + tag"
+                    (click)="renaming.set(tag)"
+                  >
+                    <gr-icon name="pen" />
+                  </button>
                   @if (!query() && i > 0) {
                     <button
                       type="button"
-                      class="gr-link"
+                      class="act up"
                       [attr.aria-label]="'Move ' + tag + ' up'"
                       (click)="up(tag)"
                     >
-                      Up
+                      <gr-icon name="chevron-down" />
                     </button>
                   }
                   <button
                     type="button"
-                    class="gr-link"
+                    class="act"
                     [attr.aria-label]="'Remove ' + tag + ' from the list'"
                     (click)="remove(tag)"
                   >
-                    Remove
+                    <gr-icon name="close" />
                   </button>
                 </span>
               }

@@ -37,7 +37,7 @@ h2 {
   margin-left: var(--gr-tags-gap);
 }
 
-/* At least two columns, more where the page is wide; a long tag is cut short, in full on hover. */
+/* At least two columns, more where the page is wide; a long tag is cut short. */
 .grid {
   display: grid;
   grid-template-columns: repeat(
@@ -52,9 +52,9 @@ h2 {
 }
 
 li {
-  position: relative;
   display: flex;
-  align-items: baseline;
+  align-items: center;
+  gap: var(--gr-untag-gap);
   min-width: 0;
 }
 
@@ -68,14 +68,11 @@ li {
   color: var(--gr-ink);
 }
 
-/* A tag's actions show on the one you point at or reach, written over its end. */
+/* A tag's actions follow it as small marks, shown on the one you point at or reach. */
 .actions {
-  position: absolute;
-  inset-inline-end: 0;
   display: flex;
-  gap: var(--gr-tags-gap);
-  padding-left: var(--gr-tags-gap);
-  background: var(--gr-page-right);
+  flex: none;
+  gap: var(--gr-untag-gap);
   opacity: 0;
 }
 
@@ -84,7 +81,20 @@ li:focus-within .actions {
   opacity: 1;
 }
 
-.actions .gr-link,
+.act {
+  display: inline-grid;
+  place-items: center;
+  color: var(--gr-ink-soft);
+}
+
+.act:hover {
+  color: var(--gr-ink);
+}
+
+.up gr-icon {
+  rotate: 180deg;
+}
+
 .more {
   font-size: var(--gr-size-aside);
 }

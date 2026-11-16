@@ -7,6 +7,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { Icon } from '@ui/design-system/icon';
 import { PinsAndTags } from './pins-and-tags';
 
 /** How many tags show at once, on the list and among those on chats; "Show more" adds as many again. */
@@ -21,6 +22,7 @@ export const TAGS_AT_ONCE = 60;
  */
 @Component({
   selector: 'gr-tag-settings',
+  imports: [Icon],
   templateUrl: './tag-settings.html',
   styleUrl: './tag-settings.css',
 })
