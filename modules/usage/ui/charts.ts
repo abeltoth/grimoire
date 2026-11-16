@@ -79,7 +79,7 @@ export class UsageColumns {
   readonly max = input<number | null>(null);
   /** Off where another chart's table already has the numbers. */
   readonly tabled = input(true);
-  /** A value marked across the chart, dashed and named at its end, such as a budget to keep to. */
+  /** A value marked across the chart, dashed and named in the legend, where no column can cover its name. */
   readonly rule = input<{ value: number; label: string } | null>(null);
 
   protected readonly width = W;
@@ -101,7 +101,7 @@ export class UsageColumns {
     const band = (W - LEFT) / Math.max(columns.length, 1);
     const width = Math.min(BAR, band * 0.6);
     return {
-      rule: rule ? { label: rule.label, y: y(rule.value) } : null,
+      rule: rule ? { y: y(rule.value) } : null,
       ticks: ticks.map((value) => ({ value, y: y(value) })),
       columns: columns.map((column, i) => {
         const center = LEFT + band * (i + 0.5);

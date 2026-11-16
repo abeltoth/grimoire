@@ -182,7 +182,7 @@ describe('usage-limits', () => {
       false,
     );
     expect(texts('gr-usage-page .plan figcaption')).toEqual(['This month', 'Days', 'Months']);
-    expect(texts('gr-usage-page .plan gr-usage-columns .guide-label')[0]).toMatch(
+    expect(texts('gr-usage-page .plan gr-usage-columns .rule-name')[0]).toMatch(
       / a day to last the month$/,
     );
     expect(texts('gr-usage-page .plan .guide-label')).toContain(

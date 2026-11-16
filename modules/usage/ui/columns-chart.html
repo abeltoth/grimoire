@@ -1,9 +1,14 @@
 <figure class="chart">
   <figcaption>{{ caption() }}</figcaption>
-  @if (series().length > 1) {
+  @if (series().length > 1 || rule()) {
     <ul class="legend">
-      @for (each of series(); track each.name) {
-        <li><span class="swatch" [style.background]="each.color"></span>{{ each.name }}</li>
+      @if (series().length > 1) {
+        @for (each of series(); track each.name) {
+          <li><span class="swatch" [style.background]="each.color"></span>{{ each.name }}</li>
+        }
+      }
+      @if (rule(); as rule) {
+        <li class="rule-name"><span class="rule-key"></span>{{ rule.label }}</li>
       }
     </ul>
   }
@@ -62,9 +67,6 @@
           [attr.y1]="rule.y"
           [attr.y2]="rule.y"
         />
-        <text class="guide-label" [attr.x]="width" [attr.y]="rule.y - 6" text-anchor="end">
-          {{ rule.label }}
-        </text>
       }
     </svg>
 

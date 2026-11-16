@@ -144,6 +144,16 @@ svg {
   stroke: var(--gr-ink-soft);
 }
 
+.rule-name {
+  font-style: italic;
+}
+
+/* The rule's key: a stretch of its dashed line. */
+.rule-key {
+  width: var(--gr-chart-key);
+  border-top: 1px dashed var(--gr-ink-soft);
+}
+
 /* The ground under a line, a wash of its colour. */
 .area {
   stroke: none;
