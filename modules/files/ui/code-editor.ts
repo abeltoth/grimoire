@@ -22,7 +22,7 @@ let opened = 0;
 /**
  * A file's text in the VS Code editor (Monaco), in the book's colours: on
  * its own, or beside the file as last committed, its changes marked and
- * the file still yours to change. Ctrl+S asks to save.
+ * the file still yours to change. Ctrl+S asks to save, Ctrl+W to close.
  */
 @Component({
   selector: 'gr-code-editor',
@@ -48,6 +48,7 @@ export class CodeEditor {
   /** Whether it shows beside the file as last committed. */
   readonly changes = input(false);
   readonly save = output<void>();
+  readonly closeFile = output<void>();
 
   private readonly load = inject(MONACO);
   private readonly host: HTMLElement = inject(ElementRef).nativeElement;
@@ -151,6 +152,8 @@ export class CodeEditor {
     // Opened on its changes, it starts at the first of them.
     else if ('revealFirstDiff' in this.editor) this.editor.revealFirstDiff();
     focused.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => this.save.emit());
+    // Taken here, Mod+W closes the file rather than reaching the window, where it closes the chat.
+    focused.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyW, () => this.closeFile.emit());
   }
 
   /** The editor that holds the file: the editor alone, or the diff's side that can be changed. */

@@ -1,4 +1,11 @@
-import { Injectable, PendingTasks, computed, inject, signal } from '@angular/core';
+import {
+  Injectable,
+  PendingTasks,
+  type WritableSignal,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import type { FolderEntry, OpenFile } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { ChatList } from '@ui/app/core/chat-list';
@@ -6,14 +13,50 @@ import { AgentCatalog } from '@ui/app/core/agent-catalog';
 
 /** How long typing has to pause before files are looked for, in ms. */
 const FIND_AFTER_MS = 150;
+/** How many files a folder keeps open at once: as many as the service watches. */
+export const MOST_TABS = 8;
 
-/** Something said on the file's last line: what came of a save, or of a change on disk. */
+/** Something said on a file's last line, or over the folder: what came of a save, or of a change on disk. */
 export interface FilesNote {
   text: string;
   alert?: boolean;
 }
 
 const UNSAVED: FilesNote = { text: 'Save your changes, or discard them, first.', alert: true };
+const ALL_CHANGED: FilesNote = {
+  text: 'Every file open holds changes not saved: save or discard one first.',
+  alert: true,
+};
+
+/** A file open in a tab of its own, and your changes to it. */
+export class FileTab {
+  /** The file as it was opened or last saved. */
+  readonly file: WritableSignal<OpenFile>;
+  /** Its text as you're changing it. */
+  readonly draft: WritableSignal<string>;
+  /** Whether it shows its changes since the last commit, rather than just the file. */
+  readonly changes: WritableSignal<boolean>;
+  readonly note = signal<FilesNote | null>(null);
+  readonly saving = signal(false);
+
+  readonly changed = computed(() => {
+    const file = this.file();
+    return !file.unshown && this.draft() !== file.text;
+  });
+  /** It shows its changes only while it has some since the last commit. */
+  readonly showsChanges = computed(() => this.changes() && this.file().committed !== undefined);
+
+  constructor(file: OpenFile, changes: boolean) {
+    this.file = signal(file);
+    this.draft = signal(file.text);
+    this.changes = signal(changes);
+  }
+
+  /** How the page names it, which stays while it's open. */
+  get path(): string {
+    return this.file().path;
+  }
+}
 
 /** A folder's Files page as you left it, kept while the right page shows another. */
 export class FilesView {
@@ -27,21 +70,14 @@ export class FilesView {
   readonly query = signal('');
   /** The files found for the words looked for; null when nothing is. */
   readonly found = signal<readonly string[] | null>(null);
-  /** The file open, as it was opened or last saved. */
-  readonly file = signal<OpenFile | null>(null);
-  /** Its text as you're changing it. */
-  readonly draft = signal('');
-  /** Whether it shows its changes since the last commit, rather than just the file. */
-  readonly changes = signal(false);
+  /** The files open, in the order of their tabs. */
+  readonly tabs = signal<readonly FileTab[]>([]);
+  /** The tab shown. */
+  readonly active = signal<FileTab | null>(null);
+  /** What came of opening a file, said over the folder. */
   readonly note = signal<FilesNote | null>(null);
-  readonly saving = signal(false);
-
-  readonly changed = computed(() => {
-    const file = this.file();
-    return !!file && !file.unshown && this.draft() !== file.text;
-  });
-  /** It shows its changes only while it has some since the last commit. */
-  readonly showsChanges = computed(() => this.changes() && this.file()?.committed !== undefined);
+  /** Whether the folder shows beside the open files; put away, it gives them the page. */
+  readonly folderShown = signal(true);
 
   /** Which search is the latest, the wait before it's made, and what's waiting on it. */
   finds = 0;
@@ -70,7 +106,9 @@ export class FilesViews {
   constructor() {
     this.bridge.on('files.changed', ({ root, path }) => {
       for (const view of this.views.values()) {
-        if (view.root() === root && view.file()?.path === path) void this.reload(view);
+        if (view.root() !== root) continue;
+        const tab = view.tabs().find((open) => open.path === path);
+        if (tab) void this.reload(view, tab);
       }
     });
   }
@@ -137,23 +175,33 @@ export class FilesViews {
   }
 
   /**
-   * Opens a file, with its changes since the last commit if asked and it
-   * has any; not over one that holds changes to save or discard first.
+   * Opens a file in a tab of its own, with its changes since the last commit
+   * if asked and it has any, or turns to its tab when it's open already.
+   * With every tab taken, the first without changes to save makes room.
    */
   async open(view: FilesView, path: string, changes = false): Promise<void> {
-    if (view.changed()) {
-      view.note.set(UNSAVED);
-      return;
-    }
-    const before = view.file();
     const done = this.pending.add();
     try {
       const file = await this.bridge.invoke('files.open', { cwd: view.cwd, path });
-      if (before && before.path !== file.path) this.unwatch(view, before.path);
-      view.file.set(file);
-      view.draft.set(file.text);
-      view.changes.set(changes);
       view.note.set(null);
+      const open = view.tabs().find((tab) => tab.path === file.path);
+      if (open) {
+        if (changes) open.changes.set(true);
+        view.active.set(open);
+        return;
+      }
+      if (view.tabs().length >= MOST_TABS) {
+        const spare = view.tabs().find((tab) => !tab.changed());
+        if (!spare) {
+          view.note.set(ALL_CHANGED);
+          this.unwatch(view, file.path);
+          return;
+        }
+        this.remove(view, spare);
+      }
+      const tab = new FileTab(file, changes);
+      view.tabs.update((tabs) => [...tabs, tab]);
+      view.active.set(tab);
     } catch (error) {
       view.note.set({ text: messageOf(error), alert: true });
     } finally {
@@ -161,47 +209,52 @@ export class FilesViews {
     }
   }
 
-  async save(view: FilesView): Promise<void> {
-    const file = view.file();
-    if (!file || !view.changed() || view.saving()) return;
-    view.saving.set(true);
+  async save(view: FilesView, tab: FileTab): Promise<void> {
+    const file = tab.file();
+    if (!tab.changed() || tab.saving()) return;
+    tab.saving.set(true);
     const done = this.pending.add();
     try {
       const saved = await this.bridge.invoke('files.save', {
         cwd: view.cwd,
         path: file.path,
-        text: view.draft(),
+        text: tab.draft(),
         changedAt: file.changedAt,
       });
-      view.file.set(saved);
-      view.draft.set(saved.text);
-      view.note.set({ text: 'Saved.' });
+      tab.file.set(saved);
+      tab.draft.set(saved.text);
+      tab.note.set({ text: 'Saved.' });
     } catch (error) {
-      view.note.set({ text: messageOf(error), alert: true });
+      tab.note.set({ text: messageOf(error), alert: true });
     } finally {
-      view.saving.set(false);
+      tab.saving.set(false);
       done();
     }
   }
 
-  discard(view: FilesView): void {
-    const file = view.file();
-    if (file) view.draft.set(file.text);
-    view.note.set(null);
+  discard(tab: FileTab): void {
+    tab.draft.set(tab.file().text);
+    tab.note.set(null);
   }
 
-  /** Closes the file and turns back to the folder; not while it holds changes to save or discard. */
-  close(view: FilesView): void {
-    const file = view.file();
-    if (!file) return;
-    if (view.changed()) {
-      view.note.set(UNSAVED);
+  /** Closes a file's tab, turning to the one beside it; not while it holds changes to save or discard. */
+  close(view: FilesView, tab: FileTab): void {
+    if (tab.changed()) {
+      view.active.set(tab);
+      tab.note.set(UNSAVED);
       return;
     }
-    view.file.set(null);
-    view.draft.set('');
-    view.note.set(null);
-    this.unwatch(view, file.path);
+    this.remove(view, tab);
+  }
+
+  private remove(view: FilesView, tab: FileTab): void {
+    const tabs = view.tabs();
+    const at = tabs.indexOf(tab);
+    if (at < 0) return;
+    const rest = tabs.filter((open) => open !== tab);
+    view.tabs.set(rest);
+    if (view.active() === tab) view.active.set(rest[Math.min(at, rest.length - 1)] ?? null);
+    this.unwatch(view, tab.path);
   }
 
   /** Stops watching a file the page no longer shows. */
@@ -210,19 +263,17 @@ export class FilesViews {
   }
 
   /** The file as it is on disk now, over what's shown, changes and all. */
-  private async reload(view: FilesView): Promise<void> {
-    const shown = view.file();
-    if (!shown) return;
+  private async reload(view: FilesView, tab: FileTab): Promise<void> {
     const done = this.pending.add();
     try {
-      const file = await this.bridge.invoke('files.open', { cwd: view.cwd, path: shown.path });
-      if (view.file()?.path !== shown.path) return;
-      view.file.set(file);
-      view.draft.set(file.text);
-      view.note.set({ text: 'It changed on disk, and was read again.' });
+      const file = await this.bridge.invoke('files.open', { cwd: view.cwd, path: tab.path });
+      if (!view.tabs().includes(tab)) return;
+      tab.file.set(file);
+      tab.draft.set(file.text);
+      tab.note.set({ text: 'It changed on disk, and was read again.' });
     } catch {
-      if (view.file()?.path === shown.path) {
-        view.note.set({ text: 'It changed on disk, and couldn’t be read again.', alert: true });
+      if (view.tabs().includes(tab)) {
+        tab.note.set({ text: 'It changed on disk, and couldn’t be read again.', alert: true });
       }
     } finally {
       done();

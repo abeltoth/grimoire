@@ -47,6 +47,7 @@ export function fakeMonaco() {
     area.addEventListener('input', () => model.setValue(area.value));
     area.addEventListener('keydown', (event) => {
       if (event.ctrlKey && event.key === 's') commands.get(2048 | 49)?.();
+      if (event.ctrlKey && event.key === 'w') commands.get(2048 | 53)?.();
     });
     const shown = model.onDidChangeContent(() => (area.value = model.getValue()));
     host.append(area);
@@ -63,7 +64,7 @@ export function fakeMonaco() {
   const monaco = {
     Uri: { from: (parts: unknown) => parts },
     KeyMod: { CtrlCmd: 2048 },
-    KeyCode: { KeyS: 49 },
+    KeyCode: { KeyS: 49, KeyW: 53 },
     languages: {
       getLanguages: () => [
         { id: 'typescript', extensions: ['.ts'] },
@@ -181,8 +182,9 @@ export async function openFiles(bridge: GrimoireBridge) {
     [...page().querySelectorAll<HTMLButtonElement>(selector)].find(
       (b) => b.textContent!.replace(/\s+/g, ' ').trim() === text,
     )!;
+  /** The shown file's editor; the others stay behind their tabs. */
   const editor = (side = 'file') =>
-    page().querySelector<HTMLTextAreaElement>(`.fake-editor.${side}`);
+    page().querySelector<HTMLTextAreaElement>(`.opened-file:not(.hidden) .fake-editor.${side}`);
   const type = async (text: string) => {
     const area = editor()!;
     area.value = text;

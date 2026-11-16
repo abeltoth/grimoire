@@ -44,14 +44,50 @@ describe('files-page', () => {
     expect(calls.filter((c) => c.command === 'files.list')).toHaveLength(3);
   });
 
-  it("won't turn back to the folder with changes not saved, until they're discarded", async () => {
-    const { bridge, calls } = repository();
-    const { fixture, el, texts, button, type } = await openFiles(bridge);
+  it('opens files in tabs beside the folder, each keeping its changes', async () => {
+    const { bridge } = repository();
+    const { fixture, el, texts, button, editor, type } = await openFiles(bridge);
     button('.entry', 'README.md').click();
     await fixture.whenStable();
     await type('# Mine\n');
+    expect(texts('gr-files-page .file-tab')).toEqual(['README.md ●']);
+    // The folder stays beside the file.
+    expect(texts('gr-files-page .side .tree .entry')).toContain('README.md');
+    expect(texts('gr-files-page .entry.current')).toEqual(['README.md']);
 
-    button('.gr-link', 'Back to the files').click();
+    button('.list .file', 'ui/src/ribbon.ts modified').click();
+    await fixture.whenStable();
+    expect(texts('gr-files-page .file-tab')).toEqual(['README.md ●', 'ribbon.ts']);
+    expect(texts('gr-files-page .file-tab[aria-pressed="true"]')).toEqual(['ribbon.ts']);
+    expect(editor()!.value).toBe('export const ribbon = 2;\n');
+
+    button('.file-tab', 'README.md ●').click();
+    await fixture.whenStable();
+    expect(editor()!.value).toBe('# Mine\n');
+
+    // Opened again, a file turns to its tab rather than opening twice.
+    button('.entry', 'README.md').click();
+    await fixture.whenStable();
+    expect(texts('gr-files-page .file-tab')).toHaveLength(2);
+
+    expect(el.querySelector('gr-files-page .side')).not.toBeNull();
+    button('.opened-file:not(.hidden) .gr-link', 'Hide the folder').click();
+    await fixture.whenStable();
+    expect(el.querySelector('gr-files-page .side')).toBeNull();
+    button('.opened-file:not(.hidden) .gr-link', 'Show the folder').click();
+    await fixture.whenStable();
+    expect(el.querySelector('gr-files-page .side')).not.toBeNull();
+  });
+
+  it("won't close a file with changes not saved, until they're discarded", async () => {
+    const { bridge, calls } = repository();
+    const { fixture, el, texts, button, editor, type } = await openFiles(bridge);
+    button('.entry', 'README.md').click();
+    await fixture.whenStable();
+    await type('# Mine\n');
+    const shut = () => el.querySelector<HTMLButtonElement>('gr-files-page .shut')!;
+
+    shut().click();
     await fixture.whenStable();
     expect(texts('gr-files-page .note.alert')).toEqual([
       'Save your changes, or discard them, first.',
@@ -60,9 +96,11 @@ describe('files-page', () => {
 
     button('.gr-link', 'Discard changes').click();
     await fixture.whenStable();
-    button('.gr-link', 'Back to the files').click();
+    // Ctrl+W in the editor closes the file, as the tab's cross does.
+    editor()!.dispatchEvent(new KeyboardEvent('keydown', { key: 'w', ctrlKey: true }));
     await fixture.whenStable();
     expect(el.querySelector('gr-code-editor')).toBeNull();
+    expect(el.querySelector('gr-files-page .file-tabs')).toBeNull();
     expect(texts('gr-files-page h3')).toEqual(['Not committed yet', 'All its files']);
     expect(calls).toContainEqual({
       command: 'files.close',

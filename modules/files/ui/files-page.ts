@@ -15,13 +15,13 @@ import { Wording } from '@ui/app/core/wording';
 import { type Shortcut, ShortcutPipe } from '@ui/app/shell/shortcut';
 import { Icon } from '@ui/design-system/icon';
 import { CodeEditor } from './code-editor';
-import { FilesViews } from './files-views';
+import { type FileTab, FilesViews } from './files-views';
 
 /**
  * The Files page: the open chat's folder, what's changed in it since
- * the last commit first, and its files as a tree, or found by name. A file
- * opens in the VS Code editor to read and change, its changes since the
- * last commit beside it if you like.
+ * the last commit first, and its files as a tree, or found by name. Files
+ * open in tabs beside it, each in the VS Code editor to read and change,
+ * its changes since the last commit beside it if you like.
  */
 @Component({
   selector: 'gr-files-page',
@@ -55,7 +55,7 @@ export class FilesPage {
     // Read again when the folder changes, a file is saved or changes on disk, and on turning back to the folder.
     effect(() => {
       const view = this.view();
-      void view.file()?.changedAt;
+      for (const tab of view.tabs()) void tab.file().changedAt;
       untracked(() => void this.readChanges(view.cwd));
     });
   }
@@ -72,20 +72,24 @@ export class FilesPage {
     void this.views.open(this.view(), path, changes);
   }
 
-  protected save(): void {
-    void this.views.save(this.view());
+  protected pick(tab: FileTab): void {
+    this.view().active.set(tab);
   }
 
-  protected discard(): void {
-    this.views.discard(this.view());
+  protected save(tab: FileTab): void {
+    void this.views.save(this.view(), tab);
   }
 
-  protected close(): void {
-    this.views.close(this.view());
+  protected discard(tab: FileTab): void {
+    this.views.discard(tab);
   }
 
-  protected showChanges(changes: boolean): void {
-    this.view().changes.set(changes);
+  protected close(tab: FileTab): void {
+    this.views.close(this.view(), tab);
+  }
+
+  protected showFolder(shown: boolean): void {
+    this.view().folderShown.set(shown);
   }
 
   /** A file's path as the page names it: from the folder, or in full, from your home folder when it's in it. */

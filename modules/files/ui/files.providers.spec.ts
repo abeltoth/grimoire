@@ -43,12 +43,16 @@ describe('files.providers', () => {
       expect(calls.filter((c) => c.command === 'files.open').map((c) => c.request)).toEqual([
         { cwd: 'C:/work/grimoire', path: 'C:/work/grimoire/ui/src/ribbon.ts' },
       ]);
-      expect(texts('gr-files-page .sub .path')).toEqual(['ui/src/ribbon.ts']);
+      expect(texts('gr-files-page .opened-file:not(.hidden) .sub .path')).toEqual([
+        'ui/src/ribbon.ts',
+      ]);
       expect(texts('gr-files-page .show [aria-checked="true"]')).toEqual([
         'Its changes since the last commit',
       ]);
       expect(
-        el.querySelector<HTMLTextAreaElement>('gr-files-page .fake-editor.committed')!.value,
+        el.querySelector<HTMLTextAreaElement>(
+          'gr-files-page .opened-file:not(.hidden) .fake-editor.committed',
+        )!.value,
       ).toBe('export const ribbon = 1;\n');
       // It starts at the first change.
       expect(made.revealed).toBe(1);
@@ -72,7 +76,9 @@ describe('files.providers', () => {
       expect(calls.filter((c) => c.command === 'files.open').map((c) => c.request)).toEqual([
         { cwd: 'C:/Users/me', path: 'C:/Users/me/git/grimoire/ui/src/ribbon.ts' },
       ]);
-      expect(texts('gr-files-page .sub .path')).toEqual(['ui/src/ribbon.ts']);
+      expect(texts('gr-files-page .opened-file:not(.hidden) .sub .path')).toEqual([
+        'ui/src/ribbon.ts',
+      ]);
     });
 
     it('opens a file outside the folder from an edit only proposed, as it is now', async () => {
@@ -97,7 +103,9 @@ describe('files.providers', () => {
       openIn('gr-approval-card')!.click();
       await fixture.whenStable();
       expect(texts('.tabs [aria-pressed="true"]')).toEqual(['Files']);
-      expect(texts('gr-files-page .sub .path')).toEqual(['~/.claude/CLAUDE.md']);
+      expect(texts('gr-files-page .opened-file:not(.hidden) .sub .path')).toEqual([
+        '~/.claude/CLAUDE.md',
+      ]);
       expect(el.querySelector<HTMLTextAreaElement>('gr-files-page .fake-editor')!.value).toBe(
         '# Mine\n',
       );
@@ -105,7 +113,7 @@ describe('files.providers', () => {
       expect(el.querySelector('gr-files-page .show')).toBeNull();
     });
 
-    it('keeps a file with changes not saved open, and asks to save or discard them first', async () => {
+    it('opens beside a file with changes not saved, which keeps them', async () => {
       const { bridge, emit, calls } = repository();
       const { fixture, el, texts, openIn } = await withEditor(bridge);
       await write(fixture, el, 'Fix the ribbon');
@@ -129,11 +137,16 @@ describe('files.providers', () => {
       await fixture.whenStable();
       openIn()!.click();
       await fixture.whenStable();
-      expect(texts('gr-files-page .sub .path')).toEqual(['README.md']);
-      expect(texts('gr-files-page .note.alert')).toEqual([
-        'Save your changes, or discard them, first.',
+      expect(texts('gr-files-page .file-tab')).toEqual(['README.md ●', 'ribbon.ts']);
+      expect(texts('gr-files-page .opened-file:not(.hidden) .sub .path')).toEqual([
+        'ui/src/ribbon.ts',
       ]);
-      expect(calls.filter((c) => c.command === 'files.open')).toHaveLength(1);
+      expect(calls.filter((c) => c.command === 'files.open')).toHaveLength(2);
+      // README.md keeps its changes behind its tab.
+      expect(
+        el.querySelector<HTMLTextAreaElement>('gr-files-page .opened-file.hidden .fake-editor')!
+          .value,
+      ).toBe('# Mine\n');
     });
 
     it('leaves Open in Files out in focus mode, where there is no right page', async () => {

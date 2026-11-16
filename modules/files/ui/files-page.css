@@ -1,10 +1,99 @@
-/* The folder scrolls on its own; an open file's editor fills what's left of the page. */
+/* The folder scrolls on its own; with files open it keeps a column, and the open file's editor fills the rest. */
 :host {
   display: flex;
   flex-direction: column;
   height: 100%;
-  overflow: auto;
   padding-bottom: var(--gr-files-pad-bottom);
+}
+
+.desk {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: var(--gr-files-desk-gap);
+}
+
+.side {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+}
+
+.editing .side {
+  flex: 0 0 var(--gr-files-side-w);
+  padding-right: var(--gr-files-desk-gap);
+  border-right: var(--gr-files-side-rule);
+}
+
+.opened {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.opened-file {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.opened-file.hidden {
+  display: none;
+}
+
+/* The open files' tabs, a ribbon of names; the one shown is underlined in rubric. */
+.file-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--gr-files-tab-gap);
+  row-gap: var(--gr-files-gap);
+  padding-bottom: var(--gr-files-gap);
+  border-bottom: var(--gr-files-side-rule);
+}
+
+.file-tabs li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-files-tab-shut-gap);
+}
+
+.file-tab {
+  max-width: var(--gr-files-tab-max);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-git-file);
+  color: var(--gr-ink-soft);
+}
+
+.file-tab:hover,
+.file-tab[aria-pressed='true'] {
+  color: var(--gr-ink);
+}
+
+.file-tab[aria-pressed='true'] {
+  box-shadow: inset 0 calc(var(--gr-underline-active) * -1) 0 var(--gr-rubric);
+}
+
+.unsaved {
+  color: var(--gr-rubric);
+}
+
+.shut {
+  align-self: center;
+  display: inline-flex;
+  color: var(--gr-ink-faint);
+}
+
+.shut:hover {
+  color: var(--gr-ink);
+}
+
+.entry.current {
+  color: var(--gr-rubric);
 }
 
 h2 {

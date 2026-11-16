@@ -2,7 +2,7 @@ import { ApplicationRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { repository } from './files-testing';
-import { FilesViews } from './files-views';
+import { FilesViews, MOST_TABS } from './files-views';
 
 describe('FilesViews', () => {
   async function withViews() {
@@ -25,47 +25,80 @@ describe('FilesViews', () => {
   it('reads a file open again when it changes on disk, over changes not saved', async () => {
     const { views, view, emit, disk } = await withViews();
     await views.open(view, 'README.md');
-    view.draft.set('# Mine\n');
+    const tab = view.active()!;
+    tab.draft.set('# Mine\n');
 
     disk['README.md'] = { path: 'README.md', text: '# Grimoire, by the agent\n', changedAt: 3 };
     emit('files.changed', { root: 'C:/Users/me/git/grimoire', path: 'README.md' });
     await TestBed.inject(ApplicationRef).whenStable();
-    expect(view.draft()).toBe('# Grimoire, by the agent\n');
-    expect(view.changed()).toBe(false);
-    expect(view.note()).toEqual({ text: 'It changed on disk, and was read again.' });
+    expect(tab.draft()).toBe('# Grimoire, by the agent\n');
+    expect(tab.changed()).toBe(false);
+    expect(tab.note()).toEqual({ text: 'It changed on disk, and was read again.' });
 
     // Another folder's file of the same name isn't this one.
     disk['README.md'] = { path: 'README.md', text: '# Elsewhere\n', changedAt: 4 };
     emit('files.changed', { root: 'C:/Users/me/git/other', path: 'README.md' });
     await TestBed.inject(ApplicationRef).whenStable();
-    expect(view.draft()).toBe('# Grimoire, by the agent\n');
+    expect(tab.draft()).toBe('# Grimoire, by the agent\n');
   });
 
   it('saves the changes, and says why when it can’t', async () => {
     const { views, view, answers } = await withViews();
     await views.open(view, 'README.md');
-    view.draft.set('# Mine\n');
-    await views.save(view);
-    expect(view.file()?.text).toBe('# Mine\n');
-    expect(view.note()).toEqual({ text: 'Saved.' });
+    const tab = view.active()!;
+    tab.draft.set('# Mine\n');
+    await views.save(view, tab);
+    expect(tab.file().text).toBe('# Mine\n');
+    expect(tab.note()).toEqual({ text: 'Saved.' });
 
-    view.draft.set('# Mine again\n');
+    tab.draft.set('# Mine again\n');
     answers['files.save'] = () => Promise.reject(new Error('It changed on disk first'));
-    await views.save(view);
-    expect(view.changed()).toBe(true);
-    expect(view.note()).toEqual({ text: 'It changed on disk first', alert: true });
+    await views.save(view, tab);
+    expect(tab.changed()).toBe(true);
+    expect(tab.note()).toEqual({ text: 'It changed on disk first', alert: true });
   });
 
-  it('opens nothing over changes not saved, until they’re discarded', async () => {
+  it('opens another file over changes not saved, in a tab of its own', async () => {
     const { views, view } = await withViews();
     await views.open(view, 'README.md');
-    view.draft.set('# Mine\n');
+    const readme = view.active()!;
+    readme.draft.set('# Mine\n');
     await views.open(view, 'ui/src/seal.ts');
-    expect(view.file()?.path).toBe('README.md');
-    expect(view.note()?.alert).toBe(true);
+    expect(view.tabs().map((tab) => tab.path)).toEqual(['README.md', 'ui/src/seal.ts']);
+    expect(view.active()?.path).toBe('ui/src/seal.ts');
+    expect(readme.draft()).toBe('# Mine\n');
 
-    views.discard(view);
-    await views.open(view, 'ui/src/seal.ts');
-    expect(view.file()?.path).toBe('ui/src/seal.ts');
+    // Closed, a tab gives way to the one beside it; one with changes stays until they're discarded.
+    views.close(view, view.active()!);
+    expect(view.active()).toBe(readme);
+    views.close(view, readme);
+    expect(view.tabs()).toEqual([readme]);
+    expect(readme.note()?.alert).toBe(true);
+    views.discard(readme);
+    views.close(view, readme);
+    expect(view.tabs()).toEqual([]);
+    expect(view.active()).toBeNull();
+  });
+
+  it('keeps so many files open, the first without changes making room', async () => {
+    const { views, view, answers, calls } = await withViews();
+    answers['files.open'] = ({ path }: { path: string }) => ({ path, text: '', changedAt: 1 });
+    for (let n = 0; n < MOST_TABS; n++) await views.open(view, `${n}.txt`);
+    view.tabs()[0]!.draft.set('mine');
+    await views.open(view, 'more.txt');
+    expect(view.tabs().map((tab) => tab.path)).toEqual([
+      '0.txt',
+      ...Array.from({ length: MOST_TABS - 2 }, (_, n) => `${n + 2}.txt`),
+      'more.txt',
+    ]);
+    expect(calls).toContainEqual({
+      command: 'files.close',
+      request: { cwd: 'C:/Users/me', path: '1.txt' },
+    });
+
+    for (const tab of view.tabs()) tab.draft.set('mine');
+    await views.open(view, 'last.txt');
+    expect(view.tabs()).toHaveLength(MOST_TABS);
+    expect(view.note()?.alert).toBe(true);
   });
 });

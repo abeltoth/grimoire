@@ -749,6 +749,13 @@
   --gr-files-twist-dur: 120ms;
   --gr-files-show-gap: 16px;
   --gr-files-actions-pad: 10px 0 0;
+  /* The folder's column beside the open files, and their tabs */
+  --gr-files-side-w: 240px;
+  --gr-files-side-rule: 1px solid var(--gr-hairline);
+  --gr-files-desk-gap: 16px;
+  --gr-files-tab-gap: 14px;
+  --gr-files-tab-shut-gap: 4px;
+  --gr-files-tab-max: 180px;
 
   /* Files: the VS Code editor, in the book's paper, ink and code colours */
   --gr-editor-page: var(--gr-page-right);
