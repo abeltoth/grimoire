@@ -756,6 +756,8 @@
   --gr-files-tab-gap: 14px;
   --gr-files-tab-shut-gap: 4px;
   --gr-files-tab-max: 180px;
+  /* A file as it reads, Markdown set as text or a picture */
+  --gr-files-preview-pad: 14px 4px;
 
   /* Files: the VS Code editor, in the book's paper, ink and code colours */
   --gr-editor-page: var(--gr-page-right);

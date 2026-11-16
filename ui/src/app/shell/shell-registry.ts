@@ -144,6 +144,8 @@ export class ShellRegistry {
    * a part of a file from Files: the chat module's.
    */
   readonly addToChat = signal<((text: string) => void) | undefined>(undefined);
+  /** Sets markdown as a reply's is, given as its `text` input, such as a file's in Files: the chat module's. */
+  readonly markdownView = signal<Type<unknown> | undefined>(undefined);
 }
 
 /** How a feature adds its entries to the shell, from its providers. */

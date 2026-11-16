@@ -1,4 +1,4 @@
-import { NgTemplateOutlet } from '@angular/common';
+import { NgComponentOutlet, NgTemplateOutlet } from '@angular/common';
 import {
   Component,
   PendingTasks,
@@ -24,14 +24,14 @@ import { fromFolder, touchedFiles } from './touched';
 /**
  * The Files page: the open chat's folder, what's changed in it since
  * the last commit first, and those the open chat's agent changed; its
- * files as a tree, or found by name. Files
- * open in tabs beside it, each in the VS Code editor to read and change,
- * its changes since the last commit beside it if you like, a part of it
- * to add to the chat.
+ * files as a tree, or found by name. Files open in tabs beside it, each
+ * in the VS Code editor to read and change, its changes since the last
+ * commit beside it if you like, a part of it to add to the chat. A
+ * picture shows; Markdown and SVG can show as they read.
  */
 @Component({
   selector: 'gr-files-page',
-  imports: [CodeEditor, Icon, NgTemplateOutlet, ShortcutPipe],
+  imports: [CodeEditor, Icon, NgComponentOutlet, NgTemplateOutlet, ShortcutPipe],
   templateUrl: './files-page.html',
   styleUrl: './files-page.css',
 })
@@ -139,6 +139,29 @@ export class FilesPage {
     const text = part.text.replace(/\r?\n$/, '');
     add([where, '', `${fence}${language}`, text, fence].join('\n'));
     if (this.focus.on() && this.focus.alone() === 'files') this.focus.lay(null);
+  }
+
+  /** How a file can show as it reads: Markdown set as text, where the chat's view of it is, or an SVG drawn. */
+  protected previewOf(path: string): 'markdown' | 'svg' | null {
+    const name = path.toLowerCase();
+    if (name.endsWith('.svg')) return 'svg';
+    if (/\.(md|markdown)$/.test(name) && this.shell.markdownView()) return 'markdown';
+    return null;
+  }
+
+  protected modeOf(tab: FileTab): 'file' | 'changes' | 'preview' {
+    if (tab.preview()) return 'preview';
+    return tab.showsChanges() ? 'changes' : 'file';
+  }
+
+  protected show(tab: FileTab, mode: 'file' | 'changes' | 'preview'): void {
+    tab.preview.set(mode === 'preview');
+    tab.changes.set(mode === 'changes');
+  }
+
+  /** An SVG's text as a picture's address, drawn as an image, where its scripts don't run. */
+  protected drawing(text: string): string {
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(text)}`;
   }
 
   /** The folder a file is in, with a slash; empty at the top. */

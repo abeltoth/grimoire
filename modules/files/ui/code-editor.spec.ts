@@ -3,7 +3,7 @@ import { repository, openFiles } from './files-testing';
 describe('code-editor', () => {
   it('opens a file in the VS Code editor, and saves what you change with Save or Ctrl+S', async () => {
     const { bridge, calls } = repository();
-    const { fixture, el, texts, made, button, editor, type } = await openFiles(bridge);
+    const { fixture, texts, made, button, editor, type } = await openFiles(bridge);
     button('.entry', 'README.md').click();
     await fixture.whenStable();
     expect(texts('gr-files-page .sub .path')).toEqual(['README.md']);
@@ -16,8 +16,8 @@ describe('code-editor', () => {
       revealed: 0,
       lines: [],
     });
-    // Not changed since the last commit: nothing to show beside it.
-    expect(el.querySelector('gr-files-page .show')).toBeNull();
+    // Not changed since the last commit: no changes to show beside it.
+    expect(texts('gr-files-page .show button')).toEqual(['The file', 'As it reads']);
     expect(button('.gr-link', 'Save Ctrl+S').getAttribute('aria-disabled')).toBe('true');
 
     await type('# Grimoire\n\nA book.\n');

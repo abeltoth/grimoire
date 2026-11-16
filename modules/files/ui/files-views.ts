@@ -42,6 +42,8 @@ export class FileTab {
   readonly onDisk = signal<OpenFile | null>(null);
   /** Whether it shows your changes beside the file on disk, to choose between them. */
   readonly comparing = signal(false);
+  /** Whether it shows as it reads, a Markdown file set as text or an SVG drawn, rather than its source. */
+  readonly preview = signal(false);
   /** The line to turn to, asked for afresh each time, so the same line can be asked for twice. */
   readonly reveal = signal<{ line: number } | null>(null);
 
@@ -193,7 +195,10 @@ export class FilesViews {
       view.note.set(null);
       const open = view.tabs().find((tab) => tab.path === file.path);
       if (open) {
-        if (changes) open.changes.set(true);
+        if (changes) {
+          open.changes.set(true);
+          open.preview.set(false);
+        }
         if (line) open.reveal.set({ line });
         view.active.set(open);
         return;

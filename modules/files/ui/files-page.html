@@ -154,7 +154,11 @@
               {{ v.folderShown() ? 'Hide the folder' : 'Show the folder' }}
             </button>
           </p>
-          @if (file.unshown) {
+          @if (file.picture) {
+            <div class="pictured">
+              <img class="picture" [src]="file.picture" [alt]="nameOf(shown)" />
+            </div>
+          } @else if (file.unshown) {
             <p class="none">
               @if (file.unshown === 'binary') {
                 It isn’t text, so it can’t be shown here.
@@ -182,31 +186,61 @@
                   {{ tab.comparing() ? 'Stop comparing' : 'Compare' }}
                 </button>
               </p>
-            } @else if (file.committed !== undefined) {
+            } @else if (file.committed !== undefined || previewOf(file.path)) {
+              @let mode = modeOf(tab);
               <p class="show" role="radiogroup" aria-label="Show">
                 <button
                   type="button"
                   role="radio"
-                  [attr.aria-checked]="!tab.showsChanges()"
-                  (click)="tab.changes.set(false)"
+                  [attr.aria-checked]="mode === 'file'"
+                  (click)="show(tab, 'file')"
                 >
                   The file
                 </button>
-                <button
-                  type="button"
-                  role="radio"
-                  [attr.aria-checked]="tab.showsChanges()"
-                  (click)="tab.changes.set(true)"
-                >
-                  {{
-                    file.committed === null
-                      ? 'All new since the last commit'
-                      : 'Its changes since the last commit'
-                  }}
-                </button>
+                @if (file.committed !== undefined) {
+                  <button
+                    type="button"
+                    role="radio"
+                    [attr.aria-checked]="mode === 'changes'"
+                    (click)="show(tab, 'changes')"
+                  >
+                    {{
+                      file.committed === null
+                        ? 'All new since the last commit'
+                        : 'Its changes since the last commit'
+                    }}
+                  </button>
+                }
+                @if (previewOf(file.path)) {
+                  <button
+                    type="button"
+                    role="radio"
+                    [attr.aria-checked]="mode === 'preview'"
+                    (click)="show(tab, 'preview')"
+                  >
+                    {{ wording.say('As it reads', 'Preview') }}
+                  </button>
+                }
               </p>
             }
+            @if (tab.preview() && !tab.onDisk()) {
+              @switch (previewOf(file.path)) {
+                @case ('markdown') {
+                  <div class="preview">
+                    <ng-container
+                      *ngComponentOutlet="shell.markdownView()!; inputs: { text: tab.draft() }"
+                    />
+                  </div>
+                }
+                @case ('svg') {
+                  <div class="pictured">
+                    <img class="picture" [src]="drawing(tab.draft())" [alt]="nameOf(shown)" />
+                  </div>
+                }
+              }
+            }
             <gr-code-editor
+              [class.hidden]="tab.preview() && !tab.onDisk()"
               [path]="file.path"
               [text]="tab.draft()"
               (textChange)="tab.draft.set($event)"

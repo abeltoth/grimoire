@@ -25,6 +25,8 @@ export interface OpenFile {
   changedAt: number;
   /** Why it isn't shown: it isn't text, or it's too large to edit here. */
   unshown?: 'binary' | 'large';
+  /** A picture that isn't text, as a data URL, to show rather than edit. */
+  picture?: string;
   /**
    * Its text as last committed, when it has changed since: null for a file
    * that's new. Missing when it hasn't changed, or outside a repository.

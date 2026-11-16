@@ -165,10 +165,16 @@ describe('Files', () => {
     expect((await files.open(repo, 'src/new.ts')).committed).toBeNull();
   });
 
-  it('doesn’t show a binary file, or one too large to edit', async () => {
+  it('doesn’t show a binary file as text, or one too large to edit, but shows a picture', async () => {
     write('logo.png', Buffer.from([0x89, 0x50, 0x4e, 0x47, 0, 0, 1]));
+    write('data.bin', Buffer.from([1, 0, 2]));
     write('big.log', 'x'.repeat(2 * 1024 * 1024 + 1));
-    expect(await files.open(repo, 'logo.png')).toMatchObject({ text: '', unshown: 'binary' });
+    expect(await files.open(repo, 'logo.png')).toMatchObject({
+      text: '',
+      unshown: 'binary',
+      picture: 'data:image/png;base64,iVBORwAAAQ==',
+    });
+    expect(await files.open(repo, 'data.bin')).not.toHaveProperty('picture');
     expect(await files.open(repo, 'big.log')).toMatchObject({ text: '', unshown: 'large' });
     await expect(files.open(repo, 'src')).rejects.toThrow('isn’t a file');
     await expect(files.open(repo, '../elsewhere.txt')).rejects.toThrow('outside the folder');

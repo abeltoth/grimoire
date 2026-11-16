@@ -24,6 +24,16 @@ const MOST_FILES = 20_000;
 const FOUND = 50;
 /** Folders not walked outside a repository. */
 const SKIPPED = new Set(['.git', 'node_modules']);
+/** The pictures shown rather than refused, by extension, and their media types. */
+const PICTURES: Record<string, string> = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.bmp': 'image/bmp',
+  '.ico': 'image/x-icon',
+};
 
 type Emit = <K extends EventName>(event: K, payload: EventPayload<K>) => void;
 
@@ -154,7 +164,14 @@ export class Files {
     const at = { path: file, text: '', changedAt: info.mtimeMs };
     if (info.size > LARGEST) return { ...at, unshown: 'large' };
     const bytes = await readFile(full);
-    if (bytes.subarray(0, SNIFF).includes(0)) return { ...at, unshown: 'binary' };
+    if (bytes.subarray(0, SNIFF).includes(0)) {
+      const type = PICTURES[path.extname(full).toLowerCase()];
+      return {
+        ...at,
+        unshown: 'binary',
+        ...(type ? { picture: `data:${type};base64,${bytes.toString('base64')}` } : {}),
+      };
+    }
     const committed = await this.committedOf(root, repo, full, file);
     return {
       ...at,

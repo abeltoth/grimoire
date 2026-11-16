@@ -96,6 +96,37 @@
   color: var(--gr-rubric);
 }
 
+/* A file as it reads, Markdown set as text or a picture, in the editor's place between its rules. */
+.preview,
+.pictured {
+  flex: 1;
+  min-height: var(--gr-file-editor-min);
+  overflow: auto;
+  border-top: var(--gr-editor-rule);
+  border-bottom: var(--gr-editor-rule);
+}
+
+.preview {
+  padding: var(--gr-files-preview-pad);
+}
+
+.pictured {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--gr-files-preview-pad);
+}
+
+.picture {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+gr-code-editor.hidden {
+  display: none;
+}
+
 /* The file changed on disk under your changes: what to do about it, in rubric. */
 .disk {
   display: flex;

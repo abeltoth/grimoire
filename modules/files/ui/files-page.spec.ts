@@ -192,6 +192,54 @@ describe('files-page', () => {
     expect(el.querySelector('gr-code-editor')).toBeNull();
   });
 
+  it('shows a picture', async () => {
+    const { bridge, disk } = repository();
+    disk['logo.png'] = { ...disk['logo.png']!, picture: 'data:image/png;base64,iVBORw==' };
+    const { fixture, el, texts, button } = await openFiles(bridge);
+    button('.entry', 'logo.png').click();
+    await fixture.whenStable();
+    const picture = el.querySelector<HTMLImageElement>('gr-files-page .picture')!;
+    expect(picture.getAttribute('src')).toBe('data:image/png;base64,iVBORw==');
+    expect(picture.alt).toBe('logo.png');
+    expect(texts('gr-files-page .none')).toEqual([]);
+  });
+
+  it('shows Markdown as it reads, and an SVG drawn, keeping the source to turn back to', async () => {
+    const { bridge, disk } = repository();
+    disk['logo.svg'] = {
+      path: 'logo.svg',
+      text: '<svg xmlns="http://www.w3.org/2000/svg"/>',
+      changedAt: 1,
+    };
+    const { fixture, el, texts, button, editor } = await openFiles(bridge);
+    button('.entry', 'README.md').click();
+    await fixture.whenStable();
+    expect(texts('gr-files-page .show button')).toEqual(['The file', 'As it reads']);
+
+    button('.show button', 'As it reads').click();
+    await fixture.whenStable();
+    expect(texts('gr-files-page .preview gr-markdown')).toEqual(['Grimoire']);
+    expect(el.querySelector('gr-files-page gr-code-editor.hidden')).not.toBeNull();
+    button('.show button', 'The file').click();
+    await fixture.whenStable();
+    expect(el.querySelector('gr-files-page .preview')).toBeNull();
+    expect(editor()!.value).toBe('# Grimoire\n');
+
+    const field = el.querySelector<HTMLInputElement>('#gr-files-search')!;
+    field.value = 'logo.svg';
+    field.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    button('.list .file', 'logo.svg').click();
+    await fixture.whenStable();
+    button('.opened-file:not(.hidden) .show button', 'As it reads').click();
+    await fixture.whenStable();
+    expect(
+      el.querySelector('gr-files-page .opened-file:not(.hidden) .picture')!.getAttribute('src'),
+    ).toBe(
+      `data:image/svg+xml;charset=utf-8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg"/>')}`,
+    );
+  });
+
   it('lists the files the open chat’s agent changed, the latest first', async () => {
     const { bridge, emit, calls } = repository();
     const { fixture, el, texts, button } = await openFiles(bridge);

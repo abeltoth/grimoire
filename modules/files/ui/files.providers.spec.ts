@@ -109,8 +109,8 @@ describe('files.providers', () => {
       expect(el.querySelector<HTMLTextAreaElement>('gr-files-page .fake-editor')!.value).toBe(
         '# Mine\n',
       );
-      // Not in a repository: nothing to show beside it.
-      expect(el.querySelector('gr-files-page .show')).toBeNull();
+      // Not in a repository: no changes to show beside it.
+      expect(texts('gr-files-page .show button')).toEqual(['The file', 'As it reads']);
     });
 
     it('opens beside a file with changes not saved, which keeps them', async () => {
