@@ -1,16 +1,16 @@
 @let v = view();
 @let editing = v.tabs().length > 0;
+<div class="head">
+  <h2>{{ catalog.folderName(v.root() ?? cwd()) }}</h2>
+  @if (!focus.on()) {
+    <button type="button" class="gr-link single-page" (click)="layAlone()">
+      <gr-icon name="single-page" />{{ wording.say('Single page', 'Focus') }}
+    </button>
+  }
+</div>
 <div class="desk" [class.editing]="editing">
   @if (!editing || v.folderShown()) {
     <div class="side">
-      <div class="head">
-        <h2>{{ catalog.folderName(v.root() ?? cwd()) }}</h2>
-        @if (!focus.on()) {
-          <button type="button" class="gr-link single-page" (click)="layAlone()">
-            <gr-icon name="single-page" />{{ wording.say('Single page', 'Focus') }}
-          </button>
-        }
-      </div>
       <div class="search">
         <label for="gr-files-search">{{ wording.say('Look up', 'Find') }}</label>
         <input

@@ -34,7 +34,7 @@ import type { RightPageEntry } from '../shell-registry';
       }
     </div>
   `,
-  styleUrl: './tab-page.css',
+  styleUrls: ['./tab-page.css', './alone-page.css'],
   host: { '(document:keydown.escape)': 'back($event)' },
 })
 export class AlonePage {

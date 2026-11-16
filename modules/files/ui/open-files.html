@@ -40,12 +40,6 @@
       <button type="button" class="gr-link" (click)="showFolder(!v.folderShown())">
         {{ v.folderShown() ? 'Hide the folder' : 'Show the folder' }}
       </button>
-      @if (!v.folderShown() && !focus.on()) {
-        <span class="dot" aria-hidden="true">·</span>
-        <button type="button" class="gr-link" (click)="layAlone()">
-          <gr-icon name="single-page" />{{ wording.say('Single page', 'Focus') }}
-        </button>
-      }
     </p>
     @if (file.picture) {
       <div class="pictured">

@@ -735,11 +735,13 @@
 
   /* Files: the Files page on the facing page */
   --gr-files-width: 640px;
-  --gr-files-gap: 8px;
-  --gr-files-section-gap: 24px;
-  --gr-files-head-gap: 10px;
+  --gr-files-gap: 10px;
+  --gr-files-section-gap: 32px;
+  --gr-files-head-gap: 14px;
+  --gr-files-top-gap: 24px;
+  --gr-files-pick-gap: 24px;
   --gr-files-pad-bottom: 18px;
-  --gr-files-tree-gap: 5px;
+  --gr-files-tree-gap: 7px;
   --gr-files-tree-indent: 4px;
   --gr-files-tree-pad: 12px;
   --gr-files-twist-gap: 6px;
@@ -747,13 +749,13 @@
   --gr-files-twist-w: 16px;
   --gr-files-collapsed-turn: -90deg;
   --gr-files-twist-dur: 120ms;
-  --gr-files-show-gap: 16px;
-  --gr-files-actions-pad: 10px 0 0;
+  --gr-files-show-gap: 20px;
+  --gr-files-actions-pad: 14px 0 0;
   /* The folder's column beside the open files, and their tabs */
-  --gr-files-side-w: 240px;
+  --gr-files-side-w: 260px;
   --gr-files-side-rule: 1px solid var(--gr-hairline);
-  --gr-files-desk-gap: 16px;
-  --gr-files-tab-gap: 14px;
+  --gr-files-desk-gap: 24px;
+  --gr-files-tab-gap: 18px;
   --gr-files-tab-shut-gap: 4px;
   --gr-files-tab-max: 180px;
   /* A file as it reads, Markdown set as text or a picture */

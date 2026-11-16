@@ -1,0 +1,4 @@
+/* Its title and links centred on one line, as the chat's page header's are. */
+.row {
+  align-items: center;
+}

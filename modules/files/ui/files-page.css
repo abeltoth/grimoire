@@ -13,10 +13,12 @@
   gap: var(--gr-files-desk-gap);
 }
 
+/* It scrolls without a bar, as the right page's other pages do. */
 .side {
   flex: 1;
   min-width: 0;
   overflow: auto;
+  scrollbar-width: none;
 }
 
 .editing .side {
@@ -30,13 +32,14 @@
   color: var(--gr-rubric);
 }
 
-/* The folder's name, and the link that lays Files alone on a single page. */
+/* Across the top, above the folder and the open files: the folder's name, and the link that lays Files alone on a single page. */
 .head {
+  flex: none;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: var(--gr-files-desk-gap);
-  margin: 0 0 var(--gr-files-head-gap);
+  margin: 0 0 var(--gr-files-top-gap);
 }
 
 .head .single-page {
@@ -44,8 +47,9 @@
 }
 
 /* The folder, or the files the open chat's agent changed, and how many. */
-.side-tabs {
-  margin-top: var(--gr-files-section-gap);
+.show.side-tabs {
+  gap: var(--gr-files-pick-gap);
+  margin: var(--gr-files-section-gap) 0 0;
 }
 
 .count {

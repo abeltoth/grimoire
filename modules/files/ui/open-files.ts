@@ -64,10 +64,6 @@ export class OpenFiles {
     this.view().folderShown.set(shown);
   }
 
-  protected layAlone(): void {
-    this.views.layAlone();
-  }
-
   protected shownPath(path: string): string {
     return shownPath(path, this.catalog.folders().home);
   }
