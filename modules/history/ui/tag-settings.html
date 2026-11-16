@@ -48,7 +48,7 @@
 
       @if (shown().length) {
         <ol class="grid">
-          @for (tag of shown(); track tag; let i = $index) {
+          @for (tag of shown(); track tag) {
             <li>
               @if (renaming() === tag) {
                 <input
@@ -73,16 +73,6 @@
                   >
                     <gr-icon name="pen" />
                   </button>
-                  @if (!query() && i > 0) {
-                    <button
-                      type="button"
-                      class="act up"
-                      [attr.aria-label]="'Move ' + tag + ' up'"
-                      (click)="up(tag)"
-                    >
-                      <gr-icon name="chevron-down" />
-                    </button>
-                  }
                   <button
                     type="button"
                     class="act"

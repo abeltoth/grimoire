@@ -84,15 +84,13 @@ li:focus-within .actions {
 .act {
   display: inline-grid;
   place-items: center;
+  width: var(--gr-icon-button);
+  height: var(--gr-icon-button);
   color: var(--gr-ink-soft);
 }
 
 .act:hover {
   color: var(--gr-ink);
-}
-
-.up gr-icon {
-  rotate: 180deg;
 }
 
 .more {

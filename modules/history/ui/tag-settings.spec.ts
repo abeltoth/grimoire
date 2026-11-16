@@ -23,7 +23,7 @@ async function withTagSettings(list: string[], chatTags: string[] = []) {
 }
 
 describe('TagSettings', () => {
-  it('keeps your tag list on the Settings page: adds, moves, renames and removes tags', async () => {
+  it('keeps your tag list on the Settings page: shows it A to Z, adds, renames and removes tags', async () => {
     const { answers, calls, emit, fixture, texts, panel, toggle, find } = await withTagSettings(
       ['bug', 'ui'],
       ['docs', 'bug'],
@@ -44,23 +44,21 @@ describe('TagSettings', () => {
     expect(texts('gr-tag-settings .others .gr-link')).toEqual(['+ docs']);
 
     button('Add docs to the list').click();
-    button('Move ui up').click();
     button('Remove bug from the list').click();
     const field = await find(' later ');
     field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
     await fixture.whenStable();
     expect(sent('history.setTagList')).toEqual([
       { tags: ['bug', 'ui', 'docs'] },
-      { tags: ['ui', 'bug'] },
       { tags: ['ui'] },
       { tags: ['bug', 'ui', 'later'] },
     ]);
     expect(field.value).toBe('');
 
-    // The list shows as the service keeps it.
-    emit('history.tagListChanged', { tags: ['ui', 'docs'] });
+    // The list shows as the service keeps it, A to Z whatever its case.
+    emit('history.tagListChanged', { tags: ['ui', 'Docs'] });
     await fixture.whenStable();
-    expect(texts('gr-tag-settings .tag')).toEqual(['ui', 'docs']);
+    expect(texts('gr-tag-settings .tag')).toEqual(['Docs', 'ui']);
     expect(texts('gr-tag-settings .others .gr-link')).toEqual(['+ bug']);
 
     // Renaming writes the new name in place; Esc keeps the old one.
@@ -73,10 +71,10 @@ describe('TagSettings', () => {
       name.dispatchEvent(new KeyboardEvent('keydown', { key, cancelable: true }));
       await fixture.whenStable();
     };
-    await rename('docs', 'bug', 'Escape');
-    await rename('docs', 'docs', 'Enter');
-    await rename('docs', ' bug ', 'Enter');
-    expect(sent('history.renameTag')).toEqual([{ from: 'docs', to: 'bug' }]);
+    await rename('Docs', 'bug', 'Escape');
+    await rename('Docs', 'Docs', 'Enter');
+    await rename('Docs', ' bug ', 'Enter');
+    expect(sent('history.renameTag')).toEqual([{ from: 'Docs', to: 'bug' }]);
 
     answers['history.setTagList'] = () => Promise.reject(new Error('gone'));
     button('Remove ui from the list').click();
@@ -97,7 +95,7 @@ describe('TagSettings', () => {
     expect(panel().querySelectorAll('.tag').length).toBe(TAGS_AT_ONCE + 5);
     expect(panel().querySelector('.more')).toBeNull();
 
-    // Finding narrows the list, whatever the case, and hides Up.
+    // Finding narrows the list, whatever the case.
     await find('TAG 6');
     expect(texts('gr-tag-settings .tag')).toEqual([
       'tag 6',
@@ -108,7 +106,6 @@ describe('TagSettings', () => {
       'tag 64',
       'tag 65',
     ]);
-    expect(panel().querySelector('[aria-label="Move tag 60 up"]')).toBeNull();
     // Enter adds only a tag the list hasn't.
     const field = await find('tag 6');
     field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
