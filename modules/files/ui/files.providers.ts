@@ -37,10 +37,10 @@ export function provideFiles(): EnvironmentProviders {
         else show();
       },
     });
-    shell.openFile.set((path) => {
+    shell.openFile.set((path, line) => {
       if (!show()) return;
       const cwd = views.cwd();
-      void views.open(views.of(cwd), inFull(path, cwd), true);
+      void views.open(views.of(cwd), inFull(path, cwd), line === undefined, line);
     });
   });
 }

@@ -149,6 +149,44 @@ describe('files.providers', () => {
       ).toBe('# Mine\n');
     });
 
+    it('opens a file a reply names, at its line, from a link or from code', async () => {
+      const { bridge, emit, calls } = repository();
+      const { fixture, el, texts, made } = await withEditor(bridge);
+      await write(fixture, el, 'Where is the ribbon?');
+      emit('agents.entry', {
+        chatId: 'chat-1',
+        entry: {
+          kind: 'agent',
+          id: 'a1',
+          blocks: [
+            {
+              kind: 'text',
+              text: 'It’s in `ui/src/ribbon.ts:1`, and [the seal](ui/src/seal.ts#L1) beside it; `npm test` checks both.',
+            },
+          ],
+        },
+      });
+      await fixture.whenStable();
+      expect(texts('gr-markdown a.file')).toEqual(['ui/src/ribbon.ts:1']);
+
+      el.querySelector<HTMLAnchorElement>('gr-markdown a.file')!.click();
+      await fixture.whenStable();
+      expect(texts('.tabs [aria-pressed="true"]')).toEqual(['Files']);
+      expect(calls.filter((c) => c.command === 'files.open').map((c) => c.request)).toEqual([
+        { cwd: 'C:/work/grimoire', path: 'C:/work/grimoire/ui/src/ribbon.ts' },
+      ]);
+      // At a line, it shows the file rather than its changes.
+      expect(texts('gr-files-page .show [aria-checked="true"]')).toEqual(['The file']);
+      expect(made.lines).toEqual([1]);
+
+      [...el.querySelectorAll<HTMLAnchorElement>('gr-markdown a')]
+        .find((link) => link.textContent!.trim() === 'the seal')!
+        .click();
+      await fixture.whenStable();
+      expect(texts('gr-files-page .file-tab')).toEqual(['ribbon.ts', 'seal.ts']);
+      expect(made.lines).toEqual([1, 1]);
+    });
+
     it('opens a file in focus mode on the Files page, alone in the chat’s place', async () => {
       const { bridge, emit, calls } = repository();
       const { fixture, el, texts, openIn } = await withEditor(bridge);

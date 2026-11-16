@@ -47,6 +47,8 @@ export class CodeEditor {
   readonly committed = input<string | null | undefined>(undefined);
   /** Whether it shows beside the file as last committed. */
   readonly changes = input(false);
+  /** A line to turn to and put the cursor on; a new one each time it's asked for. */
+  readonly reveal = input<{ line: number } | null>(null);
   readonly save = output<void>();
   readonly closeFile = output<void>();
 
@@ -82,6 +84,11 @@ export class CodeEditor {
     effect(() => {
       const changes = this.changes();
       if (this.ready()) untracked(() => this.mount(changes));
+    });
+    // After the editor is mounted, so the line is turned to in the one shown.
+    effect(() => {
+      const at = this.reveal();
+      if (at && this.ready()) untracked(() => this.turnTo(at.line));
     });
 
     inject(DestroyRef).onDestroy(() => {
@@ -161,6 +168,14 @@ export class CodeEditor {
     const editor = this.editor;
     if (!editor) return undefined;
     return 'getModifiedEditor' in editor ? editor.getModifiedEditor() : editor;
+  }
+
+  private turnTo(line: number): void {
+    const editor = this.focused();
+    if (!editor) return;
+    editor.setPosition({ lineNumber: line, column: 1 });
+    editor.revealLineInCenter(line);
+    editor.focus();
   }
 
   private put(text: string): void {

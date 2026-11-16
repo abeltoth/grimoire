@@ -9,7 +9,13 @@ describe('code-editor', () => {
     expect(texts('gr-files-page .sub .path')).toEqual(['README.md']);
     expect(editor()!.value).toBe('# Grimoire\n');
     expect(editor()!.dataset['language']).toBe('markdown');
-    expect(made).toEqual({ editors: 1, diffs: 0, themes: ['grimoire'], revealed: 0 });
+    expect(made).toEqual({
+      editors: 1,
+      diffs: 0,
+      themes: ['grimoire'],
+      revealed: 0,
+      lines: [],
+    });
     // Not changed since the last commit: nothing to show beside it.
     expect(el.querySelector('gr-files-page .show')).toBeNull();
     expect(button('.gr-link', 'Save Ctrl+S').getAttribute('aria-disabled')).toBe('true');

@@ -42,6 +42,8 @@ export class FileTab {
   readonly onDisk = signal<OpenFile | null>(null);
   /** Whether it shows your changes beside the file on disk, to choose between them. */
   readonly comparing = signal(false);
+  /** The line to turn to, asked for afresh each time, so the same line can be asked for twice. */
+  readonly reveal = signal<{ line: number } | null>(null);
 
   readonly changed = computed(() => {
     const file = this.file();
@@ -180,10 +182,11 @@ export class FilesViews {
 
   /**
    * Opens a file in a tab of its own, with its changes since the last commit
-   * if asked and it has any, or turns to its tab when it's open already.
+   * if asked and it has any, or turns to its tab when it's open already;
+   * at a line when one is given.
    * With every tab taken, the first without changes to save makes room.
    */
-  async open(view: FilesView, path: string, changes = false): Promise<void> {
+  async open(view: FilesView, path: string, changes = false, line?: number): Promise<void> {
     const done = this.pending.add();
     try {
       const file = await this.bridge.invoke('files.open', { cwd: view.cwd, path });
@@ -191,6 +194,7 @@ export class FilesViews {
       const open = view.tabs().find((tab) => tab.path === file.path);
       if (open) {
         if (changes) open.changes.set(true);
+        if (line) open.reveal.set({ line });
         view.active.set(open);
         return;
       }
@@ -204,6 +208,7 @@ export class FilesViews {
         this.remove(view, spare);
       }
       const tab = new FileTab(file, changes);
+      if (line) tab.reveal.set({ line });
       view.tabs.update((tabs) => [...tabs, tab]);
       view.active.set(tab);
     } catch (error) {

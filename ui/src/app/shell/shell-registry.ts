@@ -133,12 +133,12 @@ export class ShellRegistry {
    */
   readonly approvalsPage = signal<Type<unknown> | undefined>(undefined);
   /**
-   * Opens a file on the Files page, with its changes since the last commit
-   * if it has any: the files module's. The path is in full, or from the
-   * open chat's folder. Missing without the files module, so nothing
-   * offers to.
+   * Opens a file on the Files page: at a line when one is given, or else
+   * with its changes since the last commit if it has any; the files
+   * module's. The path is in full, or from the open chat's folder.
+   * Missing without the files module, so nothing offers to.
    */
-  readonly openFile = signal<((path: string) => void) | undefined>(undefined);
+  readonly openFile = signal<((path: string, line?: number) => void) | undefined>(undefined);
 }
 
 /** How a feature adds its entries to the shell, from its providers. */

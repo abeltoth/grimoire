@@ -191,6 +191,7 @@
               (textChange)="tab.draft.set($event)"
               [committed]="tab.comparing() ? tab.onDisk()?.text : file.committed"
               [changes]="tab.comparing() || tab.showsChanges()"
+              [reveal]="tab.reveal()"
               (save)="save(tab)"
               (closeFile)="close(tab)"
             />

@@ -10,11 +10,18 @@ import { fakeBridge, render } from '@ui/testing/app-testing';
 
 /** What the Files specs share, first the VS Code editor, faked as a text box for each side it shows. */
 export function fakeMonaco() {
-  const made: { editors: number; diffs: number; themes: string[]; revealed: number } = {
+  const made: {
+    editors: number;
+    diffs: number;
+    themes: string[];
+    revealed: number;
+    lines: number[];
+  } = {
     editors: 0,
     diffs: 0,
     themes: [],
     revealed: 0,
+    lines: [],
   };
   const modelOf = (text: string, language: string) => {
     const listeners = new Set<() => void>();
@@ -55,6 +62,9 @@ export function fakeMonaco() {
       saveViewState: () => ({}),
       restoreViewState: () => undefined,
       addCommand: (keys: number, run: () => void) => void commands.set(keys, run),
+      setPosition: () => undefined,
+      revealLineInCenter: (line: number) => void made.lines.push(line),
+      focus: () => undefined,
       dispose: () => {
         shown.dispose();
         area.remove();
