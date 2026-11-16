@@ -261,6 +261,7 @@
   --gr-tags-toggle-gap: 3px;
   --gr-tags-toggle-pad: 4px;
   --gr-tags-card-width: 360px;
+  --gr-tag-settings-col: 180px;
 
   /* Chat: pictures and files sent with an entry */
   --gr-attachments-gap: 26px;

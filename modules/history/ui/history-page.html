@@ -56,7 +56,6 @@
           role="group"
           [attr.aria-label]="wording.say('Show chapters tagged', 'Show chats tagged')"
         >
-          <span class="label">Show only</span>
           @for (tag of tags(); track tag) {
             <button
               type="button"

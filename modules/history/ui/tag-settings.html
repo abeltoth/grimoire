@@ -1,78 +1,123 @@
 <section aria-labelledby="gr-settings-tags">
   <h2 id="gr-settings-tags">Tags</h2>
-  <p class="lead">
-    The tags you mean to use. Renaming one renames it on every chat; naming it as another tag merges
-    the two.
+
+  <p class="summary">
+    <span class="count">
+      @switch (list().length) {
+        @case (0) {
+          No tags on your list yet.
+        }
+        @case (1) {
+          One tag on your list.
+        }
+        @default {
+          {{ list().length }} tags on your list.
+        }
+      }
+    </span>
+    <button
+      type="button"
+      class="gr-link"
+      aria-controls="gr-tag-settings-body"
+      [attr.aria-expanded]="open()"
+      (click)="toggle()"
+    >
+      {{ open() ? 'Hide' : list().length ? 'Show' : 'Add tags' }}
+    </button>
   </p>
 
   @if (failed(); as error) {
     <p class="note" role="alert">{{ error }}</p>
   }
 
-  <ol>
-    @for (tag of list(); track tag; let i = $index) {
-      <li>
-        @if (renaming() === tag) {
-          <input
-            #field
-            class="field"
-            [attr.aria-label]="'New name for ' + tag"
-            autocomplete="off"
-            spellcheck="false"
-            [value]="tag"
-            (keydown.enter)="finishRename(tag, field, true)"
-            (keydown.escape)="$event.preventDefault(); finishRename(tag, field, false)"
-            (blur)="finishRename(tag, field, true)"
-          />
-        } @else {
-          <span class="tag">{{ tag }}</span>
-          <button type="button" class="gr-link" (click)="renaming.set(tag)">Rename</button>
-          @if (i > 0) {
+  @if (open()) {
+    <div id="gr-tag-settings-body">
+      <input
+        #search
+        class="field find"
+        aria-label="Find or add a tag"
+        placeholder="find or add a tag"
+        autocomplete="off"
+        spellcheck="false"
+        (input)="find(search.value)"
+        (keydown.enter)="add(search)"
+      />
+      @if (addable()) {
+        <span class="note hint">Enter adds “{{ query() }}”.</span>
+      }
+
+      @if (shown().length) {
+        <ol class="grid">
+          @for (tag of shown(); track tag; let i = $index) {
+            <li>
+              @if (renaming() === tag) {
+                <input
+                  #field
+                  class="field"
+                  [attr.aria-label]="'New name for ' + tag"
+                  autocomplete="off"
+                  spellcheck="false"
+                  [value]="tag"
+                  (keydown.enter)="finishRename(tag, field, true)"
+                  (keydown.escape)="$event.preventDefault(); finishRename(tag, field, false)"
+                  (blur)="finishRename(tag, field, true)"
+                />
+              } @else {
+                <span class="tag" [title]="tag">{{ tag }}</span>
+                <span class="actions">
+                  <button type="button" class="gr-link" (click)="renaming.set(tag)">Rename</button>
+                  @if (!query() && i > 0) {
+                    <button
+                      type="button"
+                      class="gr-link"
+                      [attr.aria-label]="'Move ' + tag + ' up'"
+                      (click)="up(tag)"
+                    >
+                      Up
+                    </button>
+                  }
+                  <button
+                    type="button"
+                    class="gr-link"
+                    [attr.aria-label]="'Remove ' + tag + ' from the list'"
+                    (click)="remove(tag)"
+                  >
+                    Remove
+                  </button>
+                </span>
+              }
+            </li>
+          }
+        </ol>
+      } @else if (query() && list().length) {
+        <p class="note">No tag on your list has “{{ query() }}”.</p>
+      }
+      @if (more() > 0) {
+        <button type="button" class="gr-link more" (click)="showMore()">
+          Show more ({{ more() }} left)
+        </button>
+      }
+
+      @if (others().length) {
+        <p class="others">
+          <span class="note">Also on chats:</span>
+          @for (tag of others(); track tag) {
             <button
               type="button"
               class="gr-link"
-              [attr.aria-label]="'Move ' + tag + ' up'"
-              (click)="up(i)"
+              [attr.aria-label]="'Add ' + tag + ' to the list'"
+              (click)="keep([...list(), tag])"
             >
-              Up
+              + {{ tag }}
             </button>
           }
-          <button
-            type="button"
-            class="gr-link"
-            [attr.aria-label]="'Remove ' + tag + ' from the list'"
-            (click)="remove(tag)"
-          >
-            Remove
-          </button>
-        }
-      </li>
-    }
-  </ol>
-
-  <input
-    #newTag
-    class="field"
-    aria-label="Add a tag to the list"
-    placeholder="add a tag"
-    autocomplete="off"
-    spellcheck="false"
-    (keydown.enter)="add(newTag)"
-  />
-
-  @if (others().length) {
-    <p class="others">
-      <span class="note">Also on chats:</span>
-      @for (tag of others(); track tag) {
-        <button
-          type="button"
-          class="gr-link"
-          [attr.aria-label]="'Add ' + tag + ' to the list'"
-          (click)="keep([...list(), tag])"
-        >
-          + {{ tag }}
-        </button>
+          @if (moreOthers() > 0) {
+            <button type="button" class="gr-link more" (click)="showMoreOthers()">
+              {{ moreOthers() }} more
+            </button>
+          }
+        </p>
       }
-    </p>
+    </div>
   }
 </section>

@@ -9,11 +9,15 @@ import {
 } from '@angular/core';
 import { PinsAndTags } from './pins-and-tags';
 
+/** How many tags show at once, on the list and among those on chats; "Show more" adds as many again. */
+export const TAGS_AT_ONCE = 60;
+
 /**
- * Your tag list, on the Settings page: the tags you mean to use, in
- * your order. Naming a tag anew renames it on every chat, and naming it as
- * another tag merges the two. Tags chats have that aren't on the list can
- * be added to it.
+ * Your tag list, on the Settings page: the tags you mean to use, in your
+ * order. It opens on demand, in columns, so many tags at a time, and one
+ * field finds tags or adds one. Naming a tag anew renames it on every chat,
+ * and naming it as another tag merges the two. Tags chats have that aren't
+ * on the list can be added to it.
  */
 @Component({
   selector: 'gr-tag-settings',
@@ -25,8 +29,28 @@ export class TagSettings {
   private readonly field = viewChild<ElementRef<HTMLInputElement>>('field');
 
   protected readonly list = this.pinsAndTags.tagList;
-  /** Tags chats have that aren't on the list. */
-  protected readonly others = computed(() => this.pinsAndTags.known().slice(this.list().length));
+  protected readonly open = signal(false);
+  /** What the find field holds, trimmed. */
+  protected readonly query = signal('');
+  private readonly listLimit = signal(TAGS_AT_ONCE);
+  private readonly othersLimit = signal(TAGS_AT_ONCE);
+
+  /** The listed tags the find field matches. */
+  private readonly found = computed(() => matching(this.list(), this.query()));
+  /** Tags chats have that aren't on the list, as the find field matches them. */
+  private readonly foundOthers = computed(() =>
+    matching(this.pinsAndTags.known().slice(this.list().length), this.query()),
+  );
+  protected readonly shown = computed(() => this.found().slice(0, this.listLimit()));
+  protected readonly more = computed(() => this.found().length - this.shown().length);
+  protected readonly others = computed(() => this.foundOthers().slice(0, this.othersLimit()));
+  protected readonly moreOthers = computed(() => this.foundOthers().length - this.others().length);
+  /** Whether the find field holds a tag the list hasn't, so Enter adds it. */
+  protected readonly addable = computed(() => {
+    const wanted = this.query().toLowerCase();
+    return !!wanted && !this.list().some((tag) => tag.toLowerCase() === wanted);
+  });
+
   /** The tag being named anew. */
   protected readonly renaming = signal<string | null>(null);
   protected readonly failed = signal<string | null>(null);
@@ -39,10 +63,32 @@ export class TagSettings {
     });
   }
 
+  protected toggle(): void {
+    this.open.update((open) => !open);
+    this.find('');
+  }
+
+  protected find(query: string): void {
+    this.query.set(query.trim());
+    this.listLimit.set(TAGS_AT_ONCE);
+    this.othersLimit.set(TAGS_AT_ONCE);
+  }
+
+  protected showMore(): void {
+    this.listLimit.update((limit) => limit + TAGS_AT_ONCE);
+  }
+
+  protected showMoreOthers(): void {
+    this.othersLimit.update((limit) => limit + TAGS_AT_ONCE);
+  }
+
+  /** Adds what the find field holds, unless the list has it already. */
   protected add(field: HTMLInputElement): void {
-    const tag = field.value.trim();
+    if (!this.addable()) return;
+    const tag = this.query();
     field.value = '';
-    if (tag) void this.keep([...this.list(), tag]);
+    this.find('');
+    void this.keep([...this.list(), tag]);
   }
 
   protected remove(tag: string): void {
@@ -50,8 +96,10 @@ export class TagSettings {
   }
 
   /** Moves a tag one place up the list. */
-  protected up(index: number): void {
+  protected up(tag: string): void {
     const list = [...this.list()];
+    const index = list.indexOf(tag);
+    if (index < 1) return;
     [list[index - 1], list[index]] = [list[index]!, list[index - 1]!];
     void this.keep(list);
   }
@@ -76,4 +124,10 @@ export class TagSettings {
       this.failed.set(`The tag list couldn’t be kept: ${reason}`);
     }
   }
+}
+
+/** The tags with these letters in them, whatever their case; every tag when there are none. */
+function matching(tags: readonly string[], query: string): readonly string[] {
+  const wanted = query.toLowerCase();
+  return wanted ? tags.filter((tag) => tag.toLowerCase().includes(wanted)) : tags;
 }

@@ -12,11 +12,18 @@ h2 {
   color: var(--gr-rubric);
 }
 
-.lead {
+.summary {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-tags-gap);
   margin: var(--gr-aside-gap) 0 var(--gr-settings-lead-gap);
   font-style: italic;
   font-size: var(--gr-size-aside);
   color: var(--gr-ink-soft);
+}
+
+.summary .gr-link {
+  font-style: normal;
 }
 
 .note {
@@ -26,26 +33,59 @@ h2 {
   color: var(--gr-ink-soft);
 }
 
-ol {
+.hint {
+  margin-left: var(--gr-tags-gap);
+}
+
+/* At least two columns, more where the page is wide; a long tag is cut short, in full on hover. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(var(--gr-tag-settings-col), calc(50% - var(--gr-tags-gap))), 1fr)
+  );
+  column-gap: var(--gr-tags-gap);
+  row-gap: var(--gr-aside-gap);
   list-style: none;
-  margin: 0 0 var(--gr-aside-gap);
+  margin: var(--gr-settings-row-gap) 0 var(--gr-aside-gap);
   padding: 0;
 }
 
 li {
+  position: relative;
   display: flex;
   align-items: baseline;
-  gap: var(--gr-tags-gap);
+  min-width: 0;
 }
 
 .tag {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-family: var(--gr-font-sc);
   font-size: var(--gr-size-control);
   letter-spacing: var(--gr-tracking-control);
   color: var(--gr-ink);
 }
 
-li .gr-link {
+/* A tag's actions show on the one you point at or reach, written over its end. */
+.actions {
+  position: absolute;
+  inset-inline-end: 0;
+  display: flex;
+  gap: var(--gr-tags-gap);
+  padding-left: var(--gr-tags-gap);
+  background: var(--gr-page-right);
+  opacity: 0;
+}
+
+li:hover .actions,
+li:focus-within .actions {
+  opacity: 1;
+}
+
+.actions .gr-link,
+.more {
   font-size: var(--gr-size-aside);
 }
 
@@ -53,6 +93,7 @@ li .gr-link {
 .field {
   field-sizing: content;
   min-width: var(--gr-tag-field-min);
+  max-width: 100%;
   padding: 0;
   border: 0;
   border-bottom: var(--gr-rename-rule);
@@ -65,6 +106,10 @@ li .gr-link {
   outline: none;
 }
 
+.find {
+  min-width: var(--gr-settings-account-field-width);
+}
+
 .field::placeholder {
   font-style: italic;
   color: var(--gr-ink-placeholder);
@@ -75,7 +120,8 @@ li .gr-link {
   flex-wrap: wrap;
   align-items: baseline;
   column-gap: var(--gr-tags-gap);
-  margin: var(--gr-aside-gap) 0 0;
+  row-gap: var(--gr-aside-gap);
+  margin: var(--gr-settings-row-gap) 0 0;
 }
 
 .others .note {
