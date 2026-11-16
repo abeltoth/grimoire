@@ -29,6 +29,7 @@
 
 /* Opened large, the note is written in the larger hand too. */
 :host-context(.large) .line.text {
+  min-height: var(--gr-notes-large-box-min);
   font-size: var(--gr-size-notes-large);
 }
 
@@ -59,11 +60,34 @@
   font-size: var(--gr-size-label);
 }
 
+/* The item's own buttons, when it's opened large, then Cancel and Save at the end. */
 .actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   gap: var(--gr-notes-actions-gap);
   font-size: var(--gr-size-label);
+}
+
+.tools:empty {
+  display: none;
+}
+
+.end {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-notes-actions-gap);
+  margin-inline-start: auto;
+}
+
+.tools:empty + .end {
+  margin-inline-start: 0;
+}
+
+/* Opened large: a rule above the buttons, and room to write. */
+:host-context(.large) .actions {
+  padding-top: var(--gr-notes-large-footer-pad);
+  border-top: var(--gr-notes-rule);
 }
 
 .send {

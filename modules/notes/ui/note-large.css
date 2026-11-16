@@ -6,6 +6,7 @@
   max-width: var(--gr-enlarged-width);
   max-height: var(--gr-enlarged-height);
   overflow: auto;
+  outline: none;
 }
 
 .large::backdrop {

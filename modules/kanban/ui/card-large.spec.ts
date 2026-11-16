@@ -31,7 +31,7 @@ describe('card-large', () => {
     expect(dialog.querySelector<HTMLTextAreaElement>('gr-card-form .notes')!.value).toBe(
       'One.\nTwo.',
     );
-    expect(texts('gr-kanban-page dialog .held > .actions button')).toEqual([
+    expect(texts('gr-kanban-page dialog .tools button')).toEqual([
       'New chapter',
       'Move to…',
       'Close',

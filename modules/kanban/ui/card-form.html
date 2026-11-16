@@ -35,9 +35,12 @@
   </span>
 
   <div class="actions">
-    <button type="submit" class="send" [attr.aria-disabled]="!complete() || saving() || null">
-      {{ card() ? 'Save' : 'Add the card' }}
-    </button>
-    <button type="button" class="gr-link" (click)="done.emit()">Cancel</button>
+    <span class="tools"><ng-content /></span>
+    <span class="end">
+      <button type="button" class="gr-link" (click)="done.emit()">Cancel</button>
+      <button type="submit" class="send" [attr.aria-disabled]="!complete() || saving() || null">
+        {{ card() ? 'Save' : 'Add the card' }}
+      </button>
+    </span>
   </div>
 </form>

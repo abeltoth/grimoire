@@ -526,6 +526,8 @@
   --gr-kanban-large-width: 640px;
   --gr-kanban-large-pad: 20px 24px 18px;
   --gr-size-kanban-large: 17px;
+  --gr-kanban-large-box-min: 5lh;
+  --gr-kanban-large-footer-pad: 12px;
   /* A Jira issue's card: an edge of its own, and its marks above its summary */
   --gr-kanban-jira-edge: 3px solid var(--gr-lapis);
   --gr-kanban-jira-mark: var(--gr-lapis);
@@ -553,6 +555,8 @@
   --gr-notes-large-width: 640px;
   --gr-notes-large-pad: 20px 24px 18px;
   --gr-size-notes-large: 17px;
+  --gr-notes-large-box-min: 6lh;
+  --gr-notes-large-footer-pad: 12px;
 
   /* The Colophon: Grimoire's settings, written out as words to pick */
   --gr-settings-width: 640px;

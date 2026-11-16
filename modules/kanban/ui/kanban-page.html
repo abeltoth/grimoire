@@ -196,9 +196,13 @@
             <p class="notes whole">{{ card.notes }}</p>
           }
         } @else {
-          <gr-card-form [card]="card" (done)="large.close()" />
+          <gr-card-form [card]="card" (done)="large.close()">
+            <ng-container *ngTemplateOutlet="actions; context: { $implicit: card }" />
+          </gr-card-form>
         }
-        <ng-container *ngTemplateOutlet="actions; context: { $implicit: card }" />
+        @if (card.jira) {
+          <ng-container *ngTemplateOutlet="actions; context: { $implicit: card }" />
+        }
       </div>
     }
   </gr-card-large>

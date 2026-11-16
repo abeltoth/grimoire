@@ -41,8 +41,9 @@
 
   <gr-note-large #large>
     @if (large.note(); as note) {
-      <gr-note-form [note]="note" (done)="large.close()" />
-      <ng-container *ngTemplateOutlet="actions; context: { $implicit: note }" />
+      <gr-note-form [note]="note" (done)="large.close()">
+        <ng-container *ngTemplateOutlet="actions; context: { $implicit: note }" />
+      </gr-note-form>
     }
   </gr-note-large>
 
@@ -65,7 +66,7 @@
         {{ wording.say('New chapter', 'New chat') }}
       </button>
       <button type="button" class="gr-link" (click)="notes.toKanban(note)">To Kanban</button>
-      <button type="button" class="gr-link" (click)="notes.remove(note.id)">Delete</button>
+      <button type="button" class="gr-link delete" (click)="notes.remove(note.id)">Delete</button>
     </div>
   </ng-template>
 

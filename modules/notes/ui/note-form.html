@@ -29,9 +29,12 @@
   </span>
 
   <div class="actions">
-    <button type="submit" class="send" [attr.aria-disabled]="!complete() || saving() || null">
-      {{ note() ? 'Save' : 'Add the note' }}
-    </button>
-    <button type="button" class="gr-link" (click)="done.emit()">Cancel</button>
+    <span class="tools"><ng-content /></span>
+    <span class="end">
+      <button type="button" class="gr-link" (click)="done.emit()">Cancel</button>
+      <button type="submit" class="send" [attr.aria-disabled]="!complete() || saving() || null">
+        {{ note() ? 'Save' : 'Add the note' }}
+      </button>
+    </span>
   </div>
 </form>

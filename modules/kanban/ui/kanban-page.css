@@ -310,6 +310,16 @@ h3 {
   font-size: var(--gr-size-label);
 }
 
+/* In a card opened large, its buttons sit in the form's bar, or under a rule for a Jira card. */
+gr-card-form .actions {
+  margin-top: 0;
+}
+
+.held > .actions {
+  padding-top: var(--gr-kanban-large-footer-pad);
+  border-top: var(--gr-kanban-card-rule);
+}
+
 .moves {
   display: contents;
 }

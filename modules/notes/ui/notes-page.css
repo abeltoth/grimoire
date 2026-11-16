@@ -94,6 +94,15 @@
   font-size: var(--gr-size-label);
 }
 
+/* In a note opened large, its buttons sit in the form's bar. */
+gr-note-form .actions {
+  margin-top: 0;
+}
+
+.delete:hover {
+  color: var(--gr-rubric);
+}
+
 .ask {
   font-style: italic;
   color: var(--gr-ink-soft);

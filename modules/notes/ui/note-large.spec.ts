@@ -16,7 +16,7 @@ describe('note-large', () => {
     await fixture.whenStable();
     expect(dialog.hasAttribute('open')).toBe(true);
     expect(dialog.querySelector<HTMLTextAreaElement>('gr-note-form .text')!.value).toBe('Buy ink');
-    expect(texts('gr-notes-page dialog .slip > .actions button')).toEqual([
+    expect(texts('gr-notes-page dialog .tools button')).toEqual([
       'Done',
       'Pin',
       'New chapter',
