@@ -18,6 +18,7 @@ import { Wording } from '@ui/app/core/wording';
 import { Icon, type IconName } from '@ui/design-system/icon';
 import { Board, COLUMNS } from './board';
 import { CardForm } from './card-form';
+import { CardLarge } from './card-large';
 
 /** A chat's live status as a card shows it, with the chat tabs' icon and motion; "not open" when it's closed. */
 const STATUS: Record<Chat['status'], { text: string; icon?: IconName; motion?: string }> = {
@@ -67,7 +68,7 @@ interface ListedChat {
  */
 @Component({
   selector: 'gr-kanban-page',
-  imports: [CardForm, Icon],
+  imports: [CardForm, CardLarge, Icon],
   templateUrl: './kanban-page.html',
   styleUrl: './kanban-page.css',
 })

@@ -46,6 +46,15 @@
   border-left: var(--gr-notes-due-edge);
 }
 
+/* A note's text, that opens it large when clicked. */
+.open {
+  display: block;
+  width: 100%;
+  padding: 0;
+  text-align: start;
+  cursor: zoom-in;
+}
+
 .text,
 .meta {
   margin: 0;
@@ -53,6 +62,7 @@
 }
 
 .text {
+  display: block;
   white-space: pre-line;
 }
 

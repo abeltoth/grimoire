@@ -519,6 +519,10 @@
   --gr-kanban-word-gap: 10px;
   --gr-kanban-actions-gap: 10px;
   --gr-kanban-form-gap: 8px;
+  /* A card opened large to read */
+  --gr-kanban-large-width: 640px;
+  --gr-kanban-large-pad: 20px 24px 18px;
+  --gr-size-kanban-large: 17px;
   /* A Jira issue's card: an edge of its own, and its marks above its summary */
   --gr-kanban-jira-edge: 3px solid var(--gr-lapis);
   --gr-kanban-jira-mark: var(--gr-lapis);
@@ -539,6 +543,10 @@
   --gr-notes-word-gap: 10px;
   --gr-notes-actions-gap: 10px;
   --gr-notes-form-gap: 8px;
+  /* A note opened large to read */
+  --gr-notes-large-width: 640px;
+  --gr-notes-large-pad: 20px 24px 18px;
+  --gr-size-notes-large: 17px;
 
   /* The Colophon: Grimoire's settings, written out as words to pick */
   --gr-settings-width: 640px;

@@ -1,0 +1,13 @@
+<dialog
+  #dialog
+  class="large"
+  aria-label="The note, enlarged"
+  (click)="closeBeside($event)"
+  (close)="shown.set(null)"
+>
+  @if (note(); as note) {
+    <div class="slip">
+      <p class="full">{{ note.text }}</p>
+    </div>
+  }
+</dialog>

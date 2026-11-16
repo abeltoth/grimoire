@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import type { Note } from '@grimoire/contract';
 import { Wording } from '@ui/app/core/wording';
 import { NoteForm } from './note-form';
+import { NoteLarge } from './note-large';
 import { NoteList } from './notes';
 import { inAnHour, tomorrowMorning, whenLabel } from './when';
 
@@ -14,7 +15,7 @@ import { inAnHour, tomorrowMorning, whenLabel } from './when';
  */
 @Component({
   selector: 'gr-notes-page',
-  imports: [NoteForm],
+  imports: [NoteForm, NoteLarge],
   templateUrl: './notes-page.html',
   styleUrl: './notes-page.css',
 })

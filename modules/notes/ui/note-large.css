@@ -1,0 +1,32 @@
+/* The note held up to read: the same slip, wider, in a larger hand. */
+.large {
+  padding: 0;
+  border: 0;
+  background: none;
+  max-width: var(--gr-enlarged-width);
+  max-height: var(--gr-enlarged-height);
+  overflow: auto;
+}
+
+.large::backdrop {
+  background: var(--gr-enlarged-backdrop);
+}
+
+.slip {
+  box-sizing: border-box;
+  width: var(--gr-notes-large-width);
+  max-width: 100%;
+  padding: var(--gr-notes-large-pad);
+  border: var(--gr-notes-rule);
+  border-radius: var(--gr-notes-radius);
+  background: var(--gr-notes-paper);
+  font-size: var(--gr-size-notes-large);
+  line-height: var(--gr-notes-leading);
+  color: var(--gr-ink);
+}
+
+.full {
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}

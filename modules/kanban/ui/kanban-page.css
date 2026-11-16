@@ -142,9 +142,19 @@ h3 {
   opacity: var(--gr-kanban-dragged);
 }
 
+/* A card's title and notes, that open it large when clicked. */
+.open {
+  display: block;
+  width: 100%;
+  padding: 0;
+  text-align: start;
+  cursor: zoom-in;
+}
+
 .name,
 .notes,
 .where {
+  display: block;
   margin: 0;
   overflow-wrap: anywhere;
 }

@@ -114,10 +114,12 @@
                     }
                   </p>
                 }
-                <p class="name">{{ card.title }}</p>
-                @if (card.notes) {
-                  <p class="notes" [attr.title]="card.notes">{{ card.notes }}</p>
-                }
+                <button type="button" class="open" title="Enlarge" (click)="large.open(card)">
+                  <span class="name">{{ card.title }}</span>
+                  @if (card.notes) {
+                    <span class="notes">{{ card.notes }}</span>
+                  }
+                </button>
                 @if (card.jira; as issue) {
                   @if (issue.status) {
                     <p class="where status-name">{{ issue.status }}</p>
@@ -278,6 +280,8 @@
       </section>
     }
   </div>
+
+  <gr-card-large #large />
 
   @if (closed().length) {
     <section class="closed" aria-labelledby="gr-kanban-closed">

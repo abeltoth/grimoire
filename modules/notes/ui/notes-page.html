@@ -22,7 +22,9 @@
         @if (editing() === note.id) {
           <gr-note-form [note]="note" (done)="editing.set(null)" />
         } @else {
-          <p class="text">{{ note.text }}</p>
+          <button type="button" class="open" title="Enlarge" (click)="large.open(note)">
+            <span class="text">{{ note.text }}</span>
+          </button>
           @if (note.remindAt !== undefined || note.madeIn) {
             <p class="meta">
               @if (note.remindAt !== undefined) {
@@ -60,6 +62,8 @@
       </li>
     }
   </ul>
+
+  <gr-note-large #large />
 
   @if (notes.done().length) {
     <section class="finished" aria-labelledby="gr-notes-done">

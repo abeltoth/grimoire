@@ -1,0 +1,52 @@
+/* The card held up to read: the same index card, wider, in a larger hand. */
+.large {
+  padding: 0;
+  border: 0;
+  background: none;
+  max-width: var(--gr-enlarged-width);
+  max-height: var(--gr-enlarged-height);
+  overflow: auto;
+}
+
+.large::backdrop {
+  background: var(--gr-enlarged-backdrop);
+}
+
+.slip {
+  box-sizing: border-box;
+  width: var(--gr-kanban-large-width);
+  max-width: 100%;
+  padding: var(--gr-kanban-large-pad);
+  border: var(--gr-kanban-card-rule);
+  border-radius: var(--gr-kanban-card-radius);
+  background: var(--gr-kanban-card-paper);
+  font-size: var(--gr-size-kanban-large);
+  line-height: var(--gr-kanban-card-leading);
+  color: var(--gr-ink);
+}
+
+.key,
+.title,
+.notes {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.key {
+  margin-bottom: var(--gr-aside-gap);
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-kanban-code);
+  color: var(--gr-ink-soft);
+}
+
+.title {
+  font: inherit;
+  font-weight: 500;
+}
+
+.notes {
+  margin-top: var(--gr-kanban-card-line-gap);
+  font-style: italic;
+  color: var(--gr-ink-soft);
+  white-space: pre-line;
+}
