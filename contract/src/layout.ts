@@ -11,6 +11,8 @@ export interface Layout {
   lastUsed: { agent: AgentId; settings: NewChatSettings } | null;
   /** Whether the book lies at a single page, the chat alone on the desk. */
   focus: boolean;
+  /** The page that lies alone in focus mode in place of the chat, by its right page's ID; null for the chat. */
+  focusPage: string | null;
 }
 
 declare module './commands' {

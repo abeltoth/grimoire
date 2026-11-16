@@ -10,6 +10,7 @@ import { CommandPalette } from './shell/command-palette';
 import { RightPage } from './shell/right-page/right-page';
 import { RightPageState } from './shell/right-page/right-page-state';
 import { Focus } from './shell/focus';
+import { AlonePage } from './shell/page/alone-page';
 import { Page } from './shell/page/page';
 import { ChatTabs } from './shell/tabs/chat-tabs';
 import { PageFooter } from './shell/page/page-footer';
@@ -26,11 +27,12 @@ import { WindowControls } from './shell/window/window-controls';
  * module registers, or the command palette of the chat on the right
  * page. Registered commands run from their
  * shortcuts. In focus mode the chat's page lies alone in the middle of
- * the desk.
+ * the desk, or one of the right page's own pages in its place.
  */
 @Component({
   selector: 'gr-root',
   imports: [
+    AlonePage,
     Frame,
     CommandPalette,
     RightPage,
@@ -69,6 +71,12 @@ export class App {
    * tab's page, which bring it back beside the chat while they show.
    */
   protected readonly single = computed(() => this.focus.on() && !this.rightPage.turned());
+  /** The right page's own page lying alone in the chat's place in focus mode, if any. */
+  protected readonly alonePage = computed(() => {
+    const id = this.focus.alone();
+    const page = this.focus.on() && id ? this.registry.rightPages.get(id) : undefined;
+    return page?.component ? page : undefined;
+  });
   /** Whether the command palette shows on this page: that of the chat on the right page. */
   protected readonly paletteHere = computed(() => {
     const search = this.rightPage.commandPalette();

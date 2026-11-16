@@ -149,23 +149,84 @@ describe('files.providers', () => {
       ).toBe('# Mine\n');
     });
 
-    it('leaves Open in Files out in focus mode, where there is no right page', async () => {
-      const { bridge, emit } = repository();
-      const { fixture, el, openIn } = await withEditor(bridge);
+    it('opens a file in focus mode on the Files page, alone in the chat’s place', async () => {
+      const { bridge, emit, calls } = repository();
+      const { fixture, el, texts, openIn } = await withEditor(bridge);
       await write(fixture, el, 'Fix the ribbon');
       emit('agents.entry', {
         chatId: 'chat-1',
         entry: { kind: 'agent', id: 'a1', blocks: [chatTabEdit] },
       });
       await fixture.whenStable();
-      expect(openIn()).toBeDefined();
+      singlePage(el);
+      await fixture.whenStable();
 
-      [...el.querySelectorAll<HTMLButtonElement>('gr-page-header .gr-link')]
-        .find((link) => link.textContent!.includes('Single page'))!
+      openIn()!.click();
+      await fixture.whenStable();
+      expect(el.classList).toContain('single');
+      expect(el.querySelector('gr-right-page')).toBeNull();
+      expect(texts('gr-alone-page .title')).toEqual(['Files']);
+      expect(texts('gr-files-page .opened-file:not(.hidden) .sub .path')).toEqual([
+        'ui/src/ribbon.ts',
+      ]);
+      expect(calls).toContainEqual({ command: 'layout.set', request: { focusPage: 'files' } });
+
+      [...el.querySelectorAll<HTMLButtonElement>('gr-alone-page .gr-link')]
+        .find((link) => link.textContent!.includes('Back to the chapter'))!
         .click();
       await fixture.whenStable();
+      expect(el.querySelector('gr-alone-page')).toBeNull();
       expect(el.querySelector('gr-diff-view')).not.toBeNull();
-      expect(openIn()).toBeUndefined();
+    });
+  });
+
+  describe('the Files shortcut', () => {
+    const press = () =>
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'E', ctrlKey: true, shiftKey: true }),
+      );
+
+    it('turns the right page to Files', async () => {
+      const { bridge } = repository();
+      const { fixture, texts } = await render(bridge, [
+        { provide: MONACO, useValue: fakeMonaco().load },
+      ]);
+      press();
+      await fixture.whenStable();
+      expect(texts('gr-right-page .tabs [aria-pressed="true"]')).toEqual(['Files']);
+    });
+
+    it('in focus mode, turns between the chat and Files alone, and the book remembers which', async () => {
+      const { bridge, answers } = repository();
+      answers['layout.get'] = () => ({
+        current: null,
+        lastUsed: null,
+        focus: true,
+        focusPage: 'files',
+      });
+      const { fixture, el } = await render(bridge, [
+        { provide: MONACO, useValue: fakeMonaco().load },
+      ]);
+      await fixture.whenStable();
+      expect(el.querySelector('gr-alone-page gr-files-page')).not.toBeNull();
+
+      press();
+      await fixture.whenStable();
+      expect(el.querySelector('gr-alone-page')).toBeNull();
+      press();
+      await fixture.whenStable();
+      expect(el.querySelector('gr-alone-page gr-files-page')).not.toBeNull();
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }));
+      await fixture.whenStable();
+      expect(el.querySelector('gr-alone-page')).toBeNull();
     });
   });
 });
+
+/** Lays the book at a single page, from the chat's page header. */
+function singlePage(el: HTMLElement): void {
+  [...el.querySelectorAll<HTMLButtonElement>('gr-page-header .gr-link')]
+    .find((link) => link.textContent!.includes('Single page'))!
+    .click();
+}

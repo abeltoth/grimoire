@@ -12,11 +12,15 @@
       side="left"
       [alone]="single()"
       [attr.aria-label]="
-        wording.say('Chapter: ', 'Chat: ') + (list.current()?.title || wording.untitled())
+        alonePage()
+          ? wording.label(alonePage()!)
+          : wording.say('Chapter: ', 'Chat: ') + (list.current()?.title || wording.untitled())
       "
     >
       @if (paletteHere()) {
         <gr-command-palette [backTo]="wording.say('chapter', 'chat')" />
+      } @else if (alonePage(); as page) {
+        <gr-alone-page [page]="page" />
       } @else if (registry.chatPage(); as chatPage) {
         <ng-container *ngComponentOutlet="chatPage" />
       } @else {

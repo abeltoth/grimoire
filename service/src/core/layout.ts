@@ -3,7 +3,13 @@ import type { Layout } from '@grimoire/contract';
 import type { CommandRegistry } from '../registry';
 import { activeProfile } from './app-state';
 
-const DEFAULTS: Layout = { current: null, beside: null, lastUsed: null, focus: false };
+const DEFAULTS: Layout = {
+  current: null,
+  beside: null,
+  lastUsed: null,
+  focus: false,
+  focusPage: null,
+};
 
 /** How you left the window in the profile in use, as `profile` says, kept in SQLite. */
 export class LayoutStore {

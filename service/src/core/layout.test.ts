@@ -10,6 +10,7 @@ describe('LayoutStore', () => {
       beside: null,
       lastUsed: null,
       focus: false,
+      focusPage: null,
     });
     const lastUsed = { agent: 'claude-code', settings: { cwd: '/work', mode: 'plan' as const } };
     layout.set({ current: 'a', beside: 'b', lastUsed });
@@ -19,8 +20,15 @@ describe('LayoutStore', () => {
       beside: 'b',
       lastUsed,
       focus: false,
+      focusPage: null,
     });
-    layout.set({ current: null, beside: null, focus: true });
-    expect(layout.get()).toEqual({ current: null, beside: null, lastUsed, focus: true });
+    layout.set({ current: null, beside: null, focus: true, focusPage: 'files' });
+    expect(layout.get()).toEqual({
+      current: null,
+      beside: null,
+      lastUsed,
+      focus: true,
+      focusPage: 'files',
+    });
   });
 });

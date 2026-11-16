@@ -135,8 +135,8 @@ export class ShellRegistry {
   /**
    * Opens a file on the Files page, with its changes since the last commit
    * if it has any: the files module's. The path is in full, or from the
-   * open chat's folder. Missing where there's no right page to open it
-   * on, so nothing offers to.
+   * open chat's folder. Missing without the files module, so nothing
+   * offers to.
    */
   readonly openFile = signal<((path: string) => void) | undefined>(undefined);
 }
