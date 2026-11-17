@@ -89,7 +89,13 @@
         }
       }
       @for (label of drawn.labels; track $index) {
-        <text class="end-label" [attr.x]="label.x + 8" [attr.y]="label.y" dy="0.32em">
+        <text
+          class="end-label"
+          [attr.x]="label.x"
+          [attr.y]="label.y"
+          dy="0.32em"
+          [attr.text-anchor]="label.anchor"
+        >
           {{ format()(label.value) }}
         </text>
       }

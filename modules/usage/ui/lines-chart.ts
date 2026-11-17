@@ -133,6 +133,12 @@ export class UsageLines {
     });
     // The latest value of each series beside its end, unless it would crowd another.
     const labelled: number[] = [];
+    // A guide leading on from an end would run through its label, so that one sits above, before it.
+    const led = (end: { x: number; y: number }) =>
+      this.guides().some(
+        (guide) =>
+          Math.abs(x(guide.from.at) - end.x) < 1 && Math.abs(y(guide.from.value) - end.y) < 1,
+      );
     const labels = lines
       .flatMap((line) => (line.end ? [{ ...line.end }] : []))
       .sort((a, b) => a.y - b.y)
@@ -140,7 +146,12 @@ export class UsageLines {
         if (labelled.some((y) => Math.abs(y - end.y) < 13)) return false;
         labelled.push(end.y);
         return true;
-      });
+      })
+      .map((end) =>
+        led(end)
+          ? { value: end.value, x: end.x - 8, y: end.y - 10, anchor: 'end' }
+          : { value: end.value, x: end.x + 8, y: end.y, anchor: 'start' },
+      );
     const guides = this.guides().map((guide) => ({
       guide,
       d: `M${x(guide.from.at).toFixed(1)},${y(guide.from.value).toFixed(1)}L${x(guide.to.at).toFixed(1)},${y(guide.to.value).toFixed(1)}`,

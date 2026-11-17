@@ -86,6 +86,30 @@ describe('UsageLines guides', () => {
     expect(el.querySelectorAll('circle.dot')).toHaveLength(3);
     expect(el.querySelector('.table-view')).toBeNull();
   });
+
+  it('writes a line’s latest value above and before its end when a guide leads on from there, past it otherwise', async () => {
+    const fixture = TestBed.createComponent(UsageLines);
+    const end = { at: 2_000, value: 20 };
+    fixture.componentRef.setInput('caption', 'The session');
+    fixture.componentRef.setInput('series', [
+      { name: 'This session', color: 'var(--gr-chart-1)', points: [{ at: 1_000, value: 10 }, end] },
+    ]);
+    fixture.componentRef.setInput('from', 0);
+    fixture.componentRef.setInput('to', 4_000);
+    fixture.componentRef.setInput('breakAfter', 1_500);
+    fixture.componentRef.setInput('when', (at: number) => `at ${at}`);
+    await fixture.whenStable();
+    const el = fixture.nativeElement as HTMLElement;
+    const label = () => el.querySelector('.end-label')!;
+    expect(label().getAttribute('text-anchor')).toBe('start');
+
+    fixture.componentRef.setInput('guides', [
+      { name: 'At this rate', color: 'var(--gr-chart-1)', from: end, to: { at: 4_000, value: 30 } },
+    ]);
+    await fixture.whenStable();
+    expect(label().getAttribute('text-anchor')).toBe('end');
+    expect(texts(el, '.end-label')).toEqual(['20%']);
+  });
 });
 
 describe('smoothPath', () => {

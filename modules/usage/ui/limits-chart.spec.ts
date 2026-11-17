@@ -53,7 +53,17 @@ describe('limitsChart', () => {
     expect(values.at(-1)).toBe(20);
   });
 
-  it('leads the pace so far to when the limit runs out, named by when', () => {
+  it('leads the pace of the last day on, not of the whole week, so an idle start doesn’t hide it', () => {
+    // 10% over the first three days, then 30% more in the last: 30% a day, so 100% two days on.
+    const history: UsageReading[] = [
+      { at: hours(24), span: 'week', used: 10, resetsAt: end },
+      { at: now, span: 'week', used: 40, resetsAt: end },
+    ];
+    const chart = limitsChart(history, now)!;
+    expect(chart.guides[0]!.to).toEqual({ at: now + 2 * DAY, value: 100 });
+  });
+
+  it('leads the recent pace to when the limit runs out, named by when', () => {
     // Four days gone and 80% used: 20% a day, so it runs out a day on, before the reset.
     const history: UsageReading[] = [{ at: now, span: 'week', used: 80, resetsAt: end }];
     const chart = limitsChart(history, now)!;
@@ -67,7 +77,7 @@ describe('limitsChart', () => {
     ]);
   });
 
-  it('leads the pace so far to the reset when it lasts, and not too early in the week nor once used up', () => {
+  it('leads the recent pace to the reset when it lasts, and not too early in the week nor once used up', () => {
     // Four days gone and 20% used: 5% a day, 35% by the reset.
     const lasting = limitsChart([{ at: now, span: 'week', used: 20, resetsAt: end }], now)!;
     expect(lasting.guides[0]!.to).toEqual({ at: end, value: 35 });
@@ -122,9 +132,18 @@ describe('sessionChart', () => {
     // A tick each hour, and now marked.
     expect(chart.ticks).toHaveLength(6);
     expect(chart.marks).toEqual([{ at: now, label: 'Now' }]);
-    // Three hours gone and 60% used: it runs out in two, as it resets.
-    expect(chart.guides[0]!.to).toEqual({ at: end, value: 100 });
-    expect(chart.guides[0]!.label).toBe(time(end));
+    // 50% in the two hours since the last reading an hour or more back: it runs out in 1.6, before the reset.
+    const out = now + 1.6 * HOUR;
+    expect(chart.guides[0]!.to).toEqual({ at: out, value: 100 });
+    expect(chart.guides[0]!.label).toBe(time(out));
+  });
+
+  it('leads nothing more on when nothing was used in the last hour', () => {
+    const history: UsageReading[] = [
+      { at: now - 2 * HOUR, span: 'session', used: 30, resetsAt: end },
+      { at: now, span: 'session', used: 30, resetsAt: end },
+    ];
+    expect(sessionChart(history, now)!.guides[0]!.to).toEqual({ at: end, value: 30 });
   });
 
   it('has nothing to draw when no session is under way', () => {

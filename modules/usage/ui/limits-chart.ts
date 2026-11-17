@@ -24,7 +24,7 @@ export interface LimitSession {
 export interface LimitsChart {
   /** The week's limit, and any week kept for one model: a step line each. */
   week: LineSeries[];
-  /** Where the pace so far leads. */
+  /** Where the recent pace leads. */
   guides: ChartGuide[];
   /** The week's sessions, oldest first. */
   sessions: LimitSession[];
@@ -53,6 +53,8 @@ const SESSION = 5 * HOUR;
 const SAME_RESET = 10 * 60_000;
 /** Less of a week or a session gone than this, and its pace so far says too little to go on. */
 const TOO_SOON = { week: 6 * HOUR, session: 30 * 60_000 };
+/** How far back the pace is taken: work comes in bursts, and an idle start would hide the one under way. */
+const RECENT = { week: DAY, session: HOUR };
 /** A week's line goes through one reading in each stretch this long. */
 const STRETCH = 3 * HOUR;
 
@@ -61,7 +63,7 @@ const toHour = (at: number) => Math.round(at / HOUR) * HOUR;
 
 /**
  * The week under way of a plan's limits: the week's share as a step line,
- * the pace to keep and the pace so far as guides, and its five-hour
+ * where the recent pace leads as a guide, and its five-hour
  * sessions. Null until a week's limit has been read.
  */
 export function limitsChart(history: readonly UsageReading[], now: number): LimitsChart | null {
@@ -105,9 +107,17 @@ export function limitsChart(history: readonly UsageReading[], now: number): Limi
     const noon = day.getTime() + 12 * HOUR;
     if (noon >= from && noon <= to) ticks.push({ at: noon, label: dayTick(noon) });
   }
+  const all = fromNothing(
+    shown
+      .filter(
+        (r) => r.span === 'week' && !r.model && r.resetsAt !== null && toHour(r.resetsAt) === to,
+      )
+      .map((r) => ({ at: r.at, value: r.used! })),
+    from,
+  );
   return {
     week,
-    guides: pace(latest, from, to, (at) => readingName(at)),
+    guides: pace(all, latest, from, to, (at) => readingName(at)),
     sessions: sessions(shown, from),
     from,
     to,
@@ -117,10 +127,12 @@ export function limitsChart(history: readonly UsageReading[], now: number): Limi
 }
 
 /**
- * Once enough of a limit is gone, where its pace so far leads: labelled
- * by when it would run out, or by how much would be used as it resets.
+ * Once enough of a limit is gone, where its recent pace leads, taken from
+ * the last reading at least that far back: labelled by when it would run
+ * out, or by how much would be used as it resets.
  */
 function pace(
+  points: readonly LinePoint[],
   latest: UsageReading,
   from: number,
   to: number,
@@ -129,7 +141,9 @@ function pace(
   const used = latest.used!;
   const gone = latest.at - from;
   if (used >= 100 || used <= 0 || gone < TOO_SOON[latest.span]) return [];
-  const rate = used / gone;
+  const since = latest.at - RECENT[latest.span];
+  const base = points.filter((point) => point.at <= since).at(-1) ?? { at: from, value: 0 };
+  const rate = Math.max(used - base.value, 0) / (latest.at - base.at);
   const fullAt = latest.at + (100 - used) / rate;
   const atEnd = used + rate * (to - latest.at);
   return [
@@ -190,7 +204,7 @@ function sessions(shown: readonly UsageReading[], from: number): LimitSession[] 
 
 /**
  * The five-hour session under way: its share as a step line, from when it
- * began to when it resets, with the pace to keep and the pace so far. Null
+ * began to when it resets, with where its recent pace leads. Null
  * when no session is under way.
  */
 export function sessionChart(history: readonly UsageReading[], now: number): LimitLine | null {
@@ -213,7 +227,7 @@ export function sessionChart(history: readonly UsageReading[], now: number): Lim
   }
   return {
     lines: [{ name: limitName(latest), color: WEEK_COLORS[0]!, points }],
-    guides: pace(latest, from, to, time),
+    guides: pace(points, latest, from, to, time),
     from,
     to,
     ticks,
