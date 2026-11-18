@@ -1,6 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import {
   DEFAULT_SETTINGS,
+  EFFORT_LEVELS,
   type EventName,
   type EventPayload,
   type GrimoireSettings,
@@ -28,6 +29,7 @@ const VALID: { [K in keyof GrimoireSettings]: (value: unknown) => boolean } = {
   wording: (value) => value === 'book' || value === 'plain',
   drawings: (value) => typeof value === 'boolean',
   defaultAgent: (value) => value === null || (typeof value === 'string' && value !== ''),
+  defaultEffort: (value) => value === null || (EFFORT_LEVELS as readonly unknown[]).includes(value),
   newChat: (value) => {
     const start = value as GrimoireSettings['newChat'] | null;
     return (

@@ -31,6 +31,7 @@ describe('general-settings', () => {
       'Names',
       'Drawings',
       'Default agent for new chapters',
+      'Default effort for new chapters',
       'New chapters begin with',
       'Suggest the next entry',
       'Suggest separate chapters',
@@ -41,6 +42,7 @@ describe('general-settings', () => {
     expect(checked()).toEqual([
       'The book’s',
       'Drawn',
+      'The one used last',
       'The one used last',
       'Your last settings',
       'On',
@@ -194,7 +196,8 @@ describe('general-settings', () => {
       .find((tab) => tab.textContent!.trim() === 'Colophon')!
       .click();
     await fixture.whenStable();
-    expect(texts('#gr-settings-general ~ .form .word[aria-checked="true"]').slice(2, 4)).toEqual([
+    expect(texts('#gr-settings-general ~ .form .word[aria-checked="true"]').slice(2, 5)).toEqual([
+      'The one used last',
       'The one used last',
       'Bug fix',
     ]);
@@ -204,9 +207,11 @@ describe('general-settings', () => {
       )!;
     word('Your last settings').click();
     word('Claude Code').click();
+    word('Extra high').click();
     await fixture.whenStable();
     expect(kept.newChat).toEqual({ from: 'last-used' });
     expect(kept.defaultAgent).toBe('claude-code');
+    expect(kept.defaultEffort).toBe('xhigh');
     expect(texts('gr-chat-tab.new i')).toEqual(['Last settings · Ctrl+N']);
 
     el.querySelector<HTMLButtonElement>('gr-chat-tab.new button')!.click();

@@ -1,4 +1,5 @@
 import type { AgentId } from './agents';
+import type { EffortLevel } from './chat-settings';
 
 /** What a new chat begins with: the settings used last, or a preset's, by name. */
 export type NewChatStart = { from: 'last-used' } | { from: 'preset'; preset: string };
@@ -15,6 +16,8 @@ export interface GrimoireSettings {
   drawings: boolean;
   /** The agent new chats are written by; null for whichever wrote the last one. */
   defaultAgent: AgentId | null;
+  /** The effort new chats begin at, as near as their model takes it; null for the one used last. */
+  defaultEffort: EffortLevel | null;
   newChat: NewChatStart;
   /** The ready-made look in use; "auto" follows the system's light or dark (Grimoire by day, Night after dark). */
   themeName: ThemeName | 'auto';
@@ -93,6 +96,7 @@ export const DEFAULT_SETTINGS: GrimoireSettings = {
   wording: 'book',
   drawings: true,
   defaultAgent: null,
+  defaultEffort: null,
   newChat: { from: 'last-used' },
   themeName: 'grimoire',
   theme: {},

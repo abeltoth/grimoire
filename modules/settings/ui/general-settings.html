@@ -88,6 +88,33 @@
       }
     </span>
 
+    <span class="label" id="gr-settings-effort">{{
+      wording.say('Default effort for new chapters', 'Default effort for new chats')
+    }}</span>
+    <span class="words" role="radiogroup" aria-labelledby="gr-settings-effort">
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="all.defaultEffort === null"
+        (click)="set({ defaultEffort: null })"
+      >
+        The one used last
+      </button>
+      @for (effort of efforts; track effort.level) {
+        <button
+          type="button"
+          class="word"
+          role="radio"
+          [attr.aria-checked]="all.defaultEffort === effort.level"
+          (click)="set({ defaultEffort: effort.level })"
+        >
+          {{ effort.label }}
+        </button>
+      }
+    </span>
+    <p class="note">A model that doesn’t take the effort runs at the nearest it takes below it.</p>
+
     <span class="label" id="gr-settings-start">{{
       wording.say('New chapters begin with', 'New chats start with')
     }}</span>

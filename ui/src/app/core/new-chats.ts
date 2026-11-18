@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
-import type { AgentId, NewChatSettings, OpenChat } from '@grimoire/contract';
+import { type AgentId, type NewChatSettings, type OpenChat, fitEffort } from '@grimoire/contract';
+import { AgentCatalog } from './agent-catalog';
 import { GRIMOIRE_BRIDGE } from './bridge';
 import type { Chat, ChatStart } from './chat';
 import { PresetList } from './preset-list';
@@ -22,6 +23,7 @@ export class NewChats {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
   private readonly settings = inject(Settings);
   private readonly presets = inject(PresetList);
+  private readonly catalog = inject(AgentCatalog);
   private nextBlank = 1;
   private lastUsed: LastUsed | null = null;
   /** Told when a blank chat's first message starts it. */
@@ -34,16 +36,22 @@ export class NewChats {
 
   /**
    * What a new chat begins with, as Settings says: a preset's
-   * settings, or those used last, if they were with the default agent.
+   * settings, or those used last, if they were with the default agent,
+   * at the default effort when Settings names one.
    */
   startOf(): { preset?: string } & ChatStart {
-    const { newChat, defaultAgent } = this.settings.all();
+    const { newChat, defaultAgent, defaultEffort } = this.settings.all();
     if (newChat.from === 'preset') {
       const preset = this.presets.all().find((p) => p.name === newChat.preset);
       if (preset) return { ...preset, preset: preset.name };
     }
     const agent = defaultAgent ?? this.lastUsed?.agent ?? DEFAULT_AGENT;
-    return this.lastUsed?.agent === agent ? this.lastUsed : { agent, settings: {} };
+    const start = this.lastUsed?.agent === agent ? this.lastUsed : { agent, settings: {} };
+    if (!defaultEffort) return start;
+    // A model that doesn't take the level runs at the nearest it takes below it.
+    const { levels } = this.catalog.effortOf(agent, start.settings);
+    const effort = levels.length ? fitEffort(defaultEffort, levels) : defaultEffort;
+    return { agent, settings: { ...start.settings, effort } };
   }
 
   /** A blank chat, with the settings given or what new chats begin with. */

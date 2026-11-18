@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { DEFAULT_SETTINGS, type GrimoireSettings } from '@grimoire/contract';
 import { fakeBridge } from '../../testing/app-testing';
+import { AgentCatalog } from './agent-catalog';
 import { GRIMOIRE_BRIDGE } from './bridge';
 import { NewChats } from './new-chats';
 
@@ -34,6 +35,19 @@ describe('NewChats', () => {
     const { chats } = await newChats({ defaultAgent: 'claude-code' });
     chats.restored({ agent: 'other', settings: { model: 'gpt' } });
     expect(chats.startOf()).toEqual({ agent: 'claude-code', settings: {} });
+  });
+
+  it('begins at the default effort, as near as the model takes it', async () => {
+    const { chats } = await newChats({ defaultEffort: 'xhigh' });
+    const catalog = TestBed.inject(AgentCatalog);
+    await vi.waitFor(() => expect(catalog.models()['claude-code']).toBeDefined());
+    expect(chats.startOf()).toEqual({ agent: 'claude-code', settings: { effort: 'xhigh' } });
+    // Sonnet takes max but not extra high.
+    chats.restored({ agent: 'claude-code', settings: { model: 'sonnet', effort: 'low' } });
+    expect(chats.startOf()).toEqual({
+      agent: 'claude-code',
+      settings: { model: 'sonnet', effort: 'high' },
+    });
   });
 
   it('begins with a preset when Settings says so', async () => {

@@ -21,6 +21,7 @@ describe('SettingsStore', () => {
       wording: 'book',
       drawings: true,
       defaultAgent: null,
+      defaultEffort: null,
       newChat: { from: 'last-used' },
       themeName: 'grimoire',
       theme: {},
@@ -72,6 +73,8 @@ describe('SettingsStore', () => {
     expect(() => settings.set({ jiraProject: 'grim' })).toThrow('"jiraProject"');
     settings.set({ jiraIssueType: 'Bug' });
     expect(() => settings.set({ jiraIssueType: ' ' })).toThrow('"jiraIssueType"');
+    settings.set({ defaultEffort: 'xhigh' });
+    expect(() => settings.set({ defaultEffort: 'huge' } as never)).toThrow('"defaultEffort"');
     settings.set({ historyGroup: 'project' });
     expect(() => settings.set({ historyGroup: 'tag' } as never)).toThrow('"historyGroup"');
     settings.set({ quickModels: { 'claude-code': 'sonnet' } });
@@ -104,6 +107,7 @@ describe('SettingsStore', () => {
       wording: 'plain',
       drawings: true,
       defaultAgent: null,
+      defaultEffort: 'xhigh',
       newChat: { from: 'preset', preset: 'Bug fix' },
       themeName: 'auto',
       theme: { '--gr-page': '#fffaf0', '--gr-size-text': '18px' },

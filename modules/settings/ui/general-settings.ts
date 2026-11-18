@@ -12,6 +12,7 @@ import {
 } from '@angular/core';
 import type { AgentId, GrimoireSettings } from '@grimoire/contract';
 import { AgentCatalog } from '@ui/app/core/agent-catalog';
+import { EFFORTS } from '@ui/app/core/efforts';
 import { McpServers } from '@ui/app/core/mcp-servers';
 import { PresetList } from '@ui/app/core/preset-list';
 import { Profiles } from '@ui/app/core/profiles';
@@ -38,6 +39,7 @@ export class GeneralSettings {
   protected readonly presets = inject(PresetList);
   protected readonly wording = inject(Wording);
   protected readonly accounts = inject(Accounts);
+  protected readonly efforts = EFFORTS;
   private readonly profiles = inject(Profiles);
   private readonly mcp = inject(McpServers);
   private readonly injector = inject(Injector);
