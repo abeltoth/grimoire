@@ -24,7 +24,7 @@ describe('ToolInputView', () => {
   }
 
   it('sets the short fields in a grid and each long one apart', async () => {
-    const { texts } = await view({
+    const { el, texts } = await view({
       url: 'https://x.dev',
       prompt: 'Find the signals\nand list them',
       retries: 2,
@@ -34,6 +34,7 @@ describe('ToolInputView', () => {
     expect(texts('.field .name')).toEqual(['prompt']);
     expect(texts('.field .plain')).toEqual(['Find the signals\nand list them']);
     expect(texts('.gr-link')).toEqual([]);
+    expect(el.querySelector('.value')!.classList).not.toContain('folded');
   });
 
   it('sets markdown as the page text', async () => {

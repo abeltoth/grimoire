@@ -970,6 +970,7 @@
   --gr-size-tool-input-name: 13px;
   --gr-tracking-tool-input-name: 0.06em;
   --gr-tool-input-fold: 240px;
+  --gr-tool-input-fade: 56px;
 
   /* Chat: question form, printed on the page */
   --gr-form-margin: 20px 0 4px;

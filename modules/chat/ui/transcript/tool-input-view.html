@@ -29,7 +29,7 @@
         </button>
       }
     </div>
-    <div class="value" [class.folded]="!open" tabindex="0">
+    <div class="value" [class.folded]="foldable(field) && !open">
       @if (markdown !== undefined) {
         <gr-markdown [text]="markdown" />
       } @else {

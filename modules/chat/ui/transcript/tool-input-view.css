@@ -50,14 +50,11 @@
   flex: 1;
 }
 
-.value {
-  outline: none;
-}
-
-/* A long field folds, and scrolls until you ask for all of it. */
+/* A long field shows its start, fading out, until you ask for all of it. */
 .value.folded {
   max-height: var(--gr-tool-input-fold);
-  overflow: auto;
+  overflow: hidden;
+  mask-image: linear-gradient(black calc(100% - var(--gr-tool-input-fade)), transparent);
 }
 
 .plain {
