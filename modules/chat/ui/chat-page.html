@@ -81,7 +81,9 @@
           <gr-icon name="single-page" />{{ wording.say('Single page', 'Focus') }}
         </button>
       }
-      <button type="button" class="gr-link" (click)="list.close(c.id)">Close</button>
+      @if (!focus.on()) {
+        <button type="button" class="gr-link" (click)="list.close(c.id)">Close</button>
+      }
     </div>
     @if (c.readOnly; as editing) {
       <div class="row read-only">

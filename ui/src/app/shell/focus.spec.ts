@@ -20,6 +20,9 @@ describe('focus', () => {
     expect(shown('gr-chat-tabs')).toBe(false);
     expect(shown('gr-right-page')).toBe(false);
     expect(shown('.desk.end gr-window-controls [aria-label="Close window"]')).toBe(true);
+    expect(
+      [...el.querySelectorAll('gr-page-header .gr-link')].map((link) => link.textContent!.trim()),
+    ).not.toContain('Close');
     expect(calls).toContainEqual({ command: 'layout.set', request: { focus: true } });
 
     // The Command palette comes back beside the chat, and goes again with it.
