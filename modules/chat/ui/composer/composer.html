@@ -20,7 +20,7 @@
       {{ cold.ago }}, so your next {{ wording.say('entry', 'message') }} re-reads about
       <b>{{ cold.tokens }} tokens</b>
     </p>
-    @if (catalog.can(agent(), 'compact')) {
+    @if (cold.worthCompacting && catalog.can(agent(), 'compact')) {
       <button
         type="button"
         class="gr-link"

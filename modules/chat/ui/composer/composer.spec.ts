@@ -259,6 +259,16 @@ describe('composer', () => {
       { chatId: 'chat-1', text: '/compact' },
     ]);
 
+    // A small chat isn't worth compacting, so only the warning stays.
+    emit('agents.cache', {
+      chatId: 'chat-1',
+      cache: { tokens: 16_800, until: now - 3_600_000 },
+    });
+    await fixture.whenStable();
+    expect(texts('gr-composer .cold')).toEqual([
+      'Cache expired An hour ago, so your next entry re-reads about 17k tokens',
+    ]);
+
     // A turn leaves a fresh cache.
     emit('agents.cache', {
       chatId: 'chat-1',

@@ -12,6 +12,7 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
+import { COMPACT_MIN_TOKENS } from '@grimoire/contract';
 import type {
   AgentCommand,
   AgentId,
@@ -124,12 +125,16 @@ export class Composer {
 
   /** The time, kept to the minute, for when the cache runs out. */
   private readonly now = signal(Date.now());
-  /** Once the cache has run out: when, and the tokens the next message re-reads. */
+  /** Once the cache has run out: when, the tokens the next message re-reads, and whether compacting is worth it. */
   protected readonly cold = computed(() => {
     const cache = this.cache();
     const now = this.now();
     if (!cache || cache.until > now) return undefined;
-    return { ago: ago(now - cache.until), tokens: tokens(cache.tokens) };
+    return {
+      ago: ago(now - cache.until),
+      tokens: tokens(cache.tokens),
+      worthCompacting: cache.tokens >= COMPACT_MIN_TOKENS,
+    };
   });
 
   /** Your messages, brought back with Up and Down. */

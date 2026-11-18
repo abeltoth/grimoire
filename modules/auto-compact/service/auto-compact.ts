@@ -1,10 +1,8 @@
+import { COMPACT_MIN_TOKENS } from '@grimoire/contract';
 import type { AgentCapability, ChatId, ChatStatus, PromptCache } from '@grimoire/contract';
 
 /** How long before the cache runs out a chat is compacted: room for the compaction's first request to still read it. */
 export const LEAD_MS = 90_000;
-
-/** The smallest context worth compacting: below it, re-reading the whole chat costs little. */
-export const MIN_TOKENS = 40_000;
 
 /** The open chats, as the hub shows them. */
 export interface Chats {
@@ -63,7 +61,8 @@ export class AutoCompact {
     clearTimeout(this.timers.get(chatId));
     this.timers.delete(chatId);
     const cache = this.caches.get(chatId);
-    if (!cache || !this.on() || cache.tokens < MIN_TOKENS || this.compacted.has(chatId)) return;
+    if (!cache || !this.on() || cache.tokens < COMPACT_MIN_TOKENS || this.compacted.has(chatId))
+      return;
     const delay = cache.until - LEAD_MS - this.now();
     if (delay <= 0) return;
     this.timers.set(

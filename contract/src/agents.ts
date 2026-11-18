@@ -141,6 +141,9 @@ export interface PromptCache {
   until: number;
 }
 
+/** The smallest context worth compacting: below it, re-reading the whole chat costs little. */
+export const COMPACT_MIN_TOKENS = 40_000;
+
 /** Where a subagent is with its task: still at it, done, failed, or stopped before it was done. */
 export type SubagentState = 'working' | 'done' | 'failed' | 'stopped';
 
