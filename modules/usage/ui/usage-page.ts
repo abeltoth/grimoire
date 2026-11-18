@@ -10,15 +10,15 @@ type UsageView = 'limits' | 'tokens' | 'tools';
 
 const VIEWS: Record<UsageView, string> = {
   limits: 'Limits',
-  tokens: 'Where it went',
+  tokens: 'Tokens',
   tools: 'Tools & skills',
 };
 
 /**
  * The Usage page: how much of each agent's subscription limits is used, read
- * from the agent when the page opens, each limit with when it resets; and
- * where the tokens went, as the agent's own scan says and by Grimoire's
- * count from the chats' transcripts, with the tools and skills used most.
+ * from the agent when the page opens, each limit with when it resets; the
+ * tokens, by Grimoire's count from the chats' transcripts and as the agent's
+ * own scan says; and the tools and skills used most.
  */
 @Component({
   selector: 'gr-usage-page',

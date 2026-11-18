@@ -11,7 +11,7 @@ export interface ChartSeries {
 export interface Column {
   /** Under the column on the axis; empty for none. */
   label: string;
-  /** In full, for the tooltip and the table. */
+  /** In full, for the tooltip. */
   name: string;
   parts: readonly number[];
 }
@@ -62,8 +62,7 @@ function bar(x: number, top: number, width: number, height: number, rounded: boo
 
 /**
  * A stacked column chart: a column for each day or hour, each series a
- * part of it, with a legend, a tooltip on hover and focus, and the same
- * numbers as a table.
+ * part of it, with a legend and a tooltip on hover and focus.
  */
 @Component({
   selector: 'gr-usage-columns',
@@ -77,8 +76,6 @@ export class UsageColumns {
   readonly format = input<(n: number) => string>((n) => n.toLocaleString());
   /** A fixed top for the scale, such as 100 for percent; by default, past the tallest column. */
   readonly max = input<number | null>(null);
-  /** Off where another chart's table already has the numbers. */
-  readonly tabled = input(true);
   /** A value marked across the chart, dashed and named in the legend, where no column can cover its name. */
   readonly rule = input<{ value: number; label: string } | null>(null);
 

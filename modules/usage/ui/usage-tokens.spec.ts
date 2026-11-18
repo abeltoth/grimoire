@@ -1,5 +1,5 @@
 import type { CommandRequest, TokenTotals, UsageBreakdown, UsageSpan } from '@grimoire/contract';
-import { fakeBridge, render } from '@ui/testing/app-testing';
+import { fakeBridge, openPageTab, render } from '@ui/testing/app-testing';
 
 describe('usage-tokens', () => {
   // The page counts days and hours back from now, so the tests fix it.
@@ -12,10 +12,33 @@ describe('usage-tokens', () => {
     vi.useRealTimers();
   });
 
-  it('draws the tokens and the share served from the cache by day and by hour in the Usage page', async () => {
-    const { bridge, answers } = fakeBridge();
-    answers['usage.plan'] = () => ({ plan: 'max', windows: [], at: 0 });
-    answers['usage.breakdown'] = () => null;
+  const counts = (input: number, cacheRead: number, output: number) => ({
+    input,
+    cacheWritten: 0,
+    cacheWrittenLong: 0,
+    cacheRead,
+    output,
+    weight: input + cacheRead * 0.1 + output * 5,
+  });
+
+  async function showTokens(answers: ReturnType<typeof fakeBridge>['answers']) {
+    const fake = fakeBridge();
+    fake.answers['usage.plan'] = () => ({ plan: 'max', windows: [], at: 0 });
+    fake.answers['usage.breakdown'] = () => null;
+    Object.assign(fake.answers, answers);
+    const rendered = await render(fake.bridge);
+    await openPageTab(rendered.fixture, rendered.el, 'Ledger');
+    const click = async (selector: string, name: string) => {
+      [...rendered.el.querySelectorAll<HTMLButtonElement>(selector)]
+        .find((button) => button.textContent!.trim() === name)!
+        .click();
+      await rendered.fixture.whenStable();
+    };
+    await click('gr-usage-page .tabs button', 'Tokens');
+    return { ...fake, ...rendered, click };
+  }
+
+  it('draws the weighted tokens and the share served from the cache, by day and by hour', async () => {
     const today = new Date(now);
     today.setHours(0, 0, 0, 0);
     const day = (back: number) => {
@@ -24,73 +47,55 @@ describe('usage-tokens', () => {
       const two = (n: number) => String(n).padStart(2, '0');
       return `${date.getFullYear()}-${two(date.getMonth() + 1)}-${two(date.getDate())}`;
     };
-    const counts = (input: number, cacheRead: number, output: number) => ({
-      input,
-      cacheWritten: 0,
-      cacheWrittenLong: 0,
-      cacheRead,
-      output,
-      weight: input + cacheRead * 0.1 + output * 5,
-    });
     const hour = new Date(now);
     hour.setMinutes(0, 0, 0);
-    answers['search.tokens'] = ({ since }: CommandRequest<'search.tokens'>): TokenTotals => ({
-      since,
-      total: counts(1_300, 9_000, 100),
-      days: [
-        { day: day(2), ...counts(1_000, 3_000, 0) },
-        { day: day(0), ...counts(300, 6_000, 100) },
-      ],
-      hours: [{ hour: hour.getTime(), ...counts(300, 6_000, 100) }],
-      models: [],
-      folders: [],
-      chats: [],
-      tools: [],
-      skills: [],
+    const { el, texts, click } = await showTokens({
+      'search.tokens': ({ since }: CommandRequest<'search.tokens'>): TokenTotals => ({
+        since,
+        total: counts(1_300, 9_000, 100),
+        days: [
+          { day: day(2), ...counts(1_000, 3_000, 0) },
+          { day: day(0), ...counts(300, 6_000, 100) },
+        ],
+        hours: [{ hour: hour.getTime(), ...counts(300, 6_000, 100) }],
+        models: [],
+        folders: [],
+        chats: [],
+        tools: [],
+        skills: [],
+      }),
     });
-    const { fixture, el, texts } = await render(bridge);
-    [...el.querySelectorAll<HTMLButtonElement>('gr-page-tabs .page-tab')]
-      .find((tab) => tab.textContent!.trim() === 'Ledger')!
-      .click();
-    await fixture.whenStable();
-    [...el.querySelectorAll<HTMLButtonElement>('gr-usage-page .tabs button')]
-      .find((button) => button.textContent!.trim() === 'Where it went')!
-      .click();
-    await fixture.whenStable();
 
-    expect(texts('gr-usage-page figcaption')).toEqual(['Tokens by day', 'Served from the cache']);
+    expect(texts('gr-usage-page .tokens > gr-usage-columns figcaption')).toEqual([
+      'Weighted tokens by day',
+    ]);
+    expect(texts('gr-usage-page gr-usage-lines figcaption')).toEqual(['Served from the cache']);
     expect(texts('gr-usage-page gr-usage-columns .legend li')).toEqual([
       'Read from the cache',
       'Written to the cache',
       'Fresh input',
       'Output',
     ]);
-    // A column for each day of the span, the days without turns empty.
-    const columns = el.querySelectorAll('gr-usage-page gr-usage-columns rect.hit');
-    expect(columns.length).toBeGreaterThanOrEqual(8);
-    const rows = [...el.querySelectorAll('gr-usage-page gr-usage-columns tbody tr')].map((row) =>
-      [...row.querySelectorAll('td')].map((cell) => cell.textContent!.trim()),
+    // A column for each day of the span, the days without turns empty, each weighed.
+    const columns = [...el.querySelectorAll('gr-usage-page gr-usage-columns rect.hit')].map(
+      (column) => column.getAttribute('aria-label')!,
     );
-    // Weighed: a cache read a tenth, output five times.
-    expect(rows[rows.length - 1]).toEqual(['600', '0', '300', '500', '1.4K']);
-    expect(rows[rows.length - 2]).toEqual(['0', '0', '0', '0', '0']);
-    expect(rows[rows.length - 3]).toEqual(['300', '0', '1K', '0', '1.3K']);
-    expect(texts('gr-usage-page gr-usage-lines tbody td')).toEqual(['75%', '95%']);
+    expect(columns.length).toBeGreaterThanOrEqual(8);
+    expect(columns.at(-1)).toContain(': 1.4K; Read from the cache 600, Written to the cache 0');
+    expect(columns.at(-2)).toContain(': 0;');
+    expect(columns.at(-3)).toContain(': 1.3K;');
+    expect(el.querySelector('gr-usage-page table')).toBeNull();
 
-    [...el.querySelectorAll<HTMLButtonElement>('gr-usage-page .spans button')]
-      .find((button) => button.textContent!.trim() === 'Last 24 hours')!
-      .click();
-    await fixture.whenStable();
-    expect(texts('gr-usage-page figcaption')).toEqual(['Tokens by hour', 'Served from the cache']);
+    await click('gr-usage-page .spans button', 'Last 24 hours');
+    expect(texts('gr-usage-page .tokens > gr-usage-columns figcaption')).toEqual([
+      'Weighted tokens by hour',
+    ]);
     expect(
       el.querySelectorAll('gr-usage-page gr-usage-columns rect.hit').length,
     ).toBeGreaterThanOrEqual(24);
-    expect(texts('gr-usage-page gr-usage-lines tbody td')).toEqual(['95%']);
   });
 
-  it("shows where the tokens went in the Usage page, as Claude Code says and by Grimoire's count", async () => {
-    const { bridge, answers, calls } = fakeBridge();
-    answers['usage.plan'] = () => ({ plan: 'max', windows: [], at: 0 });
+  it("shows every token and the weighted, a pie each by day, model, folder and chat, and the agent's word last", async () => {
     const span = (requests: number): UsageSpan => ({
       requests,
       chats: 4,
@@ -108,121 +113,97 @@ describe('usage-tokens', () => {
       ],
       sources: [{ kind: 'mcp', name: 'docs', share: 9 }],
     });
-    answers['usage.breakdown'] = (): UsageBreakdown => ({ day: span(10), week: span(70), at: 0 });
-    const total = (weight: number) => ({
-      input: weight,
-      cacheWritten: 0,
-      cacheWrittenLong: 0,
-      cacheRead: 0,
-      output: 0,
-      weight,
+    const { el, texts, click, calls } = await showTokens({
+      'usage.breakdown': (): UsageBreakdown => ({ day: span(10), week: span(70), at: 0 }),
+      'search.tokens': ({ since }: CommandRequest<'search.tokens'>): TokenTotals => ({
+        since,
+        total: counts(4_000, 10_000, 0),
+        days: [{ day: '2026-11-05', ...counts(4_000, 10_000, 0) }],
+        hours: [{ hour: new Date(2026, 10, 9, 14).getTime(), ...counts(4_000, 10_000, 0) }],
+        models: [
+          { model: 'claude-opus-5-5', subagent: false, ...counts(2_000, 10_000, 0) },
+          { model: 'claude-haiku-4-5', subagent: true, ...counts(2_000, 0, 0) },
+        ],
+        folders: [{ cwd: 'C:/work/grimoire', ...counts(3_000, 10_000, 0) }],
+        chats: [
+          {
+            id: 'old-1',
+            agent: 'claude-code',
+            title: 'Ribbon',
+            cwd: 'C:/work/grimoire',
+            ...counts(2_500, 10_000, 0),
+          },
+        ],
+        tools: [],
+        skills: [],
+      }),
     });
-    answers['search.tokens'] = ({ since }: CommandRequest<'search.tokens'>): TokenTotals => ({
-      since,
-      total: total(4_000),
-      days: [{ day: '2026-11-05', ...total(4_000) }],
-      hours: [{ hour: new Date(2026, 10, 5, 14).getTime(), ...total(4_000) }],
-      models: [
-        { model: 'claude-opus-5-5', subagent: false, ...total(3_000) },
-        { model: 'claude-haiku-4-5', subagent: true, ...total(1_000) },
-      ],
-      folders: [{ cwd: 'C:/work/grimoire', ...total(4_000) }],
-      chats: [
-        {
-          id: 'old-1',
-          agent: 'claude-code',
-          title: 'Ribbon',
-          cwd: 'C:/work/grimoire',
-          ...total(4_000),
-        },
-      ],
-      tools: [
-        { name: 'Read', uses: 40 },
-        { name: 'Bash', uses: 10 },
-      ],
-      skills: [{ name: 'code-review', uses: 1 }],
-    });
-    const { fixture, el, texts } = await render(bridge);
-    [...el.querySelectorAll<HTMLButtonElement>('gr-page-tabs .page-tab')]
-      .find((tab) => tab.textContent!.trim() === 'Ledger')!
-      .click();
-    await fixture.whenStable();
 
-    const showView = async (name: string) => {
-      [...el.querySelectorAll<HTMLButtonElement>('gr-usage-page .tabs button')]
-        .find((button) => button.textContent!.trim() === name)!
-        .click();
-      await fixture.whenStable();
-    };
-    expect(texts('gr-usage-page h2')).toEqual(['Claude Code’s plan limits']);
-    expect(texts('gr-usage-page .tabs [aria-selected="true"]')).toEqual(['Limits']);
+    // Every token counted once, and weighed as the API prices them, each explained on hover.
+    expect(texts('gr-usage-page .total span')).toEqual(['14K tokens', '5K weighted']);
+    const [real, weighted] = el.querySelectorAll('gr-usage-page .total span');
+    expect(real!.getAttribute('title')).toBe('4K fresh input, 10K read from the cache');
+    expect(weighted!.getAttribute('title')).toContain('a cache read a tenth');
+    expect(el.querySelector('gr-usage-page details')).toBeNull();
 
-    await showView('Where it went');
-    expect(texts('gr-usage-page .spans [aria-checked="true"]')).toEqual(['Last 7 days']);
-    const pick = async (name: string) => {
-      [...el.querySelectorAll<HTMLButtonElement>('gr-usage-page .groups button')]
-        .find((button) => button.textContent!.trim() === name)!
-        .click();
-      await fixture.whenStable();
-    };
-    expect(texts('gr-usage-page .tokens h3')).toEqual([
-      'Claude Code’s advice',
-      'By Grimoire’s count',
+    expect(texts('gr-usage-page gr-usage-pie figcaption')).toEqual([
+      'By day',
+      'By model',
+      'By folder',
+      'By chat',
     ]);
-    expect(texts('gr-usage-page .groups [aria-checked="true"]')).toEqual(['Day']);
-    expect(texts('gr-usage-page .tokens h4')).toEqual(['Ways of working', 'What took a share']);
-    const day = new Date(2026, 10, 5).toLocaleDateString([], {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-    });
-    // Advice, the total, and the one list shown: by day.
-    expect(
-      texts(
-        'gr-usage-page .tokens > .advice .name, .tokens > .total .name, .tokens > .limits .name',
-      ),
-    ).toEqual(['Start fresh when you switch tasks', '4K tokens', day]);
-    expect(texts('gr-usage-page .tokens > .limits b')).toEqual(['100%']);
-    await pick('Model');
-    expect(texts('gr-usage-page .tokens > .limits .name')).toEqual([
-      'Opus 5.5',
-      'Subagents on Haiku 4.5',
+    const legend = (n: number) =>
+      [...el.querySelectorAll(`gr-usage-page gr-usage-pie:nth-child(${n}) .legend li`)].map(
+        (row) =>
+          `${row.querySelector('.name')!.textContent!.trim()} ${row.querySelector('b')!.textContent}`,
+      );
+    const thursday = new Date(2026, 10, 5).toLocaleDateString([], { weekday: 'short' });
+    expect(legend(1)).toEqual([`${thursday} 5 100%`]);
+    expect(legend(2)).toEqual(['Opus 5.5 60%', 'Subagents on Haiku 4.5 40%']);
+    // A turn with no folder, and the chats past the most that weighed, are slices too.
+    expect(legend(3)).toEqual(['C:/work/grimoire 80%', 'No folder 20%']);
+    expect(legend(4)).toEqual(['Ribbon 70%', 'Other 30%']);
+
+    // The agent's word comes last, all of it together.
+    expect(texts('gr-usage-page .tokens h3')).toEqual(['Claude Code says']);
+    expect(el.querySelector('gr-usage-page .says h3')!.getAttribute('title')).toContain(
+      'own look through the chats',
+    );
+    expect(el.querySelector('gr-usage-page .tokens > .pies + .says')).not.toBeNull();
+    expect(texts('gr-usage-page .says .sub')).toEqual(['70 requests in 4 chats']);
+    expect(texts('gr-usage-page .says .advice .name')).toEqual([
+      'Start fresh when you switch tasks',
     ]);
-    expect(texts('gr-usage-page .tokens > .limits b')).toEqual(['75%', '25%']);
-    await pick('Folder');
-    expect(texts('gr-usage-page .tokens > .limits .name')).toEqual(['C:/work/grimoire']);
-    await pick('Day');
-    // Claude Code's own scan is collapsed, with the explanations.
-    expect(texts('gr-usage-page .how summary')).toEqual([
-      'Claude Code’s own scan',
-      'How this is counted',
-    ]);
-    expect(texts('gr-usage-page .how .name')).toEqual(['Long context', 'brand new', 'docs']);
+    expect(texts('gr-usage-page .says .advice .detail')).toEqual(['run /clear']);
+    expect(texts('gr-usage-page .says h4')).toEqual(['Ways of working', 'What took a share']);
+    expect(el.querySelector('gr-usage-page .says h4')!.getAttribute('title')).toContain('overlap');
     // A way of working Grimoire has no name for keeps Claude Code's.
-    expect(texts('gr-usage-page .how b')).toEqual(['80%', '5%', '9%']);
-    expect(texts('gr-usage-page .tokens .detail')).toEqual(['run /clear', '4K fresh input']);
-    expect(texts('gr-usage-page .how p')[0]).toBe('70 requests in 4 chats');
+    expect(texts('gr-usage-page .says .limits .name')).toEqual([
+      'Long context',
+      'brand new',
+      'docs',
+    ]);
+    expect(texts('gr-usage-page .says .limits b')).toEqual(['80%', '5%', '9%']);
 
-    // The last 24 hours: Claude Code's scan already has them; Grimoire counts again.
+    // The last 24 hours: by hour; Claude Code's scan already has them, Grimoire counts again.
     const asked = () =>
       calls
         .filter((c) => c.command === 'search.tokens')
         .map((c) => (c.request as CommandRequest<'search.tokens'>).since);
-    [...el.querySelectorAll<HTMLButtonElement>('gr-usage-page .spans button')]
-      .find((button) => button.textContent!.trim() === 'Last 24 hours')!
-      .click();
-    await fixture.whenStable();
-    expect(texts('gr-usage-page .how p')[0]).toBe('10 requests in 4 chats');
+    await click('gr-usage-page .spans button', 'Last 24 hours');
+    expect(texts('gr-usage-page gr-usage-pie figcaption')[0]).toBe('By hour');
+    const two = new Date(2026, 10, 9, 14);
+    const weekday = two.toLocaleDateString([], { weekday: 'short' });
+    expect(legend(1)).toEqual([
+      `${weekday} ${two.toLocaleTimeString([], { hour: 'numeric' })} 100%`,
+    ]);
+    expect(texts('gr-usage-page .says .sub')).toEqual(['10 requests in 4 chats']);
     expect(asked()).toHaveLength(2);
     expect(asked()[1]! - asked()[0]!).toBeGreaterThan(6 * 24 * 60 * 60_000 - 60_000);
     expect(calls.filter((c) => c.command === 'usage.breakdown')).toHaveLength(1);
 
-    // A chat that weighed much opens from the list.
-    await pick('Chat');
-    [...el.querySelectorAll<HTMLButtonElement>('gr-usage-page .tokens button.name')]
-      .find((button) => button.textContent!.trim() === 'Ribbon')!
-      .click();
-    await fixture.whenStable();
+    // A chat that weighed much opens from its pie.
+    await click('gr-usage-page gr-usage-pie .legend button', 'Ribbon');
     expect(calls.find((c) => c.command === 'agents.open')!.request).toEqual({
       agent: 'claude-code',
       chatId: 'old-1',
@@ -230,24 +211,13 @@ describe('usage-tokens', () => {
     });
   });
 
-  it("says so in the Usage page when there's nothing to say of the tokens", async () => {
-    const { bridge, answers } = fakeBridge();
-    answers['usage.plan'] = () => ({ plan: 'max', windows: [], at: 0 });
-    answers['usage.breakdown'] = () => null;
-    answers['search.tokens'] = () => {
-      throw new Error('The search stopped');
-    };
-    const { fixture, el, texts } = await render(bridge);
-    [...el.querySelectorAll<HTMLButtonElement>('gr-page-tabs .page-tab')]
-      .find((tab) => tab.textContent!.trim() === 'Ledger')!
-      .click();
-    await fixture.whenStable();
-    [...el.querySelectorAll<HTMLButtonElement>('gr-usage-page .tabs button')]
-      .find((button) => button.textContent!.trim() === 'Where it went')!
-      .click();
-    await fixture.whenStable();
-    // No scan from Claude Code: only Grimoire's count, which failed.
-    expect(texts('gr-usage-page .tokens h3')).toEqual(['By Grimoire’s count']);
+  it("says so when there's nothing to say of the tokens", async () => {
+    const { texts } = await showTokens({
+      'search.tokens': () => {
+        throw new Error('The search stopped');
+      },
+    });
+    expect(texts('gr-usage-page .tokens h3')).toEqual([]);
     expect(texts('gr-usage-page .tokens .none')).toEqual([
       'The chats’ tokens couldn’t be counted: The search stopped',
     ]);

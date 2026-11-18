@@ -25,7 +25,7 @@ export interface ChartGuide extends ChartSeries {
  * A line chart over time with a fixed scale, by default 0-100%: a line for
  * each series, broken where nothing was read for a while, the ground under
  * it shaded if asked, with a legend, a crosshair and tooltip that snap to
- * the nearest reading, any dashed guides, and the same numbers as a table.
+ * the nearest reading, and any dashed guides.
  */
 @Component({
   selector: 'gr-usage-lines',
@@ -54,11 +54,9 @@ export class UsageLines {
   readonly area = input(false);
   /** A dot on every reading, for lines of few, such as one a week. */
   readonly dots = input(false);
-  /** Off where the page already says what the lines show. */
-  readonly tabled = input(true);
   readonly max = input(100);
   readonly format = input<(n: number) => string>((n) => `${Math.round(n)}%`);
-  /** A reading's moment, for the tooltip and the table. */
+  /** A reading's moment, for the tooltip. */
   readonly when = input.required<(at: number) => string>();
 
   protected readonly width = W;
@@ -238,12 +236,6 @@ export class UsageLines {
       .map((row) => `${row.series.name} ${row.point ? this.format()(row.point.value) : 'not read'}`)
       .join(', ');
     return `${this.when()(readout.at)}: ${values}`;
-  }
-
-  /** A series' reading at a moment, for the table. */
-  protected valueAt(series: LineSeries, at: number): string {
-    const point = series.points.find((p) => p.at === at);
-    return point ? this.format()(point.value) : '–';
   }
 
   protected tipAt(x: number): { left: number; flip: boolean } {

@@ -1,4 +1,4 @@
-import type { Used, UsageCredits, UsageSpan, UsageWindow } from '@grimoire/contract';
+import type { TokenCounts, Used, UsageCredits, UsageSpan, UsageWindow } from '@grimoire/contract';
 import { modelLabel } from '@ui/app/core/tokens';
 
 /** An hour and a day in ms, as the Usage page's views and charts count back by them. */
@@ -25,6 +25,20 @@ export const dayTick = (at: number) => `${weekday(at)} ${new Date(at).getDate()}
 export const hourName = (at: number) => new Date(at).toLocaleTimeString([], { hour: 'numeric' });
 export const time = (at: number) =>
   new Date(at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+/** A day of the totals, short, such as "Thu 5". */
+export function dayShort(day: string): string {
+  const [year, month, date] = day.split('-').map(Number);
+  return dayTick(new Date(year!, month! - 1, date!).getTime());
+}
+
+/** An hour, short, such as "Thu 2 PM". */
+export const hourShort = (at: number) => `${weekday(at)} ${hourName(at)}`;
+
+/** Every token counted once, whatever it cost. */
+export function realTokens(c: TokenCounts): number {
+  return c.input + c.cacheWritten + c.cacheWrittenLong + c.cacheRead + c.output;
+}
 
 /** A day by its month, such as "Nov 5". */
 export const monthDay = (at: number) =>

@@ -2,34 +2,17 @@
   <section class="tokens">
     <gr-usage-spans />
 
-    @if (readings.breakdownsFailed(); as error) {
-      <p class="none" role="alert">Claude Code couldn’t say where the usage went: {{ error }}</p>
-    } @else if (readings.breakdowns(); as breakdowns) {
-      @for (each of breakdowns; track each.agent.id) {
-        @if (each.breakdown[readings.span()].advice.length) {
-          <h3>{{ each.agent.name }}’s advice</h3>
-          <ul class="advice">
-            @for (advice of each.breakdown[readings.span()].advice; track advice.key) {
-              <li>
-                <span class="name">{{ advice.title }}</span>
-                @if (advice.detail) {
-                  <span class="detail">{{ advice.detail }}</span>
-                }
-              </li>
-            }
-          </ul>
-        }
-      }
-    }
-
-    <h3>By Grimoire’s count</h3>
     @if (readings.totalsFailed(); as error) {
       <p class="none" role="alert">The chats’ tokens couldn’t be counted: {{ error }}</p>
     } @else if (readings.totals(); as totals) {
       @if (totals.total.weight) {
         <p class="total">
-          <span class="name">{{ count(totals.total.weight) }} tokens</span>
-          <span class="detail">{{ inWords(totals.total) }}</span>
+          <span class="name" [attr.title]="inWords(totals.total)">
+            {{ count(real(totals.total)) }} tokens
+          </span>
+          <span class="detail" [attr.title]="weighing">
+            {{ count(totals.total.weight) }} weighted
+          </span>
         </p>
 
         @if (tokensCharts(); as charts) {
@@ -52,95 +35,16 @@
           }
         }
 
-        <p class="sub">
-          <span class="groups" role="radiogroup" aria-label="Group by">
-            @for (each of groups; track each[0]) {
-              <button
-                type="button"
-                role="radio"
-                [attr.aria-checked]="group() === each[0]"
-                (click)="group.set(each[0])"
-              >
-                {{ each[1] }}
-              </button>
-            }
-          </span>
-        </p>
-
-        @switch (group()) {
-          @case ('day') {
-            <ul class="limits">
-              @for (day of top(totals.days, 'day'); track day.day) {
-                <ng-container
-                  *ngTemplateOutlet="weighed; context: { name: dayName(day.day), total: day }"
-                />
-              }
-            </ul>
-            <ng-container
-              *ngTemplateOutlet="more; context: { key: 'day', size: totals.days.length }"
+        <div class="pies">
+          @for (pie of pies(); track pie.caption) {
+            <gr-usage-pie
+              [caption]="pie.caption"
+              [slices]="pie.slices"
+              [format]="weightedFormat"
+              (picked)="openChat($event)"
             />
           }
-          @case ('model') {
-            <ul class="limits">
-              @for (model of top(totals.models, 'model'); track model.model + model.subagent) {
-                <ng-container
-                  *ngTemplateOutlet="
-                    weighed;
-                    context: { name: modelName(model.model, model.subagent), total: model }
-                  "
-                />
-              }
-            </ul>
-            <ng-container
-              *ngTemplateOutlet="more; context: { key: 'model', size: totals.models.length }"
-            />
-          }
-          @case ('folder') {
-            <ul class="limits">
-              @for (folder of top(totals.folders, 'folder'); track folder.cwd) {
-                <ng-container
-                  *ngTemplateOutlet="
-                    weighed;
-                    context: { name: folderName(folder.cwd), total: folder }
-                  "
-                />
-              } @empty {
-                <li class="none">No folders over this span.</li>
-              }
-            </ul>
-            <ng-container
-              *ngTemplateOutlet="more; context: { key: 'folder', size: totals.folders.length }"
-            />
-          }
-          @case ('chat') {
-            <ul class="limits">
-              @for (chat of top(totals.chats, 'chat'); track chat.id) {
-                <li>
-                  <span class="head">
-                    <button type="button" class="name gr-link" (click)="openChat(chat)">
-                      {{ chat.title || 'Untitled' }}
-                    </button>
-                    <span class="resets">{{ count(chat.weight) }} tokens</span>
-                  </span>
-                  <span
-                    class="ticks"
-                    role="meter"
-                    [attr.aria-label]="(chat.title || 'Untitled') + ', share of the tokens'"
-                    aria-valuemin="0"
-                    aria-valuemax="100"
-                    [attr.aria-valuenow]="round(shareOf(chat))"
-                  >
-                    <span class="used" [style.width.%]="shareOf(chat)"></span>
-                  </span>
-                  <b>{{ round(shareOf(chat)) }}%</b>
-                </li>
-              }
-            </ul>
-            <ng-container
-              *ngTemplateOutlet="more; context: { key: 'chat', size: totals.chats.length }"
-            />
-          }
-        }
+        </div>
       } @else {
         <p class="none">No chat spent any tokens over this span.</p>
       }
@@ -148,15 +52,37 @@
       <p class="none">Counting the chats’ tokens…</p>
     }
 
-    @if (readings.breakdowns(); as breakdowns) {
+    @if (readings.breakdownsFailed(); as error) {
+      <p class="none" role="alert">Claude Code couldn’t say where the usage went: {{ error }}</p>
+    } @else if (readings.breakdowns(); as breakdowns) {
       @for (each of breakdowns; track each.agent.id) {
         @let scan = each.breakdown[readings.span()];
-        @if (scan.behaviours.length || scan.sources.length) {
-          <details class="how">
-            <summary>{{ each.agent.name }}’s own scan</summary>
-            <p>{{ scan.requests }} requests in {{ scan.chats }} chats</p>
+        @if (scan.advice.length || scan.behaviours.length || scan.sources.length) {
+          <section class="says">
+            <h3
+              [attr.title]="
+                'From ' + each.agent.name + '’s own look through the chats on this computer.'
+              "
+            >
+              {{ each.agent.name }} says
+            </h3>
+            <p class="sub">{{ scan.requests }} requests in {{ scan.chats }} chats</p>
+
+            @if (scan.advice.length) {
+              <ul class="advice">
+                @for (advice of scan.advice; track advice.key) {
+                  <li>
+                    <span class="name">{{ advice.title }}</span>
+                    @if (advice.detail) {
+                      <span class="detail">{{ advice.detail }}</span>
+                    }
+                  </li>
+                }
+              </ul>
+            }
+
             @if (scan.behaviours.length) {
-              <h4>Ways of working</h4>
+              <h4 title="They overlap, so their shares don’t add up to 100%.">Ways of working</h4>
               <ul class="limits">
                 @for (behaviour of top(scan.behaviours, 'behaviours'); track behaviour.key) {
                   <li>
@@ -185,6 +111,7 @@
                 "
               />
             }
+
             @if (scan.sources.length) {
               <h4>What took a share</h4>
               <ul class="limits">
@@ -212,23 +139,10 @@
                 *ngTemplateOutlet="more; context: { key: 'sources', size: scan.sources.length }"
               />
             }
-          </details>
+          </section>
         }
       }
     }
-
-    <details class="how">
-      <summary>How this is counted</summary>
-      <p>
-        Claude Code’s numbers come from its own look through the chats on this computer. The ways of
-        working overlap, so their shares don’t add up to 100%.
-      </p>
-      <p>
-        Grimoire’s count comes from each chat’s transcript, weighed as the API prices tokens against
-        fresh input: a cache read a tenth, a cache write a quarter more (twice for an hour), output
-        five times. The models’ own prices are left out.
-      </p>
-    </details>
   </section>
 }
 
@@ -238,24 +152,4 @@
       {{ isOpen(key) ? 'Show fewer' : 'Show all ' + size }}
     </button>
   }
-</ng-template>
-
-<ng-template #weighed let-name="name" let-total="total">
-  <li>
-    <span class="head">
-      <span class="name">{{ name }}</span>
-      <span class="resets" [attr.title]="inWords(total)">{{ count(total.weight) }} tokens</span>
-    </span>
-    <span
-      class="ticks"
-      role="meter"
-      [attr.aria-label]="name + ', share of the tokens'"
-      aria-valuemin="0"
-      aria-valuemax="100"
-      [attr.aria-valuenow]="round(shareOf(total))"
-    >
-      <span class="used" [style.width.%]="shareOf(total)"></span>
-    </span>
-    <b>{{ round(shareOf(total)) }}%</b>
-  </li>
 </ng-template>

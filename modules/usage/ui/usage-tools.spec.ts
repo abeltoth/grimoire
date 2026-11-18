@@ -75,7 +75,7 @@ describe('usage-tools', () => {
       await fixture.whenStable();
     };
     await click('gr-usage-page .tools .spans button', 'Last 24 hours');
-    await click('gr-usage-page .tabs button', 'Where it went');
+    await click('gr-usage-page .tabs button', 'Tokens');
     expect(texts('gr-usage-page .tokens .spans [aria-checked="true"]')).toEqual(['Last 24 hours']);
     expect(calls.filter((c) => c.command === 'search.tokens')).toHaveLength(2);
     expect(calls.filter((c) => c.command === 'usage.breakdown')).toHaveLength(1);

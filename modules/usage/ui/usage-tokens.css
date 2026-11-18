@@ -1,9 +1,12 @@
-/* A chat that weighed much opens from its title. */
-button.name {
-  text-align: left;
+/* Where the tokens went, a pie each by time, model, folder and chat, two to a row. */
+.pies {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--gr-usage-pies-gap);
+  max-width: var(--gr-usage-width);
 }
 
-/* Claude Code's advice, and the totals, each with an aside under it. */
+/* The agent's advice, and the totals, each with an aside under it. */
 .advice {
   list-style: none;
   margin: 0;

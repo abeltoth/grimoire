@@ -3,12 +3,15 @@ import {
   behaviourName,
   dayKey,
   dayName,
+  dayShort,
   elapsed,
   filled,
+  hourShort,
   limitName,
   money,
   onDay,
   planName,
+  realTokens,
   resets,
   spent,
   startOf,
@@ -24,6 +27,22 @@ describe('usage formats', () => {
   });
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it('names a day and an hour short, by the weekday', () => {
+    const weekday = (at: Date) => at.toLocaleDateString([], { weekday: 'short' });
+    const thursday = new Date(2026, 10, 5);
+    expect(dayShort('2026-11-05')).toBe(`${weekday(thursday)} 5`);
+    const two = new Date(2026, 10, 5, 14);
+    expect(hourShort(two.getTime())).toBe(
+      `${weekday(two)} ${two.toLocaleTimeString([], { hour: 'numeric' })}`,
+    );
+  });
+
+  it('counts every token once, whatever it cost', () => {
+    expect(
+      realTokens({ input: 1, cacheWritten: 2, cacheWrittenLong: 3, cacheRead: 40, output: 5 }),
+    ).toBe(51);
   });
 
   it('names local days and starts them at midnight', () => {

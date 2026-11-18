@@ -106,7 +106,6 @@ describe('usage-limits', () => {
     expect(labels[2]).toBe('20% so far');
     expect(el.querySelectorAll('gr-usage-page .plan path.guide')).toHaveLength(3);
     expect(el.querySelectorAll('gr-usage-page .plan path.area').length).toBeGreaterThan(0);
-    expect(el.querySelector('gr-usage-page .plan gr-usage-lines .table-view')).toBeNull();
     expect(el.querySelector('gr-usage-page .plan .forecast')).toBeNull();
     expect(el.querySelectorAll('gr-usage-page .plan rect.session').length).toBeGreaterThan(0);
     // The two weeks ended, a dot each; the week under way dashed after them.

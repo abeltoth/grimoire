@@ -93,32 +93,4 @@
       </div>
     }
   </div>
-
-  @if (tabled()) {
-    <details class="table-view">
-      <summary>As a table</summary>
-      <table>
-        <thead>
-          <tr>
-            <th scope="col"></th>
-            @for (each of series(); track each.name) {
-              <th scope="col">{{ each.name }}</th>
-            }
-            <th scope="col">All</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (each of drawn.columns; track each.i) {
-            <tr>
-              <th scope="row">{{ each.column.name }}</th>
-              @for (part of each.column.parts; track $index) {
-                <td>{{ format()(part) }}</td>
-              }
-              <td>{{ format()(each.total) }}</td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </details>
-  }
 </figure>

@@ -1,0 +1,69 @@
+<figure class="chart pie">
+  <figcaption>{{ caption() }}</figcaption>
+  @let drawn = layout();
+  <div class="body">
+    <div class="plot">
+      <svg
+        [attr.viewBox]="'0 0 ' + size + ' ' + size"
+        role="group"
+        [attr.aria-label]="caption()"
+        (mouseleave)="show(null)"
+      >
+        @for (each of drawn; track each.i) {
+          <path
+            class="slice"
+            [class.dim]="hovered() !== null && hovered() !== each.i"
+            [class.opens]="!!each.slice.key"
+            [attr.d]="each.d"
+            [style.fill]="each.slice.color"
+            tabindex="0"
+            [attr.role]="each.slice.key ? 'button' : 'img'"
+            [attr.aria-label]="spoken(each.slice)"
+            (mouseenter)="show(each.i)"
+            (focus)="show(each.i)"
+            (blur)="show(null)"
+            (click)="pick(each.slice)"
+            (keydown.enter)="pick(each.slice)"
+          />
+        }
+      </svg>
+
+      @let i = hovered();
+      @if (i !== null && drawn[i]; as each) {
+        <div
+          class="tip"
+          [class.flip]="each.tip.left > 50"
+          [style.left.%]="each.tip.left"
+          [style.top.%]="each.tip.top"
+          aria-hidden="true"
+        >
+          <span class="tip-head">{{ each.slice.name }}</span>
+          <span class="tip-row">
+            <strong>{{ format()(each.slice.value) }}</strong>
+            <span class="tip-name">{{ share(each.slice.share) }}</span>
+          </span>
+        </div>
+      }
+    </div>
+
+    <ul class="legend">
+      @for (each of drawn; track each.i) {
+        <li
+          [class.dim]="hovered() !== null && hovered() !== each.i"
+          (mouseenter)="show(each.i)"
+          (mouseleave)="show(null)"
+        >
+          <span class="swatch" [style.background]="each.slice.color"></span>
+          @if (each.slice.key) {
+            <button type="button" class="name gr-link" (click)="pick(each.slice)">
+              {{ each.slice.name }}
+            </button>
+          } @else {
+            <span class="name">{{ each.slice.name }}</span>
+          }
+          <b>{{ share(each.slice.share) }}</b>
+        </li>
+      }
+    </ul>
+  </div>
+</figure>

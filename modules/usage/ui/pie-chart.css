@@ -1,0 +1,63 @@
+/* The pie beside its legend, each slice parted from the next by a line of the page's colour. */
+.body {
+  display: flex;
+  align-items: center;
+  gap: var(--gr-chart-pie-gap);
+  margin-top: var(--gr-aside-gap);
+}
+
+.plot {
+  flex: none;
+  width: var(--gr-chart-pie-size);
+  margin-top: 0;
+}
+
+.slice {
+  stroke: var(--gr-page);
+  stroke-width: var(--gr-chart-stroke);
+  vector-effect: non-scaling-stroke;
+  transition: opacity var(--gr-chart-fade);
+  outline: none;
+}
+
+.slice.opens {
+  cursor: pointer;
+}
+
+.slice:focus-visible {
+  stroke: var(--gr-ink-soft);
+}
+
+/* The slice under the pointer stands out; the rest step back, in the pie and the legend. */
+.slice.dim,
+.legend li.dim {
+  opacity: 0.45;
+}
+
+.legend {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  flex-direction: column;
+  flex-wrap: nowrap;
+}
+
+.legend li {
+  display: grid;
+  grid-template-columns: var(--gr-chart-swatch) minmax(0, 1fr) auto;
+  transition: opacity var(--gr-chart-fade);
+}
+
+.legend .name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  color: var(--gr-ink);
+}
+
+.legend b {
+  font-weight: 500;
+  color: var(--gr-ink);
+  font-variant-numeric: lining-nums tabular-nums;
+}

@@ -72,7 +72,6 @@ describe('UsageLines guides', () => {
     fixture.componentRef.setInput('from', 0);
     fixture.componentRef.setInput('to', 4_000);
     fixture.componentRef.setInput('breakAfter', 1_500);
-    fixture.componentRef.setInput('tabled', false);
     fixture.componentRef.setInput('dots', true);
     fixture.componentRef.setInput('area', true);
     fixture.componentRef.setInput('when', (at: number) => `at ${at}`);
@@ -84,7 +83,6 @@ describe('UsageLines guides', () => {
     expect(el.querySelectorAll('path.guide')).toHaveLength(1);
     expect(el.querySelectorAll('path.area')).toHaveLength(1);
     expect(el.querySelectorAll('circle.dot')).toHaveLength(3);
-    expect(el.querySelector('.table-view')).toBeNull();
   });
 
   it('writes a line’s latest value above and before its end when a guide leads on from there, past it otherwise', async () => {
