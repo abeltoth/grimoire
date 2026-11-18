@@ -4,33 +4,46 @@
     type="button"
     class="toggle"
     [class.on]="open()"
+    [class.proposed]="proposal()"
     aria-haspopup="dialog"
     [attr.aria-expanded]="open()"
-    [attr.title]="wording.say('This chapter has no Jira issue', 'This chat has no Jira issue')"
-    (click)="open.set(!open())"
+    [attr.title]="label()"
+    (click)="toggleCard()"
   >
-    No Jira issue
+    {{ proposal() ? 'Jira issue proposed' : 'No Jira issue' }}
   </button>
   @if (open()) {
     <div #card class="card" role="dialog" aria-label="Jira issue" [style.left.px]="shift()">
-      <p class="head">
-        {{
-          wording.say(
-            'Link this chapter to a Jira issue on the board',
-            'Link this chat to a Jira issue on the board'
-          )
-        }}
-      </p>
-      <div class="issues">
-        @for (issue of issues(); track issue.id) {
-          <button type="button" class="issue" (click)="link(issue)">
-            <span class="key">{{ issue.jira!.key }}</span>
-            <span class="summary">{{ issue.title }}</span>
-          </button>
-        } @empty {
-          <p class="none">No Jira issues on the board.</p>
-        }
-      </div>
+      @if (writing()) {
+        <gr-issue-form [chat]="chat()" [draft]="proposal()" (done)="close()">
+          <button type="button" class="gr-link" (click)="writing.set(false)">Link existing…</button>
+          @if (proposal()) {
+            <button type="button" class="gr-link" (click)="dismiss()">Dismiss</button>
+          }
+        </gr-issue-form>
+      } @else {
+        <p class="head">
+          {{
+            wording.say(
+              'Link this chapter to a Jira issue on the board, or create one',
+              'Link this chat to a Jira issue on the board, or create one'
+            )
+          }}
+        </p>
+        <div class="issues">
+          @for (issue of issues(); track issue.id) {
+            <button type="button" class="issue" (click)="link(issue)">
+              <span class="key">{{ issue.jira!.key }}</span>
+              <span class="summary">{{ issue.title }}</span>
+            </button>
+          } @empty {
+            <p class="none">No Jira issues on the board.</p>
+          }
+        </div>
+        <button type="button" class="gr-link create" (click)="writing.set(true)">
+          Create an issue…
+        </button>
+      }
     </div>
   }
 }

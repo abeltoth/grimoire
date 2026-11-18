@@ -66,6 +66,24 @@ export function readOne(result: ToolResult, site: string): FetchedIssue {
   return readIssue(issue, site, 0, JIRA_TOOLS.issue);
 }
 
+/** The key of the issue a create answered with: Jira's own {id, key, self}, or it under `issue`. */
+export function readCreated(result: ToolResult): string {
+  const json = jsonOf(result, JIRA_TOOLS.create);
+  const issue = isObject(json) && isObject(json['issue']) ? json['issue'] : json;
+  const key = isObject(issue) ? issue['key'] : undefined;
+  if (typeof key !== 'string' || !key)
+    throw new Error(`${JIRA_TOOLS.create} answered with no issue key (it has ${membersOf(issue)})`);
+  return key;
+}
+
+/** Your Atlassian account's ID, from who you are signed in as; undefined when it doesn't say. */
+export function readAccountId(result: ToolResult): string | undefined {
+  const json = jsonOf(result, JIRA_TOOLS.user);
+  if (!isObject(json)) return undefined;
+  const id = json['account_id'] ?? json['accountId'];
+  return typeof id === 'string' && id ? id : undefined;
+}
+
 /**
  * What Jira said when one of the connector's tools failed: the messages
  * of its own error answer, such as {"errorMessages":[],"errors":

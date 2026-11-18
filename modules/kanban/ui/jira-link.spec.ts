@@ -35,6 +35,57 @@ describe('JiraLink', () => {
     expect(texts('gr-header-badges button')).toEqual(['GRIM-14 · In Review']);
   });
 
+  it('offers the issue the agent proposed, written in, and creates it in Jira', async () => {
+    const { bridge, calls, propose } = synced();
+    const { fixture, el, texts } = await render(bridge);
+    await write(fixture, el, 'Fill in the meter');
+    const draft = {
+      summary: 'Draw the context meter',
+      description: 'From the usage events.',
+      project: 'GRIM',
+      issueType: 'Task',
+    };
+    propose('chat-1', draft);
+    await fixture.whenStable();
+    expect(texts('gr-jira-link .toggle')).toEqual(['Jira issue proposed']);
+
+    el.querySelector<HTMLButtonElement>('gr-jira-link .toggle')!.click();
+    await fixture.whenStable();
+    const value = (selector: string) =>
+      el.querySelector<HTMLInputElement>(`gr-issue-form ${selector}`)!.value;
+    expect([value('.summary'), value('.description'), value('.project'), value('.type')]).toEqual([
+      'Draw the context meter',
+      'From the usage events.',
+      'GRIM',
+      'Task',
+    ]);
+    button(el.querySelector('gr-issue-form')!, 'Create in Jira').click();
+    await fixture.whenStable();
+    expect(calls.find((c) => c.command === 'kanban.createIssue')!.request).toEqual({
+      chat: { chatId: 'chat-1', agent: 'claude-code', cwd: 'C:/work/grimoire' },
+      draft,
+    });
+    expect(el.querySelector('gr-jira-link .toggle')).toBeNull();
+    expect(texts('gr-header-badges button')).toEqual(['GRIM-103 · To Do']);
+  });
+
+  it('puts the agent’s proposal away when it is dismissed', async () => {
+    const { bridge, calls, propose } = synced();
+    const { fixture, el, texts } = await render(bridge);
+    await write(fixture, el, 'Go');
+    propose('chat-1', { summary: 'A', description: '', project: 'GRIM', issueType: 'Task' });
+    await fixture.whenStable();
+    el.querySelector<HTMLButtonElement>('gr-jira-link .toggle')!.click();
+    await fixture.whenStable();
+    button(el.querySelector('gr-issue-form')!, 'Dismiss').click();
+    await fixture.whenStable();
+    expect(calls.find((c) => c.command === 'kanban.dismissProposal')!.request).toEqual({
+      chatId: 'chat-1',
+    });
+    expect(texts('gr-jira-link .toggle')).toEqual(['No Jira issue']);
+    expect(el.querySelector('gr-jira-link .card')).toBeNull();
+  });
+
   it('closes its card on Esc, without stopping the chat', async () => {
     const { bridge, calls } = synced();
     const { fixture, el } = await render(bridge);

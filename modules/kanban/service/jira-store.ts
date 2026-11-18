@@ -119,11 +119,49 @@ export class JiraCards {
   }
 
   /**
+   * Puts an issue just created on the profile's board, at its column's
+   * foot, returning its card's ID; a sync begun before keeps it, though it
+   * didn't find it.
+   */
+  add(profile: string, issue: FetchedIssue, at: number): string {
+    const id = jiraCardId(profile, issue.key);
+    const { next } = this.db
+      .prepare(
+        'SELECT COALESCE(MAX(position), -1) + 1 AS next FROM jira_cards WHERE profile = ? AND column_id = ?',
+      )
+      .get(profile, issue.column) as { next: number };
+    this.db
+      .prepare(
+        `INSERT INTO jira_cards (id, profile, issue_key, summary, description, url, issue_type, priority,
+           status, column_id, position, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT (profile, issue_key) DO NOTHING`,
+      )
+      .run(
+        id,
+        profile,
+        issue.key,
+        issue.summary,
+        issue.description,
+        issue.url,
+        issue.type,
+        issue.priority,
+        issue.status,
+        issue.column,
+        next,
+        at,
+      );
+    this.updated.set(id, at);
+    return id;
+  }
+
+  /**
    * Puts the issues a sync found on the profile's board in place of those
    * there, in their order, keeping when each was first seen and whether it
    * was closed, and notes the sync. One updated since the sync `began`,
-   * as its status changed, keeps what Jira said of it then: the sync may
-   * have found it as it was before.
+   * as its status changed or as it was created, keeps what Jira said of it
+   * then, and stays though the sync didn't find it: the sync may have found
+   * it as it was before.
    */
   replace(profile: string, issues: readonly FetchedIssue[], at: number, began: number = at): void {
     const upsert = this.db.prepare(
@@ -138,7 +176,11 @@ export class JiraCards {
     const place = this.db.prepare(
       'UPDATE jira_cards SET position = ? WHERE profile = ? AND issue_key = ?',
     );
-    const keys = issues.map((issue) => issue.key);
+    const prefix = jiraCardId(profile, '');
+    const since = [...this.updated]
+      .filter(([id, updated]) => id.startsWith(prefix) && updated >= began)
+      .map(([id]) => id.slice(prefix.length));
+    const keys = [...issues.map((issue) => issue.key), ...since];
     this.db.exec('BEGIN');
     try {
       this.db

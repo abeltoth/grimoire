@@ -2,6 +2,7 @@ import type { Card, EventName, EventPayload } from '@grimoire/contract';
 import type { CommandRegistry } from '@grimoire/service/core/registry';
 import type { JiraMoves } from './jira-moves';
 import type { JiraSyncer } from './jira-sync';
+import type { IssueProposals } from './proposals';
 import type { CardStore } from './store';
 
 type Emit = <K extends EventName>(event: K, payload: EventPayload<K>) => void;
@@ -32,4 +33,22 @@ export function registerJira(registry: CommandRegistry, jira: JiraSyncer, moves:
   );
   registry.register('kanban.transitions', ({ id, column }) => moves.transitions(id, column));
   registry.register('kanban.transition', ({ id, transition }) => moves.transition(id, transition));
+}
+
+/**
+ * The Jira issues the agent proposed, putting one away, and creating one
+ * you confirmed, which puts the chat's proposal away too.
+ */
+export function registerProposals(
+  registry: CommandRegistry,
+  moves: JiraMoves,
+  proposals: IssueProposals,
+): void {
+  registry.register('kanban.proposals', () => proposals.all());
+  registry.register('kanban.dismissProposal', ({ chatId }) => proposals.dismiss(chatId));
+  registry.register('kanban.createIssue', async ({ chat, draft }) => {
+    const cards = await moves.create(draft, chat);
+    proposals.dismiss(chat.chatId);
+    return cards;
+  });
 }

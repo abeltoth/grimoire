@@ -43,6 +43,17 @@ export interface JiraTransition {
   column: CardColumn;
 }
 
+/** A Jira issue as it's proposed for a chat's work, or written to create. */
+export interface JiraIssueDraft {
+  summary: string;
+  /** Plain text; empty when there's none. */
+  description: string;
+  /** The project's key, such as PROJ; empty when the agent didn't say. */
+  project: string;
+  /** The issue type, such as Task. */
+  issueType: string;
+}
+
 /**
  * Where the board's Jira issues stand: `none` while there's no Atlassian
  * connector here, or none was ever reached; `needs-auth` when the
@@ -157,6 +168,23 @@ declare module '@grimoire/contract' {
      * Rejects with what Jira said when it refuses. Returns them all.
      */
     'kanban.transition': { request: { id: string; transition: JiraTransition }; response: Card[] };
+    /** The Jira issues the agent proposed and you haven't created or dismissed yet, by chat ID. */
+    'kanban.proposals': {
+      request: Record<string, never>;
+      response: Record<string, JiraIssueDraft>;
+    };
+    /** Puts a chat's proposed Jira issue away without creating it. */
+    'kanban.dismissProposal': { request: { chatId: string }; response: void };
+    /**
+     * Creates a Jira issue, assigned to you, through your claude.ai
+     * Atlassian connector, puts it on the board and links the chat to it;
+     * the chat's proposal, if any, is put away. Rejects with what Jira said
+     * when it refuses. Returns them all.
+     */
+    'kanban.createIssue': {
+      request: { chat: Omit<CardChat, 'at'>; draft: JiraIssueDraft };
+      response: Card[];
+    };
   }
 }
 
@@ -166,5 +194,7 @@ declare module '@grimoire/contract' {
     'kanban.changed': { cards: Card[] };
     /** Where the board's Jira issues stand, as a sync begins and ends. */
     'kanban.jira': { jira: JiraSync };
+    /** The agent proposed a Jira issue for a chat's work, or it was created or dismissed (`draft: null`). */
+    'kanban.proposed': { chatId: string; draft: JiraIssueDraft | null };
   }
 }

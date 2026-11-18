@@ -26,6 +26,11 @@
   color: var(--gr-ink);
 }
 
+/* The agent proposed an issue: the mark in Jira's colour, to be seen. */
+.toggle.proposed {
+  color: var(--gr-kanban-jira-mark);
+}
+
 .card {
   position: absolute;
   z-index: var(--gr-z-card);
@@ -85,4 +90,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.create {
+  margin-top: var(--gr-kanban-form-gap);
+  font-size: var(--gr-size-label);
 }

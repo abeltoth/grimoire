@@ -116,6 +116,7 @@ describe('moving Jira cards in Jira', () => {
     expect(fake.allowed).toEqual([JIRA_READ_ONLY, JIRA_ALLOWED]);
     expect([...JIRA_ALLOWED].filter((tool) => !JIRA_READ_ONLY.has(tool))).toEqual([
       'transitionJiraIssue',
+      'createJiraIssue',
     ]);
     expect(fake.close).toHaveBeenCalledTimes(1);
     moves.close();

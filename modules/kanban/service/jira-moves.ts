@@ -1,7 +1,22 @@
-import type { Card, CardColumn, EventName, EventPayload, JiraTransition } from '@grimoire/contract';
+import type {
+  Card,
+  CardChat,
+  CardColumn,
+  EventName,
+  EventPayload,
+  JiraIssueDraft,
+  JiraTransition,
+} from '@grimoire/contract';
 import { type Connectors, ToolFailed } from '@grimoire/service/claude/connectors';
-import { type JiraSite, issueOf, openJira, transitionIssue, transitionsOf } from './jira';
-import { jiraSaid } from './jira-fields';
+import {
+  type JiraSite,
+  createIssue,
+  issueOf,
+  openJira,
+  transitionIssue,
+  transitionsOf,
+} from './jira';
+import { type FetchedIssue, jiraSaid } from './jira-fields';
 import type { CardStore } from './store';
 
 type Emit = <K extends EventName>(event: K, payload: EventPayload<K>) => void;
@@ -12,7 +27,8 @@ const KEEP_MS = 2 * 60_000;
 /**
  * Moves the board's Jira cards in Jira: lists the changes of status Jira
  * allows a card's issue, makes one, and reads the issue again for its
- * card, telling every window. They go through your claude.ai Atlassian
+ * card, telling every window; and creates an issue you confirmed, on the
+ * board at once. They go through your claude.ai Atlassian
  * connector on a Claude Code process of their own, the one that may
  * change Jira: started on the first move, which takes some seconds, and
  * kept a couple of minutes after the last, so a move's next step and the
@@ -78,6 +94,47 @@ export class JiraMoves {
     });
     const cards = this.cards.list();
     if (this.cards.profile() === profile) this.emit('kanban.changed', { cards });
+    return cards;
+  }
+
+  /**
+   * Creates the issue, assigned to you, then reads it for its card, put
+   * on the board with the chat linked to it, telling every window; when
+   * it can't be read, the card is made from the draft. Rejects with what
+   * Jira said when it refuses, creating nothing.
+   */
+  async create(draft: JiraIssueDraft, chat: Omit<CardChat, 'at'>): Promise<Card[]> {
+    if (!draft.summary.trim()) throw new Error('A Jira issue needs a summary');
+    if (!draft.project.trim()) throw new Error('A Jira issue needs a project');
+    const profile = this.cards.profile();
+    const id = await this.use(async (jira) => {
+      let key: string;
+      try {
+        key = await createIssue(jira, draft);
+      } catch (error) {
+        throw new Error(`Jira didn’t create the issue: ${jiraSaid(error)}`, { cause: error });
+      }
+      let issue: FetchedIssue;
+      try {
+        issue = await issueOf(jira, key);
+      } catch (error) {
+        this.log(`Jira: ${key} was created, but couldn't be read: ${jiraSaid(error)}`);
+        issue = {
+          key,
+          summary: draft.summary,
+          description: draft.description,
+          url: jira.url ? `${jira.url}/browse/${key}` : '',
+          type: draft.issueType,
+          priority: '',
+          status: 'To Do',
+          column: 'todo',
+        };
+      }
+      return this.cards.jira.add(profile, issue, this.now());
+    });
+    if (this.cards.profile() !== profile) return this.cards.list();
+    const cards = this.cards.link(id, chat);
+    this.emit('kanban.changed', { cards });
     return cards;
   }
 

@@ -4,33 +4,63 @@ import type { AgentTool, ModuleContext } from '@grimoire/service/core/module';
 import { CommandRegistry } from '@grimoire/service/core/registry';
 import { migrate, openDatabase } from '@grimoire/service/testing/database';
 import { kanban } from '.';
+import { JiraCards } from './jira-store';
 import { MIGRATIONS } from './migrations';
+
+const chat = { chatId: 'chat-1', agent: 'claude-code', cwd: '/git/grimoire' };
+
+/** The module started on a new board, with Jira on as `settings` says. */
+function started(settings: { jira: boolean } = { jira: true }) {
+  const db = openDatabase(':memory:');
+  migrate(db, 'kanban', MIGRATIONS);
+  const registry = new CommandRegistry();
+  const tools: AgentTool[] = [];
+  const told: [EventName, EventPayload<EventName>][] = [];
+  kanban.start({
+    registry,
+    db,
+    events: {
+      emit: (event: EventName, payload: EventPayload<EventName>) => told.push([event, payload]),
+    },
+    settings: { get: () => ({ jiraQuery: '', ...settings }) },
+    log: () => {},
+    registerTool: (tool: AgentTool) => tools.push(tool),
+  } as unknown as ModuleContext);
+  const tool = (name: string) => tools.find((known) => known.name === name)!;
+  return { db, registry, tools, told, tool };
+}
 
 describe('the kanban module', () => {
   it('gives the agent add_todo, whose cards go on the board every window is told of', async () => {
-    const db = openDatabase(':memory:');
-    migrate(db, 'kanban', MIGRATIONS);
-    const tools: AgentTool[] = [];
-    const told: [EventName, EventPayload<EventName>][] = [];
-    kanban.start({
-      registry: new CommandRegistry(),
-      db,
-      events: {
-        emit: (event: EventName, payload: EventPayload<EventName>) => told.push([event, payload]),
-      },
-      settings: { get: () => ({ jiraQuery: '' }) },
-      log: () => {},
-      registerTool: (tool: AgentTool) => tools.push(tool),
-    } as unknown as ModuleContext);
-
-    expect(tools.map((tool) => tool.name)).toEqual(['add_todo']);
-    const chat = { chatId: 'chat-1', agent: 'claude-code', cwd: '/git/grimoire' };
-    await tools[0]!.run({ title: 'Context meter' }, chat);
+    const { tools, told, tool } = started();
+    expect(tools.map((known) => known.name)).toEqual(['add_todo', 'propose_jira_issue']);
+    await tool('add_todo').run({ title: 'Context meter' }, chat);
     expect(told).toHaveLength(1);
     const [event, payload] = told[0]!;
     expect(event).toBe('kanban.changed');
     expect((payload as EventPayload<'kanban.changed'>).cards).toMatchObject([
       { title: 'Context meter', cwd: '/git/grimoire', madeIn: chat },
     ]);
+  });
+
+  it('gives propose_jira_issue while Jira is on and an Atlassian connector was reached', () => {
+    const settings = { jira: true };
+    const { db, tool } = started(settings);
+    const proposing = tool('propose_jira_issue');
+    expect(proposing.enabled?.()).toBe(false);
+    new JiraCards(db).replace('personal', [], 1);
+    expect(proposing.enabled?.()).toBe(true);
+    settings.jira = false;
+    expect(proposing.enabled?.()).toBe(false);
+  });
+
+  it('keeps what the agent proposes, for every window to list until it is dismissed', async () => {
+    const { registry, tool, told } = started();
+    await tool('propose_jira_issue').run({ summary: 'Context meter', description: '' }, chat);
+    const draft = { summary: 'Context meter', description: '', project: '', issueType: 'Task' };
+    expect(await registry.call('kanban.proposals', {})).toEqual({ 'chat-1': draft });
+    await registry.call('kanban.dismissProposal', { chatId: 'chat-1' });
+    expect(await registry.call('kanban.proposals', {})).toEqual({});
+    expect(told.map(([event]) => event)).toEqual(['kanban.proposed', 'kanban.proposed']);
   });
 });

@@ -6,8 +6,8 @@
  * your connectors are, the Atlassian connector's tools, what its sites
  * and one search answer, read as the sync reads them, and the transitions
  * the first issue found allows, read as moving its card reads them. It
- * only reads: its process can't call transitionJiraIssue, so nothing in
- * Jira changes. No tokens are spent and no sign-in is printed.
+ * only reads: its process can't call transitionJiraIssue or
+ * createJiraIssue, so nothing in Jira changes. No tokens are spent and no sign-in is printed.
  * --claude-folder uses a profile's Claude folder, as Grimoire does for
  * any profile but Personal.
  */
@@ -145,7 +145,9 @@ function printTools(atlassian: Connector): void {
   for (const tool of atlassian.tools) {
     const writes = JIRA_ALLOWED.has(tool) && !JIRA_READ_ONLY.has(tool);
     const marks = used.has(tool) ? ' **' : JIRA_ALLOWED.has(tool) ? ' *' : '';
-    console.log(`  ${tool}${marks}${writes ? ' (writes, to move a card; never called here)' : ''}`);
+    console.log(
+      `  ${tool}${marks}${writes ? ' (writes, to move a card or create an issue; never called here)' : ''}`,
+    );
   }
   const missing = [...JIRA_ALLOWED].filter((tool) => !atlassian.tools.includes(tool));
   if (missing.length)

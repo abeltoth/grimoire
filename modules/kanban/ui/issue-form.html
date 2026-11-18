@@ -1,0 +1,52 @@
+<form
+  class="form"
+  (submit)="$event.preventDefault(); create()"
+  (keydown.escape)="$event.preventDefault(); done.emit()"
+>
+  <input
+    class="line summary"
+    autocomplete="off"
+    aria-label="Summary"
+    placeholder="What the work is"
+    [value]="summary()"
+    (input)="summary.set($any($event.target).value)"
+  />
+  <textarea
+    class="line description"
+    aria-label="Description"
+    placeholder="More about it, if any"
+    [value]="description()"
+    (input)="description.set($any($event.target).value)"
+  ></textarea>
+  <span class="pair">
+    <input
+      class="line project"
+      autocomplete="off"
+      spellcheck="false"
+      aria-label="Project"
+      placeholder="Project key"
+      [value]="project()"
+      (input)="project.set($any($event.target).value)"
+    />
+    <input
+      class="line type"
+      autocomplete="off"
+      aria-label="Issue type"
+      placeholder="Issue type"
+      [value]="issueType()"
+      (input)="issueType.set($any($event.target).value)"
+    />
+  </span>
+  @if (failed(); as failed) {
+    <p class="failed" role="alert">{{ failed }}</p>
+  }
+  <div class="actions">
+    <ng-content />
+    <span class="end">
+      <button type="button" class="gr-link" (click)="done.emit()">Cancel</button>
+      <button type="submit" class="send" [attr.aria-disabled]="!complete() || creating() || null">
+        {{ creating() ? 'Creating…' : 'Create in Jira' }}
+      </button>
+    </span>
+  </div>
+</form>

@@ -5,6 +5,7 @@ import {
   type CardChat,
   type CardColumn,
   type CardDraft,
+  type JiraIssueDraft,
   type JiraSync,
   type JiraTransition,
 } from '@grimoire/contract';
@@ -89,6 +90,8 @@ export class Board {
   readonly jiraNote = signal<{ card: string; text: string; openInJira: boolean } | null>(null);
   /** Where the board's Jira issues stand; undefined until the service has said. */
   readonly jira = signal<JiraSync | undefined>(undefined);
+  /** The Jira issues the agent proposed and you haven't created or dismissed yet, by chat ID. */
+  readonly proposals = signal<Readonly<Record<string, JiraIssueDraft>>>({});
   /** The cards on the board, not closed. */
   readonly open = computed(() => (this.all() ?? []).filter((card) => card.closedAt === undefined));
   /** The card on the board the chat you're on began from, or is linked to, if any; its Jira issue's before a task. */
@@ -100,6 +103,11 @@ export class Board {
   constructor() {
     this.bridge.on('kanban.changed', ({ cards }) => this.listed.set(cards));
     this.bridge.on('kanban.jira', ({ jira }) => this.jira.set(jira));
+    this.bridge.on('kanban.proposed', ({ chatId, draft }) =>
+      this.proposals.update(({ [chatId]: _, ...others }) =>
+        draft ? { ...others, [chatId]: draft } : others,
+      ),
+    );
     this.newChats.onBegun((blankId, chat) => {
       const id = this.opening.get(blankId);
       if (!id) return;
@@ -116,6 +124,8 @@ export class Board {
       if (cards) this.listed.set(cards);
       const jira = await this.bridge.invoke('kanban.jira', {});
       if (jira) this.jira.set(jira);
+      const proposals = await this.bridge.invoke('kanban.proposals', {});
+      if (proposals) this.proposals.set(proposals);
     } catch (error) {
       this.fail(error);
     }
@@ -199,6 +209,32 @@ export class Board {
     return this.change(() =>
       this.bridge.invoke('kanban.link', { id, chatId: chat.id, agent: chat.agent, cwd }),
     );
+  }
+
+  /**
+   * Creates a Jira issue, assigned to you, and links the chat to it; false
+   * when Jira refused, and why shows.
+   */
+  createIssue(
+    chat: Pick<Chat, 'id' | 'agent' | 'settings'>,
+    draft: JiraIssueDraft,
+  ): Promise<boolean> {
+    const cwd = chat.settings.cwd ?? '';
+    return this.change(() =>
+      this.bridge.invoke('kanban.createIssue', {
+        chat: { chatId: chat.id, agent: chat.agent, cwd },
+        draft,
+      }),
+    );
+  }
+
+  /** Puts away the Jira issue the agent proposed for a chat. */
+  async dismissProposal(chatId: string): Promise<void> {
+    try {
+      await this.bridge.invoke('kanban.dismissProposal', { chatId });
+    } catch (error) {
+      this.fail(error);
+    }
   }
 
   /** Opens a Jira card's issue in Jira, in the browser. */

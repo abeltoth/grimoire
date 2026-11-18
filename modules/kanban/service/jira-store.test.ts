@@ -68,6 +68,17 @@ describe('JiraCards', () => {
     expect(jira.list('personal')[0]!.column).toBe('todo');
   });
 
+  it('puts an issue just created at its column’s foot, kept by a sync begun before', () => {
+    jira.replace('personal', [found('A', 'todo')], 1);
+    expect(jira.add('personal', found('B', 'todo'), 5)).toBe(jiraCardId('personal', 'B'));
+    expect(keys()).toEqual(['A', 'B']);
+    jira.replace('personal', [found('A', 'todo')], 6, 4);
+    expect(keys()).toEqual(['A', 'B']);
+    // A sync begun after it was created takes what Jira's query finds.
+    jira.replace('personal', [found('A', 'todo')], 8, 7);
+    expect(keys()).toEqual(['A']);
+  });
+
   it('keeps each profile’s cards and syncs apart', () => {
     jira.replace('personal', [found('A', 'todo')], 1);
     jira.replace('work', [found('A', 'todo'), found('W', 'todo')], 2);

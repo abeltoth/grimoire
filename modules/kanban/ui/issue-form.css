@@ -1,0 +1,91 @@
+/* A Jira issue written out to create: each field on a dotted line, in pen. */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-kanban-form-gap);
+}
+
+.line {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-bottom: var(--gr-rename-rule);
+  background: transparent;
+  font: inherit;
+  font-size: var(--gr-size-aside);
+  line-height: var(--gr-kanban-card-leading);
+  color: var(--gr-pen);
+  caret-color: var(--gr-pen);
+  outline: none;
+}
+
+.line.summary {
+  font-weight: 500;
+}
+
+/* The description grows with what's written, up to a height it then scrolls in. */
+.line.description {
+  min-height: var(--gr-kanban-box-min);
+  max-height: var(--gr-kanban-link-list-height);
+  field-sizing: content;
+  resize: none;
+}
+
+.line::placeholder {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--gr-ink-placeholder);
+}
+
+.line:focus-visible {
+  border-bottom-color: var(--gr-pen);
+}
+
+/* The project's key and the issue type side by side. */
+.pair {
+  display: flex;
+  gap: var(--gr-kanban-word-gap);
+}
+
+.line.project {
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-kanban-code);
+  text-transform: uppercase;
+}
+
+.failed {
+  margin: 0;
+  font-size: var(--gr-size-label);
+  color: var(--gr-rubric);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--gr-kanban-actions-gap);
+  font-size: var(--gr-size-label);
+}
+
+.end {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-kanban-actions-gap);
+  margin-inline-start: auto;
+}
+
+.send {
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-control);
+  font-weight: 500;
+  letter-spacing: var(--gr-tracking-label);
+  color: var(--gr-rubric);
+}
+
+.send:hover:not([aria-disabled]) {
+  color: var(--gr-ink);
+}
+
+.send[aria-disabled] {
+  color: var(--gr-ink-faint);
+}

@@ -3,6 +3,7 @@ import type {
   CardColumn,
   CardDraft,
   CommandRequest,
+  JiraIssueDraft,
   JiraTransition,
 } from '@grimoire/contract';
 import { CARD_COLUMNS } from '@grimoire/contract';
@@ -85,7 +86,27 @@ export function withBoard(start: Card[] = []) {
       ),
     );
   };
-  return { ...fake, jira };
+  /** The issues the agent proposed, by chat; creating one puts it on the board, linked, as GRIM-<n>. */
+  let proposals: Record<string, JiraIssueDraft> = {};
+  const propose = (chatId: string, draft: JiraIssueDraft | null) => {
+    const { [chatId]: _, ...others } = proposals;
+    proposals = draft ? { ...others, [chatId]: draft } : others;
+    fake.emit('kanban.proposed', { chatId, draft });
+  };
+  fake.answers['kanban.proposals'] = () => proposals;
+  fake.answers['kanban.dismissProposal'] = ({ chatId }: CommandRequest<'kanban.dismissProposal'>) =>
+    propose(chatId, null);
+  fake.answers['kanban.createIssue'] = ({ chat, draft }: CommandRequest<'kanban.createIssue'>) => {
+    if (jira.refuse) throw new Error(jira.refuse);
+    const key = `${draft.project}-${100 + next++}`;
+    const created = issue(`jira:${key}`, key, draft.summary, 'todo', {
+      notes: draft.description,
+      chats: [{ ...chat, at: 0 }],
+    });
+    if (proposals[chat.chatId]) propose(chat.chatId, null);
+    return changed([...cards, created]);
+  };
+  return { ...fake, jira, propose };
 }
 
 /** The statuses Jira allows an issue in To Do. */

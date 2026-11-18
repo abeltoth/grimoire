@@ -1,8 +1,10 @@
-import type { JiraTransition } from '@grimoire/contract';
+import type { JiraIssueDraft, JiraTransition } from '@grimoire/contract';
 import type { Connector, Connectors, ToolResult } from '@grimoire/service/claude/connectors';
 import {
   type FetchedIssue,
   ISSUE_FIELDS,
+  readAccountId,
+  readCreated,
   readOne,
   readSearch,
   readSite,
@@ -14,9 +16,9 @@ import { ATLASSIAN, JIRA_ALLOWED, JIRA_READ_ONLY, JIRA_TOOLS } from './jira-tool
  * Your Jira issues, through your claude.ai Atlassian connector: the one
  * place that calls the connector's tools, and knows what they take. The
  * sites and the search are confirmed against the real connector; an
- * issue's transitions, making one and reading the issue again aren't
- * yet. `npm run jira:check` shows what the connector really has and
- * answers.
+ * issue's transitions, making one, reading the issue again and creating
+ * an issue aren't yet. `npm run jira:check` shows what the connector
+ * really has and answers.
  */
 
 /** The tools the sync calls; the Atlassian connector is the one that has them. */
@@ -202,5 +204,25 @@ export async function issueOf(jira: JiraSite, key: string): Promise<FetchedIssue
       fields: ISSUE_FIELDS,
     }),
     jira.url,
+  );
+}
+
+/**
+ * Creates the issue, assigned to you when the connector says who you
+ * are, and returns its key. Rejects when Jira refuses, such as for a
+ * project or issue type it hasn't got. The arguments are the connector's
+ * own; they aren't confirmed against the real connector yet.
+ */
+export async function createIssue(jira: JiraSite, draft: JiraIssueDraft): Promise<string> {
+  const me = readAccountId(await jira.call(JIRA_TOOLS.user, {}));
+  return readCreated(
+    await jira.call(JIRA_TOOLS.create, {
+      cloudId: jira.cloudId,
+      projectKey: draft.project,
+      issueTypeName: draft.issueType,
+      summary: draft.summary,
+      ...(draft.description ? { description: draft.description } : {}),
+      ...(me ? { assignee_account_id: me } : {}),
+    }),
   );
 }
