@@ -31,6 +31,13 @@ describe('htmlToMarkdown', () => {
     );
   });
 
+  it('fences code in the language its class names, and nothing else', () => {
+    expect(htmlToMarkdown('<pre><code class="language-protobuf">message A {}</code></pre>')).toBe(
+      '```protobuf\nmessage A {}\n```',
+    );
+    expect(htmlToMarkdown('<pre><code class="language-x`y z">a</code></pre>')).toBe('```x\na\n```');
+  });
+
   it('escapes markdown in text', () => {
     expect(htmlToMarkdown('<p># not a *heading* &lt;b&gt;</p>')).toBe(
       '\\# not a \\*heading\\* \\<b\\>',

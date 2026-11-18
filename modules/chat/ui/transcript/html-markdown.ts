@@ -162,7 +162,11 @@ function block(element: Element): string[] | undefined {
     case 'pre': {
       const code = (element.textContent ?? '').replace(/\n$/, '');
       const marks = fence(code, 3);
-      return [`${marks}\n${code}\n${marks}`];
+      // Only a plain language name, so the fence's info string can't carry anything else.
+      const lang =
+        /(?:^|\s)language-([\w+#-]+)/.exec(element.querySelector('code')?.className ?? '')?.[1] ??
+        '';
+      return [`${marks}${lang}\n${code}\n${marks}`];
     }
     case 'blockquote':
       return [

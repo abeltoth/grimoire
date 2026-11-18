@@ -6,6 +6,26 @@
   padding: var(--gr-tool-input-pad);
 }
 
+/* An item of a list, or an object inside: set in on a rule, without the well's padding. */
+:host(.nested) {
+  padding: 0 0 0 var(--gr-tool-input-nest);
+  border-left: var(--gr-tool-input-nest-rule) solid var(--gr-hairline);
+}
+
+.items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-tool-input-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.count {
+  font-size: var(--gr-size-tool-input-name);
+  color: var(--gr-ink-soft);
+}
+
 /* The short fields: what they say beside their names. */
 .grid {
   display: grid;

@@ -11,7 +11,9 @@ describe('inputFields', () => {
       tags: ['a'],
       none: null,
     });
-    expect(fields.map((field) => [field.name, field.kind, field.value])).toEqual([
+    expect(
+      fields.map((field) => [field.name, field.kind, 'value' in field && field.value]),
+    ).toEqual([
       ['url', 'short', 'https://x.dev'],
       ['retries', 'short', '2'],
       ['tags', 'short', '["a"]'],
@@ -28,8 +30,8 @@ describe('inputFields', () => {
     });
   });
 
-  it('indents a long object as JSON', () => {
-    const items = Array.from({ length: 10 }, (_, i) => ({ id: i }));
+  it('indents a long list of lists as JSON', () => {
+    const items = Array.from({ length: 30 }, (_, i) => [i, i * 2]);
     expect(inputFields({ items })[0]).toEqual({
       name: 'items',
       kind: 'json',
@@ -55,6 +57,44 @@ describe('inputFields', () => {
     expect(inputFields({ format: 'markdown', body: long('<b>x</b>') })[1]?.kind).toBe('markdown');
     expect(inputFields({ body: long('# Title\n\nWords') })[0]?.kind).toBe('markdown');
     expect(inputFields({ body: long('Intro\n- one\n- two') })[0]?.kind).toBe('markdown');
+  });
+
+  it('reads a long list of objects item by item, their HTML by the format around them', () => {
+    const edits = [
+      { name: 'replaceNode', localId: 'be4b', value: long('<td><p>Send it</p></td>') },
+      { name: 'insertNodeAfter', localId: '8c47', value: long('Plain words') },
+    ];
+    const [field] = inputFields({ edits });
+    expect(field?.kind).toBe('list');
+    if (field?.kind !== 'list') return;
+    expect(field.items.map((item) => item.map((f) => [f.name, f.kind]))).toEqual([
+      [
+        ['name', 'short'],
+        ['localId', 'short'],
+        ['value', 'html'],
+      ],
+      [
+        ['name', 'short'],
+        ['localId', 'short'],
+        ['value', 'text'],
+      ],
+    ]);
+    const [, withFormat] = inputFields({ contentFormat: 'markdown', edits });
+    expect(withFormat?.kind === 'list' && withFormat.items[0]![2]!.kind).toBe('markdown');
+  });
+
+  it('reads a long object field by field, and one nested too deep as JSON', () => {
+    const deep = { a: { b: { c: { d: long('x') } } } };
+    const [field] = inputFields({ deep });
+    expect(field?.kind).toBe('group');
+    const c = (field as { fields: { fields: { fields: { kind: string }[] }[] }[] }).fields[0]!
+      .fields[0]!.fields[0]!;
+    expect(c.kind).toBe('json');
+  });
+
+  it('keeps a list that is not all objects as JSON', () => {
+    expect(inputFields({ ids: Array.from({ length: 30 }, (_, i) => i) })[0]?.kind).toBe('json');
+    expect(inputFields({ mixed: [{ a: long('x') }, 'b'] })[0]?.kind).toBe('json');
   });
 
   it('has no fields for an input that is not an object', () => {

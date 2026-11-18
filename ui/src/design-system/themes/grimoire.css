@@ -971,6 +971,8 @@
   --gr-tracking-tool-input-name: 0.06em;
   --gr-tool-input-fold: 240px;
   --gr-tool-input-fade: 56px;
+  --gr-tool-input-nest: 12px;
+  --gr-tool-input-nest-rule: 2px;
 
   /* Chat: a command in full, with its scripts */
   --gr-command-pad: 11px 14px;

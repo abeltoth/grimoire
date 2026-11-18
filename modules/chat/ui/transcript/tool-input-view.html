@@ -8,10 +8,12 @@
 }
 @for (field of long(); track field.name) {
   @let open = opened().has(field.name);
-  @let markdown = rendered(field);
   <section class="field" [attr.aria-label]="field.name">
     <div class="field-head">
       <span class="name">{{ field.name }}</span>
+      @if (field.kind === 'list') {
+        <span class="count">{{ field.items.length }}</span>
+      }
       <span class="spacer"></span>
       @if (previewable(field)) {
         <button type="button" class="gr-link" (click)="toggle('sources', field.name)">
@@ -19,22 +21,43 @@
         </button>
       }
     </div>
-    <div class="value" [class.folded]="foldable(field) && !open">
-      @if (markdown !== undefined) {
-        <gr-markdown [text]="markdown" />
-      } @else {
-        <pre class="plain">{{ plain(field) }}</pre>
+    @if (field.kind === 'list') {
+      <ol class="items">
+        @for (item of shownItems(field); track $index) {
+          <li><gr-tool-input class="nested" [fields]="item" /></li>
+        }
+      </ol>
+      @if (foldableList(field)) {
+        <button
+          type="button"
+          class="gr-link fold"
+          [attr.aria-expanded]="open"
+          (click)="toggle('opened', field.name)"
+        >
+          {{ open ? 'Show less' : 'Show all ' + field.items.length + ' items' }}
+        </button>
       }
-    </div>
-    @if (foldable(field)) {
-      <button
-        type="button"
-        class="gr-link fold"
-        [attr.aria-expanded]="open"
-        (click)="toggle('opened', field.name)"
-      >
-        {{ open ? 'Show less' : 'Show all' }}
-      </button>
+    } @else if (field.kind === 'group') {
+      <gr-tool-input class="nested" [fields]="field.fields" />
+    } @else {
+      @let markdown = rendered(field);
+      <div class="value" [class.folded]="foldable(field) && !open">
+        @if (markdown !== undefined) {
+          <gr-markdown [text]="markdown" />
+        } @else {
+          <pre class="plain">{{ plain(field) }}</pre>
+        }
+      </div>
+      @if (foldable(field)) {
+        <button
+          type="button"
+          class="gr-link fold"
+          [attr.aria-expanded]="open"
+          (click)="toggle('opened', field.name)"
+        >
+          {{ open ? 'Show less' : 'Show all' }}
+        </button>
+      }
     }
   </section>
 }

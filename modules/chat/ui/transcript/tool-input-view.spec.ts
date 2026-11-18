@@ -58,6 +58,34 @@ describe('ToolInputView', () => {
     expect(texts('gr-markdown em')).toEqual(['site']);
   });
 
+  it('reads a list of objects item by item, its first three until you ask for all', async () => {
+    const edits = Array.from({ length: 5 }, (_, i) => ({
+      name: 'replaceNode',
+      localId: `id-${i}`,
+      value: `<td><p>Cell <em>${i}</em> and some words to make it long enough to stand apart.</p></td>`,
+    }));
+    const { el, texts, click } = await view({ cloudId: 'fd4d', edits });
+    expect(texts(':scope > .grid dt')).toEqual(['cloudId']);
+    expect(texts(':scope > .field > .field-head .count')).toEqual(['5']);
+    expect(el.querySelectorAll('.items > li')).toHaveLength(3);
+    expect(texts('.items > li .grid dd').slice(0, 2)).toEqual(['replaceNode', 'id-0']);
+    expect(texts('.items > li gr-markdown em')).toEqual(['0', '1', '2']);
+    expect(el.querySelector('.items td')).toBeNull();
+
+    await click('Show all 5 items');
+    expect(el.querySelectorAll('.items > li')).toHaveLength(5);
+    await click('Show less');
+    expect(el.querySelectorAll('.items > li')).toHaveLength(3);
+  });
+
+  it('reads an object inside field by field', async () => {
+    const { texts } = await view({
+      page: { id: '42', body: 'Some words\nover two lines', more: 'x'.repeat(60) },
+    });
+    expect(texts('.field > gr-tool-input.nested .grid dt')).toEqual(['id', 'more']);
+    expect(texts('.field > gr-tool-input.nested .field .name')).toEqual(['body']);
+  });
+
   it('folds a long field until you ask for all of it', async () => {
     const lines = Array.from({ length: 20 }, (_, i) => `line ${i}`).join('\n');
     const { el, click } = await view({ log: lines });
