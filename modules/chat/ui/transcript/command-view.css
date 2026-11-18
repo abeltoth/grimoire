@@ -1,0 +1,54 @@
+/* A command in full, with its scripts. */
+:host {
+  display: block;
+  padding: var(--gr-command-pad);
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-code);
+  line-height: var(--gr-leading-code);
+  color: var(--gr-code-text);
+}
+
+/* A long command shows its start, fading out, until you ask for all of it. */
+.parts.folded {
+  max-height: var(--gr-command-fold);
+  overflow: hidden;
+  mask-image: linear-gradient(black calc(100% - var(--gr-command-fade)), transparent);
+}
+
+/* A script below the command, under what reads it. */
+.part.script {
+  margin-top: var(--gr-command-script-gap);
+  padding-top: var(--gr-command-script-gap);
+  border-top: 1px dashed var(--gr-hairline);
+}
+
+.label {
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-command-label);
+  letter-spacing: var(--gr-tracking-command-label);
+  color: var(--gr-ink-soft);
+}
+
+.line {
+  display: grid;
+  grid-template-columns: var(--gr-command-prompt) minmax(0, 1fr);
+}
+
+.prompt {
+  color: var(--gr-ink-soft);
+  user-select: none;
+}
+
+/* Long lines wrap rather than hide. */
+.code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.italic {
+  font-style: italic;
+}
+
+.fold {
+  margin-top: var(--gr-command-script-gap);
+}

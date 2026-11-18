@@ -17,6 +17,7 @@ describe('askOf', () => {
       kind: 'command',
       asks: 'run a command',
       command: 'git push',
+      shell: 'bash',
       about: 'Pushes the branch',
     });
   });
@@ -77,6 +78,7 @@ describe('alwaysText', () => {
     kind: 'command',
     asks: 'run a command',
     command: 'git push origin main',
+    shell: 'bash',
   } as const;
 
   it('names a rule other than the command, and calls the command itself "this command"', () => {

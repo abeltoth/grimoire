@@ -242,7 +242,13 @@ describe('toRows', () => {
         target: 'npm test -w ui',
         label: 'Run UI tests',
         described: true,
-        details: { kind: 'output', title: 'Run UI tests', text: 'ok', command: 'npm test -w ui' },
+        details: {
+          kind: 'output',
+          title: 'Run UI tests',
+          text: 'ok',
+          command: 'npm test -w ui',
+          shell: 'bash',
+        },
       },
       {
         target: 'ls',
@@ -254,7 +260,7 @@ describe('toRows', () => {
         target: long,
         label: long,
         described: undefined,
-        details: { kind: 'output', title: 'Command', text: 'ok', command: long },
+        details: { kind: 'output', title: 'Command', text: 'ok', command: long, shell: 'bash' },
       },
     ]);
   });

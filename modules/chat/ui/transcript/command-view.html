@@ -1,0 +1,31 @@
+<div class="parts" [class.folded]="foldable() && !open()">
+  @for (part of parts(); track $index; let first = $first) {
+    <div class="part" [class.script]="!first">
+      @if (part.label) {
+        <div class="label">{{ part.label }}</div>
+      }
+      @for (line of part.lines; track $index) {
+        <div class="line">
+          <span class="prompt" aria-hidden="true">{{ first && $first ? '$' : '' }}</span>
+          <span class="code">
+            @for (token of line; track $index) {
+              <span [style.color]="token.color" [class.italic]="token.italic">{{
+                token.text
+              }}</span>
+            }
+          </span>
+        </div>
+      }
+    </div>
+  }
+</div>
+@if (foldable()) {
+  <button
+    type="button"
+    class="gr-link fold"
+    [attr.aria-expanded]="open()"
+    (click)="open.set(!open())"
+  >
+    {{ open() ? 'Show less' : 'Show all ' + count() + ' lines' }}
+  </button>
+}

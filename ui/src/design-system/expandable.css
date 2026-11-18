@@ -85,18 +85,6 @@
   text-align: center;
 }
 
-/* The command, set above its output in a well of its own, tall enough to read it by. */
-.command {
-  max-height: var(--gr-expandable-command-max);
-  overflow: auto;
-  padding: var(--gr-expandable-body-pad);
-  font-family: var(--gr-font-mono);
-  font-size: var(--gr-size-code);
-  line-height: var(--gr-leading-code);
-  border-bottom: 1px solid var(--gr-hairline);
-  outline: none;
-}
-
 /* Where another stacked edit begins. */
 .line.break {
   margin-top: var(--gr-expandable-break-gap);

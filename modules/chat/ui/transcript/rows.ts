@@ -6,6 +6,7 @@ import type { Deed, HookLog, Note, Row } from './row';
 import { margin } from './summary';
 import { inputFields } from './tool-input';
 import { toolName } from './tool-name';
+import type { Shell } from './command-parts';
 import { parseWebSearch } from './web-search';
 
 /** How many of a chat's turns are marked its costliest, once it has more than that. */
@@ -210,6 +211,11 @@ function commandTitle(command: string, description: string): { title: string; co
   return { title: description || 'Command', command };
 }
 
+/** The shell a command tool runs in. */
+function shellOf(tool: string): Shell {
+  return tool === 'PowerShell' ? 'powershell' : 'bash';
+}
+
 /** The longest command that heads its output by itself. */
 const SHORT_COMMAND = 80;
 
@@ -246,7 +252,7 @@ function detailsOf(
         kind: 'output',
         title,
         text: '',
-        ...(command ? { command } : {}),
+        ...(command ? { command, shell: shellOf(block.tool) } : {}),
         ...(SHELL_TOOLS.has(block.tool) ? {} : { fields: inputFields(block.input) }),
         running: true,
       },
@@ -262,7 +268,7 @@ function detailsOf(
           kind: 'output',
           title,
           text: block.result.text,
-          ...(command ? { command } : {}),
+          ...(command ? { command, shell: shellOf(block.tool) } : {}),
         },
       }
     : {};

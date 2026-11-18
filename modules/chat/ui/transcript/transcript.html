@@ -366,9 +366,15 @@
         <gr-output
           [title]="note.details.title"
           [text]="note.details.text"
-          [command]="note.details.command ?? ''"
           [running]="note.details.running ?? false"
         >
+          @if (note.details.command) {
+            <gr-command
+              class="command"
+              [command]="note.details.command"
+              [shell]="note.details.shell ?? 'bash'"
+            />
+          }
           @if (note.details.fields?.length) {
             <gr-tool-input [fields]="note.details.fields!" />
           }

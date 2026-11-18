@@ -1,6 +1,7 @@
 import type { Attachment, CompactionEntry, HookRun, TokenUse, ToolBlock } from '@grimoire/contract';
 import type { NumberedLine } from './diff';
 import type { ToolField } from './tool-input';
+import type { Shell } from './command-parts';
 import type { WebSearch } from './web-search';
 
 /** What a tool note expands: a file's diff, a web search's pages and summary, or what a tool printed. */
@@ -20,6 +21,8 @@ export type NoteDetails =
       text: string;
       /** The command in full, when the title doesn't show it all. */
       command?: string;
+      /** The shell the command runs in. */
+      shell?: Shell;
       /** The tool still runs: `text` is what it was asked, and the output is still to come. */
       running?: true;
       /** What a running tool other than a shell was asked, field by field. */

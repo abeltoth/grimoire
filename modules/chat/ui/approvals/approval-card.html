@@ -32,9 +32,7 @@
 
 @switch (a.kind) {
   @case ('command') {
-    <div class="well">
-      <span class="prompt" aria-hidden="true">$</span><span>{{ a.command }}</span>
-    </div>
+    <gr-command [command]="a.command" [shell]="a.shell" />
     @if (from() && cwd()) {
       <div class="meta">
         <span

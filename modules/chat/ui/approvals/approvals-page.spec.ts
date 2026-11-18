@@ -27,7 +27,7 @@ describe('approvals-page', () => {
       b.textContent!.includes('Awaiting your seal'),
     )!;
     const focusedApprovalCard = () =>
-      document.activeElement?.closest('gr-approval-card')?.querySelector('.well')?.textContent;
+      document.activeElement?.closest('gr-approval-card')?.querySelector('gr-command')?.textContent;
 
     chatTab.click();
     await fixture.whenStable();
@@ -53,7 +53,7 @@ describe('approvals-page', () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     await fixture.whenStable();
     expect(el.querySelector('gr-approvals-page')).toBeNull();
-    expect(texts('gr-chat-page gr-approval-card .well')).toEqual(['$git push']);
+    expect(texts('gr-chat-page gr-approval-card gr-command')).toEqual(['$git push']);
     expect(calls.some((c) => c.command === 'agents.decide')).toBe(false);
 
     // The stub opens the page on its own approval card; approving answers in that chat.
@@ -104,6 +104,6 @@ describe('approvals-page', () => {
     await fixture.whenStable();
     expect(el.querySelector('gr-approvals-page')).toBeNull();
     expect(texts('gr-page-header h1')).toEqual(['Fix flaky login test']);
-    expect(texts('gr-chat-page gr-approval-card .well')).toEqual(['$npm test']);
+    expect(texts('gr-chat-page gr-approval-card gr-command')).toEqual(['$npm test']);
   });
 });

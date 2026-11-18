@@ -84,26 +84,8 @@
   display: none;
 }
 
-/* Exactly what will run. */
-.well {
-  display: flex;
-  align-items: baseline;
-  gap: var(--gr-approval-card-command-gap);
-  padding: var(--gr-approval-card-command-pad);
-  background: var(--gr-approval-card-well);
-  border-top: 1px solid var(--gr-hairline);
-  border-bottom: 1px solid var(--gr-hairline);
-  max-height: var(--gr-expandable-body-max);
-  overflow: auto;
-  font-family: var(--gr-font-mono);
-  font-size: var(--gr-size-code);
-  line-height: var(--gr-leading-approval-card-command);
-  color: var(--gr-ink);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-/* Another tool's input, in the same well. */
+/* Exactly what will run, in a well. */
+gr-command,
 gr-tool-input {
   background: var(--gr-approval-card-well);
   border-top: 1px solid var(--gr-hairline);
@@ -123,11 +105,6 @@ gr-tool-input {
   margin: 0;
   font-size: var(--gr-size-text);
   color: var(--gr-ink);
-}
-
-.prompt {
-  color: var(--gr-ink-soft);
-  user-select: none;
 }
 
 .meta {

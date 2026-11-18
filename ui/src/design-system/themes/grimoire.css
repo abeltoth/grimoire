@@ -916,10 +916,8 @@
   --gr-size-approval-card-head: 13px;
   --gr-size-approval-card-title: 14px;
   --gr-tracking-approval-card-head: 0.07em;
-  --gr-approval-card-command-gap: 12px;
   --gr-approval-card-command-pad: 11px 14px;
   --gr-approval-card-rule-max: 36ch;
-  --gr-leading-approval-card-command: 1.45;
   --gr-approval-card-meta-gap: 6px 20px;
   --gr-approval-card-choices-gap: 18px;
   --gr-approval-card-choices-lift: 2px;
@@ -951,7 +949,6 @@
   --gr-size-expandable-file: 12px;
   --gr-expandable-body-pad: 4px 0;
   --gr-expandable-body-max: 45vh;
-  --gr-expandable-command-max: 40vh;
   --gr-expandable-line-number: 36px;
   --gr-size-expandable-mark: 13px;
   --gr-expandable-mark-pad: 14px;
@@ -971,6 +968,15 @@
   --gr-tracking-tool-input-name: 0.06em;
   --gr-tool-input-fold: 240px;
   --gr-tool-input-fade: 56px;
+
+  /* Chat: a command in full, with its scripts */
+  --gr-command-pad: 11px 14px;
+  --gr-command-prompt: 18px;
+  --gr-command-script-gap: 6px;
+  --gr-size-command-label: 12.5px;
+  --gr-tracking-command-label: 0.06em;
+  --gr-command-fold: 260px;
+  --gr-command-fade: 56px;
 
   /* Chat: question form, printed on the page */
   --gr-form-margin: 20px 0 4px;

@@ -350,3 +350,8 @@ p {
   font-style: normal;
   font-weight: 500;
 }
+
+/* A command, above its output. */
+gr-output gr-command {
+  border-bottom: 1px solid var(--gr-hairline);
+}

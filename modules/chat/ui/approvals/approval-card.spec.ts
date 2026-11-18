@@ -22,7 +22,7 @@ describe('approval-card', () => {
       '¶ Claude Code seeks your seal to run a command',
     ]);
     expect(texts('gr-approval-card .about')).toEqual(['Pushes the branch']);
-    expect(texts('gr-approval-card .well')).toEqual(['$git push origin main']);
+    expect(texts('gr-approval-card gr-command')).toEqual(['$git push origin main']);
     expect(el.querySelector('gr-approval-card .meta')).toBeNull();
     expect(texts('gr-approval-card .choice')).toEqual([
       'Always allow git push in this project ⇧⏎',
@@ -90,7 +90,7 @@ describe('approval-card', () => {
     ]);
     expect(texts('gr-approval-card .plan .heading')).toEqual(['Plan: the meter']);
     expect(texts('gr-approval-card .plan li')).toEqual(['Count the tokens', 'Show "used"']);
-    expect(el.querySelector('gr-approval-card .well')).toBeNull();
+    expect(el.querySelector('gr-approval-card gr-command')).toBeNull();
     expect(texts('gr-approval-card .approve-button')).toEqual(['Start on it ⏎']);
     expect(texts('gr-approval-card .choice')).toEqual(['Keep planning Esc']);
 

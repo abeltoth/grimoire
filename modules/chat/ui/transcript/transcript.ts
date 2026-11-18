@@ -35,6 +35,7 @@ import { diffsOpenUnasked } from './unasked';
 import { hookOutcome, hookTook, hookWhen, hooksRan } from './hook-log';
 import { WebResults } from './web-results';
 import { ToolInputView } from './tool-input-view';
+import { CommandView } from './command-view';
 import { tokenCount, usesInWords } from '@ui/app/core/tokens';
 import { Wording } from '@ui/app/core/wording';
 import { Settings } from '@ui/app/core/settings';
@@ -58,6 +59,7 @@ const BOARD = 'kanban';
   imports: [
     Attachments,
     ApprovalCard,
+    CommandView,
     DiffView,
     Drawing,
     Icon,
