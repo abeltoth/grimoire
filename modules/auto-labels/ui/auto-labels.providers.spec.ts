@@ -7,8 +7,7 @@ describe('provideAutoLabels', () => {
   it('adds its section to the Settings page', async () => {
     const { bridge } = fakeBridge();
     await render(bridge);
-    expect(TestBed.inject(ShellRegistry).settingsSections.get('labels')?.component).toBe(
-      LabelSettings,
-    );
+    const section = TestBed.inject(ShellRegistry).settingsSections.get('labels')!;
+    expect(await section.load()).toBe(LabelSettings);
   });
 });

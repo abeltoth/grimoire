@@ -29,6 +29,6 @@ describe('history.providers', () => {
     const { bridge } = fakeBridge();
     await render(bridge);
     const sections = TestBed.inject(ShellRegistry).settingsSections.all();
-    expect(sections[0]?.component).toBe(TagSettings);
+    expect(await sections[0]!.load()).toBe(TagSettings);
   });
 });

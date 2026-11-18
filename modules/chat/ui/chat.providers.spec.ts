@@ -11,7 +11,7 @@ describe('chat.providers', () => {
     await render(bridge);
     const shell = TestBed.inject(ShellRegistry);
     expect(shell.chatPage()).toBe(ChatPage);
-    expect(shell.approvalsPage()).toBe(ApprovalsPage);
+    expect(await shell.approvalsPage()!()).toBe(ApprovalsPage);
     const pages = shell.rightPages
       .all()
       .filter((page) => ['plan', 'second-chat', 'subagent'].includes(page.id));

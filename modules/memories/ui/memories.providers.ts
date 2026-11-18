@@ -1,6 +1,5 @@
 import type { EnvironmentProviders } from '@angular/core';
 import { provideShellEntries } from '@ui/app/shell/shell-registry';
-import { MemoriesPage } from './memories-page';
 
 /** The Memories module: its page tab turns the right page to your agents' memories. */
 export function provideMemories(): EnvironmentProviders {
@@ -10,7 +9,7 @@ export function provideMemories(): EnvironmentProviders {
       label: 'Memory map',
       plainLabel: 'Memories',
       order: 30,
-      component: MemoriesPage,
+      load: () => import('./memories-page').then((m) => m.MemoriesPage),
     });
   });
 }

@@ -1,6 +1,7 @@
 import { NgComponentOutlet } from '@angular/common';
 import { Component, inject, input } from '@angular/core';
 import { Wording } from '../../core/wording';
+import { LoadedPipe } from '../loaded';
 import { RightPageState } from '../right-page/right-page-state';
 import { PageHeader } from './page-header';
 import type { PageTab } from '../shell-registry';
@@ -11,7 +12,7 @@ import type { PageTab } from '../shell-registry';
  */
 @Component({
   selector: 'gr-tab-page',
-  imports: [NgComponentOutlet, PageHeader],
+  imports: [LoadedPipe, NgComponentOutlet, PageHeader],
   templateUrl: './tab-page.html',
   styleUrl: './tab-page.css',
   host: { '(document:keydown.escape)': 'back($event)' },

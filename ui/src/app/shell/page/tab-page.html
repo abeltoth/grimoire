@@ -9,7 +9,7 @@
 </gr-page-header>
 
 <div class="body">
-  @if (tab().component; as component) {
+  @if ((tab().load | loaded)(); as component) {
     <ng-container *ngComponentOutlet="component" />
   } @else {
     <p class="blank">{{ wording.say('Not written yet.', 'Not built yet.') }}</p>

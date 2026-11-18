@@ -3,6 +3,7 @@ import { Component, inject, input } from '@angular/core';
 import { Icon } from '../../../design-system/icon';
 import { Wording } from '../../core/wording';
 import { Focus } from '../focus';
+import { LoadedPipe } from '../loaded';
 import { RightPageState } from '../right-page/right-page-state';
 import { PageHeader } from './page-header';
 import type { RightPageEntry } from '../shell-registry';
@@ -14,7 +15,7 @@ import type { RightPageEntry } from '../shell-registry';
  */
 @Component({
   selector: 'gr-alone-page',
-  imports: [Icon, NgComponentOutlet, PageHeader],
+  imports: [Icon, LoadedPipe, NgComponentOutlet, PageHeader],
   template: `
     <gr-page-header>
       <div class="row">
@@ -29,7 +30,7 @@ import type { RightPageEntry } from '../shell-registry';
       </div>
     </gr-page-header>
     <div class="body">
-      @if (page().component; as component) {
+      @if ((page().load | loaded)(); as component) {
         <ng-container *ngComponentOutlet="component" />
       }
     </div>

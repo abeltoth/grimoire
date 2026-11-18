@@ -48,11 +48,3 @@ export class Plan {
   /** What the step under way says: the chat's status while it runs. */
   protected readonly underWay = computed(() => RUNNING[this.chat()?.status ?? ''] ?? 'under way');
 }
-
-/** The Plan's line in the page footer, such as "3 of 5 done". */
-export function planFoot(list: ChatList): string {
-  const plan = list.current()?.plan ?? [];
-  return plan.length
-    ? `${plan.filter((step) => step.status === 'done').length} of ${plan.length} done`
-    : '';
-}

@@ -10,6 +10,7 @@ import { PageHeader } from '../page/page-header';
 import { RightPageState } from './right-page-state';
 import { RightPageTabs } from './right-page-tabs';
 import { Focus } from '../focus';
+import { LoadedPipe } from '../loaded';
 import { TabPage } from '../page/tab-page';
 import { type RightPageEntry, ShellRegistry } from '../shell-registry';
 
@@ -29,6 +30,7 @@ import { type RightPageEntry, ShellRegistry } from '../shell-registry';
     Drawing,
     RightPageTabs,
     CommandPalette,
+    LoadedPipe,
     NgComponentOutlet,
     Page,
     PageFooter,
@@ -46,7 +48,7 @@ export class RightPage {
   private readonly list = inject(ChatList);
 
   protected readonly shown = computed<RightPageEntry | undefined>(() => {
-    const pages = this.registry.rightPages.all().filter((page) => page.component);
+    const pages = this.registry.rightPages.all().filter((page) => page.load);
     return pages.find((page) => page.id === this.rightPage.page()) ?? pages[0];
   });
 

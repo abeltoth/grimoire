@@ -3,7 +3,6 @@ import { Wording } from '@ui/app/core/wording';
 import { RightPageState } from '@ui/app/shell/right-page/right-page-state';
 import { provideShellEntries } from '@ui/app/shell/shell-registry';
 import { NoteList, splitNote } from './notes';
-import { NotesPage } from './notes-page';
 
 /**
  * The notes module: its page tab turns the right page to the
@@ -21,7 +20,7 @@ export function provideNotes(): EnvironmentProviders {
       label: 'Marginalia',
       plainLabel: 'Notes',
       order: 25,
-      component: NotesPage,
+      load: () => import('./notes-page').then((m) => m.NotesPage),
     });
     shell.commands.add({
       id: 'notes.new',

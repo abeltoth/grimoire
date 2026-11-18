@@ -75,7 +75,7 @@ export class App {
   protected readonly alonePage = computed(() => {
     const id = this.focus.alone();
     const page = this.focus.on() && id ? this.registry.rightPages.get(id) : undefined;
-    return page?.component ? page : undefined;
+    return page?.load ? page : undefined;
   });
   /** Whether the command palette shows on this page: that of the chat on the right page. */
   protected readonly paletteHere = computed(() => {

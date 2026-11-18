@@ -12,7 +12,12 @@ class Outline {}
 async function tabs() {
   useFakeBridge();
   const shell = TestBed.inject(ShellRegistry);
-  shell.rightPages.add({ id: 'plan', label: 'Outline', plainLabel: 'Plan', component: Outline });
+  shell.rightPages.add({
+    id: 'plan',
+    label: 'Outline',
+    plainLabel: 'Plan',
+    load: async () => Outline,
+  });
   shell.rightPages.add({ id: 'chat', label: 'Second chat', heading: () => 'Fix the ribbon' });
   shell.rightPages.add({ id: 'atlas', label: 'Atlas' });
   const fixture = TestBed.createComponent(RightPageTabs);

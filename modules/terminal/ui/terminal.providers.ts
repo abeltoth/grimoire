@@ -1,6 +1,5 @@
 import type { EnvironmentProviders } from '@angular/core';
 import { provideShellEntries } from '@ui/app/shell/shell-registry';
-import { TerminalPage } from './terminal-page';
 
 /** The terminal module: its page tab turns the right page to the Terminal, your shells. */
 export function provideTerminal(): EnvironmentProviders {
@@ -10,7 +9,7 @@ export function provideTerminal(): EnvironmentProviders {
       label: 'Scriptorium',
       plainLabel: 'Terminal',
       order: 55,
-      component: TerminalPage,
+      load: () => import('./terminal-page').then((m) => m.TerminalPage),
     });
   });
 }

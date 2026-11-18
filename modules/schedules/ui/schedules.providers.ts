@@ -2,7 +2,6 @@ import { type EnvironmentProviders, effect, inject } from '@angular/core';
 import { RightPageState } from '@ui/app/shell/right-page/right-page-state';
 import { provideShellEntries } from '@ui/app/shell/shell-registry';
 import { ScheduledChats } from './scheduled-chats';
-import { SchedulesPage } from './schedules-page';
 import { upcoming } from './wording';
 
 /**
@@ -18,7 +17,7 @@ export function provideScheduledChats(): EnvironmentProviders {
       id: 'scheduled-chats',
       label: 'Scheduled chats',
       order: 40,
-      component: SchedulesPage,
+      load: () => import('./schedules-page').then((m) => m.SchedulesPage),
     });
 
     effect((onCleanup) => {

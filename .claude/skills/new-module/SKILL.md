@@ -30,8 +30,10 @@ need; a module with no UI has no `ui/`.
    that calls `context.registry.register(...)` for each command and returns `{ stop }` if it runs
    anything. Put the logic in its own file beside it, with a `*.test.ts` next to that.
 3. `ui/<name>.providers.ts`: `export function provide<Name>(): EnvironmentProviders`, returning
-   `provideShellEntries((shell) => { shell.pageTabs.add({ id, label, plainLabel, order, component }) })`
-   or whichever `ShellRegistry` slot fits. Components call the service with
+   `provideShellEntries((shell) => { shell.pageTabs.add({ id, label, plainLabel, order, load }) })`
+   or whichever `ShellRegistry` slot fits. A page or settings section is given as
+   `load: () => import('./<name>-page').then((m) => m.<Name>Page)`, never imported at the top, so
+   it stays out of the bundle the app starts with. Components call the service with
    `inject(GRIMOIRE_BRIDGE).invoke('<name>.list', ...)`. Add one `*.spec.ts` per component,
    rendered with `fakeBridge()` and `render()` from `@ui/testing/app-testing`.
 4. Register each part (the first two lists are alphabetical):

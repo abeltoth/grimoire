@@ -4,7 +4,6 @@ import { Settings } from '@ui/app/core/settings';
 import { RightPageState } from '@ui/app/shell/right-page/right-page-state';
 import { provideShellEntries } from '@ui/app/shell/shell-registry';
 import { stepScale } from './scale';
-import { SettingsPage } from './settings-page';
 
 /**
  * The Settings module: its page tab turns the right page to
@@ -23,7 +22,7 @@ export function provideSettings(): EnvironmentProviders {
       label: 'Colophon',
       plainLabel: 'Settings',
       order: 60,
-      component: SettingsPage,
+      load: () => import('./settings-page').then((m) => m.SettingsPage),
     });
     const settings = inject(Settings);
     const scaleBy = (steps: number) =>

@@ -27,16 +27,19 @@ interface Labelled {
   plainLabel?: string;
 }
 
+/** Imports a component, such as a module's page, so it stays out of the bundle the app starts with. */
+export type LoadComponent = () => Promise<Type<unknown>>;
+
 /** A tab on the fore-edge that turns the right page to one of the book's pages. */
 export interface PageTab extends Entry, Labelled {
-  /** What the page shows; without it the page is blank, its feature not written yet. */
-  component?: Type<unknown>;
+  /** Imports what the page shows; without it the page is blank, its feature not written yet. */
+  load?: LoadComponent;
 }
 
 /** Something the right page can show, picked from the tabs in its page header. */
 export interface RightPageEntry extends Entry, Labelled {
-  /** Without it the tab shows but can't be picked yet. */
-  component?: Type<unknown>;
+  /** Imports what it shows; without it the tab shows but can't be picked yet. */
+  load?: LoadComponent;
   /** A line for the page footer while it shows, such as "3 of 5 done". */
   foot?: () => string;
   /** What its tab says for now, such as the title of the chat it shows; its label when none. */
@@ -74,7 +77,7 @@ export interface ChatPart extends Entry {
 
 /** A section of the Settings page, after the general settings, such as a feature's own. */
 export interface SettingsSection extends Entry {
-  component: Type<unknown>;
+  load: LoadComponent;
 }
 
 /** Something you can do with a shortcut. */
@@ -127,11 +130,11 @@ export class ShellRegistry {
   /** What the left page shows for the open chat: the chat module's page. */
   readonly chatPage = signal<Type<unknown> | undefined>(undefined);
   /**
-   * What the right page shows when it's turned to the waiting approvals:
-   * the chat module's page. It takes a `backTo` input, the label of
-   * the page it turns back to.
+   * Imports what the right page shows when it's turned to the waiting
+   * approvals: the chat module's page. It takes a `backTo` input, the
+   * label of the page it turns back to.
    */
-  readonly approvalsPage = signal<Type<unknown> | undefined>(undefined);
+  readonly approvalsPage = signal<LoadComponent | undefined>(undefined);
   /**
    * Opens a file on the Files page: at a line when one is given, or else
    * with its changes since the last commit if it has any; the files

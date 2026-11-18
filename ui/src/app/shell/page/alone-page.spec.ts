@@ -14,7 +14,7 @@ describe('alone-page', () => {
     TestBed.inject(ShellRegistry).rightPages.add({
       id: 'ledger',
       label: 'Ledger',
-      component: Ledger,
+      load: async () => Ledger,
     });
     const focus = TestBed.inject(Focus);
     focus.enter();
@@ -51,7 +51,7 @@ describe('alone-page', () => {
     TestBed.inject(ShellRegistry).rightPages.add({
       id: 'ledger',
       label: 'Ledger',
-      component: Ledger,
+      load: async () => Ledger,
     });
     const focus = TestBed.inject(Focus);
     focus.lay('ledger');

@@ -1,7 +1,6 @@
 import { type EnvironmentProviders, effect, inject } from '@angular/core';
 import { RightPageState } from '@ui/app/shell/right-page/right-page-state';
 import { provideShellEntries } from '@ui/app/shell/shell-registry';
-import { GitPage } from './git-page';
 import { GitState, branchLabel, badgesOf, statusDetail } from './git-state';
 
 /**
@@ -14,7 +13,12 @@ export function provideGit(): EnvironmentProviders {
     const git = inject(GitState);
     const rightPage = inject(RightPageState);
     const open = () => rightPage.showPage('git');
-    shell.rightPages.add({ id: 'git', label: 'Git', order: 30, component: GitPage });
+    shell.rightPages.add({
+      id: 'git',
+      label: 'Git',
+      order: 30,
+      load: () => import('./git-page').then((m) => m.GitPage),
+    });
 
     // Outside a repository there's no branch to show.
     effect((onCleanup) => {

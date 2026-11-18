@@ -13,6 +13,7 @@ import { provideUsage } from '../../../modules/usage/ui/usage.providers';
 import { provideMemories } from '../../../modules/memories/ui/memories.providers';
 import { provideScheduledChats } from '../../../modules/schedules/ui/schedules.providers';
 import { provideTerminal } from '../../../modules/terminal/ui/terminal.providers';
+import { providePreloadedPages } from './shell/loaded';
 import { provideShell } from './shell/shell-registry';
 
 // Zoneless change detection is Angular's default.
@@ -35,5 +36,6 @@ export const appConfig: ApplicationConfig = {
     provideAutoLabels(),
     // Modules kept outside this repo, such as the pro ones.
     ...extraProviders,
+    providePreloadedPages(),
   ],
 };

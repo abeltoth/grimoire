@@ -17,7 +17,7 @@ import { type RightPageEntry, ShellRegistry } from '../shell-registry';
         <button
           type="button"
           [attr.aria-pressed]="entry.id === current()"
-          [attr.aria-disabled]="entry.component ? null : true"
+          [attr.aria-disabled]="entry.load ? null : true"
           [attr.title]="heading"
           (click)="show(entry)"
         >
@@ -37,6 +37,6 @@ export class RightPageTabs {
   readonly current = input<string>();
 
   protected show(page: RightPageEntry): void {
-    if (page.component) this.rightPage.showPage(page.id);
+    if (page.load) this.rightPage.showPage(page.id);
   }
 }

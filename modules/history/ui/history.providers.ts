@@ -1,9 +1,7 @@
 import type { EnvironmentProviders } from '@angular/core';
 import { provideShellEntries } from '@ui/app/shell/shell-registry';
 import { ChatTags } from './chat-tags';
-import { HistoryPage } from './history-page';
 import { Pins } from './pins';
-import { TagSettings } from './tag-settings';
 
 /**
  * The history module: its page tab turns the right page to the
@@ -17,10 +15,14 @@ export function provideHistory(): EnvironmentProviders {
       label: 'Table of contents',
       plainLabel: 'History',
       order: 0,
-      component: HistoryPage,
+      load: () => import('./history-page').then((m) => m.HistoryPage),
     });
     shell.chatCorners.add({ id: 'pins', component: Pins });
     shell.afterTitle.add({ id: 'tags', component: ChatTags });
-    shell.settingsSections.add({ id: 'tags', order: -1, component: TagSettings });
+    shell.settingsSections.add({
+      id: 'tags',
+      order: -1,
+      load: () => import('./tag-settings').then((m) => m.TagSettings),
+    });
   });
 }

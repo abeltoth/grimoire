@@ -2,7 +2,6 @@ import { type EnvironmentProviders, inject } from '@angular/core';
 import { RightPageState } from '@ui/app/shell/right-page/right-page-state';
 import { Focus } from '@ui/app/shell/focus';
 import { provideShellEntries } from '@ui/app/shell/shell-registry';
-import { FilesPage } from './files-page';
 import { FilesViews } from './files-views';
 
 /**
@@ -12,7 +11,12 @@ import { FilesViews } from './files-views';
  */
 export function provideFiles(): EnvironmentProviders {
   return provideShellEntries((shell) => {
-    shell.rightPages.add({ id: 'files', label: 'Files', order: 20, component: FilesPage });
+    shell.rightPages.add({
+      id: 'files',
+      label: 'Files',
+      order: 20,
+      load: () => import('./files-page').then((m) => m.FilesPage),
+    });
 
     const rightPage = inject(RightPageState);
     const focus = inject(Focus);

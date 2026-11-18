@@ -1,5 +1,6 @@
 import { NgComponentOutlet } from '@angular/common';
 import { Component, inject } from '@angular/core';
+import { LoadedPipe } from '@ui/app/shell/loaded';
 import { ShellRegistry } from '@ui/app/shell/shell-registry';
 import { Wording } from '@ui/app/core/wording';
 import { GeneralSettings } from './general-settings';
@@ -28,6 +29,7 @@ import { ThemeEditor } from './theme-editor';
     GeneralSettings,
     PageTabSettings,
     QuickModelSettings,
+    LoadedPipe,
     NgComponentOutlet,
     PresetSettings,
     ThemeEditor,

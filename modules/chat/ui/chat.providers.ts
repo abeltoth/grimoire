@@ -3,13 +3,10 @@ import { ChatList } from '@ui/app/core/chat-list';
 import { RightPageState } from '@ui/app/shell/right-page/right-page-state';
 import { provideShellEntries } from '@ui/app/shell/shell-registry';
 import { ChatPage, SECOND_CHAT } from './chat-page';
-import { SubagentPage } from './subagents/subagent-page';
 import { SUBAGENT_PAGE, Subagents } from './subagents/subagents';
-import { Plan, planFoot } from './transcript/plan';
-import { ApprovalsPage } from './approvals/approvals-page';
+import { planFoot } from './transcript/plan-foot';
 import { Drafts } from './composer/drafts';
 import { MarkdownView } from './markdown/markdown-view';
-import { SecondChat } from './second-chat';
 
 /**
  * The chat module: it fills the left page with the open chat,
@@ -23,7 +20,9 @@ import { SecondChat } from './second-chat';
 export function provideChat(): EnvironmentProviders {
   return provideShellEntries((shell) => {
     shell.chatPage.set(ChatPage);
-    shell.approvalsPage.set(ApprovalsPage);
+    shell.approvalsPage.set(() =>
+      import('./approvals/approvals-page').then((m) => m.ApprovalsPage),
+    );
     shell.markdownView.set(MarkdownView);
     const list = inject(ChatList);
     const drafts = inject(Drafts);
@@ -36,15 +35,15 @@ export function provideChat(): EnvironmentProviders {
       label: 'Outline',
       plainLabel: 'Plan',
       order: 10,
-      component: Plan,
-      foot: () => planFoot(list),
+      load: () => import('./transcript/plan').then((m) => m.Plan),
+      foot: () => planFoot(list.current()?.plan ?? []),
     });
     shell.rightPages.add({
       id: SECOND_CHAT,
       label: 'Second chapter',
       plainLabel: 'Second chat',
       order: 40,
-      component: SecondChat,
+      load: () => import('./second-chat').then((m) => m.SecondChat),
       heading: () => list.beside()?.title || undefined,
       whole: true,
     });
@@ -54,7 +53,7 @@ export function provideChat(): EnvironmentProviders {
       label: 'Helper',
       plainLabel: 'Subagent',
       order: 45,
-      component: SubagentPage,
+      load: () => import('./subagents/subagent-page').then((m) => m.SubagentPage),
       heading: () => {
         const input = subagents.block()?.input as { description?: unknown } | undefined;
         return typeof input?.description === 'string' && input.description

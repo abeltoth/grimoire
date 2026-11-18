@@ -5,8 +5,6 @@ import { RightPageState } from '@ui/app/shell/right-page/right-page-state';
 import { type Badge, provideShellEntries } from '@ui/app/shell/shell-registry';
 import { Board, COLUMNS } from './board';
 import { JiraLink } from './jira-link';
-import { JiraSettings } from './jira-settings';
-import { KanbanPage } from './kanban-page';
 
 /** How much of a card's title its badge shows. */
 const BADGE_LENGTH = 32;
@@ -23,9 +21,18 @@ export function provideKanban(): EnvironmentProviders {
     const board = inject(Board);
     const rightPage = inject(RightPageState);
     const wording = inject(Wording);
-    shell.pageTabs.add({ id: 'kanban', label: 'Kanban', order: 20, component: KanbanPage });
+    shell.pageTabs.add({
+      id: 'kanban',
+      label: 'Kanban',
+      order: 20,
+      load: () => import('./kanban-page').then((m) => m.KanbanPage),
+    });
     shell.afterTitle.add({ id: 'kanban.jira', order: 10, component: JiraLink });
-    shell.settingsSections.add({ id: 'jira', order: 10, component: JiraSettings });
+    shell.settingsSections.add({
+      id: 'jira',
+      order: 10,
+      load: () => import('./jira-settings').then((m) => m.JiraSettings),
+    });
 
     effect((onCleanup) => {
       const card = board.current();

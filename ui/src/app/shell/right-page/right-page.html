@@ -1,5 +1,6 @@
 @let page = shown();
 @let approvals = rightPage.approvals() ? registry.approvalsPage() : undefined;
+@let pageComponent = (page?.load | loaded)();
 @if (paletteHere()) {
   <gr-page
     side="right"
@@ -20,12 +21,16 @@
       rightPageLabel() + ': ' + wording.say('Awaiting your seal', 'Waiting for approval')
     "
   >
-    <ng-container *ngComponentOutlet="approvals; inputs: { backTo: back() }" />
+    @if ((approvals | loaded)(); as component) {
+      <ng-container *ngComponentOutlet="component; inputs: { backTo: back() }" />
+    }
     <gr-drawing class="sigil" name="empty-page" />
   </gr-page>
-} @else if (page?.whole && page.component) {
+} @else if (page?.whole) {
   <gr-page side="right" [attr.aria-label]="rightPageLabel() + ': ' + wording.label(page)">
-    <ng-container *ngComponentOutlet="page.component" />
+    @if (pageComponent) {
+      <ng-container *ngComponentOutlet="pageComponent" />
+    }
   </gr-page>
 } @else {
   <gr-page
@@ -39,8 +44,8 @@
     </gr-page-header>
 
     <div class="body">
-      @if (page?.component; as component) {
-        <ng-container *ngComponentOutlet="component" />
+      @if (pageComponent) {
+        <ng-container *ngComponentOutlet="pageComponent" />
       }
     </div>
 
