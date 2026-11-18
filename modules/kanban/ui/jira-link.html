@@ -1,0 +1,36 @@
+@if (shown()) {
+  <button
+    #toggle
+    type="button"
+    class="toggle"
+    [class.on]="open()"
+    aria-haspopup="dialog"
+    [attr.aria-expanded]="open()"
+    [attr.title]="wording.say('This chapter has no Jira issue', 'This chat has no Jira issue')"
+    (click)="open.set(!open())"
+  >
+    No Jira issue
+  </button>
+  @if (open()) {
+    <div #card class="card" role="dialog" aria-label="Jira issue" [style.left.px]="shift()">
+      <p class="head">
+        {{
+          wording.say(
+            'Link this chapter to a Jira issue on the board',
+            'Link this chat to a Jira issue on the board'
+          )
+        }}
+      </p>
+      <div class="issues">
+        @for (issue of issues(); track issue.id) {
+          <button type="button" class="issue" (click)="link(issue)">
+            <span class="key">{{ issue.jira!.key }}</span>
+            <span class="summary">{{ issue.title }}</span>
+          </button>
+        } @empty {
+          <p class="none">No Jira issues on the board.</p>
+        }
+      </div>
+    </div>
+  }
+}

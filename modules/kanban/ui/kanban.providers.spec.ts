@@ -1,7 +1,7 @@
 import { Settings } from '@ui/app/core/settings';
 import { TestBed } from '@angular/core/testing';
 import { render, write } from '@ui/testing/app-testing';
-import { card, withBoard } from './kanban-testing';
+import { card, issue, withBoard } from './kanban-testing';
 
 const chat = { chatId: 'chat-1', agent: 'claude-code', cwd: 'C:/Users/me/git/grimoire', at: 0 };
 
@@ -20,6 +20,22 @@ describe('kanban.providers', () => {
     badge.click();
     await fixture.whenStable();
     expect(texts('gr-tab-page .title')).toEqual(['Kanban']);
+  });
+
+  it('names a Jira card’s issue and status on its badge, which opens it in Jira', async () => {
+    const { bridge } = withBoard([
+      card('a', 'Context meter', 'doing', { chats: [chat] }),
+      issue('j1', 'GRIM-12', 'Draw the context meter', 'doing', { chats: [chat] }),
+    ]);
+    const { fixture, el, texts } = await render(bridge);
+    await write(fixture, el, 'Fill in the meter');
+    expect(texts('gr-header-badges button')).toEqual(['GRIM-12 · In Review']);
+    const badge = el.querySelector<HTMLButtonElement>('gr-header-badges button')!;
+    expect(badge.getAttribute('title')).toBe(
+      'This chapter’s Jira issue, in In Review: Draw the context meter. Opens it in Jira.',
+    );
+    badge.click();
+    expect(bridge.openExternal).toHaveBeenCalledWith('https://acme.atlassian.net/browse/GRIM-12');
   });
 
   it('shortens a long title on the badge, and says it plainly when asked', async () => {

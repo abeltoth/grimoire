@@ -533,6 +533,9 @@
   --gr-kanban-jira-edge: 3px solid var(--gr-lapis);
   --gr-kanban-jira-mark: var(--gr-lapis);
   --gr-kanban-jira-marks-gap: 6px;
+  /* The card a chat with no Jira issue opens after its title, to link or create one */
+  --gr-kanban-link-width: 420px;
+  --gr-kanban-link-list-height: 280px;
 
   /* Marginalia: your notes, each a slip on the page, one due edged in rubric */
   --gr-notes-width: 620px;

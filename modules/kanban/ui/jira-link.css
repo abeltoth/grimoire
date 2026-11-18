@@ -1,0 +1,88 @@
+/* The faint "No Jira issue" mark after the title, and the card it opens under it. */
+:host {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+
+:host:empty {
+  display: none;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  height: var(--gr-icon-button);
+  padding: 0 var(--gr-tags-toggle-pad);
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-control);
+  letter-spacing: var(--gr-tracking-control);
+  color: var(--gr-ink-faint);
+  border-radius: var(--gr-radius-control);
+}
+
+.toggle:hover,
+.toggle.on {
+  color: var(--gr-ink);
+}
+
+.card {
+  position: absolute;
+  z-index: var(--gr-z-card);
+  top: calc(100% + var(--gr-card-offset));
+  width: var(--gr-kanban-link-width);
+  padding: var(--gr-card-pad);
+  background: var(--gr-card-paper);
+  box-shadow: var(--gr-shadow-card);
+  white-space: normal;
+}
+
+.head,
+.none {
+  margin: 0;
+  font-size: var(--gr-size-label);
+  color: var(--gr-ink-soft);
+}
+
+.none {
+  font-style: italic;
+}
+
+/* The board's Jira issues, each its key then its summary; a long list scrolls. */
+.issues {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-card-choice-gap);
+  max-height: var(--gr-kanban-link-list-height);
+  margin-top: var(--gr-kanban-form-gap);
+  overflow-y: auto;
+}
+
+.issue {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-kanban-word-gap);
+  padding: var(--gr-card-choice-pad);
+  text-align: start;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink);
+  border-radius: var(--gr-radius-control);
+}
+
+.issue:hover {
+  background: var(--gr-card-choice-hover);
+}
+
+.key {
+  flex: none;
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-kanban-code);
+  color: var(--gr-kanban-jira-mark);
+}
+
+.summary {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

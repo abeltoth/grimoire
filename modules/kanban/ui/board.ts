@@ -9,6 +9,7 @@ import {
   type JiraTransition,
 } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
+import type { Chat } from '@ui/app/core/chat';
 import { ChatList } from '@ui/app/core/chat-list';
 import { NewChats } from '@ui/app/core/new-chats';
 
@@ -90,12 +91,10 @@ export class Board {
   readonly jira = signal<JiraSync | undefined>(undefined);
   /** The cards on the board, not closed. */
   readonly open = computed(() => (this.all() ?? []).filter((card) => card.closedAt === undefined));
-  /** The card on the board the chat you're on began from, if any. */
+  /** The card on the board the chat you're on began from, or is linked to, if any; its Jira issue's before a task. */
   readonly current = computed(() => {
     const id = this.list.currentId();
-    return id
-      ? this.open().find((card) => card.chats.some((chat) => chat.chatId === id))
-      : undefined;
+    return id ? this.cardOf(id) : undefined;
   });
 
   constructor() {
@@ -186,6 +185,20 @@ export class Board {
     } finally {
       this.release(id);
     }
+  }
+
+  /** The card on the board the chat began from, or is linked to, if any; its Jira issue's before a task. */
+  cardOf(chatId: string): Card | undefined {
+    const linked = this.open().filter((card) => card.chats.some((chat) => chat.chatId === chatId));
+    return linked.find((card) => card.jira) ?? linked[0];
+  }
+
+  /** Links a chat begun already to a card, as if it began from it; false when the service turned it away. */
+  link(id: string, chat: Pick<Chat, 'id' | 'agent' | 'settings'>): Promise<boolean> {
+    const cwd = chat.settings.cwd ?? '';
+    return this.change(() =>
+      this.bridge.invoke('kanban.link', { id, chatId: chat.id, agent: chat.agent, cwd }),
+    );
   }
 
   /** Opens a Jira card's issue in Jira, in the browser. */
