@@ -14,6 +14,7 @@ describe('SettingsPage', () => {
       'gr-quick-model-settings',
       'gr-tag-settings',
       'gr-label-settings',
+      'gr-jira-settings',
       'gr-preset-settings',
       'section',
       'gr-profile-settings',

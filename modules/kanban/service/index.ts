@@ -35,7 +35,7 @@ export const kanban: ServiceModule = {
         events.emit('kanban.changed', { cards: cards.save(draft, madeIn) }),
       ),
     );
-    // The agent may propose a Jira issue for a chat's work while Jira is on and an Atlassian connector was reached.
+    // The agent may propose a Jira issue for a chat's work while Jira is on.
     registerTool(
       proposeIssueTool(
         (chat) =>
@@ -48,7 +48,8 @@ export const kanban: ServiceModule = {
                 card.chats.some((begun) => begun.chatId === chat.chatId),
             )?.jira?.key,
         (chat, draft) => proposals.propose(chat.chatId, draft),
-        () => settings.get().jira && jira.state().status !== 'none',
+        () => settings.get().jira,
+        () => ({ project: settings.get().jiraProject, issueType: settings.get().jiraIssueType }),
       ),
     );
     return {

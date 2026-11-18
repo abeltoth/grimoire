@@ -107,11 +107,15 @@ describe('JiraLink', () => {
     expect(el.querySelector('gr-jira-link .toggle')).toBeNull();
   });
 
-  it('shows nothing where there’s no Atlassian connector', async () => {
+  it('says on its card when no Atlassian connector was reached', async () => {
     const { bridge, answers } = synced();
     answers['kanban.jira'] = () => ({ status: 'none', syncing: false });
-    const { fixture, el } = await render(bridge);
+    const { fixture, el, texts } = await render(bridge);
     await write(fixture, el, 'Go');
-    expect(el.querySelector('gr-jira-link .toggle')).toBeNull();
+    el.querySelector<HTMLButtonElement>('gr-jira-link .toggle')!.click();
+    await fixture.whenStable();
+    expect(texts('gr-jira-link .unreached')).toEqual([
+      'No Atlassian connector reached yet. Connect Atlassian among your connectors on claude.ai, then sync the Kanban board.',
+    ]);
   });
 });

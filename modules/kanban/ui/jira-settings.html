@@ -1,0 +1,85 @@
+<section aria-labelledby="gr-settings-jira-head">
+  <h2 id="gr-settings-jira-head">Jira</h2>
+  <p class="lead">
+    {{
+      wording.say(
+        'Your Jira issues, through your claude.ai Atlassian connector: on the Kanban board, and after each chapter’s title, to link it to one or create one, which the agent proposes when the chapter turns into work worth tracking.',
+        'Your Jira issues, through your claude.ai Atlassian connector: on the Kanban board, and after each chat’s title, to link it to one or create one, which the agent proposes when the chat turns into work worth tracking.'
+      )
+    }}
+  </p>
+
+  @let all = settings.all();
+  <div class="form">
+    <span class="label" id="gr-settings-jira-on">Jira</span>
+    <span class="words" role="radiogroup" aria-labelledby="gr-settings-jira-on">
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="all.jira"
+        (click)="set({ jira: true })"
+      >
+        On
+      </button>
+      <button
+        type="button"
+        class="word"
+        role="radio"
+        [attr.aria-checked]="!all.jira"
+        (click)="set({ jira: false })"
+      >
+        Off
+      </button>
+    </span>
+    <p class="note">
+      {{
+        wording.say(
+          'Turned off, issues are never fetched, which spends no tokens, and chapters say nothing of Jira.',
+          'Turned off, issues are never fetched, which spends no tokens, and chats say nothing of Jira.'
+        )
+      }}
+    </p>
+
+    @if (all.jira) {
+      <label class="label" for="gr-settings-jira">Jira query</label>
+      <textarea
+        #queryField
+        id="gr-settings-jira"
+        class="line"
+        rows="2"
+        spellcheck="false"
+        [value]="all.jiraQuery"
+        (change)="setQuery(queryField)"
+      ></textarea>
+      <p class="note">
+        The issues on the board. Emptied, it finds yours not done, and those done in the last two
+        weeks.
+      </p>
+
+      <label class="label" for="gr-settings-jira-project">New issues go in</label>
+      <input
+        #projectField
+        id="gr-settings-jira-project"
+        class="line code"
+        autocomplete="off"
+        spellcheck="false"
+        placeholder="the project most of the board’s issues are in"
+        [value]="all.jiraProject"
+        (change)="setProject(projectField)"
+      />
+      <p class="note">A project’s key, such as PROJ, unless the agent names another.</p>
+
+      <label class="label" for="gr-settings-jira-type">New issues are a</label>
+      <input
+        #typeField
+        id="gr-settings-jira-type"
+        class="line"
+        autocomplete="off"
+        [value]="all.jiraIssueType"
+        (change)="setIssueType(typeField)"
+      />
+      <p class="note">An issue type your project has, such as Task, Story or Bug.</p>
+    }
+  </div>
+</section>

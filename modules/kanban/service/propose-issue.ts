@@ -27,7 +27,7 @@ const INPUT = {
   issueType: z
     .string()
     .optional()
-    .describe('The issue type, such as Task, Bug or Story; Task when left out'),
+    .describe("The issue type, such as Task, Bug or Story; the user's usual one when left out"),
 };
 
 /** The Jira issue a chat is linked to already, by its key, if any. */
@@ -36,15 +36,20 @@ export type LinkedIssue = (chat: ToolChat) => string | undefined;
 /** Keeps a chat's proposal, telling every window. */
 export type Propose = (chat: ToolChat, draft: JiraIssueDraft) => void;
 
+/** The project and type a new issue begins with, from the settings; an empty project is left to the form. */
+export type IssueDefaults = () => Pick<JiraIssueDraft, 'project' | 'issueType'>;
+
 /**
  * The tool that lets the agent offer a Jira issue for a chat's work: it
  * only keeps the draft, shown in the chat's header, which you create or
- * dismiss there. It's given while `enabled` says, as Jira is on.
+ * dismiss there. It's given while `enabled` says, as Jira is on; a
+ * project or type the agent leaves out is the settings'.
  */
 export function proposeIssueTool(
   linked: LinkedIssue,
   propose: Propose,
   enabled: () => boolean,
+  defaults: IssueDefaults = () => ({ project: '', issueType: 'Task' }),
 ): AgentTool<typeof INPUT> {
   return {
     name: 'propose_jira_issue',
@@ -59,8 +64,8 @@ export function proposeIssueTool(
       const draft = {
         summary: summary.trim(),
         description: description.trim(),
-        project: project?.trim().toUpperCase() ?? '',
-        issueType: issueType?.trim() || 'Task',
+        project: project?.trim().toUpperCase() || defaults().project,
+        issueType: issueType?.trim() || defaults().issueType,
       };
       if (!draft.summary) throw new Error('The issue needs a summary.');
       propose(chat, draft);

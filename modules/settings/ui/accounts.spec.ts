@@ -46,7 +46,7 @@ describe('accounts', () => {
     );
     expect(texts(`${row} .word`)).toEqual(['mum@example.com', 'me@example.com']);
     expect(texts(`${row} .word[aria-checked="true"]`)).toEqual(['me@example.com']);
-    expect(texts('gr-settings-page .note').at(-1)).toMatch(/^Pro\. Every chapter uses it/);
+    expect(texts('gr-general-settings .note').at(-1)).toMatch(/^Pro\. Every chapter uses it/);
 
     // Signing in to another keeps the one signed in as, to switch back to.
     word('mum@example.com').click();
@@ -81,7 +81,7 @@ describe('accounts', () => {
     finish(mum);
     await fixture.whenStable();
     expect(texts(`${row} .word[aria-checked="true"]`)).toEqual(['mum@example.com']);
-    expect(texts('gr-settings-page .note').at(-1)).toMatch(/^Max\. /);
+    expect(texts('gr-general-settings .note').at(-1)).toMatch(/^Max\. /);
 
     // Forgetting an account takes it off the list only.
     el.querySelector<HTMLButtonElement>(`${row} [aria-label="Forget me@example.com"]`)!.click();

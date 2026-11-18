@@ -14,6 +14,9 @@
   </button>
   @if (open()) {
     <div #card class="card" role="dialog" aria-label="Jira issue" [style.left.px]="shift()">
+      @if (unreached(); as why) {
+        <p class="unreached">{{ why }}</p>
+      }
       @if (writing()) {
         <gr-issue-form [chat]="chat()" [draft]="proposal()" (done)="close()">
           <button type="button" class="gr-link" (click)="writing.set(false)">Link existing…</button>

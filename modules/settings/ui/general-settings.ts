@@ -10,7 +10,7 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
-import { type AgentId, DEFAULT_JIRA_QUERY, type GrimoireSettings } from '@grimoire/contract';
+import type { AgentId, GrimoireSettings } from '@grimoire/contract';
 import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { McpServers } from '@ui/app/core/mcp-servers';
 import { PresetList } from '@ui/app/core/preset-list';
@@ -23,8 +23,8 @@ import { Accounts } from './accounts';
  * The Settings page's settings, written out as words to pick, the picked
  * one underlined, each kept by the service as soon as it's picked. The MCP
  * servers your agents load in your home folder, and those turned off, can
- * be turned off or on in every chat; the Jira query picks the issues on
- * the Kanban board; last, the account the agent signs in as.
+ * be turned off or on in every chat; last, the account the agent signs in
+ * as. Jira's settings are the Kanban module's own section.
  */
 @Component({
   selector: 'gr-general-settings',
@@ -99,13 +99,6 @@ export class GeneralSettings {
 
   protected set(change: Partial<GrimoireSettings>): void {
     void this.settings.set(change);
-  }
-
-  /** Keeps the Jira query written; emptied, it's the one the board began with. */
-  protected setJiraQuery(field: HTMLTextAreaElement): void {
-    const query = field.value.trim() || DEFAULT_JIRA_QUERY;
-    field.value = query;
-    if (query !== this.settings.all().jiraQuery) this.set({ jiraQuery: query });
   }
 
   protected pickAgent(agent: AgentId | null): void {

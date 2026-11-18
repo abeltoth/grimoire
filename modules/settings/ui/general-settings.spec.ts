@@ -37,8 +37,6 @@ describe('general-settings', () => {
       'Compact before the cache runs out',
       'Changes to files',
       'MCP servers in every chapter',
-      'Jira issues on the Kanban board',
-      'Jira query',
     ]);
     expect(checked()).toEqual([
       'The book’s',
@@ -49,7 +47,6 @@ describe('general-settings', () => {
       'On',
       'Off',
       'Open',
-      'On',
     ]);
     expect(texts('gr-settings-page [aria-labelledby="gr-settings-mcp"] .none')).toEqual(['None']);
 
@@ -79,31 +76,6 @@ describe('general-settings', () => {
     word('Left out').click();
     await fixture.whenStable();
     expect(document.documentElement.dataset['drawings']).toBe('off');
-
-    const jql = el.querySelector<HTMLTextAreaElement>('#gr-settings-jira')!;
-    expect(jql.value).toBe(DEFAULT_SETTINGS.jiraQuery);
-    jql.value = ' project = GRIM ';
-    jql.dispatchEvent(new Event('change'));
-    await fixture.whenStable();
-    jql.value = ' ';
-    jql.dispatchEvent(new Event('change'));
-    await fixture.whenStable();
-    expect(
-      calls
-        .filter((c) => c.command === 'settings.set')
-        .slice(-2)
-        .map((c) => c.request),
-    ).toEqual([{ jiraQuery: 'project = GRIM' }, { jiraQuery: DEFAULT_SETTINGS.jiraQuery }]);
-    expect(jql.value).toBe(DEFAULT_SETTINGS.jiraQuery);
-
-    // Jira turned off is never fetched.
-    [...el.querySelectorAll<HTMLButtonElement>('[aria-labelledby="gr-settings-jira-on"] .word')]
-      .find((button) => button.textContent!.trim() === 'Off')!
-      .click();
-    await fixture.whenStable();
-    expect(calls.filter((c) => c.command === 'settings.set').at(-1)!.request).toEqual({
-      jira: false,
-    });
 
     [
       ...el.querySelectorAll<HTMLButtonElement>(

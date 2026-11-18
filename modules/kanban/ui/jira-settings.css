@@ -1,0 +1,101 @@
+:host {
+  display: block;
+  margin-top: var(--gr-settings-section-gap);
+}
+
+h2 {
+  margin: 0;
+  font-family: var(--gr-font-display-sc);
+  font-weight: 400;
+  font-size: var(--gr-size-section-head);
+  letter-spacing: var(--gr-tracking-section-head);
+  color: var(--gr-rubric);
+}
+
+.lead {
+  margin: var(--gr-aside-gap) 0 var(--gr-settings-lead-gap);
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+/* Each setting's name in small capitals down the left, what it takes beside it. */
+.form {
+  display: grid;
+  grid-template-columns: var(--gr-settings-label-col) minmax(0, 1fr);
+  align-items: baseline;
+  row-gap: var(--gr-settings-row-gap);
+  column-gap: var(--gr-settings-col-gap);
+}
+
+.label {
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-label);
+  letter-spacing: var(--gr-tracking-label);
+  line-height: var(--gr-settings-label-leading);
+  color: var(--gr-ink-soft);
+}
+
+/* Words to pick from, the picked one underlined in rubric. */
+.words {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--gr-settings-word-gap);
+}
+
+.word {
+  padding: var(--gr-settings-word-pad);
+  border-bottom: var(--gr-settings-word-rule-off);
+  font-size: var(--gr-size-settings-word);
+  color: var(--gr-ink-soft);
+}
+
+.word:hover {
+  color: var(--gr-ink);
+}
+
+.word[aria-checked='true'] {
+  color: var(--gr-ink);
+  border-bottom: var(--gr-settings-word-rule);
+}
+
+/* Written on a dotted line, in pen. */
+.line {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-bottom: var(--gr-rename-rule);
+  background: transparent;
+  font: inherit;
+  font-size: var(--gr-size-settings-word);
+  line-height: var(--gr-leading-text);
+  color: var(--gr-pen);
+  caret-color: var(--gr-pen);
+  outline: none;
+  resize: vertical;
+}
+
+.line.code {
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-code);
+}
+
+.line::placeholder {
+  font-style: italic;
+  font-family: inherit;
+  color: var(--gr-ink-placeholder);
+}
+
+.line:focus-visible {
+  border-bottom-color: var(--gr-pen);
+}
+
+/* A note on the setting above, drawn up close to it. */
+.note {
+  grid-column: 2;
+  margin: calc(var(--gr-settings-note-pull) * -1) 0 0;
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}

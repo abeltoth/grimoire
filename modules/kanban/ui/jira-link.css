@@ -53,6 +53,14 @@
   font-style: italic;
 }
 
+/* Why Jira can't be reached, above all else on the card. */
+.unreached {
+  margin: 0 0 var(--gr-kanban-form-gap);
+  font-style: italic;
+  font-size: var(--gr-size-label);
+  color: var(--gr-rubric);
+}
+
 /* The board's Jira issues, each its key then its summary; a long list scrolls. */
 .issues {
   display: flex;

@@ -44,16 +44,24 @@ export class JiraLink {
 
   readonly chat = input.required<Chat>();
 
-  /** Whether the mark shows: Jira on, an Atlassian connector reached, a chat begun, and no Jira issue of its own. */
+  /** Whether the mark shows: Jira on, a chat begun, and no Jira issue of its own. */
   protected readonly shown = computed(() => {
-    const status = this.board.jira()?.status ?? 'none';
     const chat = this.chat();
-    return (
-      this.settings.all().jira &&
-      status !== 'none' &&
-      chat.status !== 'blank' &&
-      !this.board.cardOf(chat.id)?.jira
-    );
+    return this.settings.all().jira && chat.status !== 'blank' && !this.board.cardOf(chat.id)?.jira;
+  });
+  /** Why Jira can't be reached, when the board's last sync says so. */
+  protected readonly unreached = computed(() => {
+    const jira = this.board.jira();
+    switch (jira?.status ?? 'none') {
+      case 'none':
+        return 'No Atlassian connector reached yet. Connect Atlassian among your connectors on claude.ai, then sync the Kanban board.';
+      case 'needs-auth':
+        return 'The Atlassian connector needs connecting again on claude.ai.';
+      case 'failed':
+        return `Jira couldn’t be reached: ${jira?.error ?? 'it said no more'}`;
+      default:
+        return null;
+    }
   });
   /** The Jira issue the agent proposed for the chat, if any. */
   protected readonly proposal = computed(() => this.board.proposals()[this.chat().id]);

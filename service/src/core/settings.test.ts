@@ -34,6 +34,8 @@ describe('SettingsStore', () => {
       jira: true,
       jiraQuery:
         'assignee = currentUser() AND (statusCategory != Done OR statusCategoryChangedDate >= -14d) ORDER BY updated DESC',
+      jiraProject: '',
+      jiraIssueType: 'Task',
       historyGroup: 'date',
       quickModels: {},
       autoTitles: false,
@@ -66,6 +68,10 @@ describe('SettingsStore', () => {
     expect(() => settings.set({ jira: 'maybe' } as never)).toThrow('"jira"');
     settings.set({ jiraQuery: 'project = GRIM ORDER BY rank' });
     expect(() => settings.set({ jiraQuery: ' ' })).toThrow('"jiraQuery"');
+    settings.set({ jiraProject: 'GRIM_2' });
+    expect(() => settings.set({ jiraProject: 'grim' })).toThrow('"jiraProject"');
+    settings.set({ jiraIssueType: 'Bug' });
+    expect(() => settings.set({ jiraIssueType: ' ' })).toThrow('"jiraIssueType"');
     settings.set({ historyGroup: 'project' });
     expect(() => settings.set({ historyGroup: 'tag' } as never)).toThrow('"historyGroup"');
     settings.set({ quickModels: { 'claude-code': 'sonnet' } });
@@ -110,6 +116,8 @@ describe('SettingsStore', () => {
       diffsOpen: false,
       jira: false,
       jiraQuery: 'project = GRIM ORDER BY rank',
+      jiraProject: 'GRIM_2',
+      jiraIssueType: 'Bug',
       historyGroup: 'project',
       quickModels: { 'claude-code': 'sonnet' },
       autoTitles: true,

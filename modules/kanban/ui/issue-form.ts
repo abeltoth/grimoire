@@ -11,13 +11,15 @@ import {
 } from '@angular/core';
 import type { JiraIssueDraft } from '@grimoire/contract';
 import type { Chat } from '@ui/app/core/chat';
+import { Settings } from '@ui/app/core/settings';
 import { Board } from './board';
 
 /**
  * A Jira issue written out to create for a chat, from the agent's
  * proposal when there's one: its summary, description, project and
- * type, each to change. Its project is the agent's, or else the one most
- * of the board's Jira issues are in.
+ * type, each to change. Its project is the agent's, or else the one in
+ * the settings, or else the one most of the board's Jira issues are in;
+ * its type the agent's, or else the one in the settings.
  */
 @Component({
   selector: 'gr-issue-form',
@@ -32,11 +34,16 @@ export class IssueForm {
   readonly done = output<void>();
 
   private readonly board = inject(Board);
+  private readonly settings = inject(Settings);
 
   protected readonly summary = linkedSignal(() => this.draft()?.summary ?? this.chat().title);
   protected readonly description = linkedSignal(() => this.draft()?.description ?? '');
-  protected readonly project = linkedSignal(() => this.draft()?.project || this.usualProject());
-  protected readonly issueType = linkedSignal(() => this.draft()?.issueType || 'Task');
+  protected readonly project = linkedSignal(
+    () => this.draft()?.project || this.settings.all().jiraProject || this.usualProject(),
+  );
+  protected readonly issueType = linkedSignal(
+    () => this.draft()?.issueType || this.settings.all().jiraIssueType || 'Task',
+  );
   protected readonly creating = signal(false);
   /** Why Jira didn't create it, until the next try. */
   protected readonly failed = signal<string | null>(null);

@@ -45,6 +45,25 @@ describe('the propose_jira_issue tool', () => {
     expect(said).toContain("Don't create it yourself");
   });
 
+  it('takes the project and type the agent leaves out from the settings', async () => {
+    const propose = vi.fn();
+    const proposing = proposeIssueTool(
+      () => undefined,
+      propose,
+      () => true,
+      () => ({ project: 'OPS', issueType: 'Story' }),
+    );
+    await proposing.run({ summary: 'Deploy', description: '' }, chat);
+    await proposing.run(
+      { summary: 'Deploy', description: '', project: 'grim', issueType: 'Bug' },
+      chat,
+    );
+    expect(propose.mock.calls.map(([, draft]) => [draft.project, draft.issueType])).toEqual([
+      ['OPS', 'Story'],
+      ['GRIM', 'Bug'],
+    ]);
+  });
+
   it('proposes nothing for a chat linked to an issue already', async () => {
     const { tool: proposing, propose } = tool('GRIM-12');
     expect(await proposing.run({ summary: 'More', description: '' }, chat)).toBe(

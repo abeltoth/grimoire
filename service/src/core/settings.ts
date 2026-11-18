@@ -64,6 +64,9 @@ const VALID: { [K in keyof GrimoireSettings]: (value: unknown) => boolean } = {
   jira: (value) => typeof value === 'boolean',
   jiraQuery: (value) =>
     typeof value === 'string' && value.trim() !== '' && value.length <= MAX_JIRA_QUERY,
+  jiraProject: (value) => typeof value === 'string' && (value === '' || JIRA_PROJECT.test(value)),
+  jiraIssueType: (value) =>
+    typeof value === 'string' && value.trim() !== '' && value.length <= MAX_JIRA_ISSUE_TYPE,
   historyGroup: (value) => value === 'date' || value === 'project',
   quickModels: (value) =>
     typeof value === 'object' &&
@@ -93,6 +96,10 @@ function tabIds(value: unknown): value is string[] {
 
 /** The longest Jira query kept: longer than anyone writes by hand. */
 const MAX_JIRA_QUERY = 2000;
+/** A Jira project's key: a capital letter, then capitals, digits or underscores, as Jira allows. */
+const JIRA_PROJECT = /^[A-Z][A-Z0-9_]{0,49}$/;
+/** The longest issue type kept: longer than any Jira names. */
+const MAX_JIRA_ISSUE_TYPE = 100;
 
 /** The most MCP servers kept off: more than anyone has. */
 const MAX_MCP_SERVERS = 200;

@@ -5,6 +5,7 @@ import { RightPageState } from '@ui/app/shell/right-page/right-page-state';
 import { type Badge, provideShellEntries } from '@ui/app/shell/shell-registry';
 import { Board, COLUMNS } from './board';
 import { JiraLink } from './jira-link';
+import { JiraSettings } from './jira-settings';
 import { KanbanPage } from './kanban-page';
 
 /** How much of a card's title its badge shows. */
@@ -15,7 +16,7 @@ const BADGE_LENGTH = 32;
  * board, and a chat begun from a card bears that card's badge in its
  * page header, which turns there too; a Jira card's names its issue and
  * opens it in Jira. A chat with no Jira issue says so after its title,
- * while Jira is on.
+ * while Jira is on; Jira's settings are a section of the Settings page.
  */
 export function provideKanban(): EnvironmentProviders {
   return provideShellEntries((shell) => {
@@ -24,6 +25,7 @@ export function provideKanban(): EnvironmentProviders {
     const wording = inject(Wording);
     shell.pageTabs.add({ id: 'kanban', label: 'Kanban', order: 20, component: KanbanPage });
     shell.afterTitle.add({ id: 'kanban.jira', order: 10, component: JiraLink });
+    shell.settingsSections.add({ id: 'jira', order: 10, component: JiraSettings });
 
     effect((onCleanup) => {
       const card = board.current();

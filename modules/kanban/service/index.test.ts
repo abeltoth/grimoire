@@ -4,13 +4,14 @@ import type { AgentTool, ModuleContext } from '@grimoire/service/core/module';
 import { CommandRegistry } from '@grimoire/service/core/registry';
 import { migrate, openDatabase } from '@grimoire/service/testing/database';
 import { kanban } from '.';
-import { JiraCards } from './jira-store';
 import { MIGRATIONS } from './migrations';
 
 const chat = { chatId: 'chat-1', agent: 'claude-code', cwd: '/git/grimoire' };
 
 /** The module started on a new board, with Jira on as `settings` says. */
-function started(settings: { jira: boolean } = { jira: true }) {
+function started(
+  settings: { jira: boolean; jiraProject?: string; jiraIssueType?: string } = { jira: true },
+) {
   const db = openDatabase(':memory:');
   migrate(db, 'kanban', MIGRATIONS);
   const registry = new CommandRegistry();
@@ -22,7 +23,9 @@ function started(settings: { jira: boolean } = { jira: true }) {
     events: {
       emit: (event: EventName, payload: EventPayload<EventName>) => told.push([event, payload]),
     },
-    settings: { get: () => ({ jiraQuery: '', ...settings }) },
+    settings: {
+      get: () => ({ jiraQuery: '', jiraProject: '', jiraIssueType: 'Task', ...settings }),
+    },
     log: () => {},
     registerTool: (tool: AgentTool) => tools.push(tool),
   } as unknown as ModuleContext);
@@ -43,21 +46,28 @@ describe('the kanban module', () => {
     ]);
   });
 
-  it('gives propose_jira_issue while Jira is on and an Atlassian connector was reached', () => {
+  it('gives propose_jira_issue while Jira is on', () => {
     const settings = { jira: true };
-    const { db, tool } = started(settings);
+    const { tool } = started(settings);
     const proposing = tool('propose_jira_issue');
-    expect(proposing.enabled?.()).toBe(false);
-    new JiraCards(db).replace('personal', [], 1);
     expect(proposing.enabled?.()).toBe(true);
     settings.jira = false;
     expect(proposing.enabled?.()).toBe(false);
   });
 
   it('keeps what the agent proposes, for every window to list until it is dismissed', async () => {
-    const { registry, tool, told } = started();
+    const { registry, tool, told } = started({
+      jira: true,
+      jiraProject: 'GRIM',
+      jiraIssueType: 'Story',
+    });
     await tool('propose_jira_issue').run({ summary: 'Context meter', description: '' }, chat);
-    const draft = { summary: 'Context meter', description: '', project: '', issueType: 'Task' };
+    const draft = {
+      summary: 'Context meter',
+      description: '',
+      project: 'GRIM',
+      issueType: 'Story',
+    };
     expect(await registry.call('kanban.proposals', {})).toEqual({ 'chat-1': draft });
     await registry.call('kanban.dismissProposal', { chatId: 'chat-1' });
     expect(await registry.call('kanban.proposals', {})).toEqual({});

@@ -3,14 +3,14 @@ import { render, write } from '@ui/testing/app-testing';
 import { button, field, issue, withBoard } from './kanban-testing';
 
 /** The app on a synced board, a chat begun, and its card open on a new issue written out. */
-async function writingIssue() {
+async function writingIssue(settings: Partial<typeof DEFAULT_SETTINGS> = {}) {
   const fake = withBoard([
     issue('j1', 'GRIM-12', 'Context meter', 'todo'),
     issue('j2', 'GRIM-14', 'Usage page', 'doing'),
     issue('j3', 'OPS-3', 'Deploy', 'todo'),
   ]);
   fake.answers['kanban.jira'] = () => ({ status: 'synced', syncedAt: 0, syncing: false });
-  fake.answers['settings.get'] = () => ({ ...DEFAULT_SETTINGS, jira: true });
+  fake.answers['settings.get'] = () => ({ ...DEFAULT_SETTINGS, jira: true, ...settings });
   const app = await render(fake.bridge);
   await write(app.fixture, app.el, 'Fill in the meter');
   app.el.querySelector<HTMLButtonElement>('gr-jira-link .toggle')!.click();
@@ -44,6 +44,12 @@ describe('IssueForm', () => {
         issueType: 'Task',
       },
     });
+  });
+
+  it('begins in the project and type the settings name', async () => {
+    const { el } = await writingIssue({ jiraProject: 'OPS', jiraIssueType: 'Story' });
+    expect(value(el, '.project')).toBe('OPS');
+    expect(value(el, '.type')).toBe('Story');
   });
 
   it('says why Jira didn’t create it, keeping what was written', async () => {

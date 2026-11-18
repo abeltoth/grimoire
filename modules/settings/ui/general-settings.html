@@ -267,44 +267,6 @@
       }}
     </p>
 
-    <span class="label" id="gr-settings-jira-on">Jira issues on the Kanban board</span>
-    <span class="words" role="radiogroup" aria-labelledby="gr-settings-jira-on">
-      <button
-        type="button"
-        class="word"
-        role="radio"
-        [attr.aria-checked]="all.jira"
-        (click)="set({ jira: true })"
-      >
-        On
-      </button>
-      <button
-        type="button"
-        class="word"
-        role="radio"
-        [attr.aria-checked]="!all.jira"
-        (click)="set({ jira: false })"
-      >
-        Off
-      </button>
-    </span>
-    <p class="note">Turned off, they're never fetched, which spends no tokens.</p>
-
-    <label class="label" for="gr-settings-jira">Jira query</label>
-    <textarea
-      #jiraField
-      id="gr-settings-jira"
-      class="line prompt"
-      rows="2"
-      spellcheck="false"
-      [value]="all.jiraQuery"
-      (change)="setJiraQuery(jiraField)"
-    ></textarea>
-    <p class="note">
-      Those this Jira query finds, through your claude.ai Atlassian connector. Emptied, it finds
-      yours not done, and those done in the last two weeks.
-    </p>
-
     @if (accounts.agent(); as agent) {
       @let signIn = accounts.state();
       <span class="label" id="gr-settings-account">{{ agent.name }} signs in as</span>

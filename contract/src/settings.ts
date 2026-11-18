@@ -53,6 +53,10 @@ export interface GrimoireSettings {
    * through your claude.ai Atlassian connector.
    */
   jiraQuery: string;
+  /** The Jira project a new issue for a chat goes in, by its key, such as PROJ; empty for the one most of the board's issues are in. */
+  jiraProject: string;
+  /** The type a new issue for a chat is, such as Task. */
+  jiraIssueType: string;
   /** How the History lists chats: by when they were last written in, or by project. */
   historyGroup: 'date' | 'project';
   /**
@@ -101,6 +105,8 @@ export const DEFAULT_SETTINGS: GrimoireSettings = {
   diffsOpen: true,
   jira: true,
   jiraQuery: DEFAULT_JIRA_QUERY,
+  jiraProject: '',
+  jiraIssueType: 'Task',
   historyGroup: 'date',
   quickModels: {},
   autoTitles: false,
