@@ -1,81 +1,46 @@
 import type { UsageSpan } from '@grimoire/contract';
 
-type SourceKind = UsageSpan['sources'][number]['kind'];
+type Advice = UsageSpan['advice'][number];
+type Source = UsageSpan['sources'][number];
 
 /**
- * Claude Code's ways of working, as its usage scan names them, in plain
- * words, with what it counts in each, as its own code does.
+ * Why Claude Code gives a tip about a way of working, from its share of the
+ * usage, in plain words: what its scan counts in each, as its own code does.
  */
-const BEHAVIOURS: Record<string, { name: string; rule: string }> = {
-  cache_miss: {
-    name: 'Going on after the prompt cache ran out',
-    rule: 'A request with over 100K tokens not read from the cache.',
-  },
-  long_context: { name: 'Long context', rule: 'A request whose context is over 150K tokens.' },
-  subagent_heavy: {
-    name: 'Many subagents',
-    rule: 'A whole chat that made 3 or more subagent requests, or whose subagents took over half of it.',
-  },
-  high_parallel: {
-    name: 'Many chats at once',
-    rule: 'A request while 4 or more chats ran in the same 5 minutes.',
-  },
-  cron: {
-    name: 'Chats left running for hours',
-    rule: 'A whole chat with requests in 8 or more separate hours.',
-  },
-  max_effort: { name: 'Max effort', rule: 'A request at max effort.' },
-  workflow: { name: 'Workflows', rule: 'A request from a workflow.' },
-  always_on_context: {
-    name: 'What loads into every chat',
-    rule: 'What a chat starts with, when it’s over 40K tokens, in the input of each request.',
-  },
-  large_tool_results: {
-    name: 'Large tool results',
-    rule: 'Tool results over 10K tokens, while they stay in the context.',
-  },
+const WAYS: Record<string, (share: string) => string> = {
+  cache_miss: (share) => `${share} of your usage was in requests after the prompt cache ran out`,
+  long_context: (share) => `${share} of your usage was in requests past 150K tokens of context`,
+  subagent_heavy: (share) => `${share} of your usage was in chats that leaned on subagents`,
+  high_parallel: (share) => `${share} of your usage was while 4 or more chats ran at once`,
+  cron: (share) => `${share} of your usage was in chats active over 8 or more hours`,
+  max_effort: (share) => `${share} of your usage was at max effort`,
+  workflow: (share) => `${share} of your usage was in workflows`,
+  always_on_context: (share) => `${share} of your usage went to what loads at every chat’s start`,
+  large_tool_results: (share) => `${share} of your usage went to tool results over 10K tokens`,
 };
 
-/** The ways of working the scan counts whole chats for, not requests. */
-const BY_CHAT = new Set(['subagent_heavy', 'cron']);
-
-const SOURCES: Record<SourceKind, string> = {
-  agent: 'subagent',
-  skill: 'skill',
-  plugin: 'plugin',
-  mcp: 'MCP server',
+/** The tips about one subagent, skill, plugin or MCP server, by the kind of source they name. */
+const SOURCES: Record<string, { kind: Source['kind']; took: (name: string) => string }> = {
+  agent: { kind: 'agent', took: (name) => `${name} subagents took` },
+  skill: { kind: 'skill', took: (name) => `/${name} took` },
+  plugin: { kind: 'plugin', took: (name) => `The ${name} plugin took` },
+  mcp_server: { kind: 'mcp', took: (name) => `The ${name} MCP server took` },
 };
-
-/** A way of working's name, or Claude Code's own for one Grimoire doesn't know. */
-export function behaviourName(key: string): string {
-  return BEHAVIOURS[key]?.name ?? key.replace(/_/g, ' ');
-}
-
-/** What the scan counts in a way of working; undefined for one Grimoire doesn't know. */
-export function behaviourRule(key: string): string | undefined {
-  return BEHAVIOURS[key]?.rule;
-}
-
-/** How many requests a way of working was seen in, or chats for those it counts whole. */
-export function behaviourCount(key: string, n: number): string {
-  return BY_CHAT.has(key) ? counted(n, 'chat', 'chats') : counted(n, 'request', 'requests');
-}
-
-export function sourceKind(kind: SourceKind): string {
-  return SOURCES[kind];
-}
-
-/** A count with its noun, such as "4,002 requests". */
-export function counted(n: number, one: string, many: string): string {
-  return `${n.toLocaleString()} ${n === 1 ? one : many}`;
-}
 
 /**
- * The plugins and MCP servers that took a share: the scan credits them on
- * top of the chat, a subagent or a skill, so they overlap the cost by skill.
+ * Why Claude Code gives a tip, such as "/commit took 15% of your usage";
+ * undefined for a tip Grimoire doesn't know. A tip about a source is about
+ * the one of its kind with the tip's share, the largest when none has it.
  */
-export function overlapping(span: UsageSpan): UsageSpan['sources'] {
-  return span.sources.filter((source) => source.kind === 'plugin' || source.kind === 'mcp');
+export function tipReason(advice: Advice, span: UsageSpan): string | undefined {
+  const share = `${Math.round(advice.share)}%`;
+  const way = WAYS[advice.key];
+  if (way) return way(share);
+  const source = SOURCES[advice.key];
+  if (!source) return undefined;
+  const ofKind = span.sources.filter((each) => each.kind === source.kind);
+  const named = ofKind.find((each) => each.share === advice.share) ?? ofKind[0];
+  return named ? `${source.took(named.name)} ${share} of your usage` : undefined;
 }
 
 /** The command a tip gives, such as "/clear" from "run /clear"; undefined when it says something else. */

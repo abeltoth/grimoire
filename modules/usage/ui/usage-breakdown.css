@@ -1,4 +1,4 @@
-/* The agent's tips, set apart in a note with a rule down its side: what to do, and a command to run when there's one. */
+/* The agent's tips, set apart in a note with a rule down its side: what to do, a command to run when there's one, and why. */
 .tips {
   margin-top: var(--gr-usage-head-gap);
   max-width: var(--gr-usage-width);
@@ -17,23 +17,30 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--gr-space-1);
+  gap: var(--gr-space-2);
 }
 
 .tips li {
   display: flex;
+  flex-direction: column;
+  gap: var(--gr-aside-gap);
+  font-size: var(--gr-size-aside);
+}
+
+.advice {
+  display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   gap: var(--gr-space-1) var(--gr-space-2);
-  font-size: var(--gr-size-aside);
 }
 
 .advice-title {
   color: var(--gr-ink);
 }
 
-.advice-detail {
+.advice-why {
   font-style: italic;
+  font-size: var(--gr-size-foot);
   color: var(--gr-ink-soft);
 }
 

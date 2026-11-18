@@ -16,12 +16,6 @@
   color: var(--gr-ink);
 }
 
-/* A word that explains itself keeps its own ink, marked by a dotted line under it. */
-.about.word {
-  color: inherit;
-  text-decoration: underline dotted var(--gr-ink-faint);
-}
-
 .about-tip {
   position: absolute;
   top: 100%;

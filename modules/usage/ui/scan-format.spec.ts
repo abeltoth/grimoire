@@ -1,42 +1,34 @@
 import type { UsageSpan } from '@grimoire/contract';
-import {
-  behaviourCount,
-  behaviourName,
-  behaviourRule,
-  counted,
-  overlapping,
-  tipCommand,
-} from './scan-format';
+import { tipCommand, tipReason } from './scan-format';
 
 describe('scan formats', () => {
-  it("names Claude Code's ways of working, keeping its own name for one it doesn't know", () => {
-    expect(behaviourName('long_context')).toBe('Long context');
-    expect(behaviourName('brand_new')).toBe('brand new');
-    expect(behaviourRule('long_context')).toContain('150K');
-    expect(behaviourRule('brand_new')).toBeUndefined();
+  const span: UsageSpan = {
+    requests: 10,
+    chats: 1,
+    behaviours: [],
+    advice: [],
+    sources: [
+      { kind: 'skill', name: 'commit', share: 15 },
+      { kind: 'mcp', name: 'docs', share: 12 },
+      { kind: 'skill', name: 'doctor', share: 3 },
+    ],
+  };
+  const tip = (key: string, share: number) => ({ key, share, title: 'Do it' });
+
+  it('says why a tip about a way of working is given, from its share', () => {
+    expect(tipReason(tip('long_context', 61.4), span)).toBe(
+      '61% of your usage was in requests past 150K tokens of context',
+    );
+    expect(tipReason(tip('brand_new', 20), span)).toBeUndefined();
   });
 
-  it('counts whole chats for the ways of working the scan counts by chat', () => {
-    expect(behaviourCount('long_context', 4002)).toBe('4,002 requests');
-    expect(behaviourCount('cron', 1)).toBe('1 chat');
-    expect(behaviourCount('subagent_heavy', 3)).toBe('3 chats');
-    expect(counted(1, 'request', 'requests')).toBe('1 request');
-  });
-
-  it('picks out the plugins and MCP servers', () => {
-    const span: UsageSpan = {
-      requests: 10,
-      chats: 1,
-      behaviours: [],
-      advice: [],
-      sources: [
-        { kind: 'skill', name: 'commit', share: 15 },
-        { kind: 'mcp', name: 'docs', share: 9 },
-        { kind: 'agent', name: 'Explore', share: 5 },
-        { kind: 'plugin', name: 'tools', share: 2 },
-      ],
-    };
-    expect(overlapping(span).map((source) => source.name)).toEqual(['docs', 'tools']);
+  it('names the source a tip is about: the one of its kind with its share, or the largest', () => {
+    expect(tipReason(tip('skill', 15), span)).toBe('/commit took 15% of your usage');
+    expect(tipReason(tip('skill', 11), span)).toBe('/commit took 11% of your usage');
+    expect(tipReason(tip('mcp_server', 12), span)).toBe(
+      'The docs MCP server took 12% of your usage',
+    );
+    expect(tipReason(tip('plugin', 10), span)).toBeUndefined();
   });
 
   it('finds the command a tip gives', () => {

@@ -74,60 +74,29 @@ describe('usage-breakdown', () => {
     return { ...fake, ...rendered, click };
   }
 
-  it("shows the agent's own scan under the cost, over the tab's span", async () => {
-    const { el, texts, click, calls, fixture } = await showTokens(() => ({ day, week, at: now }));
+  it("shows the agent's tips under the cost, over the tab's span, each with why", async () => {
+    const { el, texts, click, calls } = await showTokens(() => ({ day, week, at: now }));
     const panel = 'gr-usage-page .tokens gr-usage-breakdown';
 
-    // No title of its own: the tab is about where the usage went.
+    // Only the tips, in a note of their own: no title, no meters.
     expect(texts(`${panel} h3`)).toEqual([]);
-    expect(texts(`${panel} h4`)).toEqual([
-      'Ways of working',
-      'Plugins and MCP servers',
-      'Claude Code’s tips',
-    ]);
-
-    // Ways of working and the MCP servers as meters, a whole chat counted for those counted by chat.
-    expect(texts(`${panel} .limits .name`)).toEqual([
-      'Long context',
-      'Chats left running for hours',
-      'brand new',
-      'docs',
-    ]);
-    expect(texts(`${panel} .limits .resets`)).toEqual([
-      '2,000 requests',
-      '3 chats',
-      '1 request',
-      'MCP server',
-    ]);
-    expect(texts(`${panel} .limits b`)).toEqual(['59%', '10%', '2%', '9%']);
-
-    // Each way of working Grimoire knows tells what it counts, on its own name.
-    const words = el.querySelectorAll(`${panel} .limits .name .about.word`);
-    expect(words).toHaveLength(2);
-    expect(words[0]!.getAttribute('aria-description')).toBe(
-      'A request whose context is over 150K tokens.',
-    );
-    words[0]!.dispatchEvent(new FocusEvent('focus'));
-    await fixture.whenStable();
-    expect(texts(`${panel} .about-tip`)).toEqual(['A request whose context is over 150K tokens.']);
-    words[0]!.dispatchEvent(new FocusEvent('blur'));
-    await fixture.whenStable();
-
-    // The tips last, in a note of their own: what to do and the command to run, no shares.
+    expect(texts(`${panel} h4`)).toEqual(['Claude Code’s tips']);
+    expect(el.querySelector(`${panel} [role="meter"]`)).toBeNull();
     expect(texts(`${panel} .tips .advice-title`)).toEqual([
       'Start fresh when you switch tasks',
       'Run /commit on a cheaper model',
       'Review sessions active over many hours',
     ]);
     expect(texts(`${panel} .tips code`)).toEqual(['/clear']);
-    expect(texts(`${panel} .tips .advice-detail`)).toEqual([
-      'whole sessions with requests in 8 or more separate hours',
+    expect(texts(`${panel} .tips .advice-why`)).toEqual([
+      '59% of your usage was in requests past 150K tokens of context',
+      '/commit took 15% of your usage',
+      '10% of your usage was in chats active over 8 or more hours',
     ]);
-    expect(texts(`${panel} .tips`)[0]).not.toContain('%');
 
     // The tab's span picks the scan's.
     await click('gr-usage-page .tokens .spans button', 'Last 24 hours');
-    expect(texts(`${panel} h4`)).toEqual([]);
+    expect(el.querySelector(`${panel} .tips`)).toBeNull();
 
     // Reading again asks for the scan again.
     await click('gr-usage-page .tokens .sub .gr-link', 'Read again');

@@ -1,5 +1,7 @@
 :host {
   display: block;
+  /* Room under the last of a tab, so it doesn't end against the page's foot. */
+  padding-bottom: var(--gr-usage-section-gap);
 }
 
 .tabs {

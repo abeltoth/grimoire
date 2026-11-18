@@ -17,31 +17,22 @@ export function aboutText(rows: readonly AboutRow[]): string {
     .join(' ');
 }
 
-/**
- * An icon, or a word such as a row's name, that tells what something means
- * in a tooltip of its own, on hover or focus.
- */
+/** An icon that tells what something means in a tooltip of its own, on hover or focus. */
 @Component({
   selector: 'gr-usage-about',
   imports: [Icon],
   template: `
     <span
       class="about"
-      [class.word]="label()"
       tabindex="0"
-      [attr.role]="label() ? null : 'img'"
-      [attr.aria-label]="label() ? null : spoken()"
-      [attr.aria-description]="label() ? spoken() : null"
+      role="img"
+      [attr.aria-label]="spoken()"
       (mouseenter)="open.set(true)"
       (mouseleave)="open.set(false)"
       (focus)="open.set(true)"
       (blur)="open.set(false)"
     >
-      @if (label(); as label) {
-        {{ label }}
-      } @else {
-        <gr-icon name="info" />
-      }
+      <gr-icon name="info" />
       @if (open()) {
         <span class="about-tip" aria-hidden="true">
           @for (row of rows(); track $index) {
@@ -70,8 +61,6 @@ export function aboutText(rows: readonly AboutRow[]): string {
 })
 export class UsageAbout {
   readonly rows = input.required<readonly AboutRow[]>();
-  /** Shown in place of the icon, such as a row's name. */
-  readonly label = input('');
 
   protected readonly spoken = computed(() => aboutText(this.rows()));
   protected readonly open = signal(false);

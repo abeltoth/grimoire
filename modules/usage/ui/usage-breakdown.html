@@ -1,76 +1,20 @@
-@if (shown(); as scan) {
-  @if (ways().length) {
-    <h4>Ways of working</h4>
-    <ul class="limits">
-      @for (way of ways(); track way.key) {
+@if (tips().length) {
+  <aside class="tips" [attr.aria-label]="agent().name + '’s tips'">
+    <h4>{{ agent().name }}’s tips</h4>
+    <ul>
+      @for (tip of tips(); track tip.key) {
         <li>
-          <span class="head">
-            <span class="name">
-              @if (way.rule; as rule) {
-                <gr-usage-about [label]="way.name" [rows]="rule" />
-              } @else {
-                {{ way.name }}
-              }
-            </span>
-            <span class="resets">{{ way.count }}</span>
-          </span>
-          <span
-            class="ticks"
-            role="meter"
-            [attr.aria-label]="way.name + ', share of the usage'"
-            aria-valuemin="0"
-            aria-valuemax="100"
-            [attr.aria-valuenow]="way.share"
-          >
-            <span class="used" [style.width.%]="filled(way.share)"></span>
-          </span>
-          <b>{{ share(way.share) }}</b>
-        </li>
-      }
-    </ul>
-  }
-
-  @if (extras().length) {
-    <h4>Plugins and MCP servers</h4>
-    <ul class="limits">
-      @for (source of extras(); track source.kind + source.name) {
-        <li>
-          <span class="head">
-            <span class="name">{{ source.name }}</span>
-            <span class="resets">{{ sourceKind(source.kind) }}</span>
-          </span>
-          <span
-            class="ticks"
-            role="meter"
-            [attr.aria-label]="source.name + ', share of the usage'"
-            aria-valuemin="0"
-            aria-valuemax="100"
-            [attr.aria-valuenow]="source.share"
-          >
-            <span class="used" [style.width.%]="filled(source.share)"></span>
-          </span>
-          <b>{{ share(source.share) }}</b>
-        </li>
-      }
-    </ul>
-  }
-
-  @if (scan.advice.length) {
-    <aside class="tips" [attr.aria-label]="agent().name + '’s tips'">
-      <h4>{{ agent().name }}’s tips</h4>
-      <ul>
-        @for (advice of scan.advice; track advice.key + advice.title) {
-          @let command = tipCommand(advice.detail);
-          <li>
-            <span class="advice-title">{{ advice.title }}</span>
-            @if (command) {
-              <code>{{ command }}</code>
-            } @else if (advice.detail) {
-              <span class="advice-detail">{{ advice.detail }}</span>
+          <span class="advice">
+            <span class="advice-title">{{ tip.title }}</span>
+            @if (tip.command) {
+              <code>{{ tip.command }}</code>
             }
-          </li>
-        }
-      </ul>
-    </aside>
-  }
+          </span>
+          @if (tip.why) {
+            <span class="advice-why">{{ tip.why }}</span>
+          }
+        </li>
+      }
+    </ul>
+  </aside>
 }
