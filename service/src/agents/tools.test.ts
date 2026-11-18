@@ -17,4 +17,14 @@ describe('AgentTools', () => {
     expect(tools.all().map((known) => known.name)).toEqual(['b', 'a']);
     expect(() => tools.register(tool('a'))).toThrow('Tool already registered: a');
   });
+
+  it('leaves out a tool while it is not enabled', () => {
+    const tools = new AgentTools();
+    let on = false;
+    tools.register({ ...tool('a'), enabled: () => on });
+    tools.register(tool('b'));
+    expect(tools.all().map((known) => known.name)).toEqual(['b']);
+    on = true;
+    expect(tools.all().map((known) => known.name)).toEqual(['a', 'b']);
+  });
 });

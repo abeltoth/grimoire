@@ -10,25 +10,34 @@ type StartedWith = Pick<GrimoireSettings, 'mcpOff' | 'suggestions' | 'followUps'
  */
 export class ClaudeRestarts {
   private started: StartedWith;
+  private startedTools: string;
 
   constructor(
     private readonly claude: { dispose(): void; warm(): void },
     private readonly hub: { mcpChanged(): void },
     private readonly settings: () => GrimoireSettings,
+    private readonly tools: () => readonly { name: string }[] = () => [],
   ) {
     this.started = startedWith(settings());
+    this.startedTools = this.toolNames();
   }
 
   /** The settings changed. */
   settingsChanged(settings: GrimoireSettings): void {
     const { mcpOff, suggestions, followUps } = this.started;
-    // Suggestions, or separate tasks, turned on or off: the spare starts again with them; open chats, when theirs next does.
-    if (settings.suggestions !== suggestions || settings.followUps !== followUps) {
+    const tools = this.toolNames();
+    // Suggestions, separate tasks or a module's tools turned on or off: the spare starts again with them; open chats, when theirs next does.
+    if (
+      settings.suggestions !== suggestions ||
+      settings.followUps !== followUps ||
+      tools !== this.startedTools
+    ) {
       this.started = {
         ...this.started,
         suggestions: settings.suggestions,
         followUps: settings.followUps,
       };
+      this.startedTools = tools;
       this.claude.dispose();
       this.claude.warm();
     }
@@ -44,7 +53,15 @@ export class ClaudeRestarts {
   /** Another profile is in use: the spare starts with its settings, which don't restart it. */
   profileSwitched(): void {
     this.started = startedWith(this.settings());
+    this.startedTools = this.toolNames();
     this.claude.warm();
+  }
+
+  /** The tools a process starting now gets, by name. */
+  private toolNames(): string {
+    return this.tools()
+      .map((tool) => tool.name)
+      .join(' ');
   }
 }
 

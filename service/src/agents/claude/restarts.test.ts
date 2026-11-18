@@ -5,11 +5,12 @@ import { ClaudeRestarts } from './restarts';
 /** Restarts over a store holding `settings`, noting each step they take. */
 function restarting(settings: GrimoireSettings = DEFAULT_SETTINGS) {
   const steps: string[] = [];
-  const store = { settings };
+  const store = { settings, tools: [] as { name: string }[] };
   const restarts = new ClaudeRestarts(
     { dispose: () => steps.push('dispose'), warm: () => steps.push('warm') },
     { mcpChanged: () => steps.push('mcpChanged') },
     () => store.settings,
+    () => store.tools,
   );
   return { restarts, steps, store };
 }
@@ -25,6 +26,15 @@ describe('ClaudeRestarts', () => {
       followUps: !DEFAULT_SETTINGS.followUps,
     });
     expect(steps).toEqual(['dispose', 'warm', 'dispose', 'warm']);
+  });
+
+  it("starts the spare again when a setting turns a module's tool on or off", () => {
+    const { restarts, steps, store } = restarting();
+    store.tools = [{ name: 'propose_jira_issue' }];
+    restarts.settingsChanged({ ...DEFAULT_SETTINGS, jira: !DEFAULT_SETTINGS.jira });
+    expect(steps).toEqual(['dispose', 'warm']);
+    restarts.settingsChanged({ ...DEFAULT_SETTINGS, wording: 'plain' });
+    expect(steps).toEqual(['dispose', 'warm']);
   });
 
   it('has open chats and the spare start again when other MCP servers are off everywhere', () => {

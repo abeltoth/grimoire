@@ -22,6 +22,8 @@ export interface AgentTool<Input extends z.ZodRawShape = z.ZodRawShape> {
   /** What the agent is told of it in its system prompt. */
   readonly prompt: string;
   readonly input: Input;
+  /** Whether chats get it, asked as each process starts, such as only while a setting is on; always when missing. */
+  readonly enabled?: () => boolean;
   /** `chat` is unknown while the process the tool is in waits for a chat to claim it. */
   run(args: z.infer<z.ZodObject<Input>>, chat: ToolChat | undefined): string | Promise<string>;
 }
@@ -37,7 +39,8 @@ export class AgentTools {
     this.tools.push(tool);
   }
 
+  /** The tools enabled now, which a process starting now gets. */
   all(): readonly AgentTool[] {
-    return this.tools;
+    return this.tools.filter((tool) => tool.enabled?.() ?? true);
   }
 }

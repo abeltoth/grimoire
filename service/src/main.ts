@@ -91,7 +91,12 @@ const claude = new ClaudeAdapter(
   (agent) => settingsStore.get().quickModels[agent],
 );
 hub.addAdapter(claude);
-const restarts = new ClaudeRestarts(claude, hub, () => settingsStore.get());
+const restarts = new ClaudeRestarts(
+  claude,
+  hub,
+  () => settingsStore.get(),
+  () => tools.all(),
+);
 events.on('settings.changed', ({ settings }) => restarts.settingsChanged(settings));
 claude.warm();
 registerAgentCommands(registry, hub);
