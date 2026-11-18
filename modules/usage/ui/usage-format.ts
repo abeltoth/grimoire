@@ -47,6 +47,18 @@ export function dollars(n: number): string {
   }).format(n);
 }
 
+/** US dollars, short for a chart: whole from ten up, such as "$14", and "$1.2K" past a thousand. */
+export function dollarsShort(n: number): string {
+  const compact = n >= 1_000;
+  const digits = compact ? 1 : n >= 10 || n === 0 ? 0 : 2;
+  return new Intl.NumberFormat([], {
+    style: 'currency',
+    currency: 'USD',
+    ...(compact ? { notation: 'compact' as const } : { minimumFractionDigits: digits }),
+    maximumFractionDigits: digits,
+  }).format(n);
+}
+
 /** A day by its month, such as "Nov 5". */
 export const monthDay = (at: number) =>
   new Date(at).toLocaleDateString([], { month: 'short', day: 'numeric' });

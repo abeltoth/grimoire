@@ -22,14 +22,18 @@ import {
   hourShort,
   hourSpan,
   dollars,
+  dollarsShort,
   modelName,
   sourceKind,
   startOf,
 } from './usage-format';
 
+/** What the columns count: the tokens, or what they'd cost at API prices. */
+type Measure = 'tokens' | 'cost';
+
 /** Where the tokens went over the span, a column or point for each day or hour. */
 interface TokensCharts {
-  /** "Tokens by day" or "Tokens by hour". */
+  /** "By day" or "By hour". */
   caption: string;
   columns: Column[];
   cache: LineSeries[];
@@ -65,13 +69,13 @@ const TOKEN_SERIES: (ChartSeries & { of: (counts: TokenCounts) => number })[] = 
 ];
 const TOKEN_LEGEND: ChartSeries[] = TOKEN_SERIES.map(({ name, color }) => ({ name, color }));
 
-/** What the four kinds of token are, behind the chart's icon. */
+/** What the four kinds of token are and what each costs against fresh input, behind the chart's icon. */
 const KINDS = [
-  'Read from the cache: the chat so far, read again on every reply; cheap.',
+  'Fresh input: what Claude reads past the cache; the price the others are set against.',
+  'Read from the cache: the chat so far, read again on every reply; a tenth of that price or less.',
   'Written to the cache: new context stored, as when a chat starts, a big file is read or the ' +
-    'cache ran out; dear.',
-  'Fresh input: read without the cache; usually next to none.',
-  'Output: what Claude writes, its thinking included.',
+    'cache ran out; 1.25 times it, twice when kept for an hour.',
+  'Output: what Claude writes, its thinking included; five times it.',
 ].join('\n');
 
 /** A scale's foot a little under the lowest share, on an even step so its middle line is whole. */
@@ -124,6 +128,15 @@ export class UsageTokens {
   protected readonly filled = filled;
   protected readonly round = Math.round;
 
+  protected readonly measure = signal<Measure>('tokens');
+  protected readonly measures: [Measure, string][] = [
+    ['tokens', 'Tokens'],
+    ['cost', 'Cost'],
+  ];
+  protected readonly columnFormat = computed(() =>
+    this.measure() === 'tokens' ? tokenCount : dollarsShort,
+  );
+
   protected readonly pieView = signal<PieView>('time');
   protected readonly pieViews = computed((): [PieView, string][] => [
     ['time', this.readings.span() === 'day' ? 'Hour' : 'Day'],
@@ -137,6 +150,7 @@ export class UsageTokens {
     const totals = this.readings.totals();
     if (!totals || !sumTokens(totals.total)) return null;
     const unit = this.readings.span() === 'day' ? 'hour' : 'day';
+    const measure = this.measure();
     const byDay = new Map(totals.days.map((day) => [day.day, day]));
     const byHour = new Map(totals.hours.map((hour) => [hour.hour, hour]));
     const columns: Column[] = [];
@@ -157,8 +171,18 @@ export class UsageTokens {
       columns.push({
         label,
         name: unit === 'day' ? dayName(dayKey(new Date(start))) : hourSpan(start, to),
-        parts: TOKEN_SERIES.map((series) => (total ? series.of(total) : 0)),
-        ...(total?.dollars ? { note: `${dollars(total.dollars)} at API prices` } : {}),
+        parts: TOKEN_SERIES.map((series) =>
+          total ? series.of(measure === 'tokens' ? total : total.cost) : 0,
+        ),
+        // The other measure, in the tooltip.
+        ...(total
+          ? {
+              note:
+                measure === 'tokens'
+                  ? `${dollars(total.dollars)} at API prices`
+                  : `${tokenCount(sumTokens(total))} tokens`,
+            }
+          : {}),
       });
       if (label) ticks.push({ at: middle, label });
       const share = total ? cacheShare(total) : null;
@@ -166,7 +190,7 @@ export class UsageTokens {
     }
     const bucket = unit === 'day' ? DAY : HOUR;
     return {
-      caption: unit === 'day' ? 'Tokens by day' : 'Tokens by hour',
+      caption: unit === 'day' ? 'By day' : 'By hour',
       columns,
       cache: [{ name: 'Served from the cache', color: 'var(--gr-chart-1)', points: cache }],
       cacheFloor: floorUnder(Math.min(100, ...cache.map((point) => point.value))),

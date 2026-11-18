@@ -65,7 +65,8 @@ function bar(x: number, top: number, width: number, height: number, rounded: boo
 
 /**
  * A stacked column chart: a column for each day or hour, each series a
- * part of it, with a legend and a tooltip on hover and focus.
+ * part of it, with a legend and a tooltip on hover and focus; whatever is
+ * put inside it, such as a choice of what it counts, sits by its caption.
  */
 @Component({
   selector: 'gr-usage-columns',

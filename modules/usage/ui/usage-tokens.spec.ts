@@ -1,7 +1,7 @@
 import type { CommandRequest, TokenTotals, UsageBreakdown, UsageSpan } from '@grimoire/contract';
 import { fakeBridge, openPageTab, render } from '@ui/testing/app-testing';
 import { floorUnder } from './usage-tokens';
-import { dollars } from './usage-format';
+import { dollars, dollarsShort } from './usage-format';
 
 describe('usage-tokens', () => {
   // The page counts days and hours back from now, so the tests fix it.
@@ -86,11 +86,13 @@ describe('usage-tokens', () => {
       }),
     });
 
-    expect(texts('gr-usage-page .tokens > gr-usage-columns figcaption')).toEqual(['Tokens by day']);
+    expect(texts('gr-usage-page .tokens > gr-usage-columns figcaption')).toEqual([
+      'By day Tokens Cost',
+    ]);
     // What the four kinds are, behind an icon by the caption.
     expect(
       el.querySelector('gr-usage-page gr-usage-columns .about')!.getAttribute('title'),
-    ).toContain('Fresh input: read without the cache');
+    ).toContain('Output: what Claude writes, its thinking included; five times it.');
     expect(texts('gr-usage-page gr-usage-lines figcaption')).toEqual(['Served from the cache']);
     expect(texts('gr-usage-page gr-usage-columns .legend li')).toEqual([
       'Read from the cache',
@@ -107,13 +109,24 @@ describe('usage-tokens', () => {
     expect(columns.at(-1)).toContain(`; ${dollars(14)} at API prices`);
     expect(columns.at(-2)).toContain(': 0;');
     expect(columns.at(-3)).toContain(': 4K;');
+    // Counted in dollars at a click, the tokens then in the tooltip.
+    await click('gr-usage-page gr-usage-columns .groups button', 'Cost');
+    const costs = [...el.querySelectorAll('gr-usage-page gr-usage-columns rect.hit')].map(
+      (column) => column.getAttribute('aria-label')!,
+    );
+    expect(costs.at(-1)).toContain(
+      `: ${dollarsShort(14)}; Read from the cache ${dollarsShort(6)},`,
+    );
+    expect(costs.at(-1)).toContain('; 6.4K tokens');
+    await click('gr-usage-page gr-usage-columns .groups button', 'Tokens');
+
     // The cache line's scale starts under its worst day, 75% here.
     expect(texts('gr-usage-page gr-usage-lines .y-tick')).toEqual(['74%', '87%', '100%']);
     expect(el.querySelector('gr-usage-page table')).toBeNull();
 
     await click('gr-usage-page .spans button', 'Last 24 hours');
     expect(texts('gr-usage-page .tokens > gr-usage-columns figcaption')).toEqual([
-      'Tokens by hour',
+      'By hour Tokens Cost',
     ]);
     expect(
       el.querySelectorAll('gr-usage-page gr-usage-columns rect.hit').length,
@@ -165,13 +178,13 @@ describe('usage-tokens', () => {
       }),
     });
 
-    // The cost at the API's prices first, then every token, each explained on hover.
+    // Every token first, then what they'd cost at the API's prices, each explained on hover.
     expect(texts('gr-usage-page .total > span')).toEqual([
-      `${dollars(50)} at API prices`,
       '14K tokens',
+      `${dollars(50)} at API prices`,
       '2K tokens of models without known prices aren’t counted',
     ]);
-    const [cost, tokens] = el.querySelectorAll('gr-usage-page .total > span');
+    const [tokens, cost] = el.querySelectorAll('gr-usage-page .total > span');
     expect(cost!.getAttribute('title')).toContain('list prices');
     expect(tokens!.getAttribute('title')).toBe('4K fresh input, 10K read from the cache');
     expect(el.querySelector('gr-usage-page details')).toBeNull();

@@ -7,11 +7,11 @@
     } @else if (readings.totals(); as totals) {
       @if (all(totals.total)) {
         <p class="total">
-          <span class="name" [attr.title]="pricing"
-            >{{ dollars(totals.total.dollars) }} at API prices</span
-          >
-          <span class="detail" [attr.title]="inWords(totals.total)">
+          <span class="name" [attr.title]="inWords(totals.total)">
             {{ count(all(totals.total)) }} tokens
+          </span>
+          <span class="detail" [attr.title]="pricing">
+            {{ dollars(totals.total.dollars) }} at API prices
           </span>
           @if (totals.unpriced) {
             <span class="detail">
@@ -26,8 +26,21 @@
             [about]="kinds"
             [series]="tokenSeries"
             [columns]="charts.columns"
-            [format]="count"
-          />
+            [format]="columnFormat()"
+          >
+            <span class="groups" role="radiogroup" aria-label="Count">
+              @for (each of measures; track each[0]) {
+                <button
+                  type="button"
+                  role="radio"
+                  [attr.aria-checked]="measure() === each[0]"
+                  (click)="measure.set(each[0])"
+                >
+                  {{ each[1] }}
+                </button>
+              }
+            </span>
+          </gr-usage-columns>
           @if (charts.cache[0]!.points.length) {
             <gr-usage-lines
               caption="Served from the cache"
