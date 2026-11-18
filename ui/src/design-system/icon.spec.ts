@@ -23,6 +23,7 @@ const NAMES: IconName[] = [
   'approval',
   'tick',
   'check',
+  'info',
   'ornament',
 ];
 

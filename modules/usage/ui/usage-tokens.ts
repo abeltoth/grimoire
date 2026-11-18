@@ -22,7 +22,6 @@ import {
   hourShort,
   hourSpan,
   dollars,
-  dollarsShort,
   modelName,
   sourceKind,
   startOf,
@@ -30,10 +29,12 @@ import {
 
 /** Where the tokens went over the span, a column or point for each day or hour. */
 interface TokensCharts {
-  /** "Cost by day" or "Cost by hour". */
+  /** "Tokens by day" or "Tokens by hour". */
   caption: string;
   columns: Column[];
   cache: LineSeries[];
+  /** The cache chart's foot: a little under its lowest reading, so small changes show. */
+  cacheFloor: number;
   from: number;
   to: number;
   ticks: ChartTick[];
@@ -51,8 +52,8 @@ const PRICING =
 /** What the ring of the cost can be split by: the day, or the hour over the last 24, the model, folder or chat. */
 type PieView = 'time' | 'model' | 'folder' | 'chat';
 
-/** The parts a column of the cost is stacked from, bottom first. */
-const COST_SERIES: (ChartSeries & { of: (cost: TokenCounts) => number })[] = [
+/** The parts a column of tokens is stacked from, bottom first. */
+const TOKEN_SERIES: (ChartSeries & { of: (counts: TokenCounts) => number })[] = [
   { name: 'Read from the cache', color: 'var(--gr-chart-1)', of: (c) => c.cacheRead },
   {
     name: 'Written to the cache',
@@ -62,7 +63,21 @@ const COST_SERIES: (ChartSeries & { of: (cost: TokenCounts) => number })[] = [
   { name: 'Fresh input', color: 'var(--gr-chart-3)', of: (c) => c.input },
   { name: 'Output', color: 'var(--gr-chart-4)', of: (c) => c.output },
 ];
-const COST_LEGEND: ChartSeries[] = COST_SERIES.map(({ name, color }) => ({ name, color }));
+const TOKEN_LEGEND: ChartSeries[] = TOKEN_SERIES.map(({ name, color }) => ({ name, color }));
+
+/** What the four kinds of token are, behind the chart's icon. */
+const KINDS = [
+  'Read from the cache: the chat so far, read again on every reply; cheap.',
+  'Written to the cache: new context stored, as when a chat starts, a big file is read or the ' +
+    'cache ran out; dear.',
+  'Fresh input: read without the cache; usually next to none.',
+  'Output: what Claude writes, its thinking included.',
+].join('\n');
+
+/** A scale's foot a little under the lowest share, on an even step so its middle line is whole. */
+export function floorUnder(lowest: number): number {
+  return Math.max(0, 100 - 2 * Math.ceil((100 - lowest + 1) / 2));
+}
 
 /** The share of the input read from the cache, in percent; null with no input. */
 function cacheShare(c: TokenCounts): number | null {
@@ -97,8 +112,8 @@ export class UsageTokens {
   protected readonly few = SHOWN;
   private readonly open = signal<ReadonlySet<string>>(new Set());
 
-  protected readonly costSeries = COST_LEGEND;
-  protected readonly short = dollarsShort;
+  protected readonly tokenSeries = TOKEN_LEGEND;
+  protected readonly kinds = KINDS;
   protected readonly dollars = dollars;
   protected readonly pricing = PRICING;
   protected readonly count = tokenCount;
@@ -142,7 +157,8 @@ export class UsageTokens {
       columns.push({
         label,
         name: unit === 'day' ? dayName(dayKey(new Date(start))) : hourSpan(start, to),
-        parts: COST_SERIES.map((series) => (total ? series.of(total.cost) : 0)),
+        parts: TOKEN_SERIES.map((series) => (total ? series.of(total) : 0)),
+        ...(total?.dollars ? { note: `${dollars(total.dollars)} at API prices` } : {}),
       });
       if (label) ticks.push({ at: middle, label });
       const share = total ? cacheShare(total) : null;
@@ -150,9 +166,10 @@ export class UsageTokens {
     }
     const bucket = unit === 'day' ? DAY : HOUR;
     return {
-      caption: unit === 'day' ? 'Cost by day' : 'Cost by hour',
+      caption: unit === 'day' ? 'Tokens by day' : 'Tokens by hour',
       columns,
       cache: [{ name: 'Served from the cache', color: 'var(--gr-chart-1)', points: cache }],
+      cacheFloor: floorUnder(Math.min(100, ...cache.map((point) => point.value))),
       from,
       to,
       ticks,

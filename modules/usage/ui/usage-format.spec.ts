@@ -5,7 +5,6 @@ import {
   dayName,
   dayShort,
   dollars,
-  dollarsShort,
   elapsed,
   filled,
   hourShort,
@@ -40,7 +39,7 @@ describe('usage formats', () => {
     );
   });
 
-  it('writes dollars to the cent below a hundred, whole above, and short for a chart', () => {
+  it('writes dollars to the cent below a hundred, and whole above', () => {
     const usd = (n: number, digits: number) =>
       n.toLocaleString([], {
         style: 'currency',
@@ -51,16 +50,6 @@ describe('usage formats', () => {
     expect(dollars(12.4)).toBe(usd(12.4, 2));
     expect(dollars(1_240.4)).toBe(usd(1_240, 0));
     expect(dollars(0.004)).toBe('<$0.01');
-    expect(dollarsShort(4.5)).toBe(usd(4.5, 2));
-    expect(dollarsShort(340.4)).toBe(usd(340, 0));
-    expect(dollarsShort(1_240)).toBe(
-      new Intl.NumberFormat([], {
-        style: 'currency',
-        currency: 'USD',
-        notation: 'compact',
-        maximumFractionDigits: 1,
-      }).format(1_240),
-    );
   });
 
   it('names local days and starts them at midnight', () => {

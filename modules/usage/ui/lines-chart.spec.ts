@@ -45,8 +45,36 @@ describe('UsageLines', () => {
   });
 });
 
+describe('UsageLines scale', () => {
+  it('starts the scale at its foot, and across the full width lines its readings up under columns', async () => {
+    const fixture = TestBed.createComponent(UsageLines);
+    fixture.componentRef.setInput('caption', 'Served from the cache');
+    fixture.componentRef.setInput('series', [
+      {
+        name: 'Served',
+        color: 'var(--gr-chart-1)',
+        points: [
+          { at: 500, value: 92 },
+          { at: 1_500, value: 100 },
+        ],
+      },
+    ]);
+    fixture.componentRef.setInput('from', 0);
+    fixture.componentRef.setInput('to', 2_000);
+    fixture.componentRef.setInput('breakAfter', 1_500);
+    fixture.componentRef.setInput('min', 90);
+    fixture.componentRef.setInput('fullWidth', true);
+    fixture.componentRef.setInput('when', (at: number) => `at ${at}`);
+    await fixture.whenStable();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(texts(el, '.y-tick')).toEqual(['90%', '95%', '100%']);
+    // Two buckets over the width from 44 to 520: their middles, as two columns' would be.
+    expect(el.querySelector('path.line')!.getAttribute('d')).toMatch(/^M163\.0,[\d.]+L401\.0,/);
+  });
+});
+
 describe('UsageLines guides', () => {
-  it('draws dashed guides named by their ends, a dot on each reading and the ground shaded, and no table when told not to', async () => {
+  it('draws dashed guides named by their ends, a dot on each reading and the ground shaded', async () => {
     const fixture = TestBed.createComponent(UsageLines);
     fixture.componentRef.setInput('caption', 'The week');
     fixture.componentRef.setInput('series', [

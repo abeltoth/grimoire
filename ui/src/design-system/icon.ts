@@ -22,6 +22,7 @@ export type IconName =
   | 'approval'
   | 'tick'
   | 'check'
+  | 'info'
   | 'ornament';
 
 /** The theme's icons, drawn in the current text colour at their design size. */

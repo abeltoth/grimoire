@@ -1,4 +1,5 @@
 import { Component, computed, input, signal } from '@angular/core';
+import { Icon } from '@ui/design-system/icon';
 
 /** A series drawn in a chart: its name, and the colour its marks wear. */
 export interface ChartSeries {
@@ -14,6 +15,8 @@ export interface Column {
   /** In full, for the tooltip. */
   name: string;
   parts: readonly number[];
+  /** A word more for the tooltip, such as what the column cost. */
+  note?: string;
 }
 
 /** A moment marked on a line chart's time axis. */
@@ -66,11 +69,14 @@ function bar(x: number, top: number, width: number, height: number, rounded: boo
  */
 @Component({
   selector: 'gr-usage-columns',
+  imports: [Icon],
   templateUrl: './columns-chart.html',
   styleUrl: './charts.css',
 })
 export class UsageColumns {
   readonly caption = input.required<string>();
+  /** What the series mean, behind an icon beside the caption; none by default. */
+  readonly about = input('');
   readonly series = input.required<readonly ChartSeries[]>();
   readonly columns = input.required<readonly Column[]>();
   readonly format = input<(n: number) => string>((n) => n.toLocaleString());
@@ -130,7 +136,8 @@ export class UsageColumns {
     const parts = column.parts
       .map((part, s) => `${this.series()[s]!.name} ${this.format()(part)}`)
       .join(', ');
-    return `${column.name}: ${this.format()(total)}; ${parts}`;
+    const note = column.note ? `; ${column.note}` : '';
+    return `${column.name}: ${this.format()(total)}; ${parts}${note}`;
   }
 
   /** Where the tooltip sits, in percent of the chart's width; it opens away from the nearer edge. */

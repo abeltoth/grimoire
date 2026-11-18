@@ -48,6 +48,27 @@ describe('UsageColumns', () => {
     expect(el.querySelector('.tip')).toBeNull();
   });
 
+  it('adds a column’s note to its tooltip, and tells what the series mean behind an icon', async () => {
+    const fixture = TestBed.createComponent(UsageColumns);
+    fixture.componentRef.setInput('caption', 'Tokens by day');
+    fixture.componentRef.setInput('about', 'Input: what goes in.');
+    fixture.componentRef.setInput('series', [{ name: 'Input', color: 'var(--gr-chart-1)' }]);
+    fixture.componentRef.setInput('columns', [
+      { label: 'Mon', name: 'Monday', parts: [300], note: '$4.00 at API prices' },
+    ]);
+    await fixture.whenStable();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('figcaption .about')!.getAttribute('title')).toBe(
+      'Input: what goes in.',
+    );
+    expect(el.querySelector('figcaption gr-icon')).not.toBeNull();
+    const hit = el.querySelector('rect.hit')!;
+    expect(hit.getAttribute('aria-label')).toBe('Monday: 300; Input 300; $4.00 at API prices');
+    hit.dispatchEvent(new FocusEvent('focus'));
+    await fixture.whenStable();
+    expect(texts(el, '.tip-row')).toEqual(['$4.00 at API prices']);
+  });
+
   it('names one series in the caption alone, with no legend, and its total in the tooltip', async () => {
     const { fixture, el } = await columns(
       [{ name: 'Peak', color: 'var(--gr-chart-1)' }],

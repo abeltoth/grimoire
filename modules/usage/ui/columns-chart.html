@@ -1,5 +1,18 @@
 <figure class="chart">
-  <figcaption>{{ caption() }}</figcaption>
+  <figcaption>
+    {{ caption() }}
+    @if (about()) {
+      <span
+        class="about"
+        tabindex="0"
+        role="img"
+        [attr.title]="about()"
+        [attr.aria-label]="about()"
+      >
+        <gr-icon name="info" />
+      </span>
+    }
+  </figcaption>
   @if (series().length > 1 || rule()) {
     <ul class="legend">
       @if (series().length > 1) {
@@ -76,6 +89,9 @@
       @let at = tipAt(each.center);
       <div class="tip" [class.flip]="at.flip" [style.left.%]="at.left" aria-hidden="true">
         <span class="tip-head">{{ each.column.name }}</span>
+        @if (each.column.note) {
+          <span class="tip-row">{{ each.column.note }}</span>
+        }
         @if (series().length > 1) {
           <span class="tip-row"
             ><strong>{{ format()(each.total) }}</strong> in all</span

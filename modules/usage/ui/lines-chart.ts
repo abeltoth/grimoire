@@ -55,6 +55,10 @@ export class UsageLines {
   /** A dot on every reading, for lines of few, such as one a week. */
   readonly dots = input(false);
   readonly max = input(100);
+  /** The scale's foot, such as just under the lowest reading, so small changes show. */
+  readonly min = input(0);
+  /** Across the whole width, as a column chart's, so its readings line up under the columns. */
+  readonly fullWidth = input(false);
   readonly format = input<(n: number) => string>((n) => `${Math.round(n)}%`);
   /** A reading's moment, for the tooltip. */
   readonly when = input.required<(at: number) => string>();
@@ -62,7 +66,8 @@ export class UsageLines {
   protected readonly width = W;
   protected readonly height = H;
   protected readonly left = LEFT;
-  protected readonly right = W - 40;
+  /** Room is left on the right for the end labels, unless the chart lines up with columns. */
+  protected readonly right = computed(() => (this.fullWidth() ? W : W - 40));
   protected readonly topEdge = TOP;
   protected readonly base = BASE;
   /** The moment the crosshair is on; null when it's off. */
@@ -71,11 +76,14 @@ export class UsageLines {
   private readonly x = computed(() => {
     const from = this.from();
     const span = Math.max(this.to() - from, 1);
-    return (at: number) => LEFT + ((at - from) / span) * (this.right - LEFT);
+    const right = this.right();
+    return (at: number) => LEFT + ((at - from) / span) * (right - LEFT);
   });
   private readonly y = computed(() => {
     const max = this.max();
-    return (value: number) => BASE - (Math.min(Math.max(value, 0), max) / max) * PLOT_H;
+    const min = this.min();
+    return (value: number) =>
+      BASE - ((Math.min(Math.max(value, min), max) - min) / (max - min)) * PLOT_H;
   });
 
   /** Every moment anything was read, oldest first. */
@@ -89,6 +97,7 @@ export class UsageLines {
     const x = this.x();
     const y = this.y();
     const max = this.max();
+    const min = this.min();
     const gap = this.breakAfter();
     const lines = this.series().map((series) => {
       const runs: LinePoint[][] = [];
@@ -153,12 +162,15 @@ export class UsageLines {
     const guides = this.guides().map((guide) => ({
       guide,
       d: `M${x(guide.from.at).toFixed(1)},${y(guide.from.value).toFixed(1)}L${x(guide.to.at).toFixed(1)},${y(guide.to.value).toFixed(1)}`,
-      label: guideLabel(x(guide.to.at), y(guide.to.value), this.right),
+      label: guideLabel(x(guide.to.at), y(guide.to.value), this.right()),
     }));
     return {
       guides,
       // Three lines across are enough to read a share by.
-      ticks: [0, 1, 2].map((n) => ({ value: (n * max) / 2, y: y((n * max) / 2) })),
+      ticks: [0, 1, 2].map((n) => {
+        const value = min + (n * (max - min)) / 2;
+        return { value, y: y(value) };
+      }),
       lines,
       labels,
       xTicks: this.ticks().map((tick) => ({ ...tick, x: x(tick.at) })),

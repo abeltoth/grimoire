@@ -23,9 +23,10 @@
         @if (tokensCharts(); as charts) {
           <gr-usage-columns
             [caption]="charts.caption"
-            [series]="costSeries"
+            [about]="kinds"
+            [series]="tokenSeries"
             [columns]="charts.columns"
-            [format]="short"
+            [format]="count"
           />
           @if (charts.cache[0]!.points.length) {
             <gr-usage-lines
@@ -35,6 +36,8 @@
               [to]="charts.to"
               [ticks]="charts.ticks"
               [breakAfter]="charts.bucket * 1.5"
+              [min]="charts.cacheFloor"
+              [fullWidth]="true"
               [when]="bucketName"
             />
           }

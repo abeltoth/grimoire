@@ -1,6 +1,6 @@
 import type { TokenCounts } from '@grimoire/contract';
 
-// Values Grimoire keeps by hand about Claude, which a server will hand out later; any like them go here.
+// Claude's values that have to be maintained by hand, kept here to be served by a server later.
 
 /** The model Claude Code recommends for Grimoire's quick jobs, unless Settings names another. */
 export const QUICK_MODEL = 'haiku';
