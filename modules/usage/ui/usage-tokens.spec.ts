@@ -1,5 +1,6 @@
 import type { CommandRequest, TokenTotals, UsageBreakdown, UsageSpan } from '@grimoire/contract';
 import { fakeBridge, openPageTab, render } from '@ui/testing/app-testing';
+import { dollars, dollarsShort } from './usage-format';
 
 describe('usage-tokens', () => {
   // The page counts days and hours back from now, so the tests fix it.
@@ -12,14 +13,26 @@ describe('usage-tokens', () => {
     vi.useRealTimers();
   });
 
-  const counts = (input: number, cacheRead: number, output: number) => ({
-    input,
-    cacheWritten: 0,
-    cacheWrittenLong: 0,
-    cacheRead,
-    output,
-    weight: input + cacheRead * 0.1 + output * 5,
-  });
+  /** Tokens priced, for the tests, at a cent each fresh, a tenth of that read from the cache, and five cents out. */
+  const counts = (input: number, cacheRead: number, output: number) => {
+    const cost = {
+      input: input * 0.01,
+      cacheWritten: 0,
+      cacheWrittenLong: 0,
+      cacheRead: cacheRead * 0.001,
+      output: output * 0.05,
+    };
+    return {
+      input,
+      cacheWritten: 0,
+      cacheWrittenLong: 0,
+      cacheRead,
+      output,
+      cost,
+      dollars: cost.input + cost.cacheRead + cost.output,
+    };
+  };
+  const none = { unpriced: 0, chatCount: 0, tools: [], skills: [] };
 
   async function showTokens(answers: ReturnType<typeof fakeBridge>['answers']) {
     const fake = fakeBridge();
@@ -38,7 +51,7 @@ describe('usage-tokens', () => {
     return { ...fake, ...rendered, click };
   }
 
-  it('draws the weighted tokens and the share served from the cache, by day and by hour', async () => {
+  it('draws the cost and the share served from the cache, by day and by hour', async () => {
     const today = new Date(now);
     today.setHours(0, 0, 0, 0);
     const day = (back: number) => {
@@ -51,6 +64,7 @@ describe('usage-tokens', () => {
     hour.setMinutes(0, 0, 0);
     const { el, texts, click } = await showTokens({
       'search.tokens': ({ since }: CommandRequest<'search.tokens'>): TokenTotals => ({
+        ...none,
         since,
         total: counts(1_300, 9_000, 100),
         days: [
@@ -61,14 +75,10 @@ describe('usage-tokens', () => {
         models: [],
         folders: [],
         chats: [],
-        tools: [],
-        skills: [],
       }),
     });
 
-    expect(texts('gr-usage-page .tokens > gr-usage-columns figcaption')).toEqual([
-      'Weighted tokens by day',
-    ]);
+    expect(texts('gr-usage-page .tokens > gr-usage-columns figcaption')).toEqual(['Cost by day']);
     expect(texts('gr-usage-page gr-usage-lines figcaption')).toEqual(['Served from the cache']);
     expect(texts('gr-usage-page gr-usage-columns .legend li')).toEqual([
       'Read from the cache',
@@ -76,26 +86,26 @@ describe('usage-tokens', () => {
       'Fresh input',
       'Output',
     ]);
-    // A column for each day of the span, the days without turns empty, each weighed.
+    // A column for each day of the span, the days without turns empty, each in dollars.
     const columns = [...el.querySelectorAll('gr-usage-page gr-usage-columns rect.hit')].map(
       (column) => column.getAttribute('aria-label')!,
     );
     expect(columns.length).toBeGreaterThanOrEqual(8);
-    expect(columns.at(-1)).toContain(': 1.4K; Read from the cache 600, Written to the cache 0');
-    expect(columns.at(-2)).toContain(': 0;');
-    expect(columns.at(-3)).toContain(': 1.3K;');
+    expect(columns.at(-1)).toContain(
+      `: ${dollarsShort(14)}; Read from the cache ${dollarsShort(6)}`,
+    );
+    expect(columns.at(-2)).toContain(`: ${dollarsShort(0)};`);
+    expect(columns.at(-3)).toContain(`: ${dollarsShort(13)};`);
     expect(el.querySelector('gr-usage-page table')).toBeNull();
 
     await click('gr-usage-page .spans button', 'Last 24 hours');
-    expect(texts('gr-usage-page .tokens > gr-usage-columns figcaption')).toEqual([
-      'Weighted tokens by hour',
-    ]);
+    expect(texts('gr-usage-page .tokens > gr-usage-columns figcaption')).toEqual(['Cost by hour']);
     expect(
       el.querySelectorAll('gr-usage-page gr-usage-columns rect.hit').length,
     ).toBeGreaterThanOrEqual(24);
   });
 
-  it("shows every token and the weighted, a pie each by day, model, folder and chat, and the agent's word last", async () => {
+  it("shows the cost and the tokens, one ring split by what's picked, and the agent's word last", async () => {
     const span = (requests: number): UsageSpan => ({
       requests,
       chats: 4,
@@ -116,8 +126,11 @@ describe('usage-tokens', () => {
     const { el, texts, click, calls } = await showTokens({
       'usage.breakdown': (): UsageBreakdown => ({ day: span(10), week: span(70), at: 0 }),
       'search.tokens': ({ since }: CommandRequest<'search.tokens'>): TokenTotals => ({
+        ...none,
         since,
         total: counts(4_000, 10_000, 0),
+        unpriced: 2_000,
+        chatCount: 5,
         days: [{ day: '2026-11-05', ...counts(4_000, 10_000, 0) }],
         hours: [{ hour: new Date(2026, 10, 9, 14).getTime(), ...counts(4_000, 10_000, 0) }],
         models: [
@@ -134,42 +147,49 @@ describe('usage-tokens', () => {
             ...counts(2_500, 10_000, 0),
           },
         ],
-        tools: [],
-        skills: [],
       }),
     });
 
-    // Every token counted once, and weighed as the API prices them, each explained on hover.
-    expect(texts('gr-usage-page .total span')).toEqual(['14K tokens', '5K weighted']);
-    const [real, weighted] = el.querySelectorAll('gr-usage-page .total span');
-    expect(real!.getAttribute('title')).toBe('4K fresh input, 10K read from the cache');
-    expect(weighted!.getAttribute('title')).toContain('a cache read a tenth');
+    // The cost at the API's prices first, then every token, each explained on hover.
+    expect(texts('gr-usage-page .total > span')).toEqual([
+      `${dollars(50)} at API prices`,
+      '14K tokens · 71% read from the cache',
+      '2K tokens of models without known prices aren’t counted',
+    ]);
+    const [cost, tokens] = el.querySelectorAll('gr-usage-page .total > span');
+    expect(cost!.getAttribute('title')).toContain('list prices');
+    expect(tokens!.getAttribute('title')).toBe('4K fresh input, 10K read from the cache');
     expect(el.querySelector('gr-usage-page details')).toBeNull();
 
-    expect(texts('gr-usage-page gr-usage-pie figcaption')).toEqual([
-      'By day',
-      'By model',
-      'By folder',
-      'By chat',
+    // One ring at a time, split by what's picked.
+    expect(texts('gr-usage-page .split .groups button')).toEqual([
+      'Day',
+      'Model',
+      'Folder',
+      'Chat',
     ]);
-    const legend = (n: number) =>
-      [...el.querySelectorAll(`gr-usage-page gr-usage-pie:nth-child(${n}) .legend li`)].map(
+    expect(el.querySelectorAll('gr-usage-page gr-usage-pie')).toHaveLength(1);
+    const legend = () =>
+      [...el.querySelectorAll('gr-usage-page gr-usage-pie .legend li')].map(
         (row) =>
           `${row.querySelector('.name')!.textContent!.trim()} ${row.querySelector('b')!.textContent}`,
       );
     const thursday = new Date(2026, 10, 5).toLocaleDateString([], { weekday: 'short' });
-    expect(legend(1)).toEqual([`${thursday} 5 100%`]);
-    expect(legend(2)).toEqual(['Opus 5.5 60%', 'Subagents on Haiku 4.5 40%']);
-    // A turn with no folder, and the chats past the most that weighed, are slices too.
-    expect(legend(3)).toEqual(['C:/work/grimoire 80%', 'No folder 20%']);
-    expect(legend(4)).toEqual(['Ribbon 70%', 'Other 30%']);
+    expect(legend()).toEqual([`${thursday} 5 100%`]);
+    await click('gr-usage-page .split .groups button', 'Model');
+    expect(legend()).toEqual(['Opus 5.5 60%', 'Subagents on Haiku 4.5 40%']);
+    // A turn with no folder, and the chats past the costliest, are slices too.
+    await click('gr-usage-page .split .groups button', 'Folder');
+    expect(legend()).toEqual(['C:/work/grimoire 80%', 'No folder 20%']);
+    await click('gr-usage-page .split .groups button', 'Chat');
+    expect(legend()).toEqual(['Ribbon 70%', 'Other · 4 chats 30%']);
 
     // The agent's word comes last, all of it together.
     expect(texts('gr-usage-page .tokens h3')).toEqual(['Claude Code says']);
     expect(el.querySelector('gr-usage-page .says h3')!.getAttribute('title')).toContain(
       'own look through the chats',
     );
-    expect(el.querySelector('gr-usage-page .tokens > .pies + .says')).not.toBeNull();
+    expect(el.querySelector('gr-usage-page .tokens > gr-usage-pie + .says')).not.toBeNull();
     expect(texts('gr-usage-page .says .sub')).toEqual(['70 requests in 4 chats']);
     expect(texts('gr-usage-page .says .advice .name')).toEqual([
       'Start fresh when you switch tasks',
@@ -185,30 +205,30 @@ describe('usage-tokens', () => {
     ]);
     expect(texts('gr-usage-page .says .limits b')).toEqual(['80%', '5%', '9%']);
 
-    // The last 24 hours: by hour; Claude Code's scan already has them, Grimoire counts again.
-    const asked = () =>
-      calls
-        .filter((c) => c.command === 'search.tokens')
-        .map((c) => (c.request as CommandRequest<'search.tokens'>).since);
-    await click('gr-usage-page .spans button', 'Last 24 hours');
-    expect(texts('gr-usage-page gr-usage-pie figcaption')[0]).toBe('By hour');
-    const two = new Date(2026, 10, 9, 14);
-    const weekday = two.toLocaleDateString([], { weekday: 'short' });
-    expect(legend(1)).toEqual([
-      `${weekday} ${two.toLocaleTimeString([], { hour: 'numeric' })} 100%`,
-    ]);
-    expect(texts('gr-usage-page .says .sub')).toEqual(['10 requests in 4 chats']);
-    expect(asked()).toHaveLength(2);
-    expect(asked()[1]! - asked()[0]!).toBeGreaterThan(6 * 24 * 60 * 60_000 - 60_000);
-    expect(calls.filter((c) => c.command === 'usage.breakdown')).toHaveLength(1);
-
-    // A chat that weighed much opens from its pie.
+    // A chat opens from its slice.
     await click('gr-usage-page gr-usage-pie .legend button', 'Ribbon');
     expect(calls.find((c) => c.command === 'agents.open')!.request).toEqual({
       agent: 'claude-code',
       chatId: 'old-1',
       settings: { cwd: 'C:/work/grimoire' },
     });
+
+    // The last 24 hours: by hour; Claude Code's scan already has them, Grimoire counts again.
+    const asked = () =>
+      calls
+        .filter((c) => c.command === 'search.tokens')
+        .map((c) => (c.request as CommandRequest<'search.tokens'>).since);
+    await click('gr-usage-page .spans button', 'Last 24 hours');
+    await click('gr-usage-page .split .groups button', 'Hour');
+    const two = new Date(2026, 10, 9, 14);
+    const weekday = two.toLocaleDateString([], { weekday: 'short' });
+    expect(legend()).toEqual([
+      `${weekday} ${two.toLocaleTimeString([], { hour: 'numeric' })} 100%`,
+    ]);
+    expect(texts('gr-usage-page .says .sub')).toEqual(['10 requests in 4 chats']);
+    expect(asked()).toHaveLength(2);
+    expect(asked()[1]! - asked()[0]!).toBeGreaterThan(6 * 24 * 60 * 60_000 - 60_000);
+    expect(calls.filter((c) => c.command === 'usage.breakdown')).toHaveLength(1);
   });
 
   it("says so when there's nothing to say of the tokens", async () => {

@@ -2,14 +2,8 @@ import type { CommandRequest, TokenTotals } from '@grimoire/contract';
 import { fakeBridge, openPageTab, render } from '@ui/testing/app-testing';
 
 describe('usage-tools', () => {
-  const none = {
-    input: 0,
-    cacheWritten: 0,
-    cacheWrittenLong: 0,
-    cacheRead: 0,
-    output: 0,
-    weight: 0,
-  };
+  const zero = { input: 0, cacheWritten: 0, cacheWrittenLong: 0, cacheRead: 0, output: 0 };
+  const none = { ...zero, cost: zero, dollars: 0 };
 
   async function showTools(totals: Partial<TokenTotals>) {
     const { bridge, answers, calls } = fakeBridge();
@@ -18,6 +12,8 @@ describe('usage-tools', () => {
     answers['search.tokens'] = ({ since }: CommandRequest<'search.tokens'>): TokenTotals => ({
       since,
       total: none,
+      unpriced: 0,
+      chatCount: 0,
       days: [],
       hours: [],
       models: [],

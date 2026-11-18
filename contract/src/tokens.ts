@@ -16,6 +16,11 @@ export interface TokenUse extends TokenCounts {
   model: string;
   /** Spent by subagents the chat started, rather than by the chat itself. */
   subagent?: boolean;
+  /**
+   * What each kind of these tokens would cost at the API's list prices, in
+   * US dollars; absent when the agent doesn't know the model's prices.
+   */
+  cost?: TokenCounts;
 }
 
 /** What a turn spent: every reply in it, the chat's and its subagents', by model. */
@@ -37,6 +42,13 @@ export function weighTokens(counts: TokenCounts): number {
     counts.cacheWrittenLong * 2 +
     counts.cacheRead * 0.1 +
     counts.output * 5
+  );
+}
+
+/** Every token counted once, whatever its kind; or, of a cost, every dollar. */
+export function sumTokens(counts: TokenCounts): number {
+  return (
+    counts.input + counts.cacheWritten + counts.cacheWrittenLong + counts.cacheRead + counts.output
   );
 }
 

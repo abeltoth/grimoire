@@ -54,11 +54,14 @@ describe('SearchWorker', () => {
       cacheWrittenLong: 0,
       cacheRead: 0,
       output: 0,
-      weight: 0,
+      cost: { input: 0, cacheWritten: 0, cacheWrittenLong: 0, cacheRead: 0, output: 0 },
+      dollars: 0,
     };
     const totals = {
       since: 1_000,
       total: none,
+      unpriced: 0,
+      chatCount: 0,
       days: [],
       hours: [],
       models: [],

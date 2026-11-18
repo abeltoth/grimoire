@@ -1,6 +1,6 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, computed, inject, input, signal } from '@angular/core';
-import type { TokenCounts, TokenTotal } from '@grimoire/contract';
+import { type TokenCounts, sumTokens } from '@grimoire/contract';
 import { ChatList } from '@ui/app/core/chat-list';
 import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { countsInWords, tokenCount } from '@ui/app/core/tokens';
@@ -21,15 +21,16 @@ import {
   hourName,
   hourShort,
   hourSpan,
+  dollars,
+  dollarsShort,
   modelName,
-  realTokens,
   sourceKind,
   startOf,
 } from './usage-format';
 
 /** Where the tokens went over the span, a column or point for each day or hour. */
 interface TokensCharts {
-  /** "Tokens by day" or "Tokens by hour". */
+  /** "Cost by day" or "Cost by hour". */
   caption: string;
   columns: Column[];
   cache: LineSeries[];
@@ -42,29 +43,26 @@ interface TokensCharts {
 
 const SHOWN = 5;
 
-/** How the weighted count weighs, for its tooltip. */
-const WEIGHING =
-  'Weighed as the API prices tokens against fresh input: a cache read a tenth, a cache write ' +
-  'a quarter more (twice for an hour), output five times. The models’ own prices are left out.';
+/** What the cost is priced at, for its tooltip. */
+const PRICING =
+  'What these tokens would have cost at the API’s list prices, each model at its own, ' +
+  'without a subscription.';
 
-/** A pie of the weighted tokens, by one of what they went to. */
-interface TokensPie {
-  caption: string;
-  slices: Slice[];
-}
+/** What the ring of the cost can be split by: the day, or the hour over the last 24, the model, folder or chat. */
+type PieView = 'time' | 'model' | 'folder' | 'chat';
 
-/** The parts a column of tokens is stacked from, bottom first, each weighed as the API prices it. */
-const TOKEN_SERIES: (ChartSeries & { weigh: (counts: TokenCounts) => number })[] = [
-  { name: 'Read from the cache', color: 'var(--gr-chart-1)', weigh: (c) => c.cacheRead * 0.1 },
+/** The parts a column of the cost is stacked from, bottom first. */
+const COST_SERIES: (ChartSeries & { of: (cost: TokenCounts) => number })[] = [
+  { name: 'Read from the cache', color: 'var(--gr-chart-1)', of: (c) => c.cacheRead },
   {
     name: 'Written to the cache',
     color: 'var(--gr-chart-2)',
-    weigh: (c) => c.cacheWritten * 1.25 + c.cacheWrittenLong * 2,
+    of: (c) => c.cacheWritten + c.cacheWrittenLong,
   },
-  { name: 'Fresh input', color: 'var(--gr-chart-3)', weigh: (c) => c.input },
-  { name: 'Output', color: 'var(--gr-chart-4)', weigh: (c) => c.output * 5 },
+  { name: 'Fresh input', color: 'var(--gr-chart-3)', of: (c) => c.input },
+  { name: 'Output', color: 'var(--gr-chart-4)', of: (c) => c.output },
 ];
-const TOKEN_LEGEND: ChartSeries[] = TOKEN_SERIES.map(({ name, color }) => ({ name, color }));
+const COST_LEGEND: ChartSeries[] = COST_SERIES.map(({ name, color }) => ({ name, color }));
 
 /** The share of the input read from the cache, in percent; null with no input. */
 function cacheShare(c: TokenCounts): number | null {
@@ -73,14 +71,20 @@ function cacheShare(c: TokenCounts): number | null {
 }
 
 /**
- * The Usage page's Tokens tab: where the tokens went, as the agent's own
- * scan says and by Grimoire's count from the chats' transcripts.
+ * The Usage page's Tokens tab: what the chats' tokens would have cost at the
+ * API's list prices, by Grimoire's count from their transcripts, split by
+ * time, model, folder or chat; then what the agent's own scan says.
  */
 @Component({
   selector: 'gr-usage-tokens',
   imports: [NgTemplateOutlet, UsageColumns, UsageLines, UsagePie, UsageSpans],
   templateUrl: './usage-tokens.html',
-  styleUrls: ['./usage-lists.css', './usage-sections.css', './usage-tokens.css'],
+  styleUrls: [
+    './usage-lists.css',
+    './usage-picks.css',
+    './usage-sections.css',
+    './usage-tokens.css',
+  ],
 })
 export class UsageTokens {
   protected readonly readings = inject(TokenReadings);
@@ -93,22 +97,31 @@ export class UsageTokens {
   protected readonly few = SHOWN;
   private readonly open = signal<ReadonlySet<string>>(new Set());
 
-  protected readonly tokenSeries = TOKEN_LEGEND;
-  protected readonly tokenFormat = (n: number): string => tokenCount(n);
-  protected readonly weightedFormat = (n: number): string => `${tokenCount(n)} weighted`;
-  protected readonly weighing = WEIGHING;
+  protected readonly costSeries = COST_LEGEND;
+  protected readonly short = dollarsShort;
+  protected readonly dollars = dollars;
+  protected readonly pricing = PRICING;
   protected readonly count = tokenCount;
-  protected readonly real = realTokens;
+  protected readonly all = sumTokens;
+  protected readonly cacheShare = cacheShare;
   protected readonly inWords = countsInWords;
   protected readonly behaviourName = behaviourName;
   protected readonly sourceKind = sourceKind;
   protected readonly filled = filled;
   protected readonly round = Math.round;
 
+  protected readonly pieView = signal<PieView>('time');
+  protected readonly pieViews = computed((): [PieView, string][] => [
+    ['time', this.readings.span() === 'day' ? 'Hour' : 'Day'],
+    ['model', 'Model'],
+    ['folder', 'Folder'],
+    ['chat', 'Chat'],
+  ]);
+
   /** Where the tokens went over the span, a column and a point for each day, or each hour of the last 24. */
   protected readonly tokensCharts = computed((): TokensCharts | null => {
     const totals = this.readings.totals();
-    if (!totals?.total.weight) return null;
+    if (!totals || !sumTokens(totals.total)) return null;
     const unit = this.readings.span() === 'day' ? 'hour' : 'day';
     const byDay = new Map(totals.days.map((day) => [day.day, day]));
     const byHour = new Map(totals.hours.map((hour) => [hour.hour, hour]));
@@ -130,7 +143,7 @@ export class UsageTokens {
       columns.push({
         label,
         name: unit === 'day' ? dayName(dayKey(new Date(start))) : hourSpan(start, to),
-        parts: TOKEN_SERIES.map((series) => (total ? series.weigh(total) : 0)),
+        parts: COST_SERIES.map((series) => (total ? series.of(total.cost) : 0)),
       });
       if (label) ticks.push({ at: middle, label });
       const share = total ? cacheShare(total) : null;
@@ -138,7 +151,7 @@ export class UsageTokens {
     }
     const bucket = unit === 'day' ? DAY : HOUR;
     return {
-      caption: unit === 'day' ? 'Weighted tokens by day' : 'Weighted tokens by hour',
+      caption: unit === 'day' ? 'Cost by day' : 'Cost by hour',
       columns,
       cache: [{ name: 'Served from the cache', color: 'var(--gr-chart-1)', points: cache }],
       from,
@@ -148,58 +161,70 @@ export class UsageTokens {
     };
   });
 
-  /** Where the weighted tokens went: by hour over the last 24 or by day, by model, folder and chat. */
-  protected readonly pies = computed((): TokensPie[] => {
+  /** The cost split by the view picked, a slice each, with a word for what "Other" holds. */
+  protected readonly pie = computed((): { slices: Slice[]; unit: string } | null => {
     const totals = this.readings.totals();
-    if (!totals?.total.weight) return [];
-    const all = totals.total.weight;
+    if (!totals?.total.dollars) return null;
+    const all = totals.total.dollars;
     // What a list leaves out of the whole; nothing for a sliver left by rounding.
-    const left = (list: readonly TokenTotal[]) => {
-      const rest = all - list.reduce((sum, each) => sum + each.weight, 0);
+    const left = (list: readonly { dollars: number }[]) => {
+      const rest = all - list.reduce((sum, each) => sum + each.dollars, 0);
       return rest > all * 0.001 ? rest : 0;
     };
-    return [
-      this.readings.span() === 'day'
-        ? {
-            caption: 'By hour',
-            slices: totals.hours.map((each) => ({
-              name: hourShort(each.hour),
-              value: each.weight,
+    switch (this.pieView()) {
+      case 'time':
+        return this.readings.span() === 'day'
+          ? {
+              unit: 'hours',
+              slices: totals.hours.map((each) => ({
+                name: hourShort(each.hour),
+                value: each.dollars,
+              })),
+            }
+          : {
+              unit: 'days',
+              slices: totals.days.map((each) => ({
+                name: dayShort(each.day),
+                value: each.dollars,
+              })),
+            };
+      case 'model':
+        return {
+          unit: 'models',
+          slices: totals.models.map((each) => ({
+            name: modelName(each.model, each.subagent),
+            value: each.dollars,
+          })),
+        };
+      case 'folder':
+        return {
+          unit: 'folders',
+          slices: [
+            ...totals.folders.map((each) => ({
+              name: this.catalog.folderName(each.cwd),
+              value: each.dollars,
             })),
-          }
-        : {
-            caption: 'By day',
-            slices: totals.days.map((each) => ({ name: dayShort(each.day), value: each.weight })),
-          },
-      {
-        caption: 'By model',
-        slices: totals.models.map((each) => ({
-          name: modelName(each.model, each.subagent),
-          value: each.weight,
-        })),
-      },
-      {
-        caption: 'By folder',
-        slices: [
-          ...totals.folders.map((each) => ({
-            name: this.catalog.folderName(each.cwd),
-            value: each.weight,
-          })),
-          { name: 'No folder', value: left(totals.folders) },
-        ],
-      },
-      {
-        caption: 'By chat',
-        slices: [
-          ...totals.chats.map((each) => ({
-            name: each.title || 'Untitled',
-            value: each.weight,
-            key: each.id,
-          })),
-          { name: 'Other', value: left(totals.chats), rest: true },
-        ],
-      },
-    ];
+            { name: 'No folder', value: left(totals.folders) },
+          ],
+        };
+      case 'chat':
+        return {
+          unit: 'chats',
+          slices: [
+            ...totals.chats.map((each) => ({
+              name: each.title || 'Untitled',
+              value: each.dollars,
+              key: each.id,
+            })),
+            {
+              name: 'Other',
+              value: left(totals.chats),
+              rest: true,
+              count: totals.chatCount - totals.chats.length,
+            },
+          ],
+        };
+    }
   });
 
   /** A moment of a day or hour, for the tooltip of the cache chart. */

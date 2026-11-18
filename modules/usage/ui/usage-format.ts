@@ -1,4 +1,4 @@
-import type { TokenCounts, Used, UsageCredits, UsageSpan, UsageWindow } from '@grimoire/contract';
+import type { Used, UsageCredits, UsageSpan, UsageWindow } from '@grimoire/contract';
 import { modelLabel } from '@ui/app/core/tokens';
 
 /** An hour and a day in ms, as the Usage page's views and charts count back by them. */
@@ -35,9 +35,35 @@ export function dayShort(day: string): string {
 /** An hour, short, such as "Thu 2 PM". */
 export const hourShort = (at: number) => `${weekday(at)} ${hourName(at)}`;
 
-/** Every token counted once, whatever it cost. */
-export function realTokens(c: TokenCounts): number {
-  return c.input + c.cacheWritten + c.cacheWrittenLong + c.cacheRead + c.output;
+/** US dollars, to the cent below a hundred and whole above, such as "$12.40" or "$1,240"; a sliver as "<$0.01". */
+export function dollars(n: number): string {
+  if (n > 0 && n < 0.01) return '<$0.01';
+  const whole = n >= 100;
+  return new Intl.NumberFormat([], {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: whole ? 0 : 2,
+    maximumFractionDigits: whole ? 0 : 2,
+  }).format(n);
+}
+
+/** US dollars, short for a chart: whole from ten up, such as "$14", and "$1.2K" past a thousand. */
+export function dollarsShort(n: number): string {
+  if (n < 1_000) {
+    const digits = n >= 10 || n === 0 ? 0 : 2;
+    return new Intl.NumberFormat([], {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+    }).format(n);
+  }
+  return new Intl.NumberFormat([], {
+    style: 'currency',
+    currency: 'USD',
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(n);
 }
 
 /** A day by its month, such as "Nov 5". */

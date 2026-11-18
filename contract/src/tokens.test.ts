@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addTokens, weighTokens } from './tokens';
+import { addTokens, sumTokens, weighTokens } from './tokens';
 
 const none = { input: 0, cacheWritten: 0, cacheWrittenLong: 0, cacheRead: 0, output: 0 };
 
@@ -22,5 +22,13 @@ describe('addTokens', () => {
         { input: 10, cacheWritten: 20, cacheWrittenLong: 30, cacheRead: 40, output: 50 },
       ]),
     ).toEqual({ input: 11, cacheWritten: 22, cacheWrittenLong: 33, cacheRead: 44, output: 55 });
+  });
+});
+
+describe('sumTokens', () => {
+  it('counts every token once, whatever its kind', () => {
+    expect(
+      sumTokens({ input: 1, cacheWritten: 2, cacheWrittenLong: 3, cacheRead: 40, output: 5 }),
+    ).toBe(51);
   });
 });

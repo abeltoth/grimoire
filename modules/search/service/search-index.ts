@@ -5,14 +5,11 @@ import {
   type ExcerptPart,
   type PassageKind,
   type SearchHit,
-  type TokenCounts,
-  type TokenTotal,
   type TokenTotals,
   type TokenUse,
   type Used,
-  addTokens,
-  weighTokens,
 } from '@grimoire/contract';
+import { type TurnRow, totalsOf } from './token-totals';
 
 /** A passage to look through: a chat's title, one of your messages, or one of the agent's replies. */
 export interface Passage {
@@ -43,27 +40,9 @@ export interface ToolUse {
   name: string;
 }
 
-/** A turn's tokens for one model, as the totals read them, with its chat's details. */
-type TurnRow = {
-  id: ChatId;
-  at: number;
-  model: string;
-  subagent: number;
-  input: number;
-  cacheWritten: number;
-  cacheWrittenLong: number;
-  cacheRead: number;
-  output: number;
-  agent: AgentId;
-  title: string;
-  cwd: string | null;
-};
-
 /** Bump to rebuild every index: it's a cache, so it's dropped rather than migrated. */
-const VERSION = 3;
+const VERSION = 4;
 
-/** The most chats the totals list. */
-const MAX_CHATS = 10;
 /** The most tools, and skills, the totals list. */
 const MAX_USED = 10;
 
@@ -84,7 +63,12 @@ const SCHEMA = `
     cache_written INTEGER NOT NULL,
     cache_written_long INTEGER NOT NULL,
     cache_read INTEGER NOT NULL,
-    output INTEGER NOT NULL
+    output INTEGER NOT NULL,
+    cost_input REAL,
+    cost_cache_written REAL,
+    cost_cache_written_long REAL,
+    cost_cache_read REAL,
+    cost_output REAL
   );
   CREATE TABLE uses (
     chat_id TEXT NOT NULL,
@@ -169,8 +153,9 @@ export class SearchIndex {
         if (passage.text.trim()) insert.run(passage.text, chat.id, passage.kind);
       }
       const spent = this.db.prepare(
-        `INSERT INTO turns (chat_id, at, model, subagent, input, cache_written, cache_written_long, cache_read, output)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO turns (chat_id, at, model, subagent, input, cache_written, cache_written_long,
+           cache_read, output, cost_input, cost_cache_written, cost_cache_written_long, cost_cache_read, cost_output)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       );
       for (const turn of turns) {
         spent.run(
@@ -183,6 +168,11 @@ export class SearchIndex {
           turn.cacheWrittenLong,
           turn.cacheRead,
           turn.output,
+          turn.cost?.input ?? null,
+          turn.cost?.cacheWritten ?? null,
+          turn.cost?.cacheWrittenLong ?? null,
+          turn.cost?.cacheRead ?? null,
+          turn.cost?.output ?? null,
         );
       }
       const used = this.db.prepare(
@@ -211,50 +201,18 @@ export class SearchIndex {
         `SELECT turns.chat_id AS id, turns.at AS at, turns.model AS model, turns.subagent AS subagent,
            turns.input AS input, turns.cache_written AS cacheWritten,
            turns.cache_written_long AS cacheWrittenLong, turns.cache_read AS cacheRead,
-           turns.output AS output, chats.agent AS agent, chats.title AS title, chats.cwd AS cwd
+           turns.output AS output, turns.cost_input AS costInput,
+           turns.cost_cache_written AS costCacheWritten,
+           turns.cost_cache_written_long AS costCacheWrittenLong,
+           turns.cost_cache_read AS costCacheRead, turns.cost_output AS costOutput,
+           chats.agent AS agent, chats.title AS title, chats.cwd AS cwd
          FROM turns JOIN chats ON chats.chat_id = turns.chat_id
          WHERE turns.at >= ?
          ORDER BY turns.at`,
       )
       .all(since) as TurnRow[];
-    const days = new Map<string, TokenCounts[]>();
-    const hours = new Map<number, TokenCounts[]>();
-    const models = new Map<string, TokenCounts[]>();
-    const folders = new Map<string, TokenCounts[]>();
-    const chats = new Map<ChatId, TokenCounts[]>();
-    const about = new Map<ChatId, { agent: AgentId; title: string; cwd: string | null }>();
-    for (const row of rows) {
-      add(days, dayOf(row.at), row);
-      add(hours, hourOf(row.at), row);
-      add(models, `${row.subagent ? 'subagent' : 'chat'} ${row.model}`, row);
-      if (row.cwd) add(folders, row.cwd, row);
-      add(chats, row.id, row);
-      about.set(row.id, row);
-    }
     return {
-      since,
-      total: totalOf(rows),
-      days: [...days].map(([day, counts]) => ({ day, ...totalOf(counts) })),
-      hours: [...hours].map(([hour, counts]) => ({ hour, ...totalOf(counts) })),
-      models: heaviest(
-        [...models].map(([key, counts]) => {
-          const [kind, ...model] = key.split(' ');
-          return { model: model.join(' '), subagent: kind === 'subagent', ...totalOf(counts) };
-        }),
-      ),
-      folders: heaviest([...folders].map(([cwd, counts]) => ({ cwd, ...totalOf(counts) }))),
-      chats: heaviest(
-        [...chats].map(([id, counts]) => {
-          const chat = about.get(id)!;
-          return {
-            id,
-            agent: chat.agent,
-            title: chat.title,
-            ...(chat.cwd ? { cwd: chat.cwd } : {}),
-            ...totalOf(counts),
-          };
-        }),
-      ).slice(0, MAX_CHATS),
+      ...totalsOf(since, rows),
       tools: this.used('tool', since),
       skills: this.used('skill', since),
     };
@@ -320,38 +278,6 @@ export class SearchIndex {
       throw error;
     }
   }
-}
-
-function add<K>(groups: Map<K, TokenCounts[]>, key: K, counts: TokenCounts): void {
-  const group = groups.get(key);
-  if (group) group.push(counts);
-  else groups.set(key, [counts]);
-}
-
-/** Totals, the heaviest first. */
-function heaviest<T extends TokenTotal>(totals: T[]): T[] {
-  return totals.sort((a, b) => b.weight - a.weight);
-}
-
-/** Token counts added up and weighed; only the counts are kept, whatever else they came with. */
-function totalOf(counts: readonly TokenCounts[]): TokenTotal {
-  const { input, cacheWritten, cacheWrittenLong, cacheRead, output } = addTokens(counts);
-  const total = { input, cacheWritten, cacheWrittenLong, cacheRead, output };
-  return { ...total, weight: weighTokens(total) };
-}
-
-/** The local day a time falls on, as YYYY-MM-DD. */
-function dayOf(at: number): string {
-  const date = new Date(at);
-  const two = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${two(date.getMonth() + 1)}-${two(date.getDate())}`;
-}
-
-/** The start of the local hour a time falls in, in ms since the epoch. */
-function hourOf(at: number): number {
-  const date = new Date(at);
-  date.setMinutes(0, 0, 0);
-  return date.getTime();
 }
 
 /**

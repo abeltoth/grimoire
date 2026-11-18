@@ -4,10 +4,13 @@ import type { CommandRequest, TokenTotals, UsageBreakdown } from '@grimoire/cont
 import { useFakeBridge } from '@ui/testing/app-testing';
 import { TokenReadings } from './token-readings';
 
-const none = { input: 0, cacheWritten: 0, cacheWrittenLong: 0, cacheRead: 0, output: 0, weight: 0 };
+const zero = { input: 0, cacheWritten: 0, cacheWrittenLong: 0, cacheRead: 0, output: 0 };
+const none = { ...zero, cost: zero, dollars: 0 };
 const totals = (since: number): TokenTotals => ({
   since,
   total: none,
+  unpriced: 0,
+  chatCount: 0,
   days: [],
   hours: [],
   models: [],

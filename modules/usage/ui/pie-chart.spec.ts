@@ -12,21 +12,37 @@ const legend = (el: HTMLElement) =>
   );
 
 describe('slicesOf', () => {
-  it('keeps the six heaviest, a colour each, and puts the rest together as Other', () => {
-    const slices = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({ name: `s${n}`, value: n }));
+  it('keeps the ten largest, a colour each, and puts the rest together as Other', () => {
+    const slices = Array.from({ length: 12 }, (_, i) => ({ name: `s${i + 1}`, value: i + 1 }));
     const drawn = slicesOf(slices);
-    expect(drawn.map((slice) => slice.name)).toEqual(['s8', 's7', 's6', 's5', 's4', 's3', 'Other']);
+    expect(drawn.map((slice) => slice.name)).toEqual([
+      's12',
+      's11',
+      's10',
+      's9',
+      's8',
+      's7',
+      's6',
+      's5',
+      's4',
+      's3',
+      'Other',
+    ]);
     expect(drawn.map((slice) => slice.color)).toEqual([
-      'var(--gr-chart-1)',
-      'var(--gr-chart-2)',
-      'var(--gr-chart-3)',
-      'var(--gr-chart-4)',
-      'var(--gr-chart-5)',
-      'var(--gr-chart-6)',
+      ...Array.from({ length: 10 }, (_, i) => `var(--gr-chart-${i + 1})`),
       'var(--gr-ink-faint)',
     ]);
     expect(drawn.at(-1)!.value).toBe(3);
     expect(drawn.reduce((all, slice) => all + slice.share, 0)).toBeCloseTo(100);
+  });
+
+  it('names Other with how many it holds, those a list left out included', () => {
+    const slices: Slice[] = [
+      ...Array.from({ length: 11 }, (_, i) => ({ name: `c${i}`, value: 10 })),
+      { name: 'left out', value: 5, rest: true, count: 40 },
+    ];
+    expect(slicesOf(slices, 'chats').at(-1)!.name).toBe('Other · 41 chats');
+    expect(slicesOf(slices).at(-1)!.name).toBe('Other');
   });
 
   it('counts what a list left out into Other, and nothing for an empty pie', () => {
@@ -51,41 +67,45 @@ describe('slicesOf', () => {
 describe('UsagePie', () => {
   async function pie(slices: Slice[]) {
     const fixture = TestBed.createComponent(UsagePie);
-    fixture.componentRef.setInput('caption', 'By model');
+    fixture.componentRef.setInput('label', 'Cost by model');
     fixture.componentRef.setInput('slices', slices);
-    fixture.componentRef.setInput('format', (n: number) => `${n} tokens`);
+    fixture.componentRef.setInput('format', (n: number) => `$${n}`);
     await fixture.whenStable();
     return { fixture, el: fixture.nativeElement as HTMLElement };
   }
 
-  it('draws a slice for each, with its share in the legend and in a tooltip on focus', async () => {
+  it('draws a slice for each with its share in the legend, and reads the one in focus out in the middle', async () => {
     const { fixture, el } = await pie([
       { name: 'Haiku', value: 1 },
       { name: 'Opus', value: 3 },
     ]);
-    expect(texts(el, 'figcaption')).toEqual(['By model']);
+    expect(el.querySelector('svg')!.getAttribute('aria-label')).toBe('Cost by model');
     expect(legend(el)).toEqual(['Opus 75%', 'Haiku 25%']);
     const slices = el.querySelectorAll<SVGPathElement>('path.slice');
     expect([...slices].map((slice) => slice.getAttribute('aria-label'))).toEqual([
-      'Opus: 3 tokens, 75%',
-      'Haiku: 1 tokens, 25%',
+      'Opus: $3, 75%',
+      'Haiku: $1, 25%',
     ]);
+    // The whole, until a slice is under the pointer or in focus.
+    expect(texts(el, '.hole > *')).toEqual(['$4', 'in all']);
 
     slices[1]!.dispatchEvent(new FocusEvent('focus'));
     await fixture.whenStable();
-    expect(texts(el, '.tip-head, .tip strong, .tip-name')).toEqual(['Haiku', '1 tokens', '25%']);
+    expect(texts(el, '.hole > *')).toEqual(['Haiku', '$1', '25%']);
     expect(slices[0]!.classList).toContain('dim');
     slices[1]!.dispatchEvent(new FocusEvent('blur'));
     await fixture.whenStable();
-    expect(el.querySelector('.tip')).toBeNull();
+    expect(texts(el, '.hole > *')).toEqual(['$4', 'in all']);
   });
 
-  it('draws one slice as the whole disc', async () => {
+  it('draws one slice as the whole ring', async () => {
     const { el } = await pie([{ name: 'Opus', value: 5 }]);
-    expect(el.querySelector('path.slice')!.getAttribute('d')).toContain('A58,58 0 1 1 60,118');
+    const d = el.querySelector('path.slice')!.getAttribute('d')!;
+    expect(d).toContain('A58,58 0 1 1 60,118');
+    expect(d).toContain('A36,36 0 1 1 60,96');
   });
 
-  it('opens a slice with a key from the pie or the legend, and not Other', async () => {
+  it('opens a slice with a key from the ring or the legend, and not Other', async () => {
     const { fixture, el } = await pie([
       { name: 'Ribbon', value: 3, key: 'chat-1' },
       { name: 'more', value: 1, rest: true },
@@ -98,5 +118,6 @@ describe('UsagePie', () => {
     el.querySelector<HTMLButtonElement>('.legend button')!.click();
     expect(picked).toEqual(['chat-1', 'chat-1']);
     expect(texts(el, '.legend button')).toEqual(['Ribbon']);
+    expect(el.querySelector('.legend button')!.classList).not.toContain('gr-link');
   });
 });

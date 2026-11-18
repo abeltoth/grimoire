@@ -1,9 +1,10 @@
-/* Where the tokens went, a pie each by time, model, folder and chat, two to a row. */
-.pies {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--gr-usage-pies-gap);
-  max-width: var(--gr-usage-width);
+/* What the ring splits the cost by, over it. */
+.split {
+  margin-top: var(--gr-usage-head-gap);
+}
+
+.split .groups {
+  margin-left: var(--gr-space-1);
 }
 
 /* The agent's advice, and the totals, each with an aside under it. */

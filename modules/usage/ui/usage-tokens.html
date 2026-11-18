@@ -5,22 +5,30 @@
     @if (readings.totalsFailed(); as error) {
       <p class="none" role="alert">The chats’ tokens couldn’t be counted: {{ error }}</p>
     } @else if (readings.totals(); as totals) {
-      @if (totals.total.weight) {
+      @if (all(totals.total)) {
         <p class="total">
-          <span class="name" [attr.title]="inWords(totals.total)">
-            {{ count(real(totals.total)) }} tokens
+          <span class="name" [attr.title]="pricing"
+            >{{ dollars(totals.total.dollars) }} at API prices</span
+          >
+          <span class="detail" [attr.title]="inWords(totals.total)">
+            {{ count(all(totals.total)) }} tokens
+            @if (cacheShare(totals.total); as share) {
+              · {{ round(share) }}% read from the cache
+            }
           </span>
-          <span class="detail" [attr.title]="weighing">
-            {{ count(totals.total.weight) }} weighted
-          </span>
+          @if (totals.unpriced) {
+            <span class="detail">
+              {{ count(totals.unpriced) }} tokens of models without known prices aren’t counted
+            </span>
+          }
         </p>
 
         @if (tokensCharts(); as charts) {
           <gr-usage-columns
             [caption]="charts.caption"
-            [series]="tokenSeries"
+            [series]="costSeries"
             [columns]="charts.columns"
-            [format]="tokenFormat"
+            [format]="short"
           />
           @if (charts.cache[0]!.points.length) {
             <gr-usage-lines
@@ -35,16 +43,30 @@
           }
         }
 
-        <div class="pies">
-          @for (pie of pies(); track pie.caption) {
-            <gr-usage-pie
-              [caption]="pie.caption"
-              [slices]="pie.slices"
-              [format]="weightedFormat"
-              (picked)="openChat($event)"
-            />
-          }
-        </div>
+        @if (pie(); as pie) {
+          <p class="sub split">
+            Cost by
+            <span class="groups" role="radiogroup" aria-label="Cost by">
+              @for (each of pieViews(); track each[0]) {
+                <button
+                  type="button"
+                  role="radio"
+                  [attr.aria-checked]="pieView() === each[0]"
+                  (click)="pieView.set(each[0])"
+                >
+                  {{ each[1] }}
+                </button>
+              }
+            </span>
+          </p>
+          <gr-usage-pie
+            [label]="'Cost by ' + pieView()"
+            [slices]="pie.slices"
+            [unit]="pie.unit"
+            [format]="dollars"
+            (picked)="openChat($event)"
+          />
+        }
       } @else {
         <p class="none">No chat spent any tokens over this span.</p>
       }

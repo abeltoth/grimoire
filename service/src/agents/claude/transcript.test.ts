@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Entry, HookRun } from '@grimoire/contract';
+import type { Entry, HookRun, TokenUse, TurnTokens } from '@grimoire/contract';
 import type { ClaudeMessage } from './messages';
 import { ClaudeTranscript } from './transcript';
 
@@ -346,6 +346,14 @@ describe('ClaudeTranscript', () => {
   });
 
   describe('tokens', () => {
+    /** Token uses without their costs, which the tests check apart. */
+    function withoutCost<T extends TurnTokens | TokenUse | undefined>(tokens: T): T {
+      if (!tokens) return tokens;
+      if ('uses' in tokens) return { ...tokens, uses: tokens.uses.map(withoutCost) };
+      const { cost: _cost, ...rest } = tokens;
+      return rest as T;
+    }
+
     const usage = (input: number, written: number, long: number, read: number, output: number) => ({
       input_tokens: input,
       cache_creation_input_tokens: written,
@@ -398,7 +406,14 @@ describe('ClaudeTranscript', () => {
       transcript.applySubagent(reply('msg_s2', 'claude-sonnet-5-5', usage(1, 0, 0, 50, 2)), 2_600);
 
       const yours = transcript.entries.filter((entry) => entry.kind === 'user');
-      expect(yours.map((entry) => entry.tokens)).toEqual([
+      // Each model's replies are priced at its list prices, and their costs added up too.
+      const sonnet = yours[0]!.tokens!.uses[1]!.cost!;
+      expect(sonnet.input).toBeCloseTo(5 * 2e-6);
+      expect(sonnet.cacheWritten).toBeCloseTo(50 * 2.5e-6);
+      expect(sonnet.cacheRead).toBeCloseTo(50 * 0.1e-6);
+      expect(sonnet.output).toBeCloseTo(42 * 10e-6);
+      expect(yours[1]!.tokens!.uses[0]!.cost!.output).toBeCloseTo(5 * 20e-6);
+      expect(yours.map((entry) => withoutCost(entry.tokens))).toEqual([
         {
           at: 1_000,
           uses: [
@@ -438,7 +453,7 @@ describe('ClaudeTranscript', () => {
     });
 
     it("reports the live turn's tokens as they grow, its subagents' included, and starts afresh after it", () => {
-      const reported: object[][] = [];
+      const reported: TokenUse[][] = [];
       const transcript = new ClaudeTranscript(true, {
         entry: () => {},
         text: () => {},
@@ -453,7 +468,7 @@ describe('ClaudeTranscript', () => {
       transcript.apply(reply('msg_2', 'claude-opus-5-5', usage(1, 0, 0, 10, 2)));
 
       // The repeated block isn't reported again.
-      expect(reported).toEqual([
+      expect(reported.map((uses) => uses.map(withoutCost))).toEqual([
         [
           {
             model: 'claude-opus-5-5',

@@ -18,24 +18,31 @@ export interface SearchHit {
   excerpt: ExcerptPart[];
 }
 
-/** Tokens over a span, weighed. */
+/** Tokens over a span, and what they'd cost at the API's list prices. */
 export interface TokenTotal extends TokenCounts {
-  weight: number;
+  /** In US dollars, each kind apart; tokens of a model without known prices add nothing. */
+  cost: TokenCounts;
+  /** The cost in all, in US dollars. */
+  dollars: number;
 }
 
 /** Where the tokens went since a time, by Grimoire's count from the agents' transcripts. */
 export interface TokenTotals {
   since: number;
   total: TokenTotal;
+  /** Tokens of models without known prices, left out of the costs. */
+  unpriced: number;
+  /** How many chats had turns over the span, though only the costliest are listed. */
+  chatCount: number;
   /** Each day with turns, oldest first, as YYYY-MM-DD in local time. */
   days: (TokenTotal & { day: string })[];
   /** Each hour with turns, oldest first, as the start of the local hour in ms since the epoch. */
   hours: (TokenTotal & { hour: number })[];
-  /** Most weight first. */
+  /** Costliest first. */
   models: (TokenTotal & { model: string; subagent: boolean })[];
-  /** Most weight first. */
+  /** Costliest first. */
   folders: (TokenTotal & { cwd: string })[];
-  /** The chats that weighed most, most first. */
+  /** The costliest chats, costliest first. */
   chats: (TokenTotal & { id: ChatId; agent: AgentId; title: string; cwd?: string })[];
   /** The tools the agents called most in the chats, not their subagents, most first. */
   tools: Used[];

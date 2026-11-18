@@ -1,69 +1,68 @@
-<figure class="chart pie">
-  <figcaption>{{ caption() }}</figcaption>
-  @let drawn = layout();
-  <div class="body">
-    <div class="plot">
-      <svg
-        [attr.viewBox]="'0 0 ' + size + ' ' + size"
-        role="group"
-        [attr.aria-label]="caption()"
-        (mouseleave)="show(null)"
-      >
-        @for (each of drawn; track each.i) {
-          <path
-            class="slice"
-            [class.dim]="hovered() !== null && hovered() !== each.i"
-            [class.opens]="!!each.slice.key"
-            [attr.d]="each.d"
-            [style.fill]="each.slice.color"
-            tabindex="0"
-            [attr.role]="each.slice.key ? 'button' : 'img'"
-            [attr.aria-label]="spoken(each.slice)"
-            (mouseenter)="show(each.i)"
-            (focus)="show(each.i)"
-            (blur)="show(null)"
-            (click)="pick(each.slice)"
-            (keydown.enter)="pick(each.slice)"
-          />
-        }
-      </svg>
+@let drawn = layout();
+<div class="body">
+  <div class="plot">
+    <svg
+      [attr.viewBox]="'0 0 ' + size + ' ' + size"
+      role="group"
+      [attr.aria-label]="label()"
+      (mouseleave)="show(null)"
+    >
+      @for (each of drawn; track each.i) {
+        <path
+          class="slice"
+          fill-rule="evenodd"
+          [class.dim]="hovered() !== null && hovered() !== each.i"
+          [class.opens]="!!each.slice.key"
+          [attr.d]="each.d"
+          [style.fill]="each.slice.color"
+          tabindex="0"
+          [attr.role]="each.slice.key ? 'button' : 'img'"
+          [attr.aria-label]="spoken(each.slice)"
+          (mouseenter)="show(each.i)"
+          (focus)="show(each.i)"
+          (blur)="show(null)"
+          (click)="pick(each.slice)"
+          (keydown.enter)="pick(each.slice)"
+        />
+      }
+    </svg>
 
-      @let i = hovered();
+    <!-- What's under the pointer, read out in the ring's hole, where nothing can cut it off. -->
+    @let i = hovered();
+    <div class="hole" aria-hidden="true">
       @if (i !== null && drawn[i]; as each) {
-        <div
-          class="tip"
-          [class.flip]="each.tip.left > 50"
-          [style.left.%]="each.tip.left"
-          [style.top.%]="each.tip.top"
-          aria-hidden="true"
-        >
-          <span class="tip-head">{{ each.slice.name }}</span>
-          <span class="tip-row">
-            <strong>{{ format()(each.slice.value) }}</strong>
-            <span class="tip-name">{{ share(each.slice.share) }}</span>
-          </span>
-        </div>
+        <span class="hole-name">{{ each.slice.name }}</span>
+        <strong>{{ format()(each.slice.value) }}</strong>
+        <span class="hole-name">{{ share(each.slice.share) }}</span>
+      } @else {
+        <strong>{{ format()(sum()) }}</strong>
+        <span class="hole-name">in all</span>
       }
     </div>
-
-    <ul class="legend">
-      @for (each of drawn; track each.i) {
-        <li
-          [class.dim]="hovered() !== null && hovered() !== each.i"
-          (mouseenter)="show(each.i)"
-          (mouseleave)="show(null)"
-        >
-          <span class="swatch" [style.background]="each.slice.color"></span>
-          @if (each.slice.key) {
-            <button type="button" class="name gr-link" (click)="pick(each.slice)">
-              {{ each.slice.name }}
-            </button>
-          } @else {
-            <span class="name">{{ each.slice.name }}</span>
-          }
-          <b>{{ share(each.slice.share) }}</b>
-        </li>
-      }
-    </ul>
   </div>
-</figure>
+
+  <ul class="legend">
+    @for (each of drawn; track each.i) {
+      <li
+        [class.dim]="hovered() !== null && hovered() !== each.i"
+        (mouseenter)="show(each.i)"
+        (mouseleave)="show(null)"
+      >
+        <span class="swatch" [style.background]="each.slice.color"></span>
+        @if (each.slice.key) {
+          <button
+            type="button"
+            class="name opens"
+            [attr.title]="each.slice.name"
+            (click)="pick(each.slice)"
+          >
+            {{ each.slice.name }}
+          </button>
+        } @else {
+          <span class="name" [attr.title]="each.slice.name">{{ each.slice.name }}</span>
+        }
+        <b>{{ share(each.slice.share) }}</b>
+      </li>
+    }
+  </ul>
+</div>

@@ -16,6 +16,7 @@ import type {
 } from '@grimoire/contract';
 import { addTokens } from '@grimoire/contract';
 import { changedFileOf, hunksOf } from './file-patch';
+import { costOf } from './prices';
 import {
   type CompactMessage,
   LiveCompaction,
@@ -451,7 +452,13 @@ function tokenUse(message: ApiMessage, subagent: boolean): TokenUse | undefined 
     output: usage.output_tokens ?? 0,
   };
   if (!Object.values(counts).some((n) => n > 0)) return undefined;
-  return { model: message.model, ...(subagent ? { subagent } : {}), ...counts };
+  const cost = costOf(message.model, counts);
+  return {
+    model: message.model,
+    ...(subagent ? { subagent } : {}),
+    ...counts,
+    ...(cost ? { cost } : {}),
+  };
 }
 
 /** A turn's tokens added up by model, the chat's own apart from its subagents'. */
@@ -460,7 +467,12 @@ function byModel(spent: Spent): TokenUse[] {
   for (const use of spent.values()) {
     const key = `${use.subagent ? 'subagent' : 'chat'} ${use.model}`;
     const sum = uses.get(key);
-    uses.set(key, sum ? { ...sum, ...addTokens([sum, use]) } : { ...use });
+    if (!sum) uses.set(key, { ...use });
+    else {
+      // One model's replies are all priced, or none of them.
+      const cost = sum.cost && use.cost ? { cost: addTokens([sum.cost, use.cost]) } : {};
+      uses.set(key, { ...sum, ...addTokens([sum, use]), ...cost });
+    }
   }
   return [...uses.values()];
 }

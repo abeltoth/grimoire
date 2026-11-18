@@ -4,6 +4,8 @@ import {
   dayKey,
   dayName,
   dayShort,
+  dollars,
+  dollarsShort,
   elapsed,
   filled,
   hourShort,
@@ -11,7 +13,6 @@ import {
   money,
   onDay,
   planName,
-  realTokens,
   resets,
   spent,
   startOf,
@@ -39,10 +40,27 @@ describe('usage formats', () => {
     );
   });
 
-  it('counts every token once, whatever it cost', () => {
-    expect(
-      realTokens({ input: 1, cacheWritten: 2, cacheWrittenLong: 3, cacheRead: 40, output: 5 }),
-    ).toBe(51);
+  it('writes dollars to the cent below a hundred, whole above, and short for a chart', () => {
+    const usd = (n: number, digits: number) =>
+      n.toLocaleString([], {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+      });
+    expect(dollars(12.4)).toBe(usd(12.4, 2));
+    expect(dollars(1_240.4)).toBe(usd(1_240, 0));
+    expect(dollars(0.004)).toBe('<$0.01');
+    expect(dollarsShort(4.5)).toBe(usd(4.5, 2));
+    expect(dollarsShort(340.4)).toBe(usd(340, 0));
+    expect(dollarsShort(1_240)).toBe(
+      new Intl.NumberFormat([], {
+        style: 'currency',
+        currency: 'USD',
+        notation: 'compact',
+        maximumFractionDigits: 1,
+      }).format(1_240),
+    );
   });
 
   it('names local days and starts them at midnight', () => {
