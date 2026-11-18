@@ -1,0 +1,40 @@
+@if (short().length) {
+  <dl class="grid">
+    @for (field of short(); track field.name) {
+      <dt>{{ field.name }}</dt>
+      <dd>{{ field.value }}</dd>
+    }
+  </dl>
+}
+@for (field of long(); track field.name) {
+  @let open = opened().has(field.name);
+  @let markdown = rendered(field);
+  <section class="field" [attr.aria-label]="field.name">
+    <div class="field-head">
+      <span class="name">{{ field.name }}</span>
+      <span class="spacer"></span>
+      @if (previewable(field)) {
+        <button type="button" class="gr-link" (click)="toggle('sources', field.name)">
+          {{ sources().has(field.name) ? 'Preview' : 'Source' }}
+        </button>
+      }
+      @if (foldable(field)) {
+        <button
+          type="button"
+          class="gr-link"
+          [attr.aria-expanded]="open"
+          (click)="toggle('opened', field.name)"
+        >
+          {{ open ? 'Show less' : 'Show all' }}
+        </button>
+      }
+    </div>
+    <div class="value" [class.folded]="!open" tabindex="0">
+      @if (markdown !== undefined) {
+        <gr-markdown [text]="markdown" />
+      } @else {
+        <pre class="plain">{{ plain(field) }}</pre>
+      }
+    </div>
+  </section>
+}

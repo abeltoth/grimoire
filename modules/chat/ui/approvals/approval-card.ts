@@ -16,6 +16,7 @@ import { Icon } from '@ui/design-system/icon';
 import { alwaysText, askOf } from './asks';
 import { DiffView } from '@ui/design-system/diff-view';
 import { MarkdownView } from '../markdown/markdown-view';
+import { ToolInputView } from '../transcript/tool-input-view';
 
 /**
  * An approval as a card tucked into the page, waiting for you: it
@@ -26,7 +27,7 @@ import { MarkdownView } from '../markdown/markdown-view';
  */
 @Component({
   selector: 'gr-approval-card',
-  imports: [DiffView, Icon, MarkdownView],
+  imports: [DiffView, Icon, MarkdownView, ToolInputView],
   templateUrl: './approval-card.html',
   styleUrl: './approval-card.css',
   host: {

@@ -52,7 +52,7 @@
     />
   }
   @case ('tool') {
-    <div class="well detail">{{ a.detail }}</div>
+    <gr-tool-input [fields]="a.fields" />
   }
   @case ('plan') {
     <gr-markdown class="plan" [text]="a.plan" />

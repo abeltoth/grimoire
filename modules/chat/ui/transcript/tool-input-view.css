@@ -1,0 +1,71 @@
+/* A tool's input, field by field. */
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-tool-input-gap);
+  padding: var(--gr-tool-input-pad);
+}
+
+/* The short fields: what they say beside their names. */
+.grid {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--gr-tool-input-grid-gap);
+  margin: 0;
+  font-size: var(--gr-size-code);
+  line-height: var(--gr-leading-code);
+}
+
+.grid dt {
+  color: var(--gr-ink-soft);
+}
+
+.grid dd {
+  margin: 0;
+  font-family: var(--gr-font-mono);
+  color: var(--gr-ink);
+  overflow-wrap: anywhere;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-tool-input-field-gap);
+}
+
+.field-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-tool-input-head-gap);
+}
+
+.name {
+  font-family: var(--gr-font-sc);
+  font-size: var(--gr-size-tool-input-name);
+  letter-spacing: var(--gr-tracking-tool-input-name);
+  color: var(--gr-ink-soft);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.value {
+  outline: none;
+}
+
+/* A long field folds, and scrolls until you ask for all of it. */
+.value.folded {
+  max-height: var(--gr-tool-input-fold);
+  overflow: auto;
+}
+
+.plain {
+  margin: 0;
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-code);
+  line-height: var(--gr-leading-code);
+  color: var(--gr-ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

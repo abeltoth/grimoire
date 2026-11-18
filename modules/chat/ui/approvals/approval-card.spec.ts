@@ -101,24 +101,35 @@ describe('approval-card', () => {
     expect(calls.some((c) => c.command === 'agents.decide')).toBe(false);
   });
 
-  it("shows another tool's input a line each", async () => {
+  it("shows another tool's input field by field, its HTML as a preview", async () => {
     const { bridge, emit } = fakeBridge();
     const { fixture, el, texts } = await render(bridge);
-    await write(fixture, el, 'Fetch it');
+    await write(fixture, el, 'Make the page');
+    const body =
+      '<table><tr><th>Component</th></tr><tr><td><p>Redis</p></td></tr></table>' +
+      '<img src="https://evil.dev/x.png" onerror="steal()">';
     emit('agents.approval', {
       approval: {
         id: 'ap5',
         chatId: 'chat-1',
-        tool: 'WebFetch',
-        input: { url: 'https://angular.dev', prompt: 'Find "signals"' },
+        tool: 'mcp__claude_ai_Atlassian__createConfluencePage',
+        input: { spaceId: 'DFKB', contentFormat: 'html', body },
       },
     });
     await fixture.whenStable();
     expect(texts('gr-approval-card .head > *')).toEqual([
-      '¶ Claude Code seeks your seal to use WebFetch',
+      '¶ Claude Code seeks your seal to use Atlassian: create confluence page',
     ]);
-    expect(el.querySelector('gr-approval-card .well.detail')!.textContent).toBe(
-      'url: https://angular.dev\nprompt: Find "signals"',
+    expect(texts('gr-approval-card gr-tool-input dt')).toEqual(['spaceId', 'contentFormat']);
+    expect(texts('gr-approval-card gr-tool-input dd')).toEqual(['DFKB', 'html']);
+    expect(texts('gr-approval-card .field th')).toEqual(['Component']);
+    expect(texts('gr-approval-card .field td')).toEqual(['Redis']);
+    expect(el.querySelector('gr-approval-card gr-tool-input img')).toBeNull();
+
+    el.querySelector<HTMLButtonElement>('gr-approval-card .field .gr-link')!.click();
+    await fixture.whenStable();
+    expect(el.querySelector('gr-approval-card .field .plain')!.textContent).toContain(
+      '<tr><th>Component</th></tr>\n',
     );
   });
 

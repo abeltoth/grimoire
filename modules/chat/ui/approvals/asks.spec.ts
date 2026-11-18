@@ -34,9 +34,15 @@ describe('askOf', () => {
     expect(askOf(approval('WebFetch', { url: 'https://x' }, 'Fetch x'))).toEqual({
       kind: 'tool',
       asks: 'use WebFetch',
-      detail: 'url: https://x',
+      fields: [{ name: 'url', kind: 'short', value: 'https://x' }],
       about: 'Fetch x',
     });
+  });
+
+  it('names an MCP tool by its server and what it does', () => {
+    expect(askOf(approval('mcp__claude_ai_Atlassian__createConfluencePage', {})).asks).toBe(
+      'use Atlassian: create confluence page',
+    );
   });
 
   it('shows a plan to start on as its markdown', () => {
@@ -95,9 +101,13 @@ describe('alwaysText', () => {
       what: 'edits',
       scope: 'in every project',
     });
-    const tool = { kind: 'tool', asks: 'use WebFetch', detail: '{}' } as const;
+    const tool: Ask = { kind: 'tool', asks: 'use WebFetch', fields: [] };
     expect(alwaysText({ scope: 'project' }, tool, 'WebFetch', plain)).toEqual({
       what: 'WebFetch',
+      scope: 'in this project',
+    });
+    expect(alwaysText({ scope: 'project' }, tool, 'mcp__grimoire__add_todo', plain)).toEqual({
+      what: 'Grimoire: add todo',
       scope: 'in this project',
     });
   });

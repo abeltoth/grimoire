@@ -151,9 +151,19 @@ describe('toRows', () => {
     expect(notes[0]!.details).toEqual({
       kind: 'output',
       title: 'signals',
-      text: 'query: signals\nallowed_domains: ["angular.dev"]',
+      text: '',
       running: true,
+      fields: [
+        { name: 'query', kind: 'short', value: 'signals' },
+        { name: 'allowed_domains', kind: 'short', value: '["angular.dev"]' },
+      ],
     });
+  });
+
+  it('names an MCP tool by its server and what it does', () => {
+    const rows = toRows([agent('a1', tool('mcp__claude_ai_Atlassian__createConfluencePage', {}))]);
+    const notes = rows[0]!.kind === 'notes' ? rows[0]!.notes : [];
+    expect(notes[0]!.verb).toBe('Atlassian: create confluence page');
   });
 
   it('shows no diff for a change whose input is still being written', () => {

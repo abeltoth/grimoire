@@ -368,7 +368,11 @@
           [text]="note.details.text"
           [command]="note.details.command ?? ''"
           [running]="note.details.running ?? false"
-        />
+        >
+          @if (note.details.fields?.length) {
+            <gr-tool-input [fields]="note.details.fields!" />
+          }
+        </gr-output>
       }
     }
   </div>

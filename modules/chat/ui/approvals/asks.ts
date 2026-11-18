@@ -1,13 +1,14 @@
 import type { AlwaysAllow, Approval } from '@grimoire/contract';
 import { type DiffLine, fileChange } from '../transcript/diff';
 import { relativeTo } from '../transcript/rows';
-import { inputText } from '../transcript/tool-input';
+import { type ToolField, inputFields } from '../transcript/tool-input';
+import { toolName } from '../transcript/tool-name';
 
 /** What an approval asks for, as the approval card shows it; `asks` is the bare deed, such as "run a command". */
 export type Ask =
   | { kind: 'command'; asks: string; command: string; about?: string }
   | { kind: 'file'; asks: string; file: string; path: string; lines: DiffLine[]; about?: string }
-  | { kind: 'tool'; asks: string; detail: string; about?: string }
+  | { kind: 'tool'; asks: string; fields: ToolField[]; about?: string }
   | { kind: 'plan'; asks: string; plan: string; about?: string };
 
 /** The tool the agent ends planning with; its input's `plan` is the plan, in markdown. */
@@ -54,8 +55,8 @@ export function askOf(approval: Approval, cwd?: string): Ask {
   }
   return {
     kind: 'tool',
-    asks: `use ${approval.tool}`,
-    detail: inputText(input),
+    asks: `use ${toolName(approval.tool)}`,
+    fields: inputFields(input),
     ...withAbout,
   };
 }
@@ -89,5 +90,5 @@ export function alwaysText(
   const rule = always.rule?.trim();
   if (rule && !(ask.kind === 'command' && rule === ask.command.trim())) return { rule, scope };
   if (rule) return { what: 'this command', scope };
-  return { what: ask.kind === 'file' ? 'edits' : tool, scope };
+  return { what: ask.kind === 'file' ? 'edits' : toolName(tool), scope };
 }

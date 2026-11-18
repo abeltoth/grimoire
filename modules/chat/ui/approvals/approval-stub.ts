@@ -3,6 +3,7 @@ import type { Approval } from '@grimoire/contract';
 import { Wording } from '@ui/app/core/wording';
 import { RightPageState } from '@ui/app/shell/right-page/right-page-state';
 import { askOf } from './asks';
+import { toolName } from '../transcript/tool-name';
 
 /**
  * An approval card that waits on the right page, left in its chat as one line
@@ -34,6 +35,6 @@ export class ApprovalStub {
       ? ask.command
       : ask.kind === 'file'
         ? ask.file
-        : this.approval().tool;
+        : toolName(this.approval().tool);
   });
 }

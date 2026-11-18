@@ -1,5 +1,6 @@
 import type { Attachment, CompactionEntry, HookRun, TokenUse, ToolBlock } from '@grimoire/contract';
 import type { NumberedLine } from './diff';
+import type { ToolField } from './tool-input';
 import type { WebSearch } from './web-search';
 
 /** What a tool note expands: a file's diff, a web search's pages and summary, or what a tool printed. */
@@ -21,6 +22,8 @@ export type NoteDetails =
       command?: string;
       /** The tool still runs: `text` is what it was asked, and the output is still to come. */
       running?: true;
+      /** What a running tool other than a shell was asked, field by field. */
+      fields?: ToolField[];
     };
 
 /** What a tool did, to sum up a run of notes. */

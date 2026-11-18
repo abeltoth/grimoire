@@ -961,6 +961,16 @@
   --gr-expandable-foot-pad: 4px 14px 6px;
   --gr-expandable-break-gap: 4px;
 
+  /* Chat: a tool's input, field by field */
+  --gr-tool-input-pad: 11px 14px;
+  --gr-tool-input-gap: 12px;
+  --gr-tool-input-grid-gap: 2px 16px;
+  --gr-tool-input-field-gap: 4px;
+  --gr-tool-input-head-gap: 12px;
+  --gr-size-tool-input-name: 13px;
+  --gr-tracking-tool-input-name: 0.06em;
+  --gr-tool-input-fold: 240px;
+
   /* Chat: question form, printed on the page */
   --gr-form-margin: 20px 0 4px;
   --gr-form-head-gap: 16px;

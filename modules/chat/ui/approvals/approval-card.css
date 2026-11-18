@@ -103,8 +103,11 @@
   overflow-wrap: anywhere;
 }
 
-.well.detail {
-  display: block;
+/* Another tool's input, in the same well. */
+gr-tool-input {
+  background: var(--gr-approval-card-well);
+  border-top: 1px solid var(--gr-hairline);
+  border-bottom: 1px solid var(--gr-hairline);
 }
 
 /* A plan to start on, read in full as the page's text. */

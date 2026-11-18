@@ -4,7 +4,8 @@ import { deedOf } from '../composer/commands';
 import { type DiffLine, type FileChange, fileChange } from './diff';
 import type { Deed, HookLog, Note, Row } from './row';
 import { margin } from './summary';
-import { inputText } from './tool-input';
+import { inputFields } from './tool-input';
+import { toolName } from './tool-name';
 import { parseWebSearch } from './web-search';
 
 /** How many of a chat's turns are marked its costliest, once it has more than that. */
@@ -244,8 +245,9 @@ function detailsOf(
       details: {
         kind: 'output',
         title,
-        text: SHELL_TOOLS.has(block.tool) ? '' : inputText(block.input),
+        text: '',
         ...(command ? { command } : {}),
+        ...(SHELL_TOOLS.has(block.tool) ? {} : { fields: inputFields(block.input) }),
         running: true,
       },
     };
@@ -323,7 +325,7 @@ function describe(
     case ADD_TODO_TOOL:
       return ['Added to the board', text('title').trim(), 'added'];
     default:
-      return [tool, '', 'other'];
+      return [toolName(tool), '', 'other'];
   }
 }
 
