@@ -1,4 +1,5 @@
 import { Component, computed, input, output, signal } from '@angular/core';
+import { tokenCount } from '@ui/app/core/tokens';
 
 /** A part of a pie: what it is, how much, and a key to pick it by, if it can be opened. */
 export interface Slice {
@@ -9,6 +10,8 @@ export interface Slice {
   rest?: true;
   /** How many things it stands for, such as the chats a capped list left out; one by default. */
   count?: number;
+  /** The tokens it stands for, read out with its value. */
+  tokens?: number;
 }
 
 /** A slice as drawn: its colour and its share of the whole, 0-100. */
@@ -28,17 +31,18 @@ const HOLE = 36;
 const C = SIZE / 2;
 
 /**
- * The costliest slices, a colour each, and the rest together as "Other",
+ * The largest slices, a colour each, and the rest together as "Other",
  * named with how many it holds when there's a word for them; every share
- * of the sum.
+ * of the sum. In order of size, or as given, such as days in time order.
  */
-export function slicesOf(slices: readonly Slice[], unit = ''): DrawnSlice[] {
+export function slicesOf(slices: readonly Slice[], unit = '', asGiven = false): DrawnSlice[] {
   const sum = slices.reduce((all, slice) => all + Math.max(slice.value, 0), 0);
   if (!(sum > 0)) return [];
   const own = slices.filter((slice) => !slice.rest && slice.value > 0);
-  own.sort((a, b) => b.value - a.value);
-  const shown = own.slice(0, COLOURS.length);
-  const left = [...own.slice(COLOURS.length), ...slices.filter((slice) => slice.rest)];
+  const largest = [...own].sort((a, b) => b.value - a.value);
+  const kept = new Set(largest.slice(0, COLOURS.length));
+  const shown = asGiven ? own.filter((slice) => kept.has(slice)) : [...kept];
+  const left = [...largest.slice(COLOURS.length), ...slices.filter((slice) => slice.rest)];
   const rest = sum - shown.reduce((all, slice) => all + slice.value, 0);
   const drawn: DrawnSlice[] = shown.map((slice, i) => ({
     ...slice,
@@ -49,7 +53,8 @@ export function slicesOf(slices: readonly Slice[], unit = ''): DrawnSlice[] {
   if (rest > sum * 0.001) {
     const count = left.reduce((all, slice) => all + (slice.count ?? 1), 0);
     const name = unit && count ? `Other · ${count.toLocaleString()} ${unit}` : 'Other';
-    drawn.push({ name, value: rest, color: REST, share: (rest / sum) * 100 });
+    const tokens = left.reduce((all, slice) => all + (slice.tokens ?? 0), 0);
+    drawn.push({ name, value: rest, tokens, color: REST, share: (rest / sum) * 100 });
   }
   return drawn;
 }
@@ -81,9 +86,9 @@ function arc(from: number, to: number): string {
 
 /**
  * A ring of shares, such as the cost by model: the ten largest slices and
- * the rest as "Other", a legend with each share, and the slice under the
- * pointer or focus read out in the middle, the whole when there's none. A
- * slice with a key opens when picked.
+ * the rest as "Other", a legend with each name and share, and the value and
+ * tokens of the slice under the pointer or focus in the middle, the whole's
+ * when there's none. A slice with a key opens when picked.
  */
 @Component({
   selector: 'gr-usage-pie',
@@ -97,6 +102,8 @@ export class UsagePie {
   readonly format = input<(n: number) => string>((n) => n.toLocaleString());
   /** What "Other" holds, such as "chats", to say how many. */
   readonly unit = input('');
+  /** Kept in the order given, such as days in time order, rather than largest first. */
+  readonly asGiven = input(false);
   /** A slice with a key was picked. */
   readonly picked = output<string>();
 
@@ -106,7 +113,7 @@ export class UsagePie {
 
   protected readonly layout = computed(() => {
     let turn = 0;
-    return slicesOf(this.slices(), this.unit()).map((slice, i) => {
+    return slicesOf(this.slices(), this.unit(), this.asGiven()).map((slice, i) => {
       const from = turn;
       turn += slice.share / 100;
       return { slice, i, d: arc(from, turn) };
@@ -116,6 +123,10 @@ export class UsagePie {
   protected readonly sum = computed(() =>
     this.layout().reduce((all, each) => all + each.slice.value, 0),
   );
+  protected readonly tokensSum = computed(() =>
+    this.layout().reduce((all, each) => all + (each.slice.tokens ?? 0), 0),
+  );
+  protected readonly tokenCount = tokenCount;
 
   protected show(i: number | null): void {
     this.hovered.set(i);

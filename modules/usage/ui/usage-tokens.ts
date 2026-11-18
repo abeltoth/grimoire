@@ -1,6 +1,6 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, computed, inject, input, signal } from '@angular/core';
-import { type TokenCounts, sumTokens } from '@grimoire/contract';
+import { type TokenCounts, type TokenTotal, sumTokens } from '@grimoire/contract';
 import { ChatList } from '@ui/app/core/chat-list';
 import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { countsInWords, tokenCount } from '@ui/app/core/tokens';
@@ -103,7 +103,6 @@ export class UsageTokens {
   protected readonly pricing = PRICING;
   protected readonly count = tokenCount;
   protected readonly all = sumTokens;
-  protected readonly cacheShare = cacheShare;
   protected readonly inWords = countsInWords;
   protected readonly behaviourName = behaviourName;
   protected readonly sourceKind = sourceKind;
@@ -161,71 +160,72 @@ export class UsageTokens {
     };
   });
 
-  /** The cost split by the view picked, a slice each, with a word for what "Other" holds. */
-  protected readonly pie = computed((): { slices: Slice[]; unit: string } | null => {
-    const totals = this.readings.totals();
-    if (!totals?.total.dollars) return null;
-    const all = totals.total.dollars;
-    // What a list leaves out of the whole; nothing for a sliver left by rounding.
-    const left = (list: readonly { dollars: number }[]) => {
-      const rest = all - list.reduce((sum, each) => sum + each.dollars, 0);
-      return rest > all * 0.001 ? rest : 0;
-    };
-    switch (this.pieView()) {
-      case 'time':
-        return this.readings.span() === 'day'
-          ? {
-              unit: 'hours',
-              slices: totals.hours.map((each) => ({
-                name: hourShort(each.hour),
-                value: each.dollars,
+  /** The cost split by the view picked, a slice each with its tokens, with a word for what "Other" holds. */
+  protected readonly pie = computed(
+    (): { slices: Slice[]; unit: string; asGiven: boolean } | null => {
+      const totals = this.readings.totals();
+      if (!totals?.total.dollars) return null;
+      const slice = (name: string, each: TokenTotal) => ({
+        name,
+        value: each.dollars,
+        tokens: sumTokens(each),
+      });
+      // What a list leaves out of the whole; nothing for a sliver left by rounding.
+      const left = (list: readonly TokenTotal[]) => {
+        const dollars = totals.total.dollars - list.reduce((sum, each) => sum + each.dollars, 0);
+        const tokens =
+          sumTokens(totals.total) - list.reduce((sum, each) => sum + sumTokens(each), 0);
+        return { value: dollars > totals.total.dollars * 0.001 ? dollars : 0, tokens };
+      };
+      switch (this.pieView()) {
+        case 'time':
+          // In time order, as the columns are.
+          return this.readings.span() === 'day'
+            ? {
+                unit: 'hours',
+                asGiven: true,
+                slices: totals.hours.map((each) => slice(hourShort(each.hour), each)),
+              }
+            : {
+                unit: 'days',
+                asGiven: true,
+                slices: totals.days.map((each) => slice(dayShort(each.day), each)),
+              };
+        case 'model':
+          return {
+            unit: 'models',
+            asGiven: false,
+            slices: totals.models.map((each) => slice(modelName(each.model, each.subagent), each)),
+          };
+        case 'folder':
+          return {
+            unit: 'folders',
+            asGiven: false,
+            slices: [
+              ...totals.folders.map((each) => slice(this.catalog.folderName(each.cwd), each)),
+              { name: 'No folder', ...left(totals.folders) },
+            ],
+          };
+        case 'chat':
+          return {
+            unit: 'chats',
+            asGiven: false,
+            slices: [
+              ...totals.chats.map((each) => ({
+                ...slice(each.title || 'Untitled', each),
+                key: each.id,
               })),
-            }
-          : {
-              unit: 'days',
-              slices: totals.days.map((each) => ({
-                name: dayShort(each.day),
-                value: each.dollars,
-              })),
-            };
-      case 'model':
-        return {
-          unit: 'models',
-          slices: totals.models.map((each) => ({
-            name: modelName(each.model, each.subagent),
-            value: each.dollars,
-          })),
-        };
-      case 'folder':
-        return {
-          unit: 'folders',
-          slices: [
-            ...totals.folders.map((each) => ({
-              name: this.catalog.folderName(each.cwd),
-              value: each.dollars,
-            })),
-            { name: 'No folder', value: left(totals.folders) },
-          ],
-        };
-      case 'chat':
-        return {
-          unit: 'chats',
-          slices: [
-            ...totals.chats.map((each) => ({
-              name: each.title || 'Untitled',
-              value: each.dollars,
-              key: each.id,
-            })),
-            {
-              name: 'Other',
-              value: left(totals.chats),
-              rest: true,
-              count: totals.chatCount - totals.chats.length,
-            },
-          ],
-        };
-    }
-  });
+              {
+                name: 'Other',
+                ...left(totals.chats),
+                rest: true,
+                count: totals.chatCount - totals.chats.length,
+              },
+            ],
+          };
+      }
+    },
+  );
 
   /** A moment of a day or hour, for the tooltip of the cache chart. */
   protected readonly bucketName = (at: number): string =>

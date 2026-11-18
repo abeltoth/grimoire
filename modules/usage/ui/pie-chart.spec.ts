@@ -39,9 +39,10 @@ describe('slicesOf', () => {
   it('names Other with how many it holds, those a list left out included', () => {
     const slices: Slice[] = [
       ...Array.from({ length: 11 }, (_, i) => ({ name: `c${i}`, value: 10 })),
-      { name: 'left out', value: 5, rest: true, count: 40 },
+      { name: 'left out', value: 5, rest: true, count: 40, tokens: 900 },
     ];
     expect(slicesOf(slices, 'chats').at(-1)!.name).toBe('Other · 41 chats');
+    expect(slicesOf(slices, 'chats').at(-1)!.tokens).toBe(900);
     expect(slicesOf(slices).at(-1)!.name).toBe('Other');
   });
 
@@ -56,6 +57,24 @@ describe('slicesOf', () => {
       ['Other', 25],
     ]);
     expect(slicesOf([{ name: 'a', value: 0 }])).toEqual([]);
+  });
+
+  it('keeps the slices in the order given, such as days in time order', () => {
+    const slices = [
+      { name: 'Mon', value: 1 },
+      { name: 'Tue', value: 3 },
+      { name: 'Wed', value: 2 },
+    ];
+    expect(slicesOf(slices, '', true).map((slice) => slice.name)).toEqual(['Mon', 'Tue', 'Wed']);
+    expect(slicesOf(slices).map((slice) => slice.name)).toEqual(['Tue', 'Wed', 'Mon']);
+    // Past ten, the smallest still go to Other.
+    const days = Array.from({ length: 12 }, (_, i) => ({
+      name: `d${i}`,
+      value: i === 1 ? 0.5 : 10 + i,
+    }));
+    const kept = slicesOf(days, '', true).map((slice) => slice.name);
+    expect(kept.slice(0, 3)).toEqual(['d2', 'd3', 'd4']);
+    expect(kept.at(-1)).toBe('Other');
   });
 
   it('writes a sliver as under one percent', () => {
@@ -74,10 +93,10 @@ describe('UsagePie', () => {
     return { fixture, el: fixture.nativeElement as HTMLElement };
   }
 
-  it('draws a slice for each with its share in the legend, and reads the one in focus out in the middle', async () => {
+  it('draws a slice for each with its share in the legend, and its value and tokens in the middle', async () => {
     const { fixture, el } = await pie([
-      { name: 'Haiku', value: 1 },
-      { name: 'Opus', value: 3 },
+      { name: 'Haiku', value: 1, tokens: 2_000 },
+      { name: 'Opus', value: 3, tokens: 40_000 },
     ]);
     expect(el.querySelector('svg')!.getAttribute('aria-label')).toBe('Cost by model');
     expect(legend(el)).toEqual(['Opus 75%', 'Haiku 25%']);
@@ -87,15 +106,15 @@ describe('UsagePie', () => {
       'Haiku: $1, 25%',
     ]);
     // The whole, until a slice is under the pointer or in focus.
-    expect(texts(el, '.hole > *')).toEqual(['$4', 'in all']);
+    expect(texts(el, '.hole > *')).toEqual(['$4', '42K tokens']);
 
     slices[1]!.dispatchEvent(new FocusEvent('focus'));
     await fixture.whenStable();
-    expect(texts(el, '.hole > *')).toEqual(['Haiku', '$1', '25%']);
+    expect(texts(el, '.hole > *')).toEqual(['$1', '2K tokens']);
     expect(slices[0]!.classList).toContain('dim');
     slices[1]!.dispatchEvent(new FocusEvent('blur'));
     await fixture.whenStable();
-    expect(texts(el, '.hole > *')).toEqual(['$4', 'in all']);
+    expect(texts(el, '.hole > *')).toEqual(['$4', '42K tokens']);
   });
 
   it('draws one slice as the whole ring', async () => {

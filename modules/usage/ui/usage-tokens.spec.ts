@@ -123,7 +123,7 @@ describe('usage-tokens', () => {
       ],
       sources: [{ kind: 'mcp', name: 'docs', share: 9 }],
     });
-    const { el, texts, click, calls } = await showTokens({
+    const { fixture, el, texts, click, calls } = await showTokens({
       'usage.breakdown': (): UsageBreakdown => ({ day: span(10), week: span(70), at: 0 }),
       'search.tokens': ({ since }: CommandRequest<'search.tokens'>): TokenTotals => ({
         ...none,
@@ -153,7 +153,7 @@ describe('usage-tokens', () => {
     // The cost at the API's prices first, then every token, each explained on hover.
     expect(texts('gr-usage-page .total > span')).toEqual([
       `${dollars(50)} at API prices`,
-      '14K tokens · 71% read from the cache',
+      '14K tokens',
       '2K tokens of models without known prices aren’t counted',
     ]);
     const [cost, tokens] = el.querySelectorAll('gr-usage-page .total > span');
@@ -183,6 +183,13 @@ describe('usage-tokens', () => {
     expect(legend()).toEqual(['C:/work/grimoire 80%', 'No folder 20%']);
     await click('gr-usage-page .split .groups button', 'Chat');
     expect(legend()).toEqual(['Ribbon 70%', 'Other · 4 chats 30%']);
+    // The ring's middle says the cost and the tokens, of the whole until a slice is in focus.
+    expect(texts('gr-usage-page gr-usage-pie .hole > *')).toEqual([dollars(50), '14K tokens']);
+    el.querySelectorAll('gr-usage-page gr-usage-pie path.slice')[1]!.dispatchEvent(
+      new FocusEvent('focus'),
+    );
+    await fixture.whenStable();
+    expect(texts('gr-usage-page gr-usage-pie .hole > *')).toEqual([dollars(15), '1.5K tokens']);
 
     // The agent's word comes last, all of it together.
     expect(texts('gr-usage-page .tokens h3')).toEqual(['Claude Code says']);

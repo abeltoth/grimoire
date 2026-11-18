@@ -472,9 +472,10 @@
   --gr-chart-tip-pad: 6px 9px;
   --gr-chart-tip-offset: 10px;
   --gr-chart-tip-shadow: 0 2px 6px rgba(60, 35, 10, 0.18);
-  /* A pie's width, and the gap to its legend. */
+  /* A pie's width, the gap to its legend, and the widest a name in it is written. */
   --gr-chart-pie-size: 200px;
   --gr-chart-pie-gap: 28px;
+  --gr-chart-legend-name: 320px;
 
   /* The Table of contents: every chapter, in parts by project */
   --gr-history-width: 680px;

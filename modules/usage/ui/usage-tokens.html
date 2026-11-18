@@ -12,9 +12,6 @@
           >
           <span class="detail" [attr.title]="inWords(totals.total)">
             {{ count(all(totals.total)) }} tokens
-            @if (cacheShare(totals.total); as share) {
-              · {{ round(share) }}% read from the cache
-            }
           </span>
           @if (totals.unpriced) {
             <span class="detail">
@@ -63,6 +60,7 @@
             [label]="'Cost by ' + pieView()"
             [slices]="pie.slices"
             [unit]="pie.unit"
+            [asGiven]="pie.asGiven"
             [format]="dollars"
             (picked)="openChat($event)"
           />

@@ -12,7 +12,7 @@
   margin-top: 0;
 }
 
-/* The slice under the pointer, or the whole, read out in the ring's hole. */
+/* The value and tokens of the slice under the pointer, or of the whole, in the ring's hole. */
 .hole {
   position: absolute;
   inset: 0;
@@ -37,12 +37,7 @@
   font-variant-numeric: lining-nums tabular-nums;
 }
 
-.hole-name {
-  max-width: 100%;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+.hole-tokens {
   font-style: italic;
 }
 
@@ -64,25 +59,32 @@
 
 /* The slice under the pointer stands out; the rest step back, in the pie and the legend. */
 .slice.dim,
-.legend li.dim {
+.legend li.dim > * {
   opacity: 0.45;
 }
 
+/* The legend's columns line up across its rows, each share close beside the names. */
 .legend {
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
   margin: 0;
-  flex-direction: column;
-  flex-wrap: nowrap;
+  display: grid;
+  grid-template-columns: var(--gr-chart-swatch) minmax(0, max-content) auto;
+  align-items: center;
+  column-gap: var(--gr-space-1);
+  row-gap: var(--gr-chart-tip-gap);
 }
 
 .legend li {
-  display: grid;
-  grid-template-columns: var(--gr-chart-swatch) minmax(0, 1fr) auto;
+  display: contents;
+}
+
+.legend li > * {
   transition: opacity var(--gr-chart-fade);
 }
 
 .legend .name {
+  max-width: var(--gr-chart-legend-name);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -96,6 +98,8 @@ button.name:hover {
 }
 
 .legend b {
+  padding-left: var(--gr-chart-pie-gap);
+  text-align: right;
   font-weight: 500;
   color: var(--gr-ink);
   font-variant-numeric: lining-nums tabular-nums;

@@ -27,16 +27,13 @@
       }
     </svg>
 
-    <!-- What's under the pointer, read out in the ring's hole, where nothing can cut it off. -->
+    <!-- The value and tokens of what's under the pointer, or of the whole, in the ring's hole. -->
     @let i = hovered();
     <div class="hole" aria-hidden="true">
-      @if (i !== null && drawn[i]; as each) {
-        <span class="hole-name">{{ each.slice.name }}</span>
-        <strong>{{ format()(each.slice.value) }}</strong>
-        <span class="hole-name">{{ share(each.slice.share) }}</span>
-      } @else {
-        <strong>{{ format()(sum()) }}</strong>
-        <span class="hole-name">in all</span>
+      @let each = i === null ? undefined : drawn[i];
+      <strong>{{ format()(each ? each.slice.value : sum()) }}</strong>
+      @if (each ? each.slice.tokens : tokensSum(); as tokens) {
+        <span class="hole-tokens">{{ tokenCount(tokens) }} tokens</span>
       }
     </div>
   </div>
