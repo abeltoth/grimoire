@@ -1,3 +1,4 @@
+import { DEFAULT_SETTINGS } from '@grimoire/contract';
 import { Settings } from '@ui/app/core/settings';
 import { TestBed } from '@angular/core/testing';
 import { render, write } from '@ui/testing/app-testing';
@@ -36,6 +37,16 @@ describe('kanban.providers', () => {
     );
     badge.click();
     expect(bridge.openExternal).toHaveBeenCalledWith('https://acme.atlassian.net/browse/GRIM-12');
+  });
+
+  it('bears no Jira issue’s badge while Jira is off', async () => {
+    const { bridge, answers } = withBoard([
+      issue('j1', 'GRIM-12', 'Draw the context meter', 'doing', { chats: [chat] }),
+    ]);
+    answers['settings.get'] = () => ({ ...DEFAULT_SETTINGS, jira: false });
+    const { fixture, el, texts } = await render(bridge);
+    await write(fixture, el, 'Fill in the meter');
+    expect(texts('gr-header-badges button')).toEqual([]);
   });
 
   it('shortens a long title on the badge, and says it plainly when asked', async () => {

@@ -19,8 +19,8 @@ import { IssueForm } from './issue-form';
 /**
  * After a chat's title, while Jira is on and the chat has no Jira issue,
  * a faint mark saying so, or that the agent proposed one: a click opens
- * a card that links the chat to one of the board's Jira issues, or
- * creates one, the proposal written in. A chat linked to one bears its
+ * a card that creates one, the proposal written in, or links the chat to
+ * one of the board's Jira issues instead. A chat linked to one bears its
  * issue's badge instead (kanban.providers.ts). Esc or a click elsewhere
  * closes it.
  */
@@ -100,10 +100,10 @@ export class JiraLink {
     });
   }
 
-  /** Opens the card on the proposal, written out, when there's one; or closes it. */
+  /** Opens the card on a new issue written out, the proposal's when there's one; or closes it. */
   protected toggleCard(): void {
     if (this.open()) return this.open.set(false);
-    this.writing.set(!!this.proposal());
+    this.writing.set(true);
     this.open.set(true);
   }
 

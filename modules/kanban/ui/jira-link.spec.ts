@@ -23,6 +23,10 @@ describe('JiraLink', () => {
     expect(texts('gr-jira-link .toggle')).toEqual(['No Jira issue']);
     el.querySelector<HTMLButtonElement>('gr-jira-link .toggle')!.click();
     await fixture.whenStable();
+    // It opens on a new issue to create; linking one of the board's is a step away.
+    expect(el.querySelector('gr-jira-link gr-issue-form')).not.toBeNull();
+    button(el.querySelector('gr-issue-form')!, 'Link an existing issue…').click();
+    await fixture.whenStable();
     expect(texts('gr-jira-link .issue .key')).toEqual(['GRIM-12', 'GRIM-14']);
     expect(texts('gr-jira-link .issue .summary')).toEqual(['Context meter', 'Usage page']);
 

@@ -13,6 +13,7 @@ import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import type { Chat } from '@ui/app/core/chat';
 import { ChatList } from '@ui/app/core/chat-list';
 import { NewChats } from '@ui/app/core/new-chats';
+import { Settings } from '@ui/app/core/settings';
 
 /** The board's columns, in order, as they're headed. */
 export const COLUMNS: readonly { column: CardColumn; label: string }[] = [
@@ -44,6 +45,7 @@ export class Board {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
   private readonly list = inject(ChatList);
   private readonly newChats = inject(NewChats);
+  private readonly settings = inject(Settings);
   /** The blank chats opened from cards and not begun yet, each with its card's ID. */
   private readonly opening = new Map<string, string>();
 
@@ -197,9 +199,15 @@ export class Board {
     }
   }
 
-  /** The card on the board the chat began from, or is linked to, if any; its Jira issue's before a task. */
+  /**
+   * The card on the board the chat began from, or is linked to, if any;
+   * its Jira issue's before a task, and none of Jira's while Jira is off.
+   */
   cardOf(chatId: string): Card | undefined {
-    const linked = this.open().filter((card) => card.chats.some((chat) => chat.chatId === chatId));
+    const jira = this.settings.all().jira;
+    const linked = this.open().filter(
+      (card) => (jira || card.kind !== 'jira') && card.chats.some((chat) => chat.chatId === chatId),
+    );
     return linked.find((card) => card.jira) ?? linked[0];
   }
 

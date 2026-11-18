@@ -15,8 +15,6 @@ async function writingIssue(settings: Partial<typeof DEFAULT_SETTINGS> = {}) {
   await write(app.fixture, app.el, 'Fill in the meter');
   app.el.querySelector<HTMLButtonElement>('gr-jira-link .toggle')!.click();
   await app.fixture.whenStable();
-  button(app.el.querySelector('gr-jira-link .card')!, 'Create an issue…').click();
-  await app.fixture.whenStable();
   return { ...fake, ...app };
 }
 

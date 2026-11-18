@@ -19,7 +19,9 @@
       }
       @if (writing()) {
         <gr-issue-form [chat]="chat()" [draft]="proposal()" (done)="close()">
-          <button type="button" class="gr-link" (click)="writing.set(false)">Link existing…</button>
+          <button type="button" class="gr-link" (click)="writing.set(false)">
+            Link an existing issue…
+          </button>
           @if (proposal()) {
             <button type="button" class="gr-link" (click)="dismiss()">Dismiss</button>
           }
@@ -28,8 +30,8 @@
         <p class="head">
           {{
             wording.say(
-              'Link this chapter to a Jira issue on the board, or create one',
-              'Link this chat to a Jira issue on the board, or create one'
+              'Link this chapter to one of your Jira issues on the board',
+              'Link this chat to one of your Jira issues on the board'
             )
           }}
         </p>
@@ -44,7 +46,7 @@
           }
         </div>
         <button type="button" class="gr-link create" (click)="writing.set(true)">
-          Create an issue…
+          Create a new issue instead…
         </button>
       }
     </div>
