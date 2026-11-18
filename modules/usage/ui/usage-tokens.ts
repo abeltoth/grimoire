@@ -1,31 +1,16 @@
 import { NgTemplateOutlet } from '@angular/common';
-import {
-  Component,
-  PendingTasks,
-  computed,
-  effect,
-  inject,
-  input,
-  signal,
-  untracked,
-} from '@angular/core';
-import type {
-  AgentInfo,
-  TokenCounts,
-  TokenTotal,
-  TokenTotals,
-  UsageBreakdown,
-} from '@grimoire/contract';
-import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
+import { Component, computed, inject, input, signal } from '@angular/core';
+import type { TokenCounts, TokenTotal, TokenTotals } from '@grimoire/contract';
 import { ChatList } from '@ui/app/core/chat-list';
 import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { countsInWords, tokenCount } from '@ui/app/core/tokens';
 import { type ChartSeries, type ChartTick, type Column, UsageColumns } from './charts';
 import { type LineSeries, UsageLines } from './lines-chart';
+import { TokenReadings } from './token-readings';
+import { UsageSpans } from './usage-spans';
 import {
   DAY,
   HOUR,
-  againstMost,
   behaviourName,
   dayKey,
   dayName,
@@ -36,11 +21,7 @@ import {
   modelName,
   sourceKind,
   startOf,
-  uses,
 } from './usage-format';
-
-/** The Usage page's views. */
-export type UsageView = 'limits' | 'tokens' | 'tools';
 
 /** Where the tokens went over the span, a column or point for each day or hour. */
 interface TokensCharts {
@@ -54,20 +35,6 @@ interface TokensCharts {
   /** A bucket's length, in ms: a gap of more than that breaks the line. */
   bucket: number;
 }
-
-/** An agent's own word on where its plan's usage went. */
-interface Breakdown {
-  agent: AgentInfo;
-  breakdown: UsageBreakdown;
-}
-
-/** The spans where the tokens went is shown over, as Claude Code's scan reads them. */
-type Span = 'day' | 'week';
-
-const SPANS: Record<Span, { label: string; ms: number }> = {
-  day: { label: 'Last 24 hours', ms: 24 * HOUR },
-  week: { label: 'Last 7 days', ms: 7 * 24 * HOUR },
-};
 
 /** What Grimoire's count can be grouped by. */
 type Group = 'day' | 'model' | 'folder' | 'chat';
@@ -101,40 +68,32 @@ function cacheShare(c: TokenCounts): number | null {
 }
 
 /**
- * The Usage page's tokens and tools: where the tokens went, as the agent's
- * own scan says and by Grimoire's count from the chats' transcripts, and
- * the tools and skills used most, all read when the page opens.
+ * The Usage page's Tokens tab: where the tokens went, as the agent's own
+ * scan says and by Grimoire's count from the chats' transcripts.
  */
 @Component({
   selector: 'gr-usage-tokens',
-  imports: [NgTemplateOutlet, UsageColumns, UsageLines],
+  imports: [NgTemplateOutlet, UsageColumns, UsageLines, UsageSpans],
   templateUrl: './usage-tokens.html',
-  styleUrls: ['./usage-lists.css', './usage-picks.css', './usage-tokens.css'],
+  styleUrls: [
+    './usage-lists.css',
+    './usage-picks.css',
+    './usage-sections.css',
+    './usage-tokens.css',
+  ],
 })
 export class UsageTokens {
-  private readonly bridge = inject(GRIMOIRE_BRIDGE);
+  protected readonly readings = inject(TokenReadings);
   private readonly list = inject(ChatList);
   private readonly catalog = inject(AgentCatalog);
-  private readonly pending = inject(PendingTasks);
 
-  /** The page's view: this shows where the tokens went, or the tools, and nothing on the limits. */
-  readonly view = input.required<UsageView>();
+  readonly shown = input.required<boolean>();
 
   protected readonly groups = Object.entries(GROUPS) as [Group, string][];
   protected readonly group = signal<Group>('day');
   /** How many rows a list shows before "Show all". */
-  protected readonly shown = SHOWN;
+  protected readonly few = SHOWN;
   private readonly open = signal<ReadonlySet<string>>(new Set());
-
-  protected readonly spans = Object.entries(SPANS) as [Span, { label: string; ms: number }][];
-  protected readonly span = signal<Span>('week');
-  /** Grimoire's count over the span; undefined until it's read. */
-  protected readonly totals = signal<TokenTotals | undefined>(undefined);
-  protected readonly totalsFailed = signal<string | null>(null);
-  /** What the agents say of their usage; undefined until they've answered. */
-  protected readonly breakdowns = signal<Breakdown[] | undefined>(undefined);
-  protected readonly breakdownsFailed = signal<string | null>(null);
-  protected readonly readingTokens = signal(false);
 
   protected readonly tokenSeries = TOKEN_LEGEND;
   protected readonly tokenFormat = (n: number): string => tokenCount(n);
@@ -144,16 +103,14 @@ export class UsageTokens {
   protected readonly sourceKind = sourceKind;
   protected readonly modelName = modelName;
   protected readonly dayName = dayName;
-  protected readonly uses = uses;
-  protected readonly againstMost = againstMost;
   protected readonly filled = filled;
   protected readonly round = Math.round;
 
   /** Where the tokens went over the span, a column and a point for each day, or each hour of the last 24. */
   protected readonly tokensCharts = computed((): TokensCharts | null => {
-    const totals = this.totals();
+    const totals = this.readings.totals();
     if (!totals?.total.weight) return null;
-    const unit = this.span() === 'day' ? 'hour' : 'day';
+    const unit = this.readings.span() === 'day' ? 'hour' : 'day';
     const byDay = new Map(totals.days.map((day) => [day.day, day]));
     const byHour = new Map(totals.hours.map((hour) => [hour.hour, hour]));
     const columns: Column[] = [];
@@ -194,71 +151,9 @@ export class UsageTokens {
 
   /** A moment of a day or hour, for the tooltip and table of the cache chart. */
   protected readonly bucketName = (at: number): string =>
-    this.span() === 'day'
+    this.readings.span() === 'day'
       ? hourSpan(startOf(at, 'hour').getTime(), startOf(at, 'hour').getTime() + HOUR)
       : dayName(dayKey(new Date(at)));
-
-  constructor() {
-    // Read once the agents are known.
-    effect(() => {
-      if (this.catalog.agents().length) untracked(() => void this.readTokens());
-    });
-  }
-
-  /** Reads where the tokens went again: Grimoire's count, and what the agents say. */
-  protected async readTokens(): Promise<void> {
-    if (this.readingTokens()) return;
-    this.readingTokens.set(true);
-    const done = this.pending.add();
-    try {
-      await Promise.all([this.readTotals(), this.readBreakdowns()]);
-    } finally {
-      this.readingTokens.set(false);
-      done();
-    }
-  }
-
-  protected async showSpan(span: Span): Promise<void> {
-    if (span === this.span()) return;
-    this.span.set(span);
-    const done = this.pending.add();
-    try {
-      await this.readTotals();
-    } finally {
-      done();
-    }
-  }
-
-  private async readTotals(): Promise<void> {
-    const span = this.span();
-    this.totalsFailed.set(null);
-    try {
-      const totals = await this.bridge.invoke('search.tokens', {
-        since: Date.now() - SPANS[span].ms,
-      });
-      if (span === this.span()) this.totals.set(totals);
-    } catch (error) {
-      this.totalsFailed.set(error instanceof Error ? error.message : String(error));
-    }
-  }
-
-  private async readBreakdowns(): Promise<void> {
-    this.breakdownsFailed.set(null);
-    try {
-      const agents = this.catalog.agents();
-      const answers = await Promise.all(
-        agents.map((agent) => this.bridge.invoke('usage.breakdown', { agent: agent.id })),
-      );
-      this.breakdowns.set(
-        agents.flatMap((agent, i) => {
-          const breakdown = answers[i];
-          return breakdown ? [{ agent, breakdown }] : [];
-        }),
-      );
-    } catch (error) {
-      this.breakdownsFailed.set(error instanceof Error ? error.message : String(error));
-    }
-  }
 
   /** The first few of a list, or all of it once opened. */
   protected top<T>(list: readonly T[], key: string): readonly T[] {
@@ -279,7 +174,7 @@ export class UsageTokens {
 
   /** A share of the span's weight, 0-100. */
   protected shareOf(total: TokenTotal): number {
-    const all = this.totals()?.total.weight ?? 0;
+    const all = this.readings.totals()?.total.weight ?? 0;
     return all ? (total.weight / all) * 100 : 0;
   }
 

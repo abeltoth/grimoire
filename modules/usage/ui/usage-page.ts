@@ -1,7 +1,12 @@
 import { Component, inject, signal } from '@angular/core';
 import { Wording } from '@ui/app/core/wording';
+import { TokenReadings } from './token-readings';
 import { UsageLimits } from './usage-limits';
-import { type UsageView, UsageTokens } from './usage-tokens';
+import { UsageTokens } from './usage-tokens';
+import { UsageTools } from './usage-tools';
+
+/** The Usage page's tabs. */
+type UsageView = 'limits' | 'tokens' | 'tools';
 
 const VIEWS: Record<UsageView, string> = {
   limits: 'Limits',
@@ -17,7 +22,9 @@ const VIEWS: Record<UsageView, string> = {
  */
 @Component({
   selector: 'gr-usage-page',
-  imports: [UsageLimits, UsageTokens],
+  imports: [UsageLimits, UsageTokens, UsageTools],
+  // Both the Tokens and the Tools & skills tabs show these readings, read once.
+  providers: [TokenReadings],
   templateUrl: './usage-page.html',
   styleUrls: ['./usage-picks.css', './usage-page.css'],
 })

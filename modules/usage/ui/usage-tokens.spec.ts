@@ -203,22 +203,6 @@ describe('usage-tokens', () => {
     expect(texts('gr-usage-page .tokens .detail')).toEqual(['run /clear', '4K fresh input']);
     expect(texts('gr-usage-page .how p')[0]).toBe('70 requests in 4 chats');
 
-    await showView('Tools & skills');
-    expect(texts('gr-usage-page .tokens h4')).toEqual([
-      'The tools used most',
-      'The skills used most',
-    ]);
-    expect(texts('gr-usage-page .tokens .name')).toEqual(['Read', 'Bash', 'code-review']);
-    expect(texts('gr-usage-page .tokens b')).toEqual(['40', '10', '1']);
-    // Each tool's and skill's uses, against the most used in its list.
-    expect(texts('gr-usage-page [data-used] .resets')).toEqual(['40 uses', '10 uses', '1 use']);
-    expect(
-      [...el.querySelectorAll('gr-usage-page [data-used="tools"] [role="meter"]')].map((m) =>
-        m.getAttribute('aria-valuenow'),
-      ),
-    ).toEqual(['100', '25']);
-    await showView('Where it went');
-
     // The last 24 hours: Claude Code's scan already has them; Grimoire counts again.
     const asked = () =>
       calls
