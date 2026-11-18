@@ -9,14 +9,12 @@ import type {
   HookRun,
   PictureAttachment,
   PlanStep,
-  TokenCounts,
+  TokenSource,
   TokenUse,
   ToolBlock,
   UserEntry,
 } from '@grimoire/contract';
-import { addTokens } from '@grimoire/contract';
 import { changedFileOf, hunksOf } from './file-patch';
-import { costOf } from './prices';
 import {
   type CompactMessage,
   LiveCompaction,
@@ -35,6 +33,7 @@ import {
 } from './messages';
 import { HookRuns } from './hook-runs';
 import { splitReferences } from './references';
+import { SYNTHETIC_MODEL, type Spent, byModel, sourceOf, tokenUse } from './reply-tokens';
 import { statsFromResult, statsFromUsage } from './subagent-stats';
 
 export interface TranscriptListener {
@@ -60,9 +59,6 @@ const TASK_END: Record<string, SubagentState> = {
   failed: 'failed',
   stopped: 'stopped',
 };
-
-/** A turn's replies' tokens by API message ID; Claude Code repeats a reply's on each of its blocks. */
-type Spent = Map<string, TokenUse>;
 
 const PLAN_STATUS: Record<string, PlanStep['status']> = {
   pending: 'pending',
@@ -121,7 +117,12 @@ export class ClaudeTranscript {
       const hooks = this.hookRuns.apply(message as ClaudeMessage & HookMessage);
       if (hooks) this.listener?.hooks?.(hooks);
     } else if (message.type === 'assistant')
-      this.count(message.message as ApiMessage, !!message.parent_tool_use_id, this.turn);
+      this.count(
+        message.message as ApiMessage,
+        !!message.parent_tool_use_id,
+        this.turn,
+        sourceOf(message),
+      );
     else if (message.type === 'result' && this.live) this.endTurn();
     else if (message.type === 'user' && message.tool_use_result) this.applyRunTotals(message);
     // Messages inside a subagent's run belong to its tool call's subagent, not the chat.
@@ -220,7 +221,7 @@ export class ClaudeTranscript {
   applySubagent(message: ClaudeMessage, at: number): void {
     if (message.type !== 'assistant' || !Number.isFinite(at)) return;
     const turn = this.turns.findLast((t) => t.began <= at);
-    this.count(message.message as ApiMessage, true, turn);
+    this.count(message.message as ApiMessage, true, turn, sourceOf(message));
   }
 
   /** Counts a reply's tokens toward the live turn, or the saved one. */
@@ -228,8 +229,9 @@ export class ClaudeTranscript {
     message: ApiMessage | undefined,
     subagent: boolean,
     turn: SavedTurn | undefined,
+    source: TokenSource | undefined,
   ): void {
-    const use = message?.id ? tokenUse(message, subagent) : undefined;
+    const use = message?.id ? tokenUse(message, subagent, source) : undefined;
     if (!use) return;
     if (this.live) {
       const known = this.spent.get(message!.id!);
@@ -430,49 +432,8 @@ export class ClaudeTranscript {
   }
 }
 
-/** The model Claude Code names on notes of its own, which no model wrote. */
-const SYNTHETIC_MODEL = '<synthetic>';
-
 interface SavedTurn {
   entry: UserEntry;
   began: number;
   spent: Spent;
-}
-
-/** A reply's tokens; undefined for one with none, such as Claude Code's own notes. */
-function tokenUse(message: ApiMessage, subagent: boolean): TokenUse | undefined {
-  const usage = message.usage;
-  if (!usage || !message.model || message.model === SYNTHETIC_MODEL) return undefined;
-  const long = usage.cache_creation?.ephemeral_1h_input_tokens ?? 0;
-  const counts: TokenCounts = {
-    input: usage.input_tokens ?? 0,
-    cacheWritten: Math.max((usage.cache_creation_input_tokens ?? 0) - long, 0),
-    cacheWrittenLong: long,
-    cacheRead: usage.cache_read_input_tokens ?? 0,
-    output: usage.output_tokens ?? 0,
-  };
-  if (!Object.values(counts).some((n) => n > 0)) return undefined;
-  const cost = costOf(message.model, counts);
-  return {
-    model: message.model,
-    ...(subagent ? { subagent } : {}),
-    ...counts,
-    ...(cost ? { cost } : {}),
-  };
-}
-
-/** A turn's tokens added up by model, the chat's own apart from its subagents'. */
-function byModel(spent: Spent): TokenUse[] {
-  const uses = new Map<string, TokenUse>();
-  for (const use of spent.values()) {
-    const key = `${use.subagent ? 'subagent' : 'chat'} ${use.model}`;
-    const sum = uses.get(key);
-    if (!sum) uses.set(key, { ...use });
-    else {
-      // One model's replies are all priced, or none of them.
-      const cost = sum.cost && use.cost ? { cost: addTokens([sum.cost, use.cost]) } : {};
-      uses.set(key, { ...sum, ...addTokens([sum, use]), ...cost });
-    }
-  }
-  return [...uses.values()];
 }

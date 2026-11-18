@@ -82,6 +82,7 @@ describe('usage-tokens', () => {
         hours: [{ hour: hour.getTime(), ...counts(300, 6_000, 100) }],
         models: [],
         folders: [],
+        sources: [],
         chats: [],
       }),
     });
@@ -162,6 +163,10 @@ describe('usage-tokens', () => {
           { model: 'claude-haiku-4-5', subagent: true, ...counts(2_000, 0, 0) },
         ],
         folders: [{ cwd: 'C:/work/grimoire', ...counts(3_000, 10_000, 0) }],
+        sources: [
+          { kind: 'skill', name: 'commit', ...counts(1_000, 0, 0) },
+          { kind: 'subagent', name: 'Explore', ...counts(500, 0, 0) },
+        ],
         chats: [
           {
             id: 'old-1',
@@ -191,6 +196,7 @@ describe('usage-tokens', () => {
       'Model',
       'Folder',
       'Chat',
+      'Skill',
     ]);
     expect(el.querySelectorAll('gr-usage-page gr-usage-pie')).toHaveLength(1);
     const legend = () =>
@@ -207,6 +213,10 @@ describe('usage-tokens', () => {
     expect(legend()).toEqual(['C:/work/grimoire 80%', 'No folder 20%']);
     await click('gr-usage-page .split .groups button', 'Chat');
     expect(legend()).toEqual(['Ribbon 70%', 'Other · 4 chats 30%']);
+    // What ran under no skill or subagent is the chat's own.
+    await click('gr-usage-page .split .groups button', 'Skill');
+    expect(legend()).toEqual(['Chat 70%', 'commit · skill 20%', 'Explore · subagent 10%']);
+    await click('gr-usage-page .split .groups button', 'Chat');
     // The ring's middle says the cost and the tokens, of the whole until a slice is in focus.
     expect(texts('gr-usage-page gr-usage-pie .hole > *')).toEqual([dollars(50), '14K tokens']);
     el.querySelectorAll('gr-usage-page gr-usage-pie path.slice')[1]!.dispatchEvent(

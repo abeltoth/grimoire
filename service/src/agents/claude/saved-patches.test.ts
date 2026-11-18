@@ -3,7 +3,12 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type { ClaudeMessage } from './messages';
-import { savedFileResults, withSavedResult } from './saved-patches';
+import {
+  savedExtras,
+  savedFileResults,
+  withSavedAttribution,
+  withSavedResult,
+} from './saved-patches';
 
 const answer = (id: string) => ({
   role: 'user',
@@ -55,6 +60,32 @@ describe('saved file results', () => {
     const results = await savedFileResults('chat-1', home);
     expect([...results.keys()]).toEqual(['toolu_1', 'toolu_3']);
     expect(results.get('toolu_1')).toMatchObject({ filePath: 'a.ts' });
+  });
+
+  it('reads what each reply was made under, by its API message ID, the subagents’ runs too', async () => {
+    const reply = (id: string, attribution: object) =>
+      JSON.stringify({ type: 'assistant', message: { id, content: [] }, ...attribution });
+    const folder = path.join(home, 'projects', 'C--work');
+    writeFileSync(
+      path.join(folder, 'chat-1.jsonl'),
+      [reply('msg_1', { attributionSkill: 'commit' }), reply('msg_2', {})].join('\n'),
+    );
+    const runs = path.join(folder, 'chat-1', 'subagents');
+    mkdirSync(runs, { recursive: true });
+    writeFileSync(
+      path.join(runs, 'agent-a1.jsonl'),
+      reply('msg_s1', { attributionAgent: 'Explore', attributionSkill: 'commit' }),
+    );
+    const { attributions } = await savedExtras('chat-1', home);
+    expect([...attributions]).toEqual([
+      ['msg_1', { attributionSkill: 'commit' }],
+      ['msg_s1', { attributionSkill: 'commit', attributionAgent: 'Explore' }],
+    ]);
+
+    const saved: ClaudeMessage = { type: 'assistant', message: { id: 'msg_1' } };
+    expect(withSavedAttribution(saved, attributions).attributionSkill).toBe('commit');
+    const other: ClaudeMessage = { type: 'assistant', message: { id: 'msg_2' } };
+    expect(withSavedAttribution(other, attributions)).toBe(other);
   });
 
   it('has none for a chat it can’t find', async () => {

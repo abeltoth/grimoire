@@ -11,11 +11,19 @@ export interface TokenCounts {
   output: number;
 }
 
-/** One model's tokens in a turn: the chat's own, or its subagents'. */
+/** What tokens were spent under: a skill the agent ran, or a subagent, by its kind of agent. */
+export interface TokenSource {
+  kind: 'skill' | 'subagent';
+  name: string;
+}
+
+/** One model's tokens in a turn: the chat's own, or its subagents', under a skill or not. */
 export interface TokenUse extends TokenCounts {
   model: string;
   /** Spent by subagents the chat started, rather than by the chat itself. */
   subagent?: boolean;
+  /** The skill, or the subagent, they were spent under; absent for the chat's own. */
+  source?: TokenSource;
   /**
    * What each kind of these tokens would cost at the API's list prices, in
    * US dollars; absent when the agent doesn't know the model's prices.

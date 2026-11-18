@@ -1,13 +1,15 @@
 import { TestBed } from '@angular/core/testing';
 import { useFakeBridge } from '@ui/testing/app-testing';
+import { ScanReadings } from './scan-readings';
 import { TokenReadings } from './token-readings';
 import { UsageSpans } from './usage-spans';
 
 describe('UsageSpans', () => {
-  it('shows a span when picked, and reads again when asked', async () => {
+  it('shows a span when picked, and reads the tokens and the scans again when asked', async () => {
     useFakeBridge();
-    TestBed.configureTestingModule({ providers: [TokenReadings] });
+    TestBed.configureTestingModule({ providers: [TokenReadings, ScanReadings] });
     const readings = TestBed.inject(TokenReadings);
+    const scan = vi.spyOn(TestBed.inject(ScanReadings), 'read');
     const showSpan = vi.spyOn(readings, 'showSpan');
     const read = vi.spyOn(readings, 'read');
     const fixture = TestBed.createComponent(UsageSpans);
@@ -25,5 +27,6 @@ describe('UsageSpans', () => {
     buttons[2]!.click();
     expect(showSpan).toHaveBeenCalledWith('day');
     expect(read).toHaveBeenCalled();
+    expect(scan).toHaveBeenCalled();
   });
 });

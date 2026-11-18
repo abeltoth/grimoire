@@ -72,7 +72,7 @@ describe('SearchIndex', () => {
     expect([...index.indexed().values()]).toEqual([{ id: 'c1', agent: 'a', updatedAt: 2 }]);
   });
 
-  it('adds up the tokens and their cost of the turns begun since a time, by day, model, folder and chat', () => {
+  it('adds up the tokens and their cost of the turns begun since a time, by day, model, folder, chat and skill', () => {
     const counts = (input: number, output: number) => ({
       input,
       cacheWritten: 0,
@@ -90,10 +90,17 @@ describe('SearchIndex', () => {
           at: day(5),
           model: 'claude-sonnet-5-5',
           subagent: true,
+          source: { kind: 'subagent', name: 'Explore' },
           ...counts(50, 0),
           cost: counts(0.5, 0),
         },
-        { at: day(6, 9), model: 'claude-opus-5-5', ...counts(10, 2), cost: counts(0.25, 0.25) },
+        {
+          at: day(6, 9),
+          model: 'claude-opus-5-5',
+          source: { kind: 'skill', name: 'commit' },
+          ...counts(10, 2),
+          cost: counts(0.25, 0.25),
+        },
         // Before the span.
         { at: day(1), model: 'claude-opus-5-5', ...counts(9_999, 0), cost: counts(99, 0) },
       ],
@@ -132,6 +139,11 @@ describe('SearchIndex', () => {
     expect(totals.chats.map(({ id, title, cwd, dollars }) => [id, title, cwd, dollars])).toEqual([
       ['c1', 'Ribbon', '/work/grimoire', 4],
       ['c2', 'Notes', undefined, 0],
+    ]);
+    // What ran under a skill or a subagent; the rest is the chats' own.
+    expect(totals.sources.map(({ kind, name, dollars }) => [kind, name, dollars])).toEqual([
+      ['subagent', 'Explore', 0.5],
+      ['skill', 'commit', 0.5],
     ]);
 
     // Indexed again, a chat's turns replace the ones it had; removed, they're gone.

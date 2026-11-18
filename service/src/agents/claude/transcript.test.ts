@@ -452,6 +452,27 @@ describe('ClaudeTranscript', () => {
       ]);
     });
 
+    it('counts what ran under a skill apart, and a subagent under its kind of agent, never its skill', () => {
+      const transcript = new ClaudeTranscript(false);
+      transcript.apply(you('u1', 'Commit'), 1_000);
+      const opus = (id: string) => reply(id, 'claude-opus-5-5', usage(1, 0, 0, 0, 1));
+      transcript.apply(opus('msg_1'), 1_500);
+      transcript.apply({ ...opus('msg_2'), attributionSkill: 'commit' }, 2_000);
+      transcript.apply({ ...opus('msg_3'), attributionSkill: 'commit' }, 2_100);
+      transcript.applySubagent(
+        { ...opus('msg_s1'), attributionAgent: 'Explore', attributionSkill: 'commit' },
+        2_500,
+      );
+      const [yours] = transcript.entries.filter((entry) => entry.kind === 'user');
+      expect(
+        yours!.tokens!.uses.map(({ subagent, source, input }) => ({ subagent, source, input })),
+      ).toEqual([
+        { subagent: undefined, source: undefined, input: 1 },
+        { subagent: undefined, source: { kind: 'skill', name: 'commit' }, input: 2 },
+        { subagent: true, source: { kind: 'subagent', name: 'Explore' }, input: 1 },
+      ]);
+    });
+
     it("reports the live turn's tokens as they grow, its subagents' included, and starts afresh after it", () => {
       const reported: TokenUse[][] = [];
       const transcript = new ClaudeTranscript(true, {

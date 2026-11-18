@@ -15,6 +15,7 @@ const totals = (since: number): TokenTotals => ({
   hours: [],
   models: [],
   folders: [],
+  sources: [],
   chats: [],
   tools: [],
   skills: [],

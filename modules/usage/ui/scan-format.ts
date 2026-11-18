@@ -1,5 +1,4 @@
 import type { UsageSpan } from '@grimoire/contract';
-import type { Slice } from './pie-chart';
 
 type SourceKind = UsageSpan['sources'][number]['kind'];
 
@@ -72,24 +71,9 @@ export function counted(n: number, one: string, many: string): string {
 }
 
 /**
- * Where the usage went: each subagent and skill, and the chat's own share,
- * what's left of the whole. The scan credits a request to its subagent, or
- * to its skill outside one, never both; plugins and MCP servers are credited
- * on top of them, so they have no slice.
+ * The plugins and MCP servers that took a share: the scan credits them on
+ * top of the chat, a subagent or a skill, so they overlap the cost by skill.
  */
-export function sourceSlices(span: UsageSpan): Slice[] {
-  const own = span.sources.filter((source) => source.kind === 'agent' || source.kind === 'skill');
-  const credited = own.reduce((sum, source) => sum + source.share, 0);
-  return [
-    { name: 'Chat', value: Math.max(0, 100 - credited) },
-    ...own.map((source) => ({
-      name: `${source.name} · ${sourceKind(source.kind)}`,
-      value: source.share,
-    })),
-  ];
-}
-
-/** The plugins and MCP servers, each also within the chat, a subagent or a skill. */
 export function overlapping(span: UsageSpan): UsageSpan['sources'] {
   return span.sources.filter((source) => source.kind === 'plugin' || source.kind === 'mcp');
 }

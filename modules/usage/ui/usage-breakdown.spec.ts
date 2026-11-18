@@ -1,4 +1,4 @@
-import type { UsageBreakdown, UsageSpan } from '@grimoire/contract';
+import type { CommandRequest, TokenTotals, UsageBreakdown, UsageSpan } from '@grimoire/contract';
 import { fakeBridge, openPageTab, render } from '@ui/testing/app-testing';
 
 describe('usage-breakdown', () => {
@@ -41,15 +41,26 @@ describe('usage-breakdown', () => {
     ],
   };
   const day: UsageSpan = { requests: 0, chats: 0, behaviours: [], advice: [], sources: [] };
+  const zero = { input: 0, cacheWritten: 0, cacheWrittenLong: 0, cacheRead: 0, output: 0 };
 
-  async function showLimits(breakdown: () => UsageBreakdown | null) {
+  async function showTokens(breakdown: () => UsageBreakdown | null) {
     const fake = fakeBridge();
-    fake.answers['usage.plan'] = () => ({
-      plan: 'max',
-      windows: [{ span: 'week', used: 40, resetsAt: null }],
-      at: now,
-    });
+    fake.answers['usage.plan'] = () => ({ plan: 'max', windows: [], at: now });
     fake.answers['usage.breakdown'] = breakdown;
+    fake.answers['search.tokens'] = ({ since }: CommandRequest<'search.tokens'>): TokenTotals => ({
+      since,
+      total: { ...zero, cost: zero, dollars: 0 },
+      unpriced: 0,
+      chatCount: 0,
+      days: [],
+      hours: [],
+      models: [],
+      folders: [],
+      sources: [],
+      chats: [],
+      tools: [],
+      skills: [],
+    });
     const rendered = await render(fake.bridge);
     await openPageTab(rendered.fixture, rendered.el, 'Ledger');
     const click = async (selector: string, name: string) => {
@@ -58,29 +69,24 @@ describe('usage-breakdown', () => {
         .click();
       await rendered.fixture.whenStable();
     };
+    expect(rendered.el.querySelector('gr-usage-limits gr-usage-breakdown')).toBeNull();
+    await click('gr-usage-page .tabs button', 'Tokens');
     return { ...fake, ...rendered, click };
   }
 
-  it("shows what used the plan's limits by the agent's own scan, under the limits", async () => {
-    const { el, texts, click, calls, fixture } = await showLimits(() => ({ day, week, at: now }));
-    const panel = 'gr-usage-page .plan gr-usage-breakdown';
+  it("shows the agent's own scan under the cost, over the tab's span", async () => {
+    const { el, texts, click, calls, fixture } = await showTokens(() => ({ day, week, at: now }));
+    const panel = 'gr-usage-page .tokens gr-usage-breakdown';
 
-    expect(texts(`${panel} h3`)).toEqual(['What used your limits']);
-    expect(el.querySelector(`${panel} h3 .about`)!.getAttribute('aria-label')).toContain(
-      'Claude Code’s own scan of the chats on this computer, read at',
-    );
-    expect(texts(`${panel} .sub`)).toEqual([
-      'Last 24 hours Last 7 days · 66 chats · 4,002 requests',
-    ]);
-    expect(texts(`${panel} .spans [aria-checked="true"]`)).toEqual(['Last 7 days']);
+    // No title of its own: the tab is about where the usage went.
+    expect(texts(`${panel} h3`)).toEqual([]);
     expect(texts(`${panel} h4`)).toEqual([
       'Ways of working',
-      'Where it went',
       'Plugins and MCP servers',
       'Claude Code’s tips',
     ]);
 
-    // Ways of working and plugins and MCP servers as meters, a whole chat counted for those that count by chat.
+    // Ways of working and the MCP servers as meters, a whole chat counted for those counted by chat.
     expect(texts(`${panel} .limits .name`)).toEqual([
       'Long context',
       'Chats left running for hours',
@@ -94,25 +100,20 @@ describe('usage-breakdown', () => {
       'MCP server',
     ]);
     expect(texts(`${panel} .limits b`)).toEqual(['59%', '10%', '2%', '9%']);
-    // What each counts, for those Grimoire knows, and that they overlap.
-    el.querySelector(`${panel} h4 .about`)!.dispatchEvent(new FocusEvent('focus'));
+
+    // Each way of working Grimoire knows tells what it counts, on its own name.
+    const words = el.querySelectorAll(`${panel} .limits .name .about.word`);
+    expect(words).toHaveLength(2);
+    expect(words[0]!.getAttribute('aria-description')).toBe(
+      'A request whose context is over 150K tokens.',
+    );
+    words[0]!.dispatchEvent(new FocusEvent('focus'));
     await fixture.whenStable();
-    expect(texts(`${panel} h4 .about-head`)).toEqual([
-      'Long context',
-      'Chats left running for hours',
-    ]);
-    expect(texts(`${panel} h4 .about-row`).at(-1)).toBe(
-      'They overlap, so their shares don’t add up to 100%.',
-    );
+    expect(texts(`${panel} .about-tip`)).toEqual(['A request whose context is over 150K tokens.']);
+    words[0]!.dispatchEvent(new FocusEvent('blur'));
+    await fixture.whenStable();
 
-    // One ring: the chat's own share and each subagent and skill.
-    const legend = [...el.querySelectorAll(`${panel} gr-usage-pie .legend li`)].map(
-      (row) =>
-        `${row.querySelector('.name')!.textContent!.trim()} ${row.querySelector('b')!.textContent}`,
-    );
-    expect(legend).toEqual(['Chat 80%', 'commit · skill 15%', 'Explore · subagent 5%']);
-
-    // The tips last: what to do, the command to run, and the share each touches.
+    // The tips last, in a note of their own: what to do and the command to run, no shares.
     expect(texts(`${panel} .tips .advice-title`)).toEqual([
       'Start fresh when you switch tasks',
       'Run /commit on a cheaper model',
@@ -122,23 +123,23 @@ describe('usage-breakdown', () => {
     expect(texts(`${panel} .tips .advice-detail`)).toEqual([
       'whole sessions with requests in 8 or more separate hours',
     ]);
-    expect(texts(`${panel} .tips .pill`)).toEqual(['59%', '15%', '10%']);
+    expect(texts(`${panel} .tips`)[0]).not.toContain('%');
 
-    await click(`${panel} .spans button`, 'Last 24 hours');
-    expect(texts(`${panel} .none`)).toEqual(['No requests over this span.']);
+    // The tab's span picks the scan's.
+    await click('gr-usage-page .tokens .spans button', 'Last 24 hours');
+    expect(texts(`${panel} h4`)).toEqual([]);
 
-    // Reading the limits again reads the scan again.
-    el.querySelector<HTMLButtonElement>('gr-usage-page .plan > .sub .gr-link')!.click();
-    await fixture.whenStable();
+    // Reading again asks for the scan again.
+    await click('gr-usage-page .tokens .sub .gr-link', 'Read again');
     expect(calls.filter((c) => c.command === 'usage.breakdown')).toHaveLength(2);
   });
 
   it("says so when the agent couldn't scan", async () => {
-    const { texts } = await showLimits(() => {
+    const { texts } = await showTokens(() => {
       throw new Error('No answer');
     });
-    expect(texts('gr-usage-page gr-usage-breakdown .none')).toEqual([
-      'Claude Code couldn’t say what used the limits: No answer',
+    expect(texts('gr-usage-page .tokens > .none[role="alert"]')).toEqual([
+      'Claude Code couldn’t say where the usage went: No answer',
     ]);
   });
 });

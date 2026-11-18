@@ -87,5 +87,13 @@
     } @else {
       <p class="none">Counting the chats’ tokens…</p>
     }
+
+    @if (scans.failed(); as error) {
+      <p class="none" role="alert">Claude Code couldn’t say where the usage went: {{ error }}</p>
+    } @else {
+      @for (each of scans.scans() ?? []; track each.agent.id) {
+        <gr-usage-breakdown [agent]="each.agent" />
+      }
+    }
   </section>
 }

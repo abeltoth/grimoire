@@ -439,9 +439,8 @@
   /* Where the tokens went: its heads, and the spans to show it over */
   --gr-usage-head-gap: 22px;
   --gr-usage-spans-gap: 14px;
-  /* A tip's share of the usage, in a rounded pill. */
-  --gr-usage-pill-pad: 1px 7px;
-  --gr-usage-pill-radius: 9px;
+  /* The rule down the side of the agent's tips. */
+  --gr-usage-tips-rule: 2px;
   /*
    * The Ledger's charts. The series' inks, in a fixed order, checked to stay
    * apart for colour-blind eyes on each light paper (the night sets its own):

@@ -5,7 +5,6 @@ import {
   behaviourRule,
   counted,
   overlapping,
-  sourceSlices,
   tipCommand,
 } from './scan-format';
 
@@ -24,7 +23,7 @@ describe('scan formats', () => {
     expect(counted(1, 'request', 'requests')).toBe('1 request');
   });
 
-  it('splits the whole between the chat, its subagents and its skills, and keeps plugins and MCP servers apart', () => {
+  it('picks out the plugins and MCP servers', () => {
     const span: UsageSpan = {
       requests: 10,
       chats: 1,
@@ -37,16 +36,7 @@ describe('scan formats', () => {
         { kind: 'plugin', name: 'tools', share: 2 },
       ],
     };
-    expect(sourceSlices(span)).toEqual([
-      { name: 'Chat', value: 80 },
-      { name: 'commit · skill', value: 15 },
-      { name: 'Explore · subagent', value: 5 },
-    ]);
     expect(overlapping(span).map((source) => source.name)).toEqual(['docs', 'tools']);
-    // Shares rounded past the whole leave the chat none.
-    expect(
-      sourceSlices({ ...span, sources: [{ kind: 'skill', name: 'all', share: 101 }] })[0],
-    ).toEqual({ name: 'Chat', value: 0 });
   });
 
   it('finds the command a tip gives', () => {

@@ -33,12 +33,13 @@ describe('tokens', () => {
     );
   });
 
-  it('says what each model spent, a line each, its subagents’ apart', () => {
+  it('says what each model spent, a line each, its subagents’ apart, whatever skill they ran under', () => {
     expect(
       usesInWords([
         { model: 'claude-opus-5-5', ...counts(10, 0, 1) },
         { model: 'claude-haiku-5-5', subagent: true, ...counts(20, 0, 0) },
+        { model: 'claude-opus-5-5', source: { kind: 'skill', name: 'commit' }, ...counts(5, 0, 0) },
       ]),
-    ).toBe('Opus 5.5: 10 fresh input, 1 output\nSubagents on Haiku 5.5: 20 fresh input');
+    ).toBe('Opus 5.5: 15 fresh input, 1 output\nSubagents on Haiku 5.5: 20 fresh input');
   });
 });

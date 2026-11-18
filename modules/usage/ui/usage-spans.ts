@@ -1,4 +1,5 @@
 import { Component, inject } from '@angular/core';
+import { ScanReadings } from './scan-readings';
 import { SPANS, type Span, TokenReadings } from './token-readings';
 
 /** The spans the tokens are shown over, and "Read again", above the Tokens and the Tools & skills tabs. */
@@ -23,7 +24,7 @@ import { SPANS, type Span, TokenReadings } from './token-readings';
         type="button"
         class="gr-link"
         [attr.aria-disabled]="readings.reading() || null"
-        (click)="readings.read()"
+        (click)="readAgain()"
       >
         Read again
       </button>
@@ -33,5 +34,12 @@ import { SPANS, type Span, TokenReadings } from './token-readings';
 })
 export class UsageSpans {
   protected readonly readings = inject(TokenReadings);
+  private readonly scans = inject(ScanReadings);
   protected readonly spans = Object.entries(SPANS) as [Span, { label: string; ms: number }][];
+
+  /** Counts the tokens again, and asks the agents for their scan again. */
+  protected readAgain(): void {
+    void this.readings.read();
+    void this.scans.read();
+  }
 }

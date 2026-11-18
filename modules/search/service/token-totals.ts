@@ -2,6 +2,7 @@ import {
   type AgentId,
   type ChatId,
   type TokenCounts,
+  type TokenSource,
   type TokenTotal,
   type TokenTotals,
   addTokens,
@@ -25,6 +26,9 @@ export type TurnRow = {
   costCacheWrittenLong: number | null;
   costCacheRead: number | null;
   costOutput: number | null;
+  /** The skill or subagent they were spent under; null for the chat's own. */
+  sourceKind: TokenSource['kind'] | null;
+  sourceName: string | null;
   agent: AgentId;
   title: string;
   cwd: string | null;
@@ -33,7 +37,7 @@ export type TurnRow = {
 /** The most chats the totals list. */
 const MAX_CHATS = 100;
 
-/** Where turns' tokens went and what they cost: in all, by day, hour, model, folder and chat. */
+/** Where turns' tokens went and what they cost: in all, by day, hour, model, folder, chat and skill or subagent. */
 export function totalsOf(
   since: number,
   rows: readonly TurnRow[],
@@ -43,6 +47,7 @@ export function totalsOf(
   const models = new Map<string, TurnRow[]>();
   const folders = new Map<string, TurnRow[]>();
   const chats = new Map<ChatId, TurnRow[]>();
+  const sources = new Map<string, TurnRow[]>();
   const about = new Map<ChatId, { agent: AgentId; title: string; cwd: string | null }>();
   for (const row of rows) {
     add(days, dayOf(row.at), row);
@@ -50,6 +55,7 @@ export function totalsOf(
     add(models, `${row.subagent ? 'subagent' : 'chat'} ${row.model}`, row);
     if (row.cwd) add(folders, row.cwd, row);
     add(chats, row.id, row);
+    if (row.sourceKind && row.sourceName) add(sources, `${row.sourceKind} ${row.sourceName}`, row);
     about.set(row.id, row);
   }
   return {
@@ -66,6 +72,12 @@ export function totalsOf(
       }),
     ),
     folders: costliest([...folders].map(([cwd, group]) => ({ cwd, ...totalOf(group) }))),
+    sources: costliest(
+      [...sources].map(([key, group]) => {
+        const [kind, ...name] = key.split(' ');
+        return { kind: kind as TokenSource['kind'], name: name.join(' '), ...totalOf(group) };
+      }),
+    ),
     chats: costliest(
       [...chats].map(([id, group]) => {
         const chat = about.get(id)!;

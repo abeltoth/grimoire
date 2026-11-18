@@ -66,6 +66,7 @@ describe('SearchWorker', () => {
       hours: [],
       models: [],
       folders: [],
+      sources: [],
       chats: [],
       tools: [],
       skills: [],

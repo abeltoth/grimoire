@@ -7,7 +7,9 @@ import type { AboutRow } from './about-tip';
 import { type ChartSeries, type ChartTick, type Column, UsageColumns } from './charts';
 import { type LineSeries, UsageLines } from './lines-chart';
 import { type Slice, UsagePie } from './pie-chart';
+import { ScanReadings } from './scan-readings';
 import { TokenReadings } from './token-readings';
+import { UsageBreakdownPanel } from './usage-breakdown';
 import { UsageSpans } from './usage-spans';
 import {
   DAY,
@@ -48,8 +50,8 @@ const PRICING =
   'What these tokens would have cost at the API’s list prices, each model at its own, ' +
   'without a subscription.';
 
-/** What the ring of the cost can be split by: the day, or the hour over the last 24, the model, folder or chat. */
-type PieView = 'time' | 'model' | 'folder' | 'chat';
+/** What the ring of the cost can be split by: the day, or the hour over the last 24, the model, folder, chat or skill. */
+type PieView = 'time' | 'model' | 'folder' | 'chat' | 'skill';
 
 /** The parts a column of tokens is stacked from, bottom first. */
 const TOKEN_SERIES: (ChartSeries & { of: (counts: TokenCounts) => number })[] = [
@@ -94,11 +96,11 @@ function cacheShare(c: TokenCounts): number | null {
 /**
  * The Usage page's Tokens tab: what the chats' tokens would have cost at the
  * API's list prices, by Grimoire's count from their transcripts, split by
- * time, model, folder or chat.
+ * time, model, folder, chat or skill; then what the agent's own scan says.
  */
 @Component({
   selector: 'gr-usage-tokens',
-  imports: [UsageColumns, UsageLines, UsagePie, UsageSpans],
+  imports: [UsageBreakdownPanel, UsageColumns, UsageLines, UsagePie, UsageSpans],
   templateUrl: './usage-tokens.html',
   styleUrls: [
     './usage-lists.css',
@@ -109,6 +111,7 @@ function cacheShare(c: TokenCounts): number | null {
 })
 export class UsageTokens {
   protected readonly readings = inject(TokenReadings);
+  protected readonly scans = inject(ScanReadings);
   private readonly list = inject(ChatList);
   private readonly catalog = inject(AgentCatalog);
 
@@ -137,6 +140,7 @@ export class UsageTokens {
     ['model', 'Model'],
     ['folder', 'Folder'],
     ['chat', 'Chat'],
+    ['skill', 'Skill'],
   ]);
 
   /** Where the tokens went over the span, a column and a point for each day, or each hour of the last 24. */
@@ -256,6 +260,16 @@ export class UsageTokens {
                 rest: true,
                 count: totals.chatCount - totals.chats.length,
               },
+            ],
+          };
+        case 'skill':
+          // What ran under no skill or subagent is the chat's own.
+          return {
+            unit: 'skills',
+            asGiven: false,
+            slices: [
+              ...totals.sources.map((each) => slice(`${each.name} · ${each.kind}`, each)),
+              { name: 'Chat', ...left(totals.sources) },
             ],
           };
       }

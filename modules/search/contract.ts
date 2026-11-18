@@ -1,4 +1,4 @@
-import type { AgentId, ChatId, TokenCounts } from '@grimoire/contract';
+import type { AgentId, ChatId, TokenCounts, TokenSource } from '@grimoire/contract';
 
 /** Where in a chat a passage is: its title, one of your messages, or one of the agent's replies. */
 export type PassageKind = 'title' | 'you' | 'agent';
@@ -42,6 +42,8 @@ export interface TokenTotals {
   models: (TokenTotal & { model: string; subagent: boolean })[];
   /** Costliest first. */
   folders: (TokenTotal & { cwd: string })[];
+  /** What each skill and subagent spent, costliest first; the rest is the chats' own. */
+  sources: (TokenTotal & TokenSource)[];
   /** The costliest chats, costliest first. */
   chats: (TokenTotal & { id: ChatId; agent: AgentId; title: string; cwd?: string })[];
   /** The tools the agents called most in the chats, not their subagents, most first. */

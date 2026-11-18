@@ -18,6 +18,7 @@ describe('usage-tools', () => {
       hours: [],
       models: [],
       folders: [],
+      sources: [],
       chats: [],
       tools: [],
       skills: [],

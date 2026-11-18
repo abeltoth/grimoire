@@ -41,7 +41,7 @@ export interface ToolUse {
 }
 
 /** Bump to rebuild every index: it's a cache, so it's dropped rather than migrated. */
-const VERSION = 4;
+const VERSION = 5;
 
 /** The most tools, and skills, the totals list. */
 const MAX_USED = 10;
@@ -68,7 +68,9 @@ const SCHEMA = `
     cost_cache_written REAL,
     cost_cache_written_long REAL,
     cost_cache_read REAL,
-    cost_output REAL
+    cost_output REAL,
+    source_kind TEXT,
+    source_name TEXT
   );
   CREATE TABLE uses (
     chat_id TEXT NOT NULL,
@@ -154,8 +156,9 @@ export class SearchIndex {
       }
       const spent = this.db.prepare(
         `INSERT INTO turns (chat_id, at, model, subagent, input, cache_written, cache_written_long,
-           cache_read, output, cost_input, cost_cache_written, cost_cache_written_long, cost_cache_read, cost_output)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           cache_read, output, cost_input, cost_cache_written, cost_cache_written_long, cost_cache_read, cost_output,
+           source_kind, source_name)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       );
       for (const turn of turns) {
         spent.run(
@@ -173,6 +176,8 @@ export class SearchIndex {
           turn.cost?.cacheWrittenLong ?? null,
           turn.cost?.cacheRead ?? null,
           turn.cost?.output ?? null,
+          turn.source?.kind ?? null,
+          turn.source?.name ?? null,
         );
       }
       const used = this.db.prepare(
@@ -193,7 +198,7 @@ export class SearchIndex {
 
   /**
    * Where the tokens went in the turns begun since a time: by day, model,
-   * folder and chat; and the tools and skills used most.
+   * folder, chat, and skill or subagent; and the tools and skills used most.
    */
   tokens(since: number): TokenTotals {
     const rows = this.db
@@ -205,6 +210,7 @@ export class SearchIndex {
            turns.cost_cache_written AS costCacheWritten,
            turns.cost_cache_written_long AS costCacheWrittenLong,
            turns.cost_cache_read AS costCacheRead, turns.cost_output AS costOutput,
+           turns.source_kind AS sourceKind, turns.source_name AS sourceName,
            chats.agent AS agent, chats.title AS title, chats.cwd AS cwd
          FROM turns JOIN chats ON chats.chat_id = turns.chat_id
          WHERE turns.at >= ?

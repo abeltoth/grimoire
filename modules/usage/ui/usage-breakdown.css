@@ -1,35 +1,31 @@
-/* A head with the icon that explains it beside it. */
-h3,
-h4 {
-  display: flex;
-  align-items: center;
-  gap: var(--gr-space-1);
+/* The agent's tips, set apart in a note with a rule down its side: what to do, and a command to run when there's one. */
+.tips {
+  margin-top: var(--gr-usage-head-gap);
+  max-width: var(--gr-usage-width);
+  padding: var(--gr-space-2) var(--gr-space-3);
+  border-left: var(--gr-usage-tips-rule) solid var(--gr-rubric);
+  background: var(--gr-surface);
 }
 
-/* The agent's tips: what to do, a command to run when there's one, and the share of the usage it touches. */
-.tips {
+.tips h4 {
+  margin-top: 0;
+}
+
+.tips ul {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--gr-space-2);
-  max-width: var(--gr-usage-width);
+  gap: var(--gr-space-1);
 }
 
 .tips li {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  column-gap: var(--gr-allowance-gap);
-}
-
-.advice {
-  display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   gap: var(--gr-space-1) var(--gr-space-2);
-  min-width: 0;
+  font-size: var(--gr-size-aside);
 }
 
 .advice-title {
@@ -38,7 +34,6 @@ h4 {
 
 .advice-detail {
   font-style: italic;
-  font-size: var(--gr-size-aside);
   color: var(--gr-ink-soft);
 }
 
@@ -49,14 +44,4 @@ code {
   font-family: var(--gr-font-mono);
   font-size: var(--gr-size-code);
   color: var(--gr-ink);
-}
-
-.pill {
-  flex: none;
-  padding: var(--gr-usage-pill-pad);
-  border-radius: var(--gr-usage-pill-radius);
-  background: var(--gr-code-inline-bg);
-  font-size: var(--gr-size-foot);
-  color: var(--gr-ink);
-  font-variant-numeric: lining-nums tabular-nums;
 }

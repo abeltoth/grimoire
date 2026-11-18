@@ -35,9 +35,15 @@ export function countsInWords(counts: TokenCounts): string {
     .join(', ');
 }
 
-/** What each model spent, a line each, its subagents' apart. */
+/** What each model spent, a line each, its subagents' apart, whatever skill they ran under. */
 export function usesInWords(uses: readonly TokenUse[]): string {
-  return uses
+  const byModel = new Map<string, TokenUse>();
+  for (const use of uses) {
+    const key = `${use.subagent ? 'subagent' : 'chat'} ${use.model}`;
+    const sum = byModel.get(key);
+    byModel.set(key, sum ? { ...sum, ...addTokens([sum, use]) } : use);
+  }
+  return [...byModel.values()]
     .map((use) => {
       const who = use.subagent ? `Subagents on ${modelLabel(use.model)}` : modelLabel(use.model);
       return `${who}: ${countsInWords(use)}`;

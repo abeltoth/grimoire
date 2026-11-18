@@ -21,6 +21,10 @@ export interface ClaudeMessage {
   origin?: { kind?: string };
   /** A live tool result's structured output: for the tool that started a subagent, what its run took. */
   tool_use_result?: unknown;
+  /** The skill a saved reply was made under, as Claude Code notes it. */
+  attributionSkill?: string;
+  /** The kind of agent a saved reply's subagent is, such as "Explore", as Claude Code notes it. */
+  attributionAgent?: string;
 }
 
 export interface ApiMessage {
