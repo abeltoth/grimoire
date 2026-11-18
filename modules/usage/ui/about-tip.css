@@ -1,0 +1,56 @@
+:host {
+  display: inline-flex;
+}
+
+/* What something means, told on hover or focus. */
+.about {
+  position: relative;
+  display: inline-flex;
+  cursor: help;
+  outline: none;
+  color: var(--gr-ink-soft);
+}
+
+.about:hover,
+.about:focus-visible {
+  color: var(--gr-ink);
+}
+
+.about-tip {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-chart-about-gap);
+  width: max-content;
+  max-width: var(--gr-chart-about-width);
+  margin-top: var(--gr-chart-tip-gap);
+  padding: var(--gr-chart-tip-pad);
+  background: var(--gr-surface);
+  border: 1px solid var(--gr-page-edge);
+  border-radius: var(--gr-chart-tip-radius);
+  box-shadow: var(--gr-chart-tip-shadow);
+  font-style: normal;
+  font-weight: 400;
+  font-size: var(--gr-size-foot);
+  white-space: normal;
+  color: var(--gr-ink-soft);
+  pointer-events: none;
+}
+
+.about-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gr-chart-tip-gap);
+}
+
+.about-head {
+  color: var(--gr-ink);
+}
+
+.about-head strong {
+  font-weight: 600;
+  font-variant-numeric: lining-nums tabular-nums;
+}

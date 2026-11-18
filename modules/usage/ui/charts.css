@@ -16,18 +16,6 @@ figcaption {
   color: var(--gr-ink-soft);
 }
 
-/* What the series mean, told on hover or focus. */
-.about {
-  display: inline-flex;
-  cursor: help;
-  outline: none;
-}
-
-.about:hover,
-.about:focus-visible {
-  color: var(--gr-ink);
-}
-
 /* The series, each keyed by the mark it draws: a swatch for a column's part, a stroke for a line. */
 .legend {
   list-style: none;

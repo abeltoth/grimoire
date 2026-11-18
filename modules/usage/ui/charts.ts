@@ -1,5 +1,5 @@
 import { Component, computed, input, signal } from '@angular/core';
-import { Icon } from '@ui/design-system/icon';
+import { type AboutRow, UsageAbout } from './about-tip';
 
 /** A series drawn in a chart: its name, and the colour its marks wear. */
 export interface ChartSeries {
@@ -70,14 +70,14 @@ function bar(x: number, top: number, width: number, height: number, rounded: boo
  */
 @Component({
   selector: 'gr-usage-columns',
-  imports: [Icon],
+  imports: [UsageAbout],
   templateUrl: './columns-chart.html',
   styleUrl: './charts.css',
 })
 export class UsageColumns {
   readonly caption = input.required<string>();
   /** What the series mean, behind an icon beside the caption; none by default. */
-  readonly about = input('');
+  readonly about = input<readonly AboutRow[]>([]);
   readonly series = input.required<readonly ChartSeries[]>();
   readonly columns = input.required<readonly Column[]>();
   readonly format = input<(n: number) => string>((n) => n.toLocaleString());

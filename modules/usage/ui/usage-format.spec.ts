@@ -1,6 +1,5 @@
 import {
   againstMost,
-  behaviourName,
   dayKey,
   dayName,
   dayShort,
@@ -129,10 +128,5 @@ describe('usage formats', () => {
     expect(againstMost(tools[1]!, tools)).toBe(25);
     expect(againstMost({ name: 'None', uses: 0 }, [])).toBe(0);
     expect([uses(1), uses(12)]).toEqual(['1 use', '12 uses']);
-  });
-
-  it("names Claude Code's ways of working, keeping its own name for one it doesn't know", () => {
-    expect(behaviourName('long_context')).toBe('Long context');
-    expect(behaviourName('brand_new')).toBe('brand new');
   });
 });

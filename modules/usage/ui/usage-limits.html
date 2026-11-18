@@ -15,7 +15,7 @@
             type="button"
             class="gr-link"
             [attr.aria-disabled]="reading() || null"
-            (click)="read()"
+            (click)="readAgain()"
           >
             Read again
           </button>
@@ -169,6 +169,7 @@
               [when]="monthName"
             />
           }
+          <gr-usage-breakdown [agent]="plan.agent" />
         } @else {
           <p class="none">
             No limits to show: {{ plan.agent.name }} isn’t signed in with a Claude subscription.

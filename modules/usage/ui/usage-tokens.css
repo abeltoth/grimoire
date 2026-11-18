@@ -7,25 +7,11 @@
   margin-left: var(--gr-space-1);
 }
 
-/* The agent's advice, and the totals, each with an aside under it. */
-.advice {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--gr-aside-gap);
-  max-width: var(--gr-usage-width);
-}
-
-.advice li,
+/* The totals, each with an aside under it. */
 .total {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-}
-
-.total {
   margin: var(--gr-aside-gap) 0 0;
   max-width: var(--gr-usage-width);
 }

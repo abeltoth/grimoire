@@ -439,6 +439,9 @@
   /* Where the tokens went: its heads, and the spans to show it over */
   --gr-usage-head-gap: 22px;
   --gr-usage-spans-gap: 14px;
+  /* A tip's share of the usage, in a rounded pill. */
+  --gr-usage-pill-pad: 1px 7px;
+  --gr-usage-pill-radius: 9px;
   /*
    * The Ledger's charts. The series' inks, in a fixed order, checked to stay
    * apart for colour-blind eyes on each light paper (the night sets its own):
@@ -472,6 +475,9 @@
   --gr-chart-tip-pad: 6px 9px;
   --gr-chart-tip-offset: 10px;
   --gr-chart-tip-shadow: 0 2px 6px rgba(60, 35, 10, 0.18);
+  /* An explanation behind an icon: the widest its tooltip is written, and the space between its lines. */
+  --gr-chart-about-width: 340px;
+  --gr-chart-about-gap: 6px;
   /* A pie's width, the gap to its legend, and the widest a name in it is written. */
   --gr-chart-pie-size: 200px;
   --gr-chart-pie-gap: 28px;

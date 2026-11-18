@@ -1,16 +1,8 @@
 <figure class="chart">
   <figcaption>
     {{ caption() }}
-    @if (about()) {
-      <span
-        class="about"
-        tabindex="0"
-        role="img"
-        [attr.title]="about()"
-        [attr.aria-label]="about()"
-      >
-        <gr-icon name="info" />
-      </span>
+    @if (about().length) {
+      <gr-usage-about [rows]="about()" />
     }
     <ng-content />
   </figcaption>

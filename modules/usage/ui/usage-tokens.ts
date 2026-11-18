@@ -1,9 +1,9 @@
-import { NgTemplateOutlet } from '@angular/common';
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { type TokenCounts, type TokenTotal, sumTokens } from '@grimoire/contract';
 import { ChatList } from '@ui/app/core/chat-list';
 import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { countsInWords, tokenCount } from '@ui/app/core/tokens';
+import type { AboutRow } from './about-tip';
 import { type ChartSeries, type ChartTick, type Column, UsageColumns } from './charts';
 import { type LineSeries, UsageLines } from './lines-chart';
 import { type Slice, UsagePie } from './pie-chart';
@@ -12,19 +12,16 @@ import { UsageSpans } from './usage-spans';
 import {
   DAY,
   HOUR,
-  behaviourName,
   dayKey,
   dayName,
   dayShort,
   dayTick,
-  filled,
   hourName,
   hourShort,
   hourSpan,
   dollars,
   dollarsShort,
   modelName,
-  sourceKind,
   startOf,
 } from './usage-format';
 
@@ -45,8 +42,6 @@ interface TokensCharts {
   /** A bucket's length, in ms: a gap of more than that breaks the line. */
   bucket: number;
 }
-
-const SHOWN = 5;
 
 /** What the cost is priced at, for its tooltip. */
 const PRICING =
@@ -70,13 +65,20 @@ const TOKEN_SERIES: (ChartSeries & { of: (counts: TokenCounts) => number })[] = 
 const TOKEN_LEGEND: ChartSeries[] = TOKEN_SERIES.map(({ name, color }) => ({ name, color }));
 
 /** What the four kinds of token are and what each costs against fresh input, behind the chart's icon. */
-const KINDS = [
-  'Fresh input: what Claude reads past the cache; the price the others are set against.',
-  'Read from the cache: the chat so far, read again on every reply; a tenth of that price or less.',
-  'Written to the cache: new context stored, as when a chat starts, a big file is read or the ' +
-    'cache ran out; 1.25 times it, twice when kept for an hour.',
-  'Output: what Claude writes, its thinking included; five times it.',
-].join('\n');
+const KINDS: AboutRow[] = [
+  { head: 'Fresh input', value: '1×', text: 'What Claude reads that isn’t in the cache.' },
+  {
+    head: 'Read from the cache',
+    value: '0.1× or less',
+    text: 'The chat so far, read again on every reply.',
+  },
+  {
+    head: 'Written to the cache',
+    value: '1.25×, or 2× when kept for an hour',
+    text: 'New context stored: a chat starting, a big file read, or the cache running out.',
+  },
+  { head: 'Output', value: '5×', text: 'What Claude writes, thinking included.' },
+];
 
 /** A scale's foot a little under the lowest share, on an even step so its middle line is whole. */
 export function floorUnder(lowest: number): number {
@@ -92,11 +94,11 @@ function cacheShare(c: TokenCounts): number | null {
 /**
  * The Usage page's Tokens tab: what the chats' tokens would have cost at the
  * API's list prices, by Grimoire's count from their transcripts, split by
- * time, model, folder or chat; then what the agent's own scan says.
+ * time, model, folder or chat.
  */
 @Component({
   selector: 'gr-usage-tokens',
-  imports: [NgTemplateOutlet, UsageColumns, UsageLines, UsagePie, UsageSpans],
+  imports: [UsageColumns, UsageLines, UsagePie, UsageSpans],
   templateUrl: './usage-tokens.html',
   styleUrls: [
     './usage-lists.css',
@@ -112,10 +114,6 @@ export class UsageTokens {
 
   readonly shown = input.required<boolean>();
 
-  /** How many rows a list shows before "Show all". */
-  protected readonly few = SHOWN;
-  private readonly open = signal<ReadonlySet<string>>(new Set());
-
   protected readonly tokenSeries = TOKEN_LEGEND;
   protected readonly kinds = KINDS;
   protected readonly dollars = dollars;
@@ -123,10 +121,6 @@ export class UsageTokens {
   protected readonly count = tokenCount;
   protected readonly all = sumTokens;
   protected readonly inWords = countsInWords;
-  protected readonly behaviourName = behaviourName;
-  protected readonly sourceKind = sourceKind;
-  protected readonly filled = filled;
-  protected readonly round = Math.round;
 
   protected readonly measure = signal<Measure>('tokens');
   protected readonly measures: [Measure, string][] = [
@@ -273,23 +267,6 @@ export class UsageTokens {
     this.readings.span() === 'day'
       ? hourSpan(startOf(at, 'hour').getTime(), startOf(at, 'hour').getTime() + HOUR)
       : dayName(dayKey(new Date(at)));
-
-  /** The first few of a list, or all of it once opened. */
-  protected top<T>(list: readonly T[], key: string): readonly T[] {
-    return this.open().has(key) ? list : list.slice(0, SHOWN);
-  }
-
-  protected isOpen(key: string): boolean {
-    return this.open().has(key);
-  }
-
-  protected toggle(key: string): void {
-    this.open.update((open) => {
-      const next = new Set(open);
-      if (!next.delete(key)) next.add(key);
-      return next;
-    });
-  }
 
   /** Opens a chat picked from the chat pie. */
   protected openChat(id: string): void {

@@ -1,5 +1,5 @@
 import { Injectable, PendingTasks, effect, inject, signal, untracked } from '@angular/core';
-import type { AgentInfo, TokenTotals, UsageBreakdown } from '@grimoire/contract';
+import type { TokenTotals } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { HOUR } from './usage-format';
@@ -12,16 +12,9 @@ export const SPANS: Record<Span, { label: string; ms: number }> = {
   week: { label: 'Last 7 days', ms: 7 * 24 * HOUR },
 };
 
-/** An agent's own word on where its plan's usage went. */
-export interface Breakdown {
-  agent: AgentInfo;
-  breakdown: UsageBreakdown;
-}
-
 /**
- * The Tokens and the Tools & skills tabs' readings, kept by the Usage page so
- * both tabs share one span and one read: Grimoire's count from the chats'
- * transcripts, and what the agents say of their usage.
+ * Grimoire's count from the chats' transcripts, kept by the Usage page so the
+ * Tokens and the Tools & skills tabs share one span and one read.
  */
 @Injectable()
 export class TokenReadings {
@@ -33,9 +26,6 @@ export class TokenReadings {
   /** Grimoire's count over the span; undefined until it's read. */
   readonly totals = signal<TokenTotals | undefined>(undefined);
   readonly totalsFailed = signal<string | null>(null);
-  /** What the agents say of their usage; undefined until they've answered. */
-  readonly breakdowns = signal<Breakdown[] | undefined>(undefined);
-  readonly breakdownsFailed = signal<string | null>(null);
   readonly reading = signal(false);
 
   constructor() {
@@ -45,20 +35,19 @@ export class TokenReadings {
     });
   }
 
-  /** Reads again: Grimoire's count, and what the agents say. */
   async read(): Promise<void> {
     if (this.reading()) return;
     this.reading.set(true);
     const done = this.pending.add();
     try {
-      await Promise.all([this.readTotals(), this.readBreakdowns()]);
+      await this.readTotals();
     } finally {
       this.reading.set(false);
       done();
     }
   }
 
-  /** Shows another span: Grimoire counts it again, while the agents' scan already has both. */
+  /** Shows another span, counted again. */
   async showSpan(span: Span): Promise<void> {
     if (span === this.span()) return;
     this.span.set(span);
@@ -80,24 +69,6 @@ export class TokenReadings {
       if (span === this.span()) this.totals.set(totals);
     } catch (error) {
       this.totalsFailed.set(error instanceof Error ? error.message : String(error));
-    }
-  }
-
-  private async readBreakdowns(): Promise<void> {
-    this.breakdownsFailed.set(null);
-    try {
-      const agents = this.catalog.agents();
-      const answers = await Promise.all(
-        agents.map((agent) => this.bridge.invoke('usage.breakdown', { agent: agent.id })),
-      );
-      this.breakdowns.set(
-        agents.flatMap((agent, i) => {
-          const breakdown = answers[i];
-          return breakdown ? [{ agent, breakdown }] : [];
-        }),
-      );
-    } catch (error) {
-      this.breakdownsFailed.set(error instanceof Error ? error.message : String(error));
     }
   }
 }

@@ -1,0 +1,109 @@
+@if (scans.failed(); as error) {
+  <p class="none" role="alert">{{ agent().name }} couldn’t say what used the limits: {{ error }}</p>
+} @else if (shown(); as scan) {
+  <h3>
+    What used your limits
+    <gr-usage-about [rows]="about()" />
+  </h3>
+  <p class="sub">
+    <span class="spans" role="radiogroup" aria-label="Over">
+      @for (each of spans; track each[0]) {
+        <button
+          type="button"
+          role="radio"
+          [attr.aria-checked]="span() === each[0]"
+          (click)="span.set(each[0])"
+        >
+          {{ each[1].label }}
+        </button>
+      }
+    </span>
+    <span class="dot" aria-hidden="true">·</span>
+    {{ counted(scan.chats, 'chat', 'chats') }}
+    <span class="dot" aria-hidden="true">·</span>
+    {{ counted(scan.requests, 'request', 'requests') }}
+  </p>
+
+  @if (scan.requests) {
+    @if (scan.behaviours.length) {
+      <h4>
+        Ways of working
+        <gr-usage-about [rows]="ways()" />
+      </h4>
+      <ul class="limits">
+        @for (behaviour of scan.behaviours; track behaviour.key) {
+          <li>
+            <span class="head">
+              <span class="name">{{ behaviourName(behaviour.key) }}</span>
+              <span class="resets">{{ behaviourCount(behaviour.key, behaviour.requests) }}</span>
+            </span>
+            <span
+              class="ticks"
+              role="meter"
+              [attr.aria-label]="behaviourName(behaviour.key) + ', share of the usage'"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              [attr.aria-valuenow]="behaviour.share"
+            >
+              <span class="used" [style.width.%]="filled(behaviour.share)"></span>
+            </span>
+            <b>{{ share(behaviour.share) }}</b>
+          </li>
+        }
+      </ul>
+    }
+
+    <h4>Where it went</h4>
+    <gr-usage-pie label="Where the usage went" [slices]="ring()" [format]="share" />
+
+    @if (extras().length) {
+      <h4>
+        Plugins and MCP servers
+        <gr-usage-about [rows]="extrasAbout" />
+      </h4>
+      <ul class="limits">
+        @for (source of extras(); track source.kind + source.name) {
+          <li>
+            <span class="head">
+              <span class="name">{{ source.name }}</span>
+              <span class="resets">{{ sourceKind(source.kind) }}</span>
+            </span>
+            <span
+              class="ticks"
+              role="meter"
+              [attr.aria-label]="source.name + ', share of the usage'"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              [attr.aria-valuenow]="source.share"
+            >
+              <span class="used" [style.width.%]="filled(source.share)"></span>
+            </span>
+            <b>{{ share(source.share) }}</b>
+          </li>
+        }
+      </ul>
+    }
+
+    @if (scan.advice.length) {
+      <h4>{{ agent().name }}’s tips</h4>
+      <ul class="tips">
+        @for (advice of scan.advice; track advice.key + advice.title) {
+          @let command = tipCommand(advice.detail);
+          <li>
+            <span class="advice">
+              <span class="advice-title">{{ advice.title }}</span>
+              @if (command) {
+                <code>{{ command }}</code>
+              } @else if (advice.detail) {
+                <span class="advice-detail">{{ advice.detail }}</span>
+              }
+            </span>
+            <span class="pill">{{ share(advice.share) }}</span>
+          </li>
+        }
+      </ul>
+    }
+  } @else {
+    <p class="none">No requests over this span.</p>
+  }
+}

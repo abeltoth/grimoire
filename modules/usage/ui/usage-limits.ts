@@ -28,6 +28,8 @@ import {
   weeksChart,
 } from './limits-chart';
 import { UsageLines } from './lines-chart';
+import { ScanReadings } from './scan-readings';
+import { UsageBreakdownPanel } from './usage-breakdown';
 import { UsageSessions } from './sessions-chart';
 import {
   DAY,
@@ -68,12 +70,13 @@ const DAY_SERIES: ChartSeries[] = [{ name: 'Spent', color: 'var(--gr-chart-4)' }
  * The Usage page's limits: how much of each agent's subscription limits is
  * used, each limit with when it resets and how much of its time is gone,
  * the session and the week under way drawn, the week's sessions, and the weeks before;
- * with usage credits, the month, its days and the months before. Read
- * from the agent when the page opens, and again whenever the service reads them.
+ * with usage credits, the month, its days and the months before; then what
+ * the agent's own scan says used them. Read from the agent when the page
+ * opens, and again whenever the service reads them.
  */
 @Component({
   selector: 'gr-usage-limits',
-  imports: [UsageColumns, UsageLines, UsageSessions],
+  imports: [UsageBreakdownPanel, UsageColumns, UsageLines, UsageSessions],
   templateUrl: './usage-limits.html',
   styleUrls: ['./usage-lists.css', './usage-limits.css'],
 })
@@ -81,6 +84,7 @@ export class UsageLimits {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
   private readonly catalog = inject(AgentCatalog);
   private readonly pending = inject(PendingTasks);
+  private readonly scans = inject(ScanReadings);
 
   /** Whether the page shows the limits; they're read when it opens all the same. */
   readonly shown = input.required<boolean>();
@@ -124,7 +128,13 @@ export class UsageLimits {
     inject(DestroyRef).onDestroy(stop);
   }
 
-  protected async read(): Promise<void> {
+  /** Reads the limits again, and the agents' scan with them. */
+  protected readAgain(): void {
+    void this.read();
+    void this.scans.read();
+  }
+
+  private async read(): Promise<void> {
     if (this.reading()) return;
     this.reading.set(true);
     const done = this.pending.add();

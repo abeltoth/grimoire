@@ -1,4 +1,4 @@
-import type { CommandRequest, TokenTotals, UsageBreakdown, UsageSpan } from '@grimoire/contract';
+import type { CommandRequest, TokenTotals } from '@grimoire/contract';
 import { fakeBridge, openPageTab, render } from '@ui/testing/app-testing';
 import { floorUnder } from './usage-tokens';
 import { dollars, dollarsShort } from './usage-format';
@@ -70,7 +70,7 @@ describe('usage-tokens', () => {
     };
     const hour = new Date(now);
     hour.setMinutes(0, 0, 0);
-    const { el, texts, click } = await showTokens({
+    const { fixture, el, texts, click } = await showTokens({
       'search.tokens': ({ since }: CommandRequest<'search.tokens'>): TokenTotals => ({
         ...none,
         since,
@@ -89,10 +89,24 @@ describe('usage-tokens', () => {
     expect(texts('gr-usage-page .tokens > gr-usage-columns figcaption')).toEqual([
       'By day Tokens Cost',
     ]);
-    // What the four kinds are, behind an icon by the caption.
+    // What the four kinds are and what each costs against fresh input, behind an icon by the caption.
+    el.querySelector('gr-usage-page gr-usage-columns .about')!.dispatchEvent(
+      new FocusEvent('focus'),
+    );
+    await fixture.whenStable();
+    expect(texts('gr-usage-page gr-usage-columns .about-head')).toEqual([
+      'Fresh input · 1×',
+      'Read from the cache · 0.1× or less',
+      'Written to the cache · 1.25×, or 2× when kept for an hour',
+      'Output · 5×',
+    ]);
     expect(
-      el.querySelector('gr-usage-page gr-usage-columns .about')!.getAttribute('title'),
-    ).toContain('Output: what Claude writes, its thinking included; five times it.');
+      el.querySelector('gr-usage-page gr-usage-columns .about')!.getAttribute('aria-label'),
+    ).toContain('Output, 5×: What Claude writes, thinking included.');
+    el.querySelector('gr-usage-page gr-usage-columns .about')!.dispatchEvent(
+      new FocusEvent('blur'),
+    );
+    await fixture.whenStable();
     expect(texts('gr-usage-page gr-usage-lines figcaption')).toEqual(['Served from the cache']);
     expect(texts('gr-usage-page gr-usage-columns .legend li')).toEqual([
       'Read from the cache',
@@ -133,26 +147,8 @@ describe('usage-tokens', () => {
     ).toBeGreaterThanOrEqual(24);
   });
 
-  it("shows the cost and the tokens, one ring split by what's picked, and the agent's word last", async () => {
-    const span = (requests: number): UsageSpan => ({
-      requests,
-      chats: 4,
-      behaviours: [
-        { key: 'long_context', share: 80, requests: 40 },
-        { key: 'brand_new', share: 5.4, requests: 2 },
-      ],
-      advice: [
-        {
-          key: 'long_context',
-          share: 80,
-          title: 'Start fresh when you switch tasks',
-          detail: 'run /clear',
-        },
-      ],
-      sources: [{ kind: 'mcp', name: 'docs', share: 9 }],
-    });
+  it("shows the cost and the tokens, and one ring split by what's picked", async () => {
     const { fixture, el, texts, click, calls } = await showTokens({
-      'usage.breakdown': (): UsageBreakdown => ({ day: span(10), week: span(70), at: 0 }),
       'search.tokens': ({ since }: CommandRequest<'search.tokens'>): TokenTotals => ({
         ...none,
         since,
@@ -219,27 +215,6 @@ describe('usage-tokens', () => {
     await fixture.whenStable();
     expect(texts('gr-usage-page gr-usage-pie .hole > *')).toEqual([dollars(15), '1.5K tokens']);
 
-    // The agent's word comes last, all of it together.
-    expect(texts('gr-usage-page .tokens h3')).toEqual(['Claude Code says']);
-    expect(el.querySelector('gr-usage-page .says h3')!.getAttribute('title')).toContain(
-      'own look through the chats',
-    );
-    expect(el.querySelector('gr-usage-page .tokens > gr-usage-pie + .says')).not.toBeNull();
-    expect(texts('gr-usage-page .says .sub')).toEqual(['70 requests in 4 chats']);
-    expect(texts('gr-usage-page .says .advice .name')).toEqual([
-      'Start fresh when you switch tasks',
-    ]);
-    expect(texts('gr-usage-page .says .advice .detail')).toEqual(['run /clear']);
-    expect(texts('gr-usage-page .says h4')).toEqual(['Ways of working', 'What took a share']);
-    expect(el.querySelector('gr-usage-page .says h4')!.getAttribute('title')).toContain('overlap');
-    // A way of working Grimoire has no name for keeps Claude Code's.
-    expect(texts('gr-usage-page .says .limits .name')).toEqual([
-      'Long context',
-      'brand new',
-      'docs',
-    ]);
-    expect(texts('gr-usage-page .says .limits b')).toEqual(['80%', '5%', '9%']);
-
     // A chat opens from its slice.
     await click('gr-usage-page gr-usage-pie .legend button', 'Ribbon');
     expect(calls.find((c) => c.command === 'agents.open')!.request).toEqual({
@@ -248,7 +223,7 @@ describe('usage-tokens', () => {
       settings: { cwd: 'C:/work/grimoire' },
     });
 
-    // The last 24 hours: by hour; Claude Code's scan already has them, Grimoire counts again.
+    // The last 24 hours: by hour, counted again.
     const asked = () =>
       calls
         .filter((c) => c.command === 'search.tokens')
@@ -260,10 +235,8 @@ describe('usage-tokens', () => {
     expect(legend()).toEqual([
       `${weekday} ${two.toLocaleTimeString([], { hour: 'numeric' })} 100%`,
     ]);
-    expect(texts('gr-usage-page .says .sub')).toEqual(['10 requests in 4 chats']);
     expect(asked()).toHaveLength(2);
     expect(asked()[1]! - asked()[0]!).toBeGreaterThan(6 * 24 * 60 * 60_000 - 60_000);
-    expect(calls.filter((c) => c.command === 'usage.breakdown')).toHaveLength(1);
   });
 
   it("says so when there's nothing to say of the tokens", async () => {

@@ -1,4 +1,4 @@
-import type { Used, UsageCredits, UsageSpan, UsageWindow } from '@grimoire/contract';
+import type { Used, UsageCredits, UsageWindow } from '@grimoire/contract';
 import { modelLabel } from '@ui/app/core/tokens';
 
 /** An hour and a day in ms, as the Usage page's views and charts count back by them. */
@@ -195,34 +195,6 @@ export function meterText(window: UsageWindow, now: number): string {
   const used = window.used === null ? 'Not read' : `${percent(window.used)} used`;
   const gone = elapsed(window, now);
   return gone === null ? used : `${used}, ${percent(gone)} of the ${window.span} gone`;
-}
-
-/** Claude Code's ways of working, as its usage scan names them, in plain words. */
-const BEHAVIOURS: Record<string, string> = {
-  cache_miss: 'Going on after the prompt cache ran out',
-  long_context: 'Long context',
-  subagent_heavy: 'Many subagents',
-  high_parallel: 'Many chats at once',
-  cron: 'Chats left running for hours',
-  max_effort: 'Max effort',
-  workflow: 'Workflows',
-  always_on_context: 'What loads into every chat',
-  large_tool_results: 'Large tool results',
-};
-
-const SOURCES: Record<UsageSpan['sources'][number]['kind'], string> = {
-  agent: 'subagent',
-  skill: 'skill',
-  plugin: 'plugin',
-  mcp: 'MCP server',
-};
-
-export function behaviourName(key: string): string {
-  return BEHAVIOURS[key] ?? key.replace(/_/g, ' ');
-}
-
-export function sourceKind(kind: UsageSpan['sources'][number]['kind']): string {
-  return SOURCES[kind];
 }
 
 export function modelName(model: string, subagent: boolean): string {
