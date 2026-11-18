@@ -18,16 +18,6 @@
           {{ sources().has(field.name) ? 'Preview' : 'Source' }}
         </button>
       }
-      @if (foldable(field)) {
-        <button
-          type="button"
-          class="gr-link"
-          [attr.aria-expanded]="open"
-          (click)="toggle('opened', field.name)"
-        >
-          {{ open ? 'Show less' : 'Show all' }}
-        </button>
-      }
     </div>
     <div class="value" [class.folded]="foldable(field) && !open">
       @if (markdown !== undefined) {
@@ -36,5 +26,15 @@
         <pre class="plain">{{ plain(field) }}</pre>
       }
     </div>
+    @if (foldable(field)) {
+      <button
+        type="button"
+        class="gr-link fold"
+        [attr.aria-expanded]="open"
+        (click)="toggle('opened', field.name)"
+      >
+        {{ open ? 'Show less' : 'Show all' }}
+      </button>
+    }
   </section>
 }
