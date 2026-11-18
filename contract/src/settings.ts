@@ -4,6 +4,17 @@ import type { EffortLevel } from './chat-settings';
 /** What a new chat begins with: the settings used last, or a preset's, by name. */
 export type NewChatStart = { from: 'last-used' } | { from: 'preset'; preset: string };
 
+/** The agent, model and effort every new chat begins with, whatever the last one used. */
+export interface NewChatDefault {
+  agent: AgentId;
+  /** The agent's model ID; its default model when left out. */
+  model?: string;
+  /** The model's effort; the model's own default when left out. */
+  effort?: EffortLevel;
+  /** Auto: the model and effort are picked for each chat's first message. */
+  autoModel?: boolean;
+}
+
 /** The ready-made looks: the book as drawn, and three others. */
 export const THEME_NAMES = ['grimoire', 'night', 'sepia', 'contrast'] as const;
 export type ThemeName = (typeof THEME_NAMES)[number];
@@ -14,10 +25,8 @@ export interface GrimoireSettings {
   wording: 'book' | 'plain';
   /** Whether the pages show their drawings; essential ones, such as the thought mark, stay. */
   drawings: boolean;
-  /** The agent new chats are written by; null for whichever wrote the last one. */
-  defaultAgent: AgentId | null;
-  /** The effort new chats begin at, as near as their model takes it; null for the one used last. */
-  defaultEffort: EffortLevel | null;
+  /** The agent, model and effort every new chat begins with; null for those used last. */
+  newChatDefault: NewChatDefault | null;
   newChat: NewChatStart;
   /** The ready-made look in use; "auto" follows the system's light or dark (Grimoire by day, Night after dark). */
   themeName: ThemeName | 'auto';
@@ -95,8 +104,7 @@ export const DEFAULT_JIRA_QUERY =
 export const DEFAULT_SETTINGS: GrimoireSettings = {
   wording: 'book',
   drawings: true,
-  defaultAgent: null,
-  defaultEffort: null,
+  newChatDefault: null,
   newChat: { from: 'last-used' },
   themeName: 'grimoire',
   theme: {},

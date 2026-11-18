@@ -70,7 +70,7 @@
         type="button"
         class="word"
         role="radio"
-        [attr.aria-checked]="all.defaultAgent === null"
+        [attr.aria-checked]="!fixed()"
         (click)="pickAgent(null)"
       >
         The one used last
@@ -80,40 +80,63 @@
           type="button"
           class="word"
           role="radio"
-          [attr.aria-checked]="all.defaultAgent === agent.id"
+          [attr.aria-checked]="fixed()?.agent === agent.id"
           (click)="pickAgent(agent.id)"
         >
           {{ agent.name }}
         </button>
       }
     </span>
-
-    <span class="label" id="gr-settings-effort">{{
-      wording.say('Default effort for new chapters', 'Default effort for new chats')
-    }}</span>
-    <span class="words" role="radiogroup" aria-labelledby="gr-settings-effort">
-      <button
-        type="button"
-        class="word"
-        role="radio"
-        [attr.aria-checked]="all.defaultEffort === null"
-        (click)="set({ defaultEffort: null })"
-      >
-        The one used last
-      </button>
-      @for (effort of efforts; track effort.level) {
+    @if (fixed(); as fixed) {
+      <span class="label" id="gr-settings-model">Its model</span>
+      <span class="words" role="radiogroup" aria-labelledby="gr-settings-model">
         <button
           type="button"
           class="word"
           role="radio"
-          [attr.aria-checked]="all.defaultEffort === effort.level"
-          (click)="set({ defaultEffort: effort.level })"
+          [attr.aria-checked]="!!fixed.autoModel"
+          (click)="pickModel(null)"
         >
-          {{ effort.label }}
+          Auto
         </button>
+        @for (model of fixed.models; track model.id) {
+          <button
+            type="button"
+            class="word"
+            role="radio"
+            [attr.aria-checked]="fixed.model === model.id"
+            (click)="pickModel(model.id)"
+          >
+            {{ model.name }}
+          </button>
+        }
+      </span>
+      @if (fixed.autoModel) {
+        <p class="note">
+          {{
+            wording.say(
+              'Auto picks the model and effort for each chapter’s first entry.',
+              'Auto picks the model and effort for each chat’s first message.'
+            )
+          }}
+        </p>
+      } @else if (fixed.efforts.length) {
+        <span class="label" id="gr-settings-effort">Its effort</span>
+        <span class="words" role="radiogroup" aria-labelledby="gr-settings-effort">
+          @for (effort of fixed.efforts; track effort.level) {
+            <button
+              type="button"
+              class="word"
+              role="radio"
+              [attr.aria-checked]="fixed.effort === effort.level"
+              (click)="pickEffort(effort.level)"
+            >
+              {{ effort.label }}
+            </button>
+          }
+        </span>
       }
-    </span>
-    <p class="note">A model that doesn’t take the effort runs at the nearest it takes below it.</p>
+    }
 
     <span class="label" id="gr-settings-start">{{
       wording.say('New chapters begin with', 'New chats start with')

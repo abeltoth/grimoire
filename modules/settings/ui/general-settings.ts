@@ -10,7 +10,7 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
-import type { AgentId, GrimoireSettings } from '@grimoire/contract';
+import type { AgentId, EffortLevel, GrimoireSettings } from '@grimoire/contract';
 import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { EFFORTS } from '@ui/app/core/efforts';
 import { McpServers } from '@ui/app/core/mcp-servers';
@@ -39,7 +39,6 @@ export class GeneralSettings {
   protected readonly presets = inject(PresetList);
   protected readonly wording = inject(Wording);
   protected readonly accounts = inject(Accounts);
-  protected readonly efforts = EFFORTS;
   private readonly profiles = inject(Profiles);
   private readonly mcp = inject(McpServers);
   private readonly injector = inject(Injector);
@@ -56,6 +55,22 @@ export class GeneralSettings {
     return start.from === 'preset' && this.presets.all().some((p) => p.name === start.preset)
       ? start.preset
       : null;
+  });
+
+  /** The agent, model and effort Settings fixes for new chats, with the agent's models and the model's efforts to pick. */
+  protected readonly fixed = computed(() => {
+    const fixed = this.settings.all().newChatDefault;
+    if (!fixed) return null;
+    const listed = this.catalog.models()[fixed.agent];
+    const { levels, level } = this.catalog.effortOf(fixed.agent, fixed);
+    return {
+      agent: fixed.agent,
+      autoModel: !!fixed.autoModel,
+      models: listed?.models ?? [],
+      model: fixed.autoModel ? undefined : (fixed.model ?? listed?.default),
+      efforts: EFFORTS.filter((e) => levels.includes(e.level)),
+      effort: level,
+    };
   });
 
   /** Whether every agent has said which MCP servers it loads in your home folder. */
@@ -103,8 +118,35 @@ export class GeneralSettings {
     void this.settings.set(change);
   }
 
+  /** Fixes the agent new chats begin with, on its default model at that model's effort; null leaves it to the last chat. */
   protected pickAgent(agent: AgentId | null): void {
-    this.set({ defaultAgent: agent });
+    if (agent === null) return this.set({ newChatDefault: null });
+    if (this.settings.all().newChatDefault?.agent === agent) return;
+    const listed = this.catalog.models()[agent];
+    const model = listed?.models.find((m) => m.id === listed.default);
+    this.set({
+      newChatDefault: {
+        agent,
+        ...(model ? { model: model.id } : {}),
+        ...(model?.effort ? { effort: model.effort } : {}),
+      },
+    });
+  }
+
+  /** The model new chats begin on, null for Auto; the effort stays if the model takes it, else becomes the model's own. */
+  protected pickModel(id: string | null): void {
+    const fixed = this.settings.all().newChatDefault;
+    if (!fixed) return;
+    if (id === null) return this.set({ newChatDefault: { agent: fixed.agent, autoModel: true } });
+    const model = this.catalog.models()[fixed.agent]?.models.find((m) => m.id === id);
+    const effort =
+      fixed.effort && model?.efforts?.includes(fixed.effort) ? fixed.effort : model?.effort;
+    this.set({ newChatDefault: { agent: fixed.agent, model: id, ...(effort ? { effort } : {}) } });
+  }
+
+  protected pickEffort(effort: EffortLevel): void {
+    const fixed = this.settings.all().newChatDefault;
+    if (fixed) this.set({ newChatDefault: { ...fixed, effort } });
   }
 
   protected pickStart(preset: string | null): void {

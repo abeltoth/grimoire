@@ -1,6 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { type AgentId, type NewChatSettings, type OpenChat, fitEffort } from '@grimoire/contract';
-import { AgentCatalog } from './agent-catalog';
+import type { AgentId, NewChatSettings, OpenChat } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from './bridge';
 import type { Chat, ChatStart } from './chat';
 import { PresetList } from './preset-list';
@@ -23,7 +22,6 @@ export class NewChats {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
   private readonly settings = inject(Settings);
   private readonly presets = inject(PresetList);
-  private readonly catalog = inject(AgentCatalog);
   private nextBlank = 1;
   private lastUsed: LastUsed | null = null;
   /** Told when a blank chat's first message starts it. */
@@ -35,23 +33,21 @@ export class NewChats {
   }
 
   /**
-   * What a new chat begins with, as Settings says: a preset's
-   * settings, or those used last, if they were with the default agent,
-   * at the default effort when Settings names one.
+   * What a new chat begins with, as Settings says: a preset's settings, or
+   * those used last, with the agent, model and effort Settings fixes, if any.
    */
   startOf(): { preset?: string } & ChatStart {
-    const { newChat, defaultAgent, defaultEffort } = this.settings.all();
+    const { newChat, newChatDefault: fixed } = this.settings.all();
     if (newChat.from === 'preset') {
       const preset = this.presets.all().find((p) => p.name === newChat.preset);
       if (preset) return { ...preset, preset: preset.name };
     }
-    const agent = defaultAgent ?? this.lastUsed?.agent ?? DEFAULT_AGENT;
-    const start = this.lastUsed?.agent === agent ? this.lastUsed : { agent, settings: {} };
-    if (!defaultEffort) return start;
-    // A model that doesn't take the level runs at the nearest it takes below it.
-    const { levels } = this.catalog.effortOf(agent, start.settings);
-    const effort = levels.length ? fitEffort(defaultEffort, levels) : defaultEffort;
-    return { agent, settings: { ...start.settings, effort } };
+    if (!fixed) return this.lastUsed ?? { agent: DEFAULT_AGENT, settings: {} };
+    // The folder and permission used last stay, when they were with the same agent.
+    const last = this.lastUsed?.agent === fixed.agent ? this.lastUsed.settings : {};
+    const { model: _, effort: __, autoModel: ___, ...kept } = last;
+    const { agent, ...picked } = fixed;
+    return { agent, settings: { ...kept, ...picked } };
   }
 
   /** A blank chat, with the settings given or what new chats begin with. */

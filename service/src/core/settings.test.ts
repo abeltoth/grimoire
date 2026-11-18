@@ -20,8 +20,7 @@ describe('SettingsStore', () => {
     expect(settings.get()).toEqual({
       wording: 'book',
       drawings: true,
-      defaultAgent: null,
-      defaultEffort: null,
+      newChatDefault: null,
       newChat: { from: 'last-used' },
       themeName: 'grimoire',
       theme: {},
@@ -73,8 +72,17 @@ describe('SettingsStore', () => {
     expect(() => settings.set({ jiraProject: 'grim' })).toThrow('"jiraProject"');
     settings.set({ jiraIssueType: 'Bug' });
     expect(() => settings.set({ jiraIssueType: ' ' })).toThrow('"jiraIssueType"');
-    settings.set({ defaultEffort: 'xhigh' });
-    expect(() => settings.set({ defaultEffort: 'huge' } as never)).toThrow('"defaultEffort"');
+    settings.set({ newChatDefault: { agent: 'claude-code', autoModel: true } });
+    settings.set({ newChatDefault: { agent: 'claude-code', model: 'opus', effort: 'xhigh' } });
+    for (const refused of [
+      { agent: '' },
+      { agent: 'claude-code', effort: 'huge' },
+      { agent: 'claude-code', autoModel: true, model: 'opus' },
+      { agent: 'claude-code', colour: 'red' },
+      'claude-code',
+    ]) {
+      expect(() => settings.set({ newChatDefault: refused } as never)).toThrow('"newChatDefault"');
+    }
     settings.set({ historyGroup: 'project' });
     expect(() => settings.set({ historyGroup: 'tag' } as never)).toThrow('"historyGroup"');
     settings.set({ quickModels: { 'claude-code': 'sonnet' } });
@@ -99,15 +107,14 @@ describe('SettingsStore', () => {
     expect(() => settings.set({ mcpOff: ['github', 'github'] })).toThrow('"mcpOff"');
     expect(() => settings.set({ mcpOff: [' '] })).toThrow('"mcpOff"');
     // A refused change changes nothing, even the settings given beside it.
-    expect(() => settings.set({ drawings: false, defaultAgent: 3 } as never)).toThrow();
+    expect(() => settings.set({ drawings: false, newChatDefault: 3 } as never)).toThrow();
     db.close();
 
     const again = openDatabase(file);
     expect(new SettingsStore(again).get()).toEqual({
       wording: 'plain',
       drawings: true,
-      defaultAgent: null,
-      defaultEffort: 'xhigh',
+      newChatDefault: { agent: 'claude-code', model: 'opus', effort: 'xhigh' },
       newChat: { from: 'preset', preset: 'Bug fix' },
       themeName: 'auto',
       theme: { '--gr-page': '#fffaf0', '--gr-size-text': '18px' },
@@ -131,5 +138,17 @@ describe('SettingsStore', () => {
       pageTabsHidden: ['kanban'],
     });
     again.close();
+  });
+
+  it('keeps a default agent set before the model and effort could be fixed with it', () => {
+    const db = openDatabase(':memory:');
+    const settings = new SettingsStore(db, () => 'personal');
+    db.prepare(
+      "INSERT INTO settings (profile, key, value) VALUES ('personal', 'defaultAgent', ?)",
+    ).run(JSON.stringify('claude-code'));
+    expect(settings.get().newChatDefault).toEqual({ agent: 'claude-code' });
+    settings.set({ newChatDefault: null });
+    expect(settings.get().newChatDefault).toBeNull();
+    db.close();
   });
 });

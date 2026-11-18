@@ -28,8 +28,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+$/;
 const VALID: { [K in keyof GrimoireSettings]: (value: unknown) => boolean } = {
   wording: (value) => value === 'book' || value === 'plain',
   drawings: (value) => typeof value === 'boolean',
-  defaultAgent: (value) => value === null || (typeof value === 'string' && value !== ''),
-  defaultEffort: (value) => value === null || (EFFORT_LEVELS as readonly unknown[]).includes(value),
+  newChatDefault: (value) => value === null || newChatDefault(value),
   newChat: (value) => {
     const start = value as GrimoireSettings['newChat'] | null;
     return (
@@ -83,6 +82,21 @@ const VALID: { [K in keyof GrimoireSettings]: (value: unknown) => boolean } = {
   pageTabOrder: (value) => tabIds(value),
   pageTabsHidden: (value) => tabIds(value) && !value.includes(SETTINGS_TAB),
 };
+
+/** An agent, with a model and effort it may name, or Auto instead of both. */
+function newChatDefault(value: unknown): boolean {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  const { agent, model, effort, autoModel, ...rest } = value as Record<string, unknown>;
+  return (
+    Object.keys(rest).length === 0 &&
+    typeof agent === 'string' &&
+    agent !== '' &&
+    (model === undefined || (typeof model === 'string' && model !== '' && model.length <= 200)) &&
+    (effort === undefined || (EFFORT_LEVELS as readonly unknown[]).includes(effort)) &&
+    (autoModel === undefined || autoModel === true) &&
+    !(autoModel && (model !== undefined || effort !== undefined))
+  );
+}
 
 /** The most page tabs kept in order or hidden: more than there are. */
 const MAX_TABS = 100;
@@ -139,6 +153,12 @@ export class SettingsStore {
     for (const { key, value } of rows) {
       const parsed = JSON.parse(value) as unknown;
       if (known(key) && VALID[key](parsed)) Object.assign(settings, { [key]: parsed });
+    }
+    // The default agent kept before the model and effort could be fixed with it.
+    const agent = rows.find((row) => row.key === 'defaultAgent');
+    if (agent && !rows.some((row) => row.key === 'newChatDefault')) {
+      const id = JSON.parse(agent.value) as unknown;
+      if (typeof id === 'string' && id !== '') settings.newChatDefault = { agent: id };
     }
     return settings;
   }

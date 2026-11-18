@@ -1,7 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { DEFAULT_SETTINGS, type GrimoireSettings } from '@grimoire/contract';
 import { fakeBridge } from '../../testing/app-testing';
-import { AgentCatalog } from './agent-catalog';
 import { GRIMOIRE_BRIDGE } from './bridge';
 import { NewChats } from './new-chats';
 
@@ -31,22 +30,27 @@ describe('NewChats', () => {
     expect(chats.startOf()).toEqual({ agent: 'other', settings: { model: 'gpt' } });
   });
 
-  it("begins with another agent's settings only when it's the default agent", async () => {
-    const { chats } = await newChats({ defaultAgent: 'claude-code' });
-    chats.restored({ agent: 'other', settings: { model: 'gpt' } });
-    expect(chats.startOf()).toEqual({ agent: 'claude-code', settings: {} });
-  });
-
-  it('begins at the default effort, as near as the model takes it', async () => {
-    const { chats } = await newChats({ defaultEffort: 'xhigh' });
-    const catalog = TestBed.inject(AgentCatalog);
-    await vi.waitFor(() => expect(catalog.models()['claude-code']).toBeDefined());
-    expect(chats.startOf()).toEqual({ agent: 'claude-code', settings: { effort: 'xhigh' } });
-    // Sonnet takes max but not extra high.
-    chats.restored({ agent: 'claude-code', settings: { model: 'sonnet', effort: 'low' } });
+  it('begins with the agent, model and effort Settings fixes, in the folder used last', async () => {
+    const { chats } = await newChats({
+      newChatDefault: { agent: 'claude-code', model: 'opus', effort: 'max' },
+    });
     expect(chats.startOf()).toEqual({
       agent: 'claude-code',
-      settings: { model: 'sonnet', effort: 'high' },
+      settings: { model: 'opus', effort: 'max' },
+    });
+    chats.restored({
+      agent: 'claude-code',
+      settings: { cwd: '/work', mode: 'plan', model: 'sonnet', effort: 'low', autoModel: true },
+    });
+    expect(chats.startOf()).toEqual({
+      agent: 'claude-code',
+      settings: { cwd: '/work', mode: 'plan', model: 'opus', effort: 'max' },
+    });
+    // Another agent's folder and permission aren't this one's.
+    chats.restored({ agent: 'other', settings: { cwd: '/other', model: 'gpt' } });
+    expect(chats.startOf()).toEqual({
+      agent: 'claude-code',
+      settings: { model: 'opus', effort: 'max' },
     });
   });
 

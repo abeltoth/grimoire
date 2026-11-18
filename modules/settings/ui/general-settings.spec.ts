@@ -31,7 +31,6 @@ describe('general-settings', () => {
       'Names',
       'Drawings',
       'Default agent for new chapters',
-      'Default effort for new chapters',
       'New chapters begin with',
       'Suggest the next entry',
       'Suggest separate chapters',
@@ -42,7 +41,6 @@ describe('general-settings', () => {
     expect(checked()).toEqual([
       'The book’s',
       'Drawn',
-      'The one used last',
       'The one used last',
       'Your last settings',
       'On',
@@ -196,8 +194,7 @@ describe('general-settings', () => {
       .find((tab) => tab.textContent!.trim() === 'Colophon')!
       .click();
     await fixture.whenStable();
-    expect(texts('#gr-settings-general ~ .form .word[aria-checked="true"]').slice(2, 5)).toEqual([
-      'The one used last',
+    expect(texts('#gr-settings-general ~ .form .word[aria-checked="true"]').slice(2, 4)).toEqual([
       'The one used last',
       'Bug fix',
     ]);
@@ -207,16 +204,37 @@ describe('general-settings', () => {
       )!;
     word('Your last settings').click();
     word('Claude Code').click();
-    word('Extra high').click();
     await fixture.whenStable();
     expect(kept.newChat).toEqual({ from: 'last-used' });
-    expect(kept.defaultAgent).toBe('claude-code');
-    expect(kept.defaultEffort).toBe('xhigh');
+    // Fixing the agent fixes its default model, at that model's effort, to change.
+    expect(kept.newChatDefault).toEqual({ agent: 'claude-code', model: 'opus', effort: 'xhigh' });
+    expect(texts('#gr-settings-model ~ .words .word[aria-checked="true"]').slice(0, 2)).toEqual([
+      'Opus 5.5',
+      'Extra high',
+    ]);
+    // Sonnet takes no extra high, so it begins at its own effort.
+    word('Sonnet 5.5').click();
+    await fixture.whenStable();
+    expect(kept.newChatDefault).toEqual({ agent: 'claude-code', model: 'sonnet' });
+    expect(texts('#gr-settings-effort ~ .words')[0]).toBe('Low Medium High Max');
+    word('Max').click();
+    await fixture.whenStable();
+    expect(kept.newChatDefault).toEqual({ agent: 'claude-code', model: 'sonnet', effort: 'max' });
+    word('Auto').click();
+    await fixture.whenStable();
+    expect(kept.newChatDefault).toEqual({ agent: 'claude-code', autoModel: true });
+    expect(el.querySelector('#gr-settings-effort')).toBeNull();
+    word('Opus 5.5').click();
+    await fixture.whenStable();
+    word('Max').click();
+    await fixture.whenStable();
+    expect(kept.newChatDefault).toEqual({ agent: 'claude-code', model: 'opus', effort: 'max' });
     expect(texts('gr-chat-tab.new i')).toEqual(['Last settings · Ctrl+N']);
 
     el.querySelector<HTMLButtonElement>('gr-chat-tab.new button')!.click();
     await fixture.whenStable();
     expect(texts('[aria-current="page"] i')).toEqual(['Claude Code · blank page']);
+    expect(texts('.meta button').slice(0, 3)).toEqual(['Claude Code', 'Opus 5.5', 'Max effort']);
   });
 
   it('speaks plainly everywhere once Settings says so', async () => {
