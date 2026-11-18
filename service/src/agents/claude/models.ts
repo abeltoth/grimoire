@@ -1,14 +1,12 @@
 import type { ModelInfo } from '@anthropic-ai/claude-agent-sdk';
 import { EFFORT_LEVELS, fitEffort, type AgentModels, type EffortLevel } from '@grimoire/contract';
 import { defaultEffort, type EffortSettings } from './effort';
+import { QUICK_MODEL } from './server-config';
 
 /**
  * Claude Code's model aliases, such as Opus 5.5, with the effort levels each
  * takes and the one it runs at by default; the dated model IDs are left out.
  */
-/** The model Claude Code recommends for Grimoire's quick jobs, unless Settings names another. */
-export const QUICK_MODEL = 'haiku';
-
 export function toAgentModels(
   all: readonly ModelInfo[],
   settings: EffortSettings,
