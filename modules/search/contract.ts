@@ -63,18 +63,17 @@ export interface UsedTool extends Used {
   context: number;
 }
 
-/** One call of a tool, in a chat, and the tokens its result added to the chat's context. */
-export interface ToolCall {
-  chatId: ChatId;
-  agent: AgentId;
-  title: string;
-  cwd?: string;
+/** What a tool ran on, such as a file or a command, over all its calls, and the context they added to the chats. */
+export interface ToolTarget {
   tool: string;
-  /** When its turn was, in ms since the epoch. */
-  at: number;
-  /** What it ran on, such as a file or command, when the agent says. */
+  /** Missing for the calls of a tool that names nothing it ran on. */
   target?: string;
+  uses: number;
   context: number;
+  /** How many chats it was run in. */
+  chats: number;
+  /** The chat it added the most to. */
+  chat: { id: ChatId; agent: AgentId; title: string; cwd?: string };
 }
 
 declare module '@grimoire/contract' {
@@ -87,7 +86,7 @@ declare module '@grimoire/contract' {
     'search.chats': { request: { query: string }; response: SearchHit[] };
     /** Where the tokens went since a time, by Grimoire's count from the agents' transcripts. */
     'search.tokens': { request: { since: number }; response: TokenTotals };
-    /** The calls of some tools since a time that added the most to their chat's context, the most first. */
-    'search.toolCalls': { request: { since: number; tools: string[] }; response: ToolCall[] };
+    /** What some tools ran on since a time, by the context their calls added, the most first. */
+    'search.toolTargets': { request: { since: number; tools: string[] }; response: ToolTarget[] };
   }
 }

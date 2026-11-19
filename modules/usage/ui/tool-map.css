@@ -46,7 +46,6 @@
   opacity: 0.45;
 }
 
-.block.picked,
 .block:focus-visible {
   box-shadow: inset 0 0 0 var(--gr-chart-stroke) var(--gr-ink);
 }
@@ -69,14 +68,12 @@
 }
 
 .readout,
-.sub,
 .none {
   margin: var(--gr-aside-gap) 0 0;
   font-size: var(--gr-size-aside);
   color: var(--gr-ink-soft);
 }
 
-.sub,
 .none {
   font-style: italic;
 }
@@ -86,40 +83,50 @@
   color: var(--gr-ink);
 }
 
-/* The heaviest calls: what each ran on, its tokens, and the chat it's in, which opens. */
-.calls ul {
-  list-style: none;
-  margin: var(--gr-aside-gap) 0 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 40%);
-  column-gap: var(--gr-space-2);
-  row-gap: var(--gr-chart-tip-gap);
+/* A file or a command, in the code's type. */
+.block.code .name,
+.readout strong.code {
+  font-family: var(--gr-font-mono);
+  font-weight: 400;
+  font-size: var(--gr-size-code);
+}
+
+/* The views zoomed into, each but the last a way back. */
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--gr-space-1);
+  margin-top: var(--gr-aside-gap);
   font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
 }
 
-.calls li {
-  display: contents;
+.crumbs button {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--gr-ink-soft);
+  text-decoration: underline;
+  cursor: pointer;
 }
 
-.target,
-.chat {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.target {
+.crumbs button:hover,
+.crumbs .here {
   color: var(--gr-ink);
 }
 
-.calls b {
-  font-weight: 500;
-  color: var(--gr-ink);
-  text-align: right;
-  font-variant-numeric: lining-nums tabular-nums;
+/* While what a tool ran on is read, the map keeps its room. */
+.map.waiting {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--gr-chart-stroke) solid var(--gr-chart-grid);
+  box-sizing: border-box;
 }
 
-.chat {
-  text-align: left;
+.map.waiting .none {
+  margin: 0;
 }

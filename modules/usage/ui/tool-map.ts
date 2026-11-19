@@ -1,104 +1,59 @@
-import { Component, computed, inject, input, linkedSignal, signal } from '@angular/core';
-import type { ToolCall, UsedTool } from '@grimoire/contract';
+import {
+  Component,
+  DestroyRef,
+  ElementRef,
+  afterNextRender,
+  computed,
+  inject,
+  input,
+  linkedSignal,
+  signal,
+} from '@angular/core';
+import type { UsedTool } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { ChatList } from '@ui/app/core/chat-list';
 import { tokenCount } from '@ui/app/core/tokens';
-import { serverOf, toolName } from '@ui/app/core/tool-name';
-import { type Tile, squarify } from './treemap-layout';
+import { type MapItem, blocksOf, shadesOf, targetItems, toolItems } from './tool-map-items';
+import { squarify } from './treemap-layout';
 import { uses } from './usage-format';
 
-/** A block of the map: a tool, an MCP server's tools together, or the rest as "Other". */
-export interface MapBlock {
-  key: string;
+/** One view of the map: every tool, or what was zoomed into; its blocks are null while they're read. */
+interface Level {
   name: string;
-  /** The tools it stands for, whose heaviest calls it lists when picked. */
-  tools: string[];
-  uses: number;
-  /** The tokens its results added to the chats' context. */
-  context: number;
+  /** The block zoomed into; none for every tool. */
+  item?: MapItem;
+  items: MapItem[] | null;
+  error?: string;
 }
 
-/** A block as drawn: its place in percent of the map, and how dark, 0-100, for its context per use. */
+/** A block as drawn: its place in percent of the map, how dark for its context a use, and what fits on it. */
 interface DrawnBlock {
-  block: MapBlock;
+  item: MapItem;
   left: number;
   top: number;
   width: number;
   height: number;
   shade: number;
+  named: boolean;
+  figured: boolean;
 }
-
-/** The most blocks drawn; past them, the rest are one "Other". */
-const MOST = 12;
 
 /** The map's width against its height. */
-export const ASPECT = 2.5;
+const ASPECT = 2.5;
 
-/** The lightest shade, so the lightest block still shows on the page. */
-const LIGHTEST = 25;
+/** The width the map is laid out for before it's measured, as wide as the page's charts. */
+const UNMEASURED = 520;
 
-/**
- * The tools that added to the context, largest first, an MCP server's
- * together; past the most drawn, the rest as "Other".
- */
-export function blocksOf(tools: readonly UsedTool[]): MapBlock[] {
-  const groups = new Map<string, MapBlock>();
-  for (const tool of tools) {
-    if (!(tool.context > 0)) continue;
-    const server = serverOf(tool.name);
-    const key = server ? `mcp ${server}` : tool.name;
-    const block = groups.get(key) ?? {
-      key,
-      name: server ?? tool.name,
-      tools: [],
-      uses: 0,
-      context: 0,
-    };
-    block.tools.push(tool.name);
-    block.uses += tool.uses;
-    block.context += tool.context;
-    groups.set(key, block);
-  }
-  // A server with one tool is named for the tool.
-  const blocks = [...groups.values()].map((block) =>
-    block.tools.length === 1 ? { ...block, name: toolName(block.tools[0]!) } : block,
-  );
-  blocks.sort((a, b) => b.context - a.context || a.name.localeCompare(b.name));
-  if (blocks.length <= MOST) return blocks;
-  const rest = blocks.slice(MOST - 1);
-  return [
-    ...blocks.slice(0, MOST - 1),
-    {
-      key: 'other',
-      name: `Other · ${rest.length} more`,
-      tools: rest.flatMap((block) => block.tools),
-      uses: rest.reduce((all, block) => all + block.uses, 0),
-      context: rest.reduce((all, block) => all + block.context, 0),
-    },
-  ];
-}
-
-/** Each block's context per use, as a shade from the lightest to full, on a log scale, as they span a thousandfold. */
-export function shadesOf(blocks: readonly MapBlock[]): number[] {
-  const each = blocks.map((block) => Math.log(block.context / Math.max(block.uses, 1)));
-  const least = Math.min(...each);
-  const most = Math.max(...each);
-  return each.map((n) =>
-    most > least ? LIGHTEST + ((100 - LIGHTEST) * (n - least)) / (most - least) : 100,
-  );
-}
-
-/** What a call ran on, short: a file by its name. */
-function shortTarget(target: string): string {
-  return /^[^\s]*[\\/][^\s]*$/.test(target)
-    ? (target.split(/[\\/]/).filter(Boolean).at(-1) ?? target)
-    : target;
-}
+/** The least a block needs, in pixels, for its name, and for its figures under it. */
+const NAMED = { width: 44, height: 26 };
+const FIGURED = { width: 72, height: 46 };
 
 /**
  * The context the tools' results added to the chats, as a map of blocks:
- * a block's size is its tokens, its shade how many it adds a use. A block
- * picked lists its heaviest calls, each opening its chat.
+ * a block's size is its tokens, its shade how many it adds a use, and its
+ * name is written only where it fits. Picking a tool zooms into what it ran
+ * on, each file or command over all its calls; picking one of those opens
+ * the chat it added the most to.
  */
 @Component({
   selector: 'gr-usage-tool-map',
@@ -108,110 +63,157 @@ function shortTarget(target: string): string {
 export class UsageToolMap {
   private readonly bridge = inject(GRIMOIRE_BRIDGE);
   private readonly list = inject(ChatList);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   readonly tools = input.required<readonly UsedTool[]>();
-  /** The span's start, to ask for the heaviest calls over it. */
+  /** The span's start, to read what the tools ran on over it. */
   readonly since = input.required<number>();
 
   protected readonly aspect = ASPECT;
   protected readonly count = tokenCount;
   protected readonly uses = uses;
-  protected readonly short = shortTarget;
-  protected readonly hovered = signal<string | null>(null);
-  /** The block whose heaviest calls are listed; none again over another span. */
-  protected readonly picked = linkedSignal<number, string | null>({
-    source: this.since,
+  /** How wide the map is drawn, in pixels, once measured. */
+  private readonly width = signal(0);
+
+  /** The views zoomed into, past every tool's; none again over another span or another read. */
+  private readonly path = linkedSignal<unknown, Level[]>({
+    source: () => [this.tools(), this.since()],
+    computation: () => [],
+  });
+  protected readonly levels = computed((): Level[] => [
+    { name: 'All tools', items: toolItems(this.tools()) },
+    ...this.path(),
+  ]);
+  protected readonly level = computed(() => this.levels().at(-1)!);
+
+  protected readonly hovered = linkedSignal<Level, string | null>({
+    source: this.level,
     computation: () => null,
   });
-  protected readonly calls = signal<{ key: string; calls?: ToolCall[]; error?: string } | null>(
-    null,
-  );
 
   protected readonly drawn = computed((): DrawnBlock[] => {
-    const blocks = blocksOf(this.tools());
+    const blocks = blocksOf(this.level().items ?? []);
     const tiles = squarify(
-      blocks.map((block) => block.context),
+      blocks.map((item) => item.context),
       ASPECT,
       1,
     );
     const shades = shadesOf(blocks);
-    return tiles.map((tile: Tile, i) => ({
-      block: blocks[i]!,
-      left: (tile.x / ASPECT) * 100,
-      top: tile.y * 100,
-      width: (tile.w / ASPECT) * 100,
-      height: tile.h * 100,
-      shade: shades[i]!,
-    }));
+    const wide = this.width() || UNMEASURED;
+    const high = wide / ASPECT;
+    return tiles.map((tile, i) => {
+      const [width, height] = [(tile.w / ASPECT) * wide, tile.h * high];
+      const fits = (least: { width: number; height: number }) =>
+        width >= least.width && height >= least.height;
+      return {
+        item: blocks[i]!,
+        left: (tile.x / ASPECT) * 100,
+        top: tile.y * 100,
+        width: (tile.w / ASPECT) * 100,
+        height: tile.h * 100,
+        shade: shades[i]!,
+        named: fits(NAMED),
+        figured: fits(FIGURED),
+      };
+    });
   });
 
-  /** All the blocks together, read out when none is under the pointer. */
-  protected readonly whole = computed(() =>
-    this.drawn().reduce(
-      (all, { block }) => ({ context: all.context + block.context, uses: all.uses + block.uses }),
-      { context: 0, uses: 0 },
-    ),
-  );
-
-  /** The block under the pointer or focus, else the one picked. */
+  /** The block under the pointer or focus. */
   protected readonly shown = computed(() => {
-    const key = this.hovered() ?? this.picked();
-    return this.drawn().find(({ block }) => block.key === key)?.block;
+    const key = this.hovered();
+    return this.drawn().find(({ item }) => item.key === key)?.item;
   });
 
-  protected readonly pickedBlock = computed(
-    () => this.drawn().find(({ block }) => block.key === this.picked())?.block,
+  /** What the view holds in all: the block zoomed into, or every block. */
+  protected readonly whole = computed(() => {
+    const level = this.level();
+    if (level.item && !level.item.rest) return level.item;
+    const blocks = this.drawn().map(({ item }) => item);
+    return {
+      context: blocks.reduce((all, item) => all + item.context, 0),
+      uses: blocks.reduce((all, item) => all + item.uses, 0),
+    };
+  });
+
+  /** What picking a block of this view does. */
+  protected readonly hint = computed(() =>
+    this.drawn().some(({ item }) => item.chat)
+      ? 'pick one to open the chat it added the most to'
+      : 'pick a tool to see what it ran on',
   );
 
-  /** The picked block's calls, once read. */
-  protected readonly pickedCalls = computed(() => {
-    const calls = this.calls();
-    return calls && calls.key === this.picked() ? calls : null;
-  });
-
-  /** A block's tokens a use, short. */
-  protected perUse(block: MapBlock): string {
-    return tokenCount(block.context / Math.max(block.uses, 1));
+  constructor() {
+    const destroyRef = inject(DestroyRef);
+    afterNextRender(() => {
+      if (typeof ResizeObserver === 'undefined') return;
+      const observer = new ResizeObserver(([entry]) => this.width.set(entry!.contentRect.width));
+      observer.observe(this.host.nativeElement);
+      destroyRef.onDestroy(() => observer.disconnect());
+    });
   }
 
-  protected spoken(block: MapBlock): string {
-    return `${block.name}: ${tokenCount(block.context)} tokens of context, ${uses(block.uses)}, ${this.perUse(block)} a use`;
+  protected perUse(item: MapItem): string {
+    return tokenCount(item.context / Math.max(item.uses, 1));
+  }
+
+  /** How often it was used, and in how many chats when it's more than one. */
+  protected usedIn(item: MapItem): string {
+    return item.chats && item.chats > 1
+      ? `${uses(item.uses)} in ${item.chats} chats`
+      : uses(item.uses);
+  }
+
+  protected spoken(item: MapItem): string {
+    return `${item.full}: ${tokenCount(item.context)} tokens of context, ${this.usedIn(item)}, ${this.perUse(item)} a use`;
   }
 
   protected show(key: string | null): void {
     this.hovered.set(key);
   }
 
-  /** Lists a block's heaviest calls, or closes them when it's picked again. */
-  protected pick(block: MapBlock): void {
-    if (this.picked() === block.key) return this.picked.set(null);
-    this.picked.set(block.key);
-    void this.load(block, this.since());
+  /** Zooms into a tool or into "Other", or opens the chat a file or command added the most to. */
+  protected pick(item: MapItem): void {
+    if (item.rest) return this.zoom({ name: 'Other', item, items: item.rest });
+    if (item.chat) return void this.open(item.chat);
+    if (!item.tools) return;
+    const level: Level = { name: item.name, item, items: null };
+    this.zoom(level);
+    void this.read(level, item.tools);
   }
 
-  private async load(block: MapBlock, since: number): Promise<void> {
-    this.calls.set({ key: block.key });
+  /** Back to a view zoomed out, 0 for every tool. */
+  protected back(depth: number): void {
+    this.path.update((path) => path.slice(0, depth));
+  }
+
+  private zoom(level: Level): void {
+    this.path.update((path) => [...path, level]);
+  }
+
+  private async read(level: Level, tools: string[]): Promise<void> {
     try {
-      const calls = await this.bridge.invoke('search.toolCalls', { since, tools: block.tools });
-      if (this.picked() === block.key) this.calls.set({ key: block.key, calls });
+      const targets = await this.bridge.invoke('search.toolTargets', {
+        since: this.since(),
+        tools,
+      });
+      this.settle(level, { items: targetItems(targets, tools.length > 1) });
     } catch (error) {
-      if (this.picked() === block.key)
-        this.calls.set({
-          key: block.key,
-          error: error instanceof Error ? error.message : String(error),
-        });
+      this.settle(level, { error: error instanceof Error ? error.message : String(error) });
     }
   }
 
-  protected open(call: ToolCall): void {
-    void this.list.openChat({
-      id: call.chatId,
-      agent: call.agent,
-      title: call.title,
-      ...(call.cwd ? { cwd: call.cwd } : {}),
+  /** What was read for a view, if it's still being shown. */
+  private settle(level: Level, read: Partial<Level>): void {
+    this.path.update((path) => path.map((each) => (each === level ? { ...each, ...read } : each)));
+  }
+
+  private open(chat: NonNullable<MapItem['chat']>): Promise<void> {
+    return this.list.openChat({
+      id: chat.id,
+      agent: chat.agent,
+      title: chat.title,
+      ...(chat.cwd ? { cwd: chat.cwd } : {}),
       updatedAt: 0,
     });
   }
-
-  protected readonly toolName = toolName;
 }

@@ -194,33 +194,69 @@ describe('SearchIndex', () => {
     expect(index.tokens(day(4)).skills).toEqual([]);
   });
 
-  it("adds up the context each tool's results added, and lists a tool's heaviest calls", () => {
+  it("adds up the context each tool's results added, and what each tool ran on, the most first", () => {
     const day = (d: number) => new Date(2026, 10, d, 12).getTime();
-    const read = (target: string, context?: number, d = 5) => ({
+    const tool = (name: string, target: string | undefined, context?: number, d = 5) => ({
       at: day(d),
       kind: 'tool' as const,
-      name: 'Read',
-      target,
+      name,
+      ...(target ? { target } : {}),
       ...(context ? { context } : {}),
     });
+    const read = (target: string, context?: number, d = 5) => tool('Read', target, context, d);
     index.put(
       { id: 'c1', agent: 'a', updatedAt: 1, title: 'Fix', cwd: '/repo' },
       [],
       [],
-      [read('a.ts', 900), read('b.ts', 4_000), read('c.ts'), read('old.ts', 9_000, 1)],
+      [
+        read('a.ts', 900),
+        read('lock.json', 4_000),
+        read('lock.json', 1_000),
+        read('c.ts'),
+        read('old.ts', 9_000, 1),
+        tool('mcp__jira__get', undefined, 700),
+      ],
     );
-    index.put({ id: 'c2', agent: 'a', updatedAt: 1, title: 'Plan' }, [], [], [read('d.ts', 2_000)]);
+    index.put(
+      { id: 'c2', agent: 'a', updatedAt: 1, title: 'Plan' },
+      [],
+      [],
+      [read('lock.json', 6_000), tool('mcp__jira__get', undefined, 300)],
+    );
 
-    expect(index.tokens(day(4)).tools).toEqual([{ name: 'Read', uses: 4, context: 6_900 }]);
-    // Those with no context known, and those before the span, aren't listed.
-    const call = { agent: 'a', tool: 'Read', at: day(5) };
-    expect(index.toolCalls(day(4), ['Read', 'Grep'])).toEqual([
-      { ...call, chatId: 'c1', title: 'Fix', cwd: '/repo', target: 'b.ts', context: 4_000 },
-      { ...call, chatId: 'c2', title: 'Plan', target: 'd.ts', context: 2_000 },
-      { ...call, chatId: 'c1', title: 'Fix', cwd: '/repo', target: 'a.ts', context: 900 },
+    expect(index.tokens(day(4)).tools).toEqual([
+      { name: 'Read', uses: 5, context: 11_900 },
+      { name: 'mcp__jira__get', uses: 2, context: 1_000 },
     ]);
-    expect(index.toolCalls(day(4), ['Bash'])).toEqual([]);
-    expect(index.toolCalls(day(4), [])).toEqual([]);
+    // Each file over every call of it, with the chat it added the most to; those with no
+    // context known, and those before the span, aren't counted.
+    expect(index.toolTargets(day(4), ['Read', 'mcp__jira__get'])).toEqual([
+      {
+        tool: 'Read',
+        target: 'lock.json',
+        uses: 3,
+        context: 11_000,
+        chats: 2,
+        chat: { id: 'c2', agent: 'a', title: 'Plan' },
+      },
+      {
+        tool: 'mcp__jira__get',
+        uses: 2,
+        context: 1_000,
+        chats: 2,
+        chat: { id: 'c1', agent: 'a', title: 'Fix', cwd: '/repo' },
+      },
+      {
+        tool: 'Read',
+        target: 'a.ts',
+        uses: 1,
+        context: 900,
+        chats: 1,
+        chat: { id: 'c1', agent: 'a', title: 'Fix', cwd: '/repo' },
+      },
+    ]);
+    expect(index.toolTargets(day(4), ['Bash'])).toEqual([]);
+    expect(index.toolTargets(day(4), [])).toEqual([]);
   });
 
   it('keeps its index in a file across runs', () => {
