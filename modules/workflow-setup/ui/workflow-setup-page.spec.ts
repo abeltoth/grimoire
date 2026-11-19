@@ -104,9 +104,8 @@ describe('workflow-setup', () => {
       'Stop | Yours | say done | ',
       'Stop | Project | npm test | ',
     ]);
-    // Memory keeps the order it's read in, numbered, and says so.
+    // Memory keeps the order it's read in, and says so.
     expect(texts(`${section('memory')} .name`)).toEqual(['~/.claude/CLAUDE.md', 'CLAUDE.md']);
-    expect(el.querySelector(`${section('memory')} ul.numbered`)).not.toBeNull();
     expect(el.querySelector(`${section('memory')} summary`)!.getAttribute('title')).toBe(
       'In the order they’re read; all of them apply.',
     );

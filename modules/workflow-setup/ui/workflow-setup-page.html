@@ -57,7 +57,7 @@
               </span>
             </summary>
             @if (items.length) {
-              <ul [class.numbered]="section === 'memory'">
+              <ul>
                 @for (item of ordered(section, items); track $index) {
                   <li [class.trouble]="item.problem" [class.heavy]="heavy(item)">
                     @if (item.path) {
