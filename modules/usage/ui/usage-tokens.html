@@ -10,9 +10,7 @@
           <span class="name" [attr.title]="inWords(totals.total)">
             {{ count(all(totals.total)) }} tokens
           </span>
-          <span class="detail" [attr.title]="pricing">
-            {{ dollars(totals.total.dollars) }} at API prices
-          </span>
+          <span class="detail" [attr.title]="pricing()">{{ cost(totals.total.dollars) }}</span>
           @if (totals.unpriced) {
             <span class="detail">
               {{ count(totals.unpriced) }} tokens of models without known prices aren’t counted

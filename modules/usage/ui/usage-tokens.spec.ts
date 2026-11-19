@@ -249,6 +249,35 @@ describe('usage-tokens', () => {
     expect(asked()[1]! - asked()[0]!).toBeGreaterThan(6 * 24 * 60 * 60_000 - 60_000);
   });
 
+  it('calls the cost spent when the plan bills the tokens as used', async () => {
+    const credits = { spent: 0, limit: 60000, currency: 'USD', used: 0, resetsAt: 0 };
+    const { el, texts, emit, fixture } = await showTokens({
+      'search.tokens': ({ since }: CommandRequest<'search.tokens'>): TokenTotals => ({
+        ...none,
+        since,
+        total: counts(1_000, 0, 0),
+        days: [],
+        hours: [],
+        models: [],
+        folders: [],
+        chats: [],
+        sources: [],
+      }),
+    });
+    expect(texts('gr-usage-page .total > span')).toEqual([
+      '1K tokens',
+      `${dollars(10)} at API prices`,
+    ]);
+    emit('usage.read', {
+      agent: 'claude-code',
+      usage: { plan: 'enterprise', windows: [], credits, at: 0 },
+    });
+    await fixture.whenStable();
+    expect(texts('gr-usage-page .total > span')).toEqual(['1K tokens', `${dollars(10)} spent`]);
+    const cost = el.querySelectorAll('gr-usage-page .total > span')[1]!;
+    expect(cost.getAttribute('title')).toContain('bills them as used');
+  });
+
   it("says so when there's nothing to say of the tokens", async () => {
     const { texts } = await showTokens({
       'search.tokens': () => {

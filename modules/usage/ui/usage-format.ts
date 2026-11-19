@@ -1,4 +1,4 @@
-import type { Used, UsageCredits, UsageWindow } from '@grimoire/contract';
+import type { PlanUsage, Used, UsageCredits, UsageWindow } from '@grimoire/contract';
 import { modelLabel } from '@ui/app/core/tokens';
 
 /** An hour and a day in ms, as the Usage page's views and charts count back by them. */
@@ -125,6 +125,15 @@ export function wholeMoney(minor: number, currency: string): string {
 
 export function planName(plan: string): string {
   return `${plan.charAt(0).toUpperCase()}${plan.slice(1)} plan`;
+}
+
+/**
+ * Whether the agent's tokens are billed as used, at the API's prices: no
+ * session or week limits, and no subscription or a monthly budget, as an
+ * API key or an Enterprise plan billed by usage.
+ */
+export function billedPerToken(usage: PlanUsage): boolean {
+  return !usage.windows.length && (usage.plan === null || usage.credits !== undefined);
 }
 
 export function limitName(window: UsageWindow): string {

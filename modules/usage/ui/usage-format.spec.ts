@@ -1,5 +1,6 @@
 import {
   againstMost,
+  billedPerToken,
   dayKey,
   dayName,
   dayShort,
@@ -117,6 +118,15 @@ describe('usage formats', () => {
     expect(limitName({ span: 'week', model: 'Opus', used: 1, resetsAt: null })).toBe(
       'This week, Opus',
     );
+  });
+
+  it('tells a plan billed by the token from one with limits', () => {
+    const credits = { spent: 0, limit: 60000, currency: 'USD', used: 0, resetsAt: 0 };
+    const week = { span: 'week' as const, used: 5, resetsAt: null };
+    expect(billedPerToken({ plan: 'enterprise', windows: [], credits, at: 0 })).toBe(true);
+    expect(billedPerToken({ plan: null, windows: [], at: 0 })).toBe(true);
+    expect(billedPerToken({ plan: 'max', windows: [week], credits, at: 0 })).toBe(false);
+    expect(billedPerToken({ plan: 'max', windows: [], at: 0 })).toBe(false);
   });
 
   it('keeps a meter within its bounds, and weighs uses against the most used', () => {

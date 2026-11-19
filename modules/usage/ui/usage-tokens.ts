@@ -1,5 +1,6 @@
-import { Component, computed, inject, input, signal } from '@angular/core';
-import { type TokenCounts, type TokenTotal, sumTokens } from '@grimoire/contract';
+import { Component, DestroyRef, computed, inject, input, signal } from '@angular/core';
+import { type PlanUsage, type TokenCounts, type TokenTotal, sumTokens } from '@grimoire/contract';
+import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { ChatList } from '@ui/app/core/chat-list';
 import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { countsInWords, tokenCount } from '@ui/app/core/tokens';
@@ -14,6 +15,7 @@ import { UsageSpans } from './usage-spans';
 import {
   DAY,
   HOUR,
+  billedPerToken,
   dayKey,
   dayName,
   dayShort,
@@ -49,6 +51,10 @@ interface TokensCharts {
 const PRICING =
   'What these tokens would have cost at the API’s list prices, each model at its own, ' +
   'without a subscription.';
+
+/** What the cost is, for its tooltip, when the plan bills the tokens as used. */
+const BILLED =
+  'What these tokens cost: your plan bills them as used, at the API’s prices, each model at its own.';
 
 /** What the ring of the cost can be split by: the day, or the hour over the last 24, the model, folder, chat or skill. */
 type PieView = 'time' | 'model' | 'folder' | 'chat' | 'skill';
@@ -114,13 +120,21 @@ export class UsageTokens {
   protected readonly scans = inject(ScanReadings);
   private readonly list = inject(ChatList);
   private readonly catalog = inject(AgentCatalog);
+  private readonly bridge = inject(GRIMOIRE_BRIDGE);
 
   readonly shown = input.required<boolean>();
 
   protected readonly tokenSeries = TOKEN_LEGEND;
   protected readonly kinds = KINDS;
   protected readonly dollars = dollars;
-  protected readonly pricing = PRICING;
+  /** Each agent's plan, as last read. */
+  private readonly plans = signal<ReadonlyMap<string, PlanUsage>>(new Map());
+  /** Whether the tokens are billed as used, so their cost is what was spent, not an estimate. */
+  protected readonly billed = computed(() => [...this.plans().values()].some(billedPerToken));
+  protected readonly pricing = computed(() => (this.billed() ? BILLED : PRICING));
+  /** The cost, such as "$12.40 spent" or "$12.40 at API prices". */
+  protected readonly cost = (amount: number) =>
+    `${dollars(amount)} ${this.billed() ? 'spent' : 'at API prices'}`;
   protected readonly count = tokenCount;
   protected readonly all = sumTokens;
   protected readonly inWords = countsInWords;
@@ -133,6 +147,16 @@ export class UsageTokens {
   protected readonly columnFormat = computed(() =>
     this.measure() === 'tokens' ? tokenCount : dollarsShort,
   );
+
+  constructor() {
+    // The service tells every window each plan it reads, the Limits tab's read included.
+    const stop = this.bridge.on('usage.read', ({ agent, usage }) => this.notePlan(agent, usage));
+    inject(DestroyRef).onDestroy(stop);
+  }
+
+  private notePlan(agent: string, usage: PlanUsage): void {
+    this.plans.update((plans) => new Map(plans).set(agent, usage));
+  }
 
   protected readonly pieView = signal<PieView>('time');
   protected readonly pieViews = computed((): [PieView, string][] => [
@@ -177,7 +201,7 @@ export class UsageTokens {
           ? {
               note:
                 measure === 'tokens'
-                  ? `${dollars(total.dollars)} at API prices`
+                  ? this.cost(total.dollars)
                   : `${tokenCount(sumTokens(total))} tokens`,
             }
           : {}),
