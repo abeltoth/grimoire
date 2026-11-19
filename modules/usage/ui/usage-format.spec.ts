@@ -1,5 +1,4 @@
 import {
-  againstMost,
   billedPerToken,
   dayKey,
   dayName,
@@ -129,14 +128,8 @@ describe('usage formats', () => {
     expect(billedPerToken({ plan: 'max', windows: [], at: 0 })).toBe(false);
   });
 
-  it('keeps a meter within its bounds, and weighs uses against the most used', () => {
+  it('keeps a meter within its bounds, and counts uses', () => {
     expect([filled(null), filled(-5), filled(42), filled(140)]).toEqual([0, 0, 42, 100]);
-    const tools = [
-      { name: 'Read', uses: 40 },
-      { name: 'Bash', uses: 10 },
-    ];
-    expect(againstMost(tools[1]!, tools)).toBe(25);
-    expect(againstMost({ name: 'None', uses: 0 }, [])).toBe(0);
     expect([uses(1), uses(12)]).toEqual(['1 use', '12 uses']);
   });
 });

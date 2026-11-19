@@ -167,6 +167,7 @@ describe('usage-tokens', () => {
           { kind: 'skill', name: 'commit', ...counts(1_000, 0, 0) },
           { kind: 'subagent', name: 'Explore', ...counts(500, 0, 0) },
         ],
+        skills: [{ name: 'commit', uses: 3 }],
         chats: [
           {
             id: 'old-1',
@@ -216,6 +217,19 @@ describe('usage-tokens', () => {
     // What ran under no skill or subagent is the chat's own.
     await click('gr-usage-page .split .groups button', 'Skill');
     expect(legend()).toEqual(['Chat 70%', 'commit · skill 20%', 'Explore · subagent 10%']);
+    // A skill says how often it ran.
+    el.querySelectorAll('gr-usage-page gr-usage-pie path.slice')[1]!.dispatchEvent(
+      new FocusEvent('focus'),
+    );
+    await fixture.whenStable();
+    expect(texts('gr-usage-page gr-usage-pie .hole > *')).toEqual([
+      dollars(10),
+      '1K tokens',
+      '3 uses',
+    ]);
+    el.querySelectorAll('gr-usage-page gr-usage-pie path.slice')[1]!.dispatchEvent(
+      new FocusEvent('blur'),
+    );
     await click('gr-usage-page .split .groups button', 'Chat');
     // The ring's middle says the cost and the tokens, of the whole until a slice is in focus.
     expect(texts('gr-usage-page gr-usage-pie .hole > *')).toEqual([dollars(50), '14K tokens']);

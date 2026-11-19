@@ -1,6 +1,7 @@
 import type { Block, ToolResult } from '@grimoire/contract';
 import type { ReplyUsage } from './cache';
 import type { TaskUsage } from './subagent-stats';
+import { targetOf } from './tool-target';
 
 /** The parts of Claude Code's messages the transcript reads; live and saved messages share them. */
 export interface ClaudeMessage {
@@ -107,12 +108,14 @@ export function toBlock(block: ApiBlock): Block | undefined {
       if (block.name === FOLLOW_UPS_TOOL) return undefined;
       const input = block.input ?? {};
       const skill = block.name === SKILL_TOOL ? (input as { skill?: unknown }).skill : undefined;
+      const target = targetOf(block.name ?? '', input);
       return {
         kind: 'tool',
         id: block.id ?? '',
         tool: block.name ?? '',
         input,
         ...(typeof skill === 'string' && skill ? { skill } : {}),
+        ...(target ? { target } : {}),
       };
     }
     default:

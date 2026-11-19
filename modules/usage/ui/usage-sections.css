@@ -1,4 +1,4 @@
-/* What both the Tokens and the Tools & skills tabs draw: their heads, "Show all", and explanations. */
+/* What the Tokens tab draws: its heads and explanations. */
 :host {
   display: contents;
 }
@@ -16,11 +16,6 @@ h4 {
   font-weight: 500;
   font-size: var(--gr-size-aside);
   color: var(--gr-ink-soft);
-}
-
-.more {
-  margin-top: var(--gr-aside-gap);
-  font-size: var(--gr-size-aside);
 }
 
 /* An explanation kept out of the way until asked for. */

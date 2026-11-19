@@ -35,6 +35,9 @@
       @if (each ? each.slice.tokens : tokensSum(); as tokens) {
         <span class="hole-tokens">{{ tokenCount(tokens) }} tokens</span>
       }
+      @if (each?.slice?.note; as note) {
+        <span class="hole-tokens">{{ note }}</span>
+      }
     </div>
   </div>
 

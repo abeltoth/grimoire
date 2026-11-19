@@ -1,0 +1,86 @@
+@let blocks = drawn();
+@if (blocks.length) {
+  <div
+    class="map"
+    role="group"
+    aria-label="Context by tool"
+    [style.aspect-ratio]="aspect"
+    (mouseleave)="show(null)"
+  >
+    @for (each of blocks; track each.block.key) {
+      <button
+        type="button"
+        class="block"
+        [class.strong]="each.shade >= 60"
+        [class.dim]="hovered() !== null && hovered() !== each.block.key"
+        [class.picked]="picked() === each.block.key"
+        [attr.aria-pressed]="picked() === each.block.key"
+        [attr.aria-label]="spoken(each.block)"
+        [style.left.%]="each.left"
+        [style.top.%]="each.top"
+        [style.width.%]="each.width"
+        [style.height.%]="each.height"
+        [style.--shade]="each.shade + '%'"
+        (mouseenter)="show(each.block.key)"
+        (focus)="show(each.block.key)"
+        (blur)="show(null)"
+        (click)="pick(each.block)"
+      >
+        <span class="name">{{ each.block.name }}</span>
+        <span class="figures">{{ count(each.block.context) }} · {{ uses(each.block.uses) }}</span>
+      </button>
+    }
+  </div>
+
+  <!-- What the block under the pointer holds, or the whole map. -->
+  <p class="readout">
+    @if (shown(); as block) {
+      <strong>{{ block.name }}</strong>
+      {{ count(block.context) }} tokens of context · {{ uses(block.uses) }} · {{ perUse(block) }} a
+      use
+    } @else {
+      {{ count(whole().context) }} tokens of context from {{ uses(whole().uses) }} · pick a tool for
+      its heaviest calls
+    }
+  </p>
+
+  @if (pickedBlock(); as block) {
+    <div class="calls">
+      <p class="sub">The heaviest calls of {{ block.name }}</p>
+      @let loaded = pickedCalls();
+      @if (loaded?.error; as error) {
+        <p class="none" role="alert">The calls couldn’t be read: {{ error }}</p>
+      } @else if (loaded?.calls; as calls) {
+        @if (calls.length) {
+          <ul>
+            @for (call of calls; track $index) {
+              <li>
+                <span class="target" [attr.title]="call.target ?? toolName(call.tool)">
+                  @if (block.tools.length > 1) {
+                    {{ toolName(call.tool) }}{{ call.target ? ' · ' : '' }}
+                  }
+                  {{ call.target ? short(call.target) : block.tools.length > 1 ? '' : call.tool }}
+                </span>
+                <b>{{ count(call.context) }}</b>
+                <button
+                  type="button"
+                  class="gr-link chat"
+                  [attr.title]="call.title || 'Untitled'"
+                  (click)="open(call)"
+                >
+                  {{ call.title || 'Untitled' }}
+                </button>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="none">None of its calls could be measured.</p>
+        }
+      } @else {
+        <p class="none">Reading the calls…</p>
+      }
+    </div>
+  }
+} @else {
+  <p class="none">No tool’s context could be measured over this span.</p>
+}

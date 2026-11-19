@@ -2,7 +2,7 @@ import type { AlwaysAllow, Approval } from '@grimoire/contract';
 import { type DiffLine, fileChange } from '../transcript/diff';
 import { relativeTo } from '../transcript/rows';
 import { type ToolField, inputFields } from '../transcript/tool-input';
-import { toolName } from '../transcript/tool-name';
+import { toolName } from '@ui/app/core/tool-name';
 import type { Shell } from '../transcript/command-parts';
 
 /** What an approval asks for, as the approval card shows it; `asks` is the bare deed, such as "run a command". */

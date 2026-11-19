@@ -35,6 +35,7 @@ import { HookRuns } from './hook-runs';
 import { splitReferences } from './references';
 import { SYNTHETIC_MODEL, type Spent, byModel, sourceOf, tokenUse } from './reply-tokens';
 import { statsFromResult, statsFromUsage } from './subagent-stats';
+import { ToolContext } from './tool-context';
 
 export interface TranscriptListener {
   entry(entry: Entry): void;
@@ -94,6 +95,8 @@ export class ClaudeTranscript {
   private readonly subagents = new Map<string, ClaudeTranscript>();
   private readonly savedCompactions = new SavedCompactions();
   private readonly liveCompaction = new LiveCompaction();
+  /** What each saved tool result added to the chat's context, from the replies' tokens. */
+  private readonly toolContext = new ToolContext();
 
   /**
    * @param live Your own messages aren't echoed back live; the hub adds them as you send.
@@ -233,6 +236,7 @@ export class ClaudeTranscript {
   ): void {
     const use = message?.id ? tokenUse(message, subagent, source) : undefined;
     if (!use) return;
+    if (!subagent && !this.live) this.toolContext.reply(message!.id!, use, this.entries);
     if (this.live) {
       const known = this.spent.get(message!.id!);
       this.spent.set(message!.id!, use);

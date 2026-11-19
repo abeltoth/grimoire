@@ -46,9 +46,9 @@ export interface TokenTotals {
   sources: (TokenTotal & TokenSource)[];
   /** The costliest chats, costliest first. */
   chats: (TokenTotal & { id: ChatId; agent: AgentId; title: string; cwd?: string })[];
-  /** The tools the agents called most in the chats, not their subagents, most first. */
-  tools: Used[];
-  /** The skills the agents ran most, and the commands and skills you wrote most as /name, most first. */
+  /** The tools the agents called in the chats, not their subagents, most used first. */
+  tools: UsedTool[];
+  /** The skills the agents ran, and the commands and skills you wrote as /name, most used first. */
   skills: Used[];
 }
 
@@ -56,6 +56,25 @@ export interface TokenTotals {
 export interface Used {
   name: string;
   uses: number;
+}
+
+/** A tool used, and the tokens its results added to the chats' context, where the agent could tell. */
+export interface UsedTool extends Used {
+  context: number;
+}
+
+/** One call of a tool, in a chat, and the tokens its result added to the chat's context. */
+export interface ToolCall {
+  chatId: ChatId;
+  agent: AgentId;
+  title: string;
+  cwd?: string;
+  tool: string;
+  /** When its turn was, in ms since the epoch. */
+  at: number;
+  /** What it ran on, such as a file or command, when the agent says. */
+  target?: string;
+  context: number;
 }
 
 declare module '@grimoire/contract' {
@@ -68,5 +87,7 @@ declare module '@grimoire/contract' {
     'search.chats': { request: { query: string }; response: SearchHit[] };
     /** Where the tokens went since a time, by Grimoire's count from the agents' transcripts. */
     'search.tokens': { request: { since: number }; response: TokenTotals };
+    /** The calls of some tools since a time that added the most to their chat's context, the most first. */
+    'search.toolCalls': { request: { since: number; tools: string[] }; response: ToolCall[] };
   }
 }

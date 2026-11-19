@@ -5,7 +5,7 @@ import { type DiffLine, type FileChange, fileChange } from './diff';
 import type { Deed, HookLog, Note, Row } from './row';
 import { margin } from './summary';
 import { inputFields } from './tool-input';
-import { toolName } from './tool-name';
+import { toolName } from '@ui/app/core/tool-name';
 import type { Shell } from './command-parts';
 import { parseWebSearch } from './web-search';
 

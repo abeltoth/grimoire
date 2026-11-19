@@ -1,4 +1,4 @@
-import type { PlanUsage, Used, UsageCredits, UsageWindow } from '@grimoire/contract';
+import type { PlanUsage, UsageCredits, UsageWindow } from '@grimoire/contract';
 import { modelLabel } from '@ui/app/core/tokens';
 
 /** An hour and a day in ms, as the Usage page's views and charts count back by them. */
@@ -213,10 +213,4 @@ export function modelName(model: string, subagent: boolean): string {
 /** How many times something was used, such as "12 uses". */
 export function uses(n: number): string {
   return `${n.toLocaleString()} ${n === 1 ? 'use' : 'uses'}`;
-}
-
-/** Its uses against those of the most used in its list, 0-100. */
-export function againstMost(used: Used, of: readonly Used[]): number {
-  const most = Math.max(0, ...of.map((each) => each.uses));
-  return most ? (used.uses / most) * 100 : 0;
 }

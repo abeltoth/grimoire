@@ -90,6 +90,7 @@ const expected = [
         id: 'toolu_1',
         tool: 'PowerShell',
         input: { command: 'echo hi' },
+        target: 'echo hi',
         result: { text: 'hi', isError: false },
       },
     ],

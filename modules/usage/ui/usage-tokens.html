@@ -79,6 +79,19 @@
             (picked)="openChat($event)"
           />
         }
+
+        @if (totals.tools.length) {
+          <p class="sub split">Context by tool</p>
+          <gr-usage-tool-map [tools]="totals.tools" [since]="totals.since" />
+          <details class="how">
+            <summary>What the map shows</summary>
+            <p>
+              The tokens each tool’s results added to the chats’ context, all its uses together. A
+              darker block adds more a use. A subagent’s own tools aren’t counted, only what it gave
+              back.
+            </p>
+          </details>
+        }
       } @else {
         <p class="none">No chat spent any tokens over this span.</p>
       }

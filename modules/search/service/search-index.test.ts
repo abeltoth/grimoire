@@ -179,8 +179,8 @@ describe('SearchIndex', () => {
 
     const totals = index.tokens(day(4));
     expect(totals.tools).toEqual([
-      { name: 'Read', uses: 3 },
-      { name: 'Bash', uses: 2 },
+      { name: 'Read', uses: 3, context: 0 },
+      { name: 'Bash', uses: 2, context: 0 },
     ]);
     expect(totals.skills).toEqual([
       { name: 'deploy', uses: 1 },
@@ -190,8 +190,37 @@ describe('SearchIndex', () => {
     // Indexed again, a chat's uses replace the ones it had; removed, they're gone.
     index.put({ id: 'c1', agent: 'a', updatedAt: 2 }, [], [], [tool('Grep')]);
     index.remove('c2');
-    expect(index.tokens(day(4)).tools).toEqual([{ name: 'Grep', uses: 1 }]);
+    expect(index.tokens(day(4)).tools).toEqual([{ name: 'Grep', uses: 1, context: 0 }]);
     expect(index.tokens(day(4)).skills).toEqual([]);
+  });
+
+  it("adds up the context each tool's results added, and lists a tool's heaviest calls", () => {
+    const day = (d: number) => new Date(2026, 10, d, 12).getTime();
+    const read = (target: string, context?: number, d = 5) => ({
+      at: day(d),
+      kind: 'tool' as const,
+      name: 'Read',
+      target,
+      ...(context ? { context } : {}),
+    });
+    index.put(
+      { id: 'c1', agent: 'a', updatedAt: 1, title: 'Fix', cwd: '/repo' },
+      [],
+      [],
+      [read('a.ts', 900), read('b.ts', 4_000), read('c.ts'), read('old.ts', 9_000, 1)],
+    );
+    index.put({ id: 'c2', agent: 'a', updatedAt: 1, title: 'Plan' }, [], [], [read('d.ts', 2_000)]);
+
+    expect(index.tokens(day(4)).tools).toEqual([{ name: 'Read', uses: 4, context: 6_900 }]);
+    // Those with no context known, and those before the span, aren't listed.
+    const call = { agent: 'a', tool: 'Read', at: day(5) };
+    expect(index.toolCalls(day(4), ['Read', 'Grep'])).toEqual([
+      { ...call, chatId: 'c1', title: 'Fix', cwd: '/repo', target: 'b.ts', context: 4_000 },
+      { ...call, chatId: 'c2', title: 'Plan', target: 'd.ts', context: 2_000 },
+      { ...call, chatId: 'c1', title: 'Fix', cwd: '/repo', target: 'a.ts', context: 900 },
+    ]);
+    expect(index.toolCalls(day(4), ['Bash'])).toEqual([]);
+    expect(index.toolCalls(day(4), [])).toEqual([]);
   });
 
   it('keeps its index in a file across runs', () => {

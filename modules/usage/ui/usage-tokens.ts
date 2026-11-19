@@ -8,6 +8,7 @@ import type { AboutRow } from './about-tip';
 import { type ChartSeries, type ChartTick, type Column, UsageColumns } from './charts';
 import { type LineSeries, UsageLines } from './lines-chart';
 import { type Slice, UsagePie } from './pie-chart';
+import { UsageToolMap } from './tool-map';
 import { ScanReadings } from './scan-readings';
 import { TokenReadings } from './token-readings';
 import { UsageBreakdownPanel } from './usage-breakdown';
@@ -27,6 +28,7 @@ import {
   dollarsShort,
   modelName,
   startOf,
+  uses,
 } from './usage-format';
 
 /** What the columns count: the tokens, or what they'd cost at API prices. */
@@ -106,7 +108,7 @@ function cacheShare(c: TokenCounts): number | null {
  */
 @Component({
   selector: 'gr-usage-tokens',
-  imports: [UsageBreakdownPanel, UsageColumns, UsageLines, UsagePie, UsageSpans],
+  imports: [UsageBreakdownPanel, UsageColumns, UsageLines, UsagePie, UsageSpans, UsageToolMap],
   templateUrl: './usage-tokens.html',
   styleUrls: [
     './usage-lists.css',
@@ -286,16 +288,24 @@ export class UsageTokens {
               },
             ],
           };
-        case 'skill':
-          // What ran under no skill or subagent is the chat's own.
+        case 'skill': {
+          // What ran under no skill or subagent is the chat's own; a skill says how often it ran.
+          const runs = new Map(totals.skills.map((each) => [each.name, each.uses]));
           return {
             unit: 'skills',
             asGiven: false,
             slices: [
-              ...totals.sources.map((each) => slice(`${each.name} · ${each.kind}`, each)),
+              ...totals.sources.map((each) => {
+                const ran = each.kind === 'skill' ? runs.get(each.name) : undefined;
+                return {
+                  ...slice(`${each.name} · ${each.kind}`, each),
+                  ...(ran ? { note: uses(ran) } : {}),
+                };
+              }),
               { name: 'Chat', ...left(totals.sources) },
             ],
           };
+        }
       }
     },
   );

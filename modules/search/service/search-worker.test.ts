@@ -75,6 +75,18 @@ describe('SearchWorker', () => {
     await expect(asked).resolves.toEqual(totals);
   });
 
+  it("asks the worker for a tool's heaviest calls", async () => {
+    const worker = fakeProcess();
+    const search = new SearchWorker(() => worker.process);
+    const asked = search.toolCalls(1_000, ['Read']);
+    expect(worker.sent).toEqual([{ kind: 'toolCalls', id: 1, since: 1_000, tools: ['Read'] }]);
+    const calls = [
+      { chatId: 'c1', agent: 'a', title: 'Fix', tool: 'Read', at: 2_000, context: 900 },
+    ];
+    worker.reply({ id: 1, calls });
+    await expect(asked).resolves.toEqual(calls);
+  });
+
   it('fails the searches waiting when the worker stops, and starts it again for the next', async () => {
     const workers = [fakeProcess(), fakeProcess()];
     const start = vi.fn(() => workers[start.mock.calls.length - 1]!.process);

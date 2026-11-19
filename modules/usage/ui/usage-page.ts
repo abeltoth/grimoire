@@ -4,26 +4,24 @@ import { ScanReadings } from './scan-readings';
 import { TokenReadings } from './token-readings';
 import { UsageLimits } from './usage-limits';
 import { UsageTokens } from './usage-tokens';
-import { UsageTools } from './usage-tools';
 
 /** The Usage page's tabs. */
-type UsageView = 'limits' | 'tokens' | 'tools';
+type UsageView = 'limits' | 'tokens';
 
 const VIEWS: Record<UsageView, string> = {
   limits: 'Limits',
   tokens: 'Tokens',
-  tools: 'Tools & skills',
 };
 
 /**
  * The Usage page: how much of each agent's subscription limits is used, read
  * from the agent when the page opens, each limit with when it resets; the
- * agent's own scan of what used them; the tokens, by Grimoire's count from
- * the chats' transcripts; and the tools and skills used most.
+ * agent's own scan of what used them; and the tokens, by Grimoire's count
+ * from the chats' transcripts, with the context the tools added.
  */
 @Component({
   selector: 'gr-usage-page',
-  imports: [UsageLimits, UsageTokens, UsageTools],
+  imports: [UsageLimits, UsageTokens],
   // Read once for the page, whichever tab shows them.
   providers: [TokenReadings, ScanReadings],
   templateUrl: './usage-page.html',

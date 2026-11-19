@@ -2,7 +2,7 @@ import { Component, inject } from '@angular/core';
 import { ScanReadings } from './scan-readings';
 import { SPANS, type Span, TokenReadings } from './token-readings';
 
-/** The spans the tokens are shown over, and "Read again", above the Tokens and the Tools & skills tabs. */
+/** The spans the tokens are shown over, and "Read again", above the Tokens tab. */
 @Component({
   selector: 'gr-usage-spans',
   template: `

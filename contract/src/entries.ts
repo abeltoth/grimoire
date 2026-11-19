@@ -113,6 +113,8 @@ export interface ToolBlock {
   input: unknown;
   /** The skill it runs, when the tool is the one that runs skills. */
   skill?: string;
+  /** What it ran on, such as a file, a command or an address, when the agent's tool has one. */
+  target?: string;
   /** Missing while the tool runs. */
   result?: ToolResult;
 }
@@ -124,6 +126,8 @@ export interface ToolResult {
   hunks?: DiffHunk[];
   /** The file a tool that changes files changed or wrote, as the agent named it, once it's done. */
   changed?: string;
+  /** The tokens the result added to the chat's context, when the agent can tell. */
+  context?: number;
 }
 
 /** A changed part of a file: its lines as in a unified diff, led by ' ' kept, '-' removed or '+' inserted. */

@@ -13,8 +13,8 @@ export const SPANS: Record<Span, { label: string; ms: number }> = {
 };
 
 /**
- * Grimoire's count from the chats' transcripts, kept by the Usage page so the
- * Tokens and the Tools & skills tabs share one span and one read.
+ * Grimoire's count from the chats' transcripts, kept by the Usage page so
+ * it's read once, however often the Tokens tab is turned to.
  */
 @Injectable()
 export class TokenReadings {

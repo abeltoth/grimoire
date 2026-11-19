@@ -1,5 +1,5 @@
 import { fork } from 'node:child_process';
-import type { SearchHit, TokenTotals } from '@grimoire/contract';
+import type { SearchHit, TokenTotals, ToolCall } from '@grimoire/contract';
 import type { WorkerReply, WorkerRequest } from './protocol';
 
 /** The search worker's process, as the service talks to it. */
@@ -11,6 +11,9 @@ export interface WorkerProcess {
   kill(): void;
 }
 
+/** What the worker answers a request with. */
+type Answer = SearchHit[] | TokenTotals | ToolCall[];
+
 /**
  * The service's end of the search worker: it starts the worker,
  * passes searches to it, and starts it again if it stops.
@@ -20,7 +23,7 @@ export class SearchWorker {
   private nextId = 1;
   private readonly waiting = new Map<
     number,
-    { resolve(answer: SearchHit[] | TokenTotals): void; reject(error: Error): void }
+    { resolve(answer: Answer): void; reject(error: Error): void }
   >();
 
   constructor(
@@ -42,6 +45,11 @@ export class SearchWorker {
     return this.ask((id) => ({ kind: 'tokens', id, since })) as Promise<TokenTotals>;
   }
 
+  /** The calls of some tools since a time that added the most to their chat's context. */
+  toolCalls(since: number, tools: string[]): Promise<ToolCall[]> {
+    return this.ask((id) => ({ kind: 'toolCalls', id, since, tools })) as Promise<ToolCall[]>;
+  }
+
   /** A chat may have changed: the next search reads the chats again first. */
   markStale(): void {
     this.worker?.send({ kind: 'stale' });
@@ -60,7 +68,7 @@ export class SearchWorker {
     this.failAll('The search was stopped');
   }
 
-  private ask(request: (id: number) => WorkerRequest): Promise<SearchHit[] | TokenTotals> {
+  private ask(request: (id: number) => WorkerRequest): Promise<Answer> {
     const worker = this.ensure();
     const id = this.nextId++;
     return new Promise((resolve, reject) => {
@@ -78,7 +86,10 @@ export class SearchWorker {
       const waiting = this.waiting.get(reply.id);
       this.waiting.delete(reply.id);
       if ('error' in reply) waiting?.reject(new Error(reply.error));
-      else waiting?.resolve('hits' in reply ? reply.hits : reply.totals);
+      else
+        waiting?.resolve(
+          'hits' in reply ? reply.hits : 'calls' in reply ? reply.calls : reply.totals,
+        );
     });
     worker.onExit(() => {
       if (this.worker !== worker) return;

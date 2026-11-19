@@ -7,7 +7,8 @@ import {
   type SearchHit,
   type TokenTotals,
   type TokenUse,
-  type Used,
+  type ToolCall,
+  type UsedTool,
 } from '@grimoire/contract';
 import { type TurnRow, totalsOf } from './token-totals';
 
@@ -38,13 +39,17 @@ export interface ToolUse {
   at: number;
   kind: 'tool' | 'skill';
   name: string;
+  /** What a tool ran on, such as a file or command, when the agent says. */
+  target?: string;
+  /** The tokens a tool's result added to the chat's context, when the agent can tell. */
+  context?: number;
 }
 
 /** Bump to rebuild every index: it's a cache, so it's dropped rather than migrated. */
-const VERSION = 5;
+const VERSION = 6;
 
-/** The most tools, and skills, the totals list. */
-const MAX_USED = 10;
+/** The most calls of a tool listed as its heaviest. */
+const MAX_CALLS = 10;
 
 const SCHEMA = `
   CREATE TABLE chats (
@@ -76,7 +81,9 @@ const SCHEMA = `
     chat_id TEXT NOT NULL,
     at INTEGER NOT NULL,
     kind TEXT NOT NULL,
-    name TEXT NOT NULL
+    name TEXT NOT NULL,
+    target TEXT,
+    context INTEGER
   );
   CREATE INDEX uses_at ON uses (at);
   CREATE INDEX uses_chat ON uses (chat_id);
@@ -181,9 +188,10 @@ export class SearchIndex {
         );
       }
       const used = this.db.prepare(
-        'INSERT INTO uses (chat_id, at, kind, name) VALUES (?, ?, ?, ?)',
+        'INSERT INTO uses (chat_id, at, kind, name, target, context) VALUES (?, ?, ?, ?, ?, ?)',
       );
-      for (const use of uses) used.run(chat.id, use.at, use.kind, use.name);
+      for (const use of uses)
+        used.run(chat.id, use.at, use.kind, use.name, use.target ?? null, use.context ?? null);
     });
   }
 
@@ -198,7 +206,7 @@ export class SearchIndex {
 
   /**
    * Where the tokens went in the turns begun since a time: by day, model,
-   * folder, chat, and skill or subagent; and the tools and skills used most.
+   * folder, chat, and skill or subagent; and the tools and skills used.
    */
   tokens(since: number): TokenTotals {
     const rows = this.db
@@ -220,22 +228,47 @@ export class SearchIndex {
     return {
       ...totalsOf(since, rows),
       tools: this.used('tool', since),
-      skills: this.used('skill', since),
+      skills: this.used('skill', since).map(({ name, uses }) => ({ name, uses })),
     };
   }
 
-  /** The tools, or skills, used most since a time, of chats still indexed; most first, then by name. */
-  private used(kind: ToolUse['kind'], since: number): Used[] {
+  /**
+   * The tools, or skills, used since a time, of chats still indexed, each
+   * with the context its results added; most used first, then by name.
+   */
+  private used(kind: ToolUse['kind'], since: number): UsedTool[] {
     return this.db
       .prepare(
-        `SELECT uses.name AS name, COUNT(*) AS uses
+        `SELECT uses.name AS name, COUNT(*) AS uses, COALESCE(SUM(uses.context), 0) AS context
          FROM uses JOIN chats ON chats.chat_id = uses.chat_id
          WHERE uses.kind = ? AND uses.at >= ?
          GROUP BY uses.name
-         ORDER BY uses DESC, uses.name
+         ORDER BY uses DESC, uses.name`,
+      )
+      .all(kind, since) as unknown as UsedTool[];
+  }
+
+  /** The calls of some tools since a time that added the most to their chat's context, the most first. */
+  toolCalls(since: number, tools: readonly string[]): ToolCall[] {
+    if (!tools.length) return [];
+    return this.db
+      .prepare(
+        `SELECT uses.chat_id AS chatId, chats.agent AS agent, chats.title AS title, chats.cwd AS cwd,
+           uses.name AS tool, uses.at AS at, uses.target AS target, uses.context AS context
+         FROM uses JOIN chats ON chats.chat_id = uses.chat_id
+         WHERE uses.kind = 'tool' AND uses.name IN (${tools.map(() => '?').join(', ')})
+           AND uses.at >= ? AND uses.context > 0
+         ORDER BY uses.context DESC, uses.at DESC
          LIMIT ?`,
       )
-      .all(kind, since, MAX_USED) as unknown as Used[];
+      .all(...tools, since, MAX_CALLS)
+      .map((row) => {
+        const { cwd, target, ...call } = row as unknown as ToolCall & {
+          cwd: string | null;
+          target: string | null;
+        };
+        return { ...call, ...(cwd ? { cwd } : {}), ...(target ? { target } : {}) };
+      });
   }
 
   /** The chats with a passage that has every word looked for, best first, each with that passage. */

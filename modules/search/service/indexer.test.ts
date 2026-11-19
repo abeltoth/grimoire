@@ -63,7 +63,7 @@ describe('Indexer', () => {
     ]);
   });
 
-  it("takes the tools the agent called, the skills it ran, and the /names you wrote, each at its message's time", () => {
+  it("takes the tools the agent called, with what they ran on and added to the context, the skills it ran, and the /names you wrote, each at its message's time", () => {
     expect(
       usesOf([
         { kind: 'user', id: 'u1', text: '/review the diff', at: 10 },
@@ -80,7 +80,14 @@ describe('Indexer', () => {
               input: { skill: 'code-review' },
               skill: 'code-review',
             },
-            { kind: 'tool', id: 't2', tool: 'Read', input: {} },
+            {
+              kind: 'tool',
+              id: 't2',
+              tool: 'Read',
+              input: {},
+              target: 'a.ts',
+              result: { text: 'code', isError: false, context: 1_200 },
+            },
           ],
         },
         // Without a time of its own, an entry takes its turn's.
@@ -94,7 +101,7 @@ describe('Indexer', () => {
       { at: 10, kind: 'skill', name: 'review' },
       { at: 11, kind: 'tool', name: 'Skill' },
       { at: 11, kind: 'skill', name: 'code-review' },
-      { at: 11, kind: 'tool', name: 'Read' },
+      { at: 11, kind: 'tool', name: 'Read', target: 'a.ts', context: 1_200 },
       { at: 20, kind: 'tool', name: 'Bash' },
     ]);
   });

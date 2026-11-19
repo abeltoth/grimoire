@@ -34,8 +34,9 @@ export function turnsOf(entries: readonly Entry[]): TurnUse[] {
 const TYPED = /^\s*\/([^\s/][^\s]*)/;
 
 /**
- * The tools the agent called in a chat, not its subagents, and the skills
- * it ran; and the commands and skills you wrote as "/name". Each at when
+ * The tools the agent called in a chat, not its subagents, with what each
+ * ran on and added to the context, and the skills it ran; and the commands
+ * and skills you wrote as "/name". Each at when
  * its message was written, or the turn it's in began; without either it's
  * left out.
  */
@@ -53,7 +54,14 @@ export function usesOf(entries: readonly Entry[]): ToolUse[] {
     if (entry.kind !== 'agent' || at === undefined) continue;
     for (const block of entry.blocks) {
       if (block.kind !== 'tool' || !block.tool) continue;
-      uses.push({ at, kind: 'tool', name: block.tool });
+      const context = block.result?.context;
+      uses.push({
+        at,
+        kind: 'tool',
+        name: block.tool,
+        ...(block.target ? { target: block.target } : {}),
+        ...(context ? { context } : {}),
+      });
       if (block.skill) uses.push({ at, kind: 'skill', name: block.skill });
     }
   }

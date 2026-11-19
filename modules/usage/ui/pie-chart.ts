@@ -12,6 +12,8 @@ export interface Slice {
   count?: number;
   /** The tokens it stands for, read out with its value. */
   tokens?: number;
+  /** A word more, read out under its tokens, such as how often a skill ran. */
+  note?: string;
 }
 
 /** A slice as drawn: its colour and its share of the whole, 0-100. */
@@ -138,6 +140,7 @@ export class UsagePie {
 
   /** What a slice holds, for its accessible name. */
   protected spoken(slice: DrawnSlice): string {
-    return `${slice.name}: ${this.format()(slice.value)}, ${shareText(slice.share)}`;
+    const note = slice.note ? `, ${slice.note}` : '';
+    return `${slice.name}: ${this.format()(slice.value)}, ${shareText(slice.share)}${note}`;
   }
 }
