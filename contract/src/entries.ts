@@ -113,8 +113,12 @@ export interface ToolBlock {
   input: unknown;
   /** The skill it runs, when the tool is the one that runs skills. */
   skill?: string;
-  /** What it ran on, such as a file, a command or an address, when the agent's tool has one. */
-  target?: string;
+  /**
+   * What usage counts it under, such as a command's program (`git diff`), a
+   * file's folder or an address's site, for the tools whose calls are told
+   * apart.
+   */
+  group?: string;
   /** Missing while the tool runs. */
   result?: ToolResult;
 }
@@ -128,6 +132,8 @@ export interface ToolResult {
   changed?: string;
   /** The tokens the result added to the chat's context, when the agent can tell. */
   context?: number;
+  /** How many images it holds, such as a screenshot read, which its text leaves out. */
+  images?: number;
 }
 
 /** A changed part of a file: its lines as in a unified diff, led by ' ' kept, '-' removed or '+' inserted. */

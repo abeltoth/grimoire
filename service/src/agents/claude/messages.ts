@@ -1,7 +1,7 @@
 import type { Block, ToolResult } from '@grimoire/contract';
 import type { ReplyUsage } from './cache';
 import type { TaskUsage } from './subagent-stats';
-import { targetOf } from './tool-target';
+import { groupOf } from './tool-group';
 
 /** The parts of Claude Code's messages the transcript reads; live and saved messages share them. */
 export interface ClaudeMessage {
@@ -108,14 +108,14 @@ export function toBlock(block: ApiBlock): Block | undefined {
       if (block.name === FOLLOW_UPS_TOOL) return undefined;
       const input = block.input ?? {};
       const skill = block.name === SKILL_TOOL ? (input as { skill?: unknown }).skill : undefined;
-      const target = targetOf(block.name ?? '', input);
+      const group = groupOf(block.name ?? '', input);
       return {
         kind: 'tool',
         id: block.id ?? '',
         tool: block.name ?? '',
         input,
         ...(typeof skill === 'string' && skill ? { skill } : {}),
-        ...(target ? { target } : {}),
+        ...(group ? { group } : {}),
       };
     }
     default:
@@ -124,12 +124,13 @@ export function toBlock(block: ApiBlock): Block | undefined {
 }
 
 export function toolResult(block: ApiBlock): ToolResult {
-  const text =
-    typeof block.content === 'string'
-      ? block.content
-      : (block.content ?? [])
-          .filter((part) => part.type === 'text')
-          .map((part) => part.text ?? '')
-          .join('\n');
-  return { text, isError: block.is_error === true };
+  if (typeof block.content === 'string')
+    return { text: block.content, isError: block.is_error === true };
+  const parts = block.content ?? [];
+  const text = parts
+    .filter((part) => part.type === 'text')
+    .map((part) => part.text ?? '')
+    .join('\n');
+  const images = parts.filter((part) => part.type === 'image').length;
+  return { text, isError: block.is_error === true, ...(images ? { images } : {}) };
 }

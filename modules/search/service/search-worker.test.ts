@@ -75,23 +75,19 @@ describe('SearchWorker', () => {
     await expect(asked).resolves.toEqual(totals);
   });
 
-  it('asks the worker what some tools ran on', async () => {
+  it("asks the worker for a tool's calls by group", async () => {
     const worker = fakeProcess();
     const search = new SearchWorker(() => worker.process);
-    const asked = search.toolTargets(1_000, ['Read']);
-    expect(worker.sent).toEqual([{ kind: 'toolTargets', id: 1, since: 1_000, tools: ['Read'] }]);
-    const targets = [
-      {
-        tool: 'Read',
-        target: 'a.ts',
-        uses: 2,
-        context: 900,
-        chats: 1,
-        chat: { id: 'c1', agent: 'a', title: 'Fix' },
-      },
-    ];
-    worker.reply({ id: 1, targets });
-    await expect(asked).resolves.toEqual(targets);
+    const asked = search.toolGroups(1_000, 'Bash');
+    expect(worker.sent).toEqual([{ kind: 'toolGroups', id: 1, since: 1_000, tool: 'Bash' }]);
+    const groups = {
+      uses: 2,
+      context: 900,
+      groups: [{ name: 'git diff', uses: 2, context: 900 }],
+      more: 0,
+    };
+    worker.reply({ id: 1, groups });
+    await expect(asked).resolves.toEqual(groups);
   });
 
   it('fails the searches waiting when the worker stops, and starts it again for the next', async () => {

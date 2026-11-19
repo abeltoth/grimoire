@@ -51,6 +51,18 @@ describe('ToolContext', () => {
     expect(contexts(entries)).toEqual([301, 100]);
   });
 
+  it('weighs an image as Claude reads it, not by its empty text', () => {
+    const screenshot: ToolBlock = {
+      ...tool('t1', ''),
+      result: { text: '', isError: false, images: 1 },
+    };
+    const entries: Entry[] = [reply('msg_1', screenshot, tool('t2', 'x'.repeat(1_600)))];
+    const context = new ToolContext();
+    context.reply('msg_1', counts(0, 1_000, 0), entries);
+    context.reply('msg_2', counts(1_000, 2_000, 0), entries);
+    expect(contexts(entries)).toEqual([1_600, 400]);
+  });
+
   it('leaves it unknown when your message or a compaction came in between', () => {
     for (const between of [
       { kind: 'user', id: 'u2', text: 'And this' },
@@ -101,7 +113,7 @@ describe('ToolContext', () => {
       },
       assistant(
         'msg_1',
-        { type: 'tool_use', id: 't1', name: 'Read', input: { file_path: 'a.ts' } },
+        { type: 'tool_use', id: 't1', name: 'Read', input: { file_path: 'C:\\repo\\a.ts' } },
         usage(0, 3_000, 40),
       ),
       // A subagent's own calls are sent its context, not the chat's.
@@ -119,6 +131,6 @@ describe('ToolContext', () => {
     ];
     messages.forEach((message, i) => transcript.apply(message, 1_000 + i));
     const [read] = (transcript.entries[1] as AgentEntry).blocks as ToolBlock[];
-    expect(read).toMatchObject({ target: 'a.ts', result: { text: 'code', context: 1_200 } });
+    expect(read).toMatchObject({ group: 'C:/repo', result: { text: 'code', context: 1_200 } });
   });
 });

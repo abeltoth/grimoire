@@ -14,6 +14,8 @@ export interface Slice {
   tokens?: number;
   /** A word more, read out under its tokens, such as how often a skill ran. */
   note?: string;
+  /** Its name in full, on hover over the legend, such as a folder's path. */
+  title?: string;
 }
 
 /** A slice as drawn: its colour and its share of the whole, 0-100. */
@@ -141,6 +143,6 @@ export class UsagePie {
   /** What a slice holds, for its accessible name. */
   protected spoken(slice: DrawnSlice): string {
     const note = slice.note ? `, ${slice.note}` : '';
-    return `${slice.name}: ${this.format()(slice.value)}, ${shareText(slice.share)}${note}`;
+    return `${slice.title ?? slice.name}: ${this.format()(slice.value)}, ${shareText(slice.share)}${note}`;
   }
 }

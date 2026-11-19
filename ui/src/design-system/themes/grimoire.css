@@ -473,8 +473,6 @@
   --gr-chart-key: 12px;
   --gr-chart-tip-pad: 6px 9px;
   --gr-chart-tip-offset: 10px;
-  /* The room inside a block of the map of the tools' context, round its name. */
-  --gr-chart-block-pad: 4px 6px;
   --gr-chart-tip-shadow: 0 2px 6px rgba(60, 35, 10, 0.18);
   /* An explanation behind an icon: the widest its tooltip is written, and the space between its lines. */
   --gr-chart-about-width: 340px;

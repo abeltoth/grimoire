@@ -85,7 +85,7 @@ describe('Indexer', () => {
               id: 't2',
               tool: 'Read',
               input: {},
-              target: 'a.ts',
+              group: 'C:/repo',
               result: { text: 'code', isError: false, context: 1_200 },
             },
           ],
@@ -101,7 +101,7 @@ describe('Indexer', () => {
       { at: 10, kind: 'skill', name: 'review' },
       { at: 11, kind: 'tool', name: 'Skill' },
       { at: 11, kind: 'skill', name: 'code-review' },
-      { at: 11, kind: 'tool', name: 'Read', target: 'a.ts', context: 1_200 },
+      { at: 11, kind: 'tool', name: 'Read', group: 'C:/repo', context: 1_200 },
       { at: 20, kind: 'tool', name: 'Bash' },
     ]);
   });

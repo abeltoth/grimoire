@@ -35,7 +35,7 @@ const TYPED = /^\s*\/([^\s/][^\s]*)/;
 
 /**
  * The tools the agent called in a chat, not its subagents, with what each
- * ran on and added to the context, and the skills it ran; and the commands
+ * is counted under and added to the context, and the skills it ran; and the commands
  * and skills you wrote as "/name". Each at when
  * its message was written, or the turn it's in began; without either it's
  * left out.
@@ -59,7 +59,7 @@ export function usesOf(entries: readonly Entry[]): ToolUse[] {
         at,
         kind: 'tool',
         name: block.tool,
-        ...(block.target ? { target: block.target } : {}),
+        ...(block.group ? { group: block.group } : {}),
         ...(context ? { context } : {}),
       });
       if (block.skill) uses.push({ at, kind: 'skill', name: block.skill });

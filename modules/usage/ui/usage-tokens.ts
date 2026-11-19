@@ -4,11 +4,11 @@ import { GRIMOIRE_BRIDGE } from '@ui/app/core/bridge';
 import { ChatList } from '@ui/app/core/chat-list';
 import { AgentCatalog } from '@ui/app/core/agent-catalog';
 import { countsInWords, tokenCount } from '@ui/app/core/tokens';
-import { type AboutRow, UsageAbout } from './about-tip';
+import type { AboutRow } from './about-tip';
 import { type ChartSeries, type ChartTick, type Column, UsageColumns } from './charts';
 import { type LineSeries, UsageLines } from './lines-chart';
 import { type Slice, UsagePie } from './pie-chart';
-import { UsageToolMap } from './tool-map';
+import { UsageToolRing } from './tool-ring';
 import { ScanReadings } from './scan-readings';
 import { TokenReadings } from './token-readings';
 import { UsageBreakdownPanel } from './usage-breakdown';
@@ -90,20 +90,6 @@ const KINDS: AboutRow[] = [
   { head: 'Output', value: '5×', text: 'What Claude writes, thinking included.' },
 ];
 
-/** What the map of the tools' context shows, behind its icon. */
-const CONTEXT_ABOUT: AboutRow[] = [
-  {
-    head: 'A block’s size',
-    text: 'The tokens a tool’s results added to the chats’ context, all its uses together.',
-  },
-  { head: 'Its shade', text: 'How many it adds a use: the darker, the heavier each call.' },
-  {
-    head: 'Picked',
-    text: 'A tool zooms into the files and commands it ran on; one of those opens the chat it added the most to.',
-  },
-  { text: 'A subagent’s own tools aren’t counted, only what it gave back.' },
-];
-
 /** A scale's foot a little under the lowest share, on an even step so its middle line is whole. */
 export function floorUnder(lowest: number): number {
   return Math.max(0, 100 - 2 * Math.ceil((100 - lowest + 1) / 2));
@@ -122,15 +108,7 @@ function cacheShare(c: TokenCounts): number | null {
  */
 @Component({
   selector: 'gr-usage-tokens',
-  imports: [
-    UsageAbout,
-    UsageBreakdownPanel,
-    UsageColumns,
-    UsageLines,
-    UsagePie,
-    UsageSpans,
-    UsageToolMap,
-  ],
+  imports: [UsageBreakdownPanel, UsageColumns, UsageLines, UsagePie, UsageSpans, UsageToolRing],
   templateUrl: './usage-tokens.html',
   styleUrls: [
     './usage-lists.css',
@@ -150,7 +128,6 @@ export class UsageTokens {
 
   protected readonly tokenSeries = TOKEN_LEGEND;
   protected readonly kinds = KINDS;
-  protected readonly contextAbout = CONTEXT_ABOUT;
   protected readonly dollars = dollars;
   /** Each agent's plan, as last read. */
   private readonly plans = signal<ReadonlyMap<string, PlanUsage>>(new Map());

@@ -22,7 +22,7 @@ export const search: ServiceModule = {
     );
     registry.register('search.chats', ({ query }) => search.search(query));
     registry.register('search.tokens', ({ since }) => search.tokens(since));
-    registry.register('search.toolTargets', ({ since, tools }) => search.toolTargets(since, tools));
+    registry.register('search.toolGroups', ({ since, tool }) => search.toolGroups(since, tool));
     // A turn or a new title changes what a search finds.
     events.on('agents.turnEnded', () => search.markStale());
     events.on('agents.title', () => search.markStale());

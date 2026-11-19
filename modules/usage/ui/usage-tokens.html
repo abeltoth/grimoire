@@ -81,11 +81,7 @@
         }
 
         @if (totals.tools.length) {
-          <p class="sub split">
-            Context by tool
-            <gr-usage-about [rows]="contextAbout" />
-          </p>
-          <gr-usage-tool-map [tools]="totals.tools" [since]="totals.since" />
+          <gr-usage-tool-ring [tools]="totals.tools" [since]="totals.since" />
         }
       } @else {
         <p class="none">No chat spent any tokens over this span.</p>

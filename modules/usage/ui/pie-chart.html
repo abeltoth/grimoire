@@ -53,13 +53,15 @@
           <button
             type="button"
             class="name opens"
-            [attr.title]="each.slice.name"
+            [attr.title]="each.slice.title ?? each.slice.name"
             (click)="pick(each.slice)"
           >
             {{ each.slice.name }}
           </button>
         } @else {
-          <span class="name" [attr.title]="each.slice.name">{{ each.slice.name }}</span>
+          <span class="name" [attr.title]="each.slice.title ?? each.slice.name">{{
+            each.slice.name
+          }}</span>
         }
         <b>{{ share(each.slice.share) }}</b>
       </li>

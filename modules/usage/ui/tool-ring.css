@@ -1,0 +1,13 @@
+/* The ring of the tools' context, under its head, as the cost's ring is. */
+:host {
+  display: contents;
+}
+
+.split {
+  margin-top: var(--gr-usage-head-gap);
+}
+
+.back {
+  margin-right: var(--gr-space-1);
+  font-style: normal;
+}

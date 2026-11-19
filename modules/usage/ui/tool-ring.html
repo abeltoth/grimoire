@@ -1,0 +1,35 @@
+@if (picked(); as picked) {
+  @let breakdown = picked.breakdown;
+  <p class="sub split">
+    <button type="button" class="gr-link back" (click)="back()">‹ All tools</button>
+    {{ picked.tool }} by {{ breakdown.by }}
+  </p>
+  @if (picked.error; as error) {
+    <p class="none" role="alert">Its calls couldn’t be counted: {{ error }}</p>
+  } @else if (picked.slices; as slices) {
+    <gr-usage-pie
+      [label]="picked.tool + ' by ' + breakdown.by"
+      [slices]="slices"
+      [unit]="breakdown.unit"
+      [format]="count"
+    />
+  } @else {
+    <p class="none">Counting its calls…</p>
+  }
+} @else {
+  <p class="sub split">
+    Context by tool
+    <gr-usage-about [rows]="about" />
+  </p>
+  @if (slices().length) {
+    <gr-usage-pie
+      label="Context by tool"
+      [slices]="slices()"
+      unit="tools"
+      [format]="count"
+      (picked)="pick($event)"
+    />
+  } @else {
+    <p class="none">No tool’s context could be measured over this span.</p>
+  }
+}

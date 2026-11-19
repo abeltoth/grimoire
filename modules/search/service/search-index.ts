@@ -7,7 +7,8 @@ import {
   type SearchHit,
   type TokenTotals,
   type TokenUse,
-  type ToolTarget,
+  type ToolGroup,
+  type ToolGroups,
   type UsedTool,
 } from '@grimoire/contract';
 import { type TurnRow, totalsOf } from './token-totals';
@@ -39,17 +40,17 @@ export interface ToolUse {
   at: number;
   kind: 'tool' | 'skill';
   name: string;
-  /** What a tool ran on, such as a file or command, when the agent says. */
-  target?: string;
+  /** What a tool's call is counted under, such as a command's program, when the agent says. */
+  group?: string;
   /** The tokens a tool's result added to the chat's context, when the agent can tell. */
   context?: number;
 }
 
 /** Bump to rebuild every index: it's a cache, so it's dropped rather than migrated. */
-const VERSION = 6;
+const VERSION = 7;
 
-/** The most of what tools ran on that's listed. */
-const MAX_TARGETS = 100;
+/** The most groups of a tool's calls that are listed. */
+const MAX_GROUPS = 50;
 
 const SCHEMA = `
   CREATE TABLE chats (
@@ -82,7 +83,7 @@ const SCHEMA = `
     at INTEGER NOT NULL,
     kind TEXT NOT NULL,
     name TEXT NOT NULL,
-    target TEXT,
+    group_name TEXT,
     context INTEGER
   );
   CREATE INDEX uses_at ON uses (at);
@@ -188,10 +189,10 @@ export class SearchIndex {
         );
       }
       const used = this.db.prepare(
-        'INSERT INTO uses (chat_id, at, kind, name, target, context) VALUES (?, ?, ?, ?, ?, ?)',
+        'INSERT INTO uses (chat_id, at, kind, name, group_name, context) VALUES (?, ?, ?, ?, ?, ?)',
       );
       for (const use of uses)
-        used.run(chat.id, use.at, use.kind, use.name, use.target ?? null, use.context ?? null);
+        used.run(chat.id, use.at, use.kind, use.name, use.group ?? null, use.context ?? null);
     });
   }
 
@@ -249,56 +250,37 @@ export class SearchIndex {
   }
 
   /**
-   * What some tools ran on since a time, such as each file or command, by
-   * the context their calls added, the most first; each with the chat it
-   * added the most to. Calls whose context isn't known are left out.
+   * A tool's calls since a time by group, such as a command's program or a
+   * file's folder, the most context first, each with a chat's folder it was
+   * used in; and the whole tool's, its calls of no group included.
    */
-  toolTargets(since: number, tools: readonly string[]): ToolTarget[] {
-    if (!tools.length) return [];
+  toolGroups(since: number, tool: string): ToolGroups {
+    const whole = this.db
+      .prepare(
+        `SELECT COUNT(*) AS uses, COALESCE(SUM(uses.context), 0) AS context
+         FROM uses JOIN chats ON chats.chat_id = uses.chat_id
+         WHERE uses.kind = 'tool' AND uses.name = ? AND uses.at >= ?`,
+      )
+      .get(tool, since) as { uses: number; context: number };
     const rows = this.db
       .prepare(
-        `WITH each_chat AS (
-           SELECT uses.name AS tool, uses.target AS target, uses.chat_id AS chat_id,
-             COUNT(*) AS uses, SUM(uses.context) AS context
-           FROM uses JOIN chats ON chats.chat_id = uses.chat_id
-           WHERE uses.kind = 'tool' AND uses.name IN (${tools.map(() => '?').join(', ')})
-             AND uses.at >= ? AND uses.context > 0
-           GROUP BY uses.name, uses.target, uses.chat_id
-         ), ranked AS (
-           SELECT *,
-             ROW_NUMBER() OVER (PARTITION BY tool, target ORDER BY context DESC, chat_id) AS place,
-             SUM(uses) OVER (PARTITION BY tool, target) AS all_uses,
-             SUM(context) OVER (PARTITION BY tool, target) AS all_context,
-             COUNT(*) OVER (PARTITION BY tool, target) AS chats
-           FROM each_chat
-         )
-         SELECT ranked.tool AS tool, ranked.target AS target, ranked.all_uses AS uses,
-           ranked.all_context AS context, ranked.chats AS chats, chats.chat_id AS id,
-           chats.agent AS agent, chats.title AS title, chats.cwd AS cwd
-         FROM ranked JOIN chats ON chats.chat_id = ranked.chat_id
-         WHERE ranked.place = 1
-         ORDER BY ranked.all_context DESC, ranked.tool, ranked.target
-         LIMIT ?`,
+        `SELECT uses.group_name AS name, COUNT(*) AS uses,
+           COALESCE(SUM(uses.context), 0) AS context, MAX(chats.cwd) AS cwd
+         FROM uses JOIN chats ON chats.chat_id = uses.chat_id
+         WHERE uses.kind = 'tool' AND uses.name = ? AND uses.at >= ?
+           AND uses.group_name IS NOT NULL
+         GROUP BY uses.group_name
+         HAVING context > 0
+         ORDER BY context DESC, name`,
       )
-      .all(...tools, since, MAX_TARGETS) as unknown as {
-      tool: string;
-      target: string | null;
-      uses: number;
-      context: number;
-      chats: number;
-      id: ChatId;
-      agent: AgentId;
-      title: string;
-      cwd: string | null;
-    }[];
-    return rows.map(({ tool, target, uses, context, chats, id, agent, title, cwd }) => ({
-      tool,
-      ...(target ? { target } : {}),
-      uses,
-      context,
-      chats,
-      chat: { id, agent, title, ...(cwd ? { cwd } : {}) },
-    }));
+      .all(tool, since) as unknown as (Omit<ToolGroup, 'cwd'> & { cwd: string | null })[];
+    return {
+      ...whole,
+      groups: rows
+        .slice(0, MAX_GROUPS)
+        .map(({ cwd, ...group }) => ({ ...group, ...(cwd ? { cwd } : {}) })),
+      more: Math.max(rows.length - MAX_GROUPS, 0),
+    };
   }
 
   /** The chats with a passage that has every word looked for, best first, each with that passage. */

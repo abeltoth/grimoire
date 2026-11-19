@@ -34,10 +34,10 @@ process.on('message', (request: WorkerRequest) => {
   if (request.kind === 'stale') indexer.markStale();
   else if (request.kind === 'tokens')
     void answer(request.id, () => ({ id: request.id, totals: index.tokens(request.since) }));
-  else if (request.kind === 'toolTargets')
+  else if (request.kind === 'toolGroups')
     void answer(request.id, () => ({
       id: request.id,
-      targets: index.toolTargets(request.since, request.tools),
+      groups: index.toolGroups(request.since, request.tool),
     }));
   else void answer(request.id, () => ({ id: request.id, hits: index.search(request.query) }));
 });

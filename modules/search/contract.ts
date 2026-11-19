@@ -63,17 +63,22 @@ export interface UsedTool extends Used {
   context: number;
 }
 
-/** What a tool ran on, such as a file or a command, over all its calls, and the context they added to the chats. */
-export interface ToolTarget {
-  tool: string;
-  /** Missing for the calls of a tool that names nothing it ran on. */
-  target?: string;
+/** A tool's calls under one group, such as a command's program or a file's folder, and the context they added. */
+export interface ToolGroup {
+  name: string;
   uses: number;
   context: number;
-  /** How many chats it was run in. */
-  chats: number;
-  /** The chat it added the most to. */
-  chat: { id: ChatId; agent: AgentId; title: string; cwd?: string };
+  /** The folder of a chat it was used in, to name a folder by its place in it. */
+  cwd?: string;
+}
+
+/** A tool's calls over a span by group, the most context first, with the whole tool's. */
+export interface ToolGroups {
+  uses: number;
+  context: number;
+  groups: ToolGroup[];
+  /** How many groups past those listed. */
+  more: number;
 }
 
 declare module '@grimoire/contract' {
@@ -86,7 +91,7 @@ declare module '@grimoire/contract' {
     'search.chats': { request: { query: string }; response: SearchHit[] };
     /** Where the tokens went since a time, by Grimoire's count from the agents' transcripts. */
     'search.tokens': { request: { since: number }; response: TokenTotals };
-    /** What some tools ran on since a time, by the context their calls added, the most first. */
-    'search.toolTargets': { request: { since: number; tools: string[] }; response: ToolTarget[] };
+    /** A tool's calls since a time by group, such as a command's program, by the context they added. */
+    'search.toolGroups': { request: { since: number; tool: string }; response: ToolGroups };
   }
 }

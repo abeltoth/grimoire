@@ -28,7 +28,7 @@ describe('toBlock', () => {
 });
 
 describe('toolResult', () => {
-  it("joins a result's text parts, and says whether it failed", () => {
+  it("joins a result's text parts, counts its images, and says whether it failed", () => {
     expect(toolResult({ type: 'tool_result', content: 'ok' })).toEqual({
       text: 'ok',
       isError: false,
@@ -39,6 +39,6 @@ describe('toolResult', () => {
         content: [{ type: 'text', text: 'one' }, { type: 'image' }, { type: 'text', text: 'two' }],
         is_error: true,
       }),
-    ).toEqual({ text: 'one\ntwo', isError: true });
+    ).toEqual({ text: 'one\ntwo', isError: true, images: 1 });
   });
 });

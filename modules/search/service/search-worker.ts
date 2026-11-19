@@ -1,5 +1,5 @@
 import { fork } from 'node:child_process';
-import type { SearchHit, TokenTotals, ToolTarget } from '@grimoire/contract';
+import type { SearchHit, TokenTotals, ToolGroups } from '@grimoire/contract';
 import type { WorkerReply, WorkerRequest } from './protocol';
 
 /** The search worker's process, as the service talks to it. */
@@ -12,7 +12,7 @@ export interface WorkerProcess {
 }
 
 /** What the worker answers a request with. */
-type Answer = SearchHit[] | TokenTotals | ToolTarget[];
+type Answer = SearchHit[] | TokenTotals | ToolGroups;
 
 /**
  * The service's end of the search worker: it starts the worker,
@@ -45,9 +45,9 @@ export class SearchWorker {
     return this.ask((id) => ({ kind: 'tokens', id, since })) as Promise<TokenTotals>;
   }
 
-  /** What some tools ran on since a time, by the context their calls added. */
-  toolTargets(since: number, tools: string[]): Promise<ToolTarget[]> {
-    return this.ask((id) => ({ kind: 'toolTargets', id, since, tools })) as Promise<ToolTarget[]>;
+  /** A tool's calls since a time by group, by the context they added. */
+  toolGroups(since: number, tool: string): Promise<ToolGroups> {
+    return this.ask((id) => ({ kind: 'toolGroups', id, since, tool })) as Promise<ToolGroups>;
   }
 
   /** A chat may have changed: the next search reads the chats again first. */
@@ -88,7 +88,7 @@ export class SearchWorker {
       if ('error' in reply) waiting?.reject(new Error(reply.error));
       else
         waiting?.resolve(
-          'hits' in reply ? reply.hits : 'targets' in reply ? reply.targets : reply.totals,
+          'hits' in reply ? reply.hits : 'groups' in reply ? reply.groups : reply.totals,
         );
     });
     worker.onExit(() => {

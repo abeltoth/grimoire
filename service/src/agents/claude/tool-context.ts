@@ -7,6 +7,12 @@ interface Call {
   output: number;
 }
 
+/**
+ * An image's size against text's, in characters, to split by: Claude reads
+ * a picture as up to about 1,600 tokens, and text as about 4 characters a token.
+ */
+const IMAGE = 6_400;
+
 /** Every token of input a call was sent, cached or not. */
 function inputOf(counts: TokenCounts): number {
   return counts.input + counts.cacheWritten + counts.cacheWrittenLong + counts.cacheRead;
@@ -16,7 +22,8 @@ function inputOf(counts: TokenCounts): number {
  * Puts on each tool result the tokens it added to the chat's context. Each
  * call to the API is sent the chat so far, so it's sent the call before
  * it, that call's reply and what its tools gave back: the difference less
- * the reply is the tools' results, split by their size when there are more.
+ * the reply is the tools' results, split by their size when there are more,
+ * an image's as Claude reads it.
  * Your own message or a compaction in between leaves the results unknown.
  */
 export class ToolContext {
@@ -42,7 +49,9 @@ function settle(before: Call, after: Call, entries: readonly Entry[]): void {
       block.kind === 'tool' && !!block.result,
   );
   if (added <= 0 || !tools.length) return;
-  const sizes = tools.map((tool) => Math.max(tool.result.text.length, 1));
+  const sizes = tools.map((tool) =>
+    Math.max(tool.result.text.length + (tool.result.images ?? 0) * IMAGE, 1),
+  );
   const all = sizes.reduce((sum, size) => sum + size, 0);
   let left = added;
   tools.forEach((tool, i) => {
