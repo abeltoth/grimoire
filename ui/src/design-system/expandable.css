@@ -130,7 +130,12 @@
   text-decoration-thickness: var(--gr-strike);
 }
 
+.inserted .code.edited {
+  color: var(--gr-ink-soft);
+}
+
 .inserted .edited .changed {
+  color: var(--gr-verdigris);
   text-decoration: underline;
   text-decoration-thickness: var(--gr-strike);
 }
