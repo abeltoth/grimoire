@@ -23,7 +23,15 @@
         <span class="at" [style.width.ch]="digits()">{{ line.at }}</span>
       }
       <span class="number">{{ sign[line.kind] }}</span>
-      <span class="code">{{ line.text }}</span>
+      @if (line.parts) {
+        <span class="code edited">
+          @for (part of line.parts; track $index) {
+            <span [class.changed]="part.changed">{{ part.text }}</span>
+          }
+        </span>
+      } @else {
+        <span class="code">{{ line.text }}</span>
+      }
     </div>
   }
 </div>

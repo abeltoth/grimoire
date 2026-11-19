@@ -119,6 +119,22 @@
   color: var(--gr-verdigris);
 }
 
+/* In an edited line only the words that changed are struck or underlined, so the edit shows at a glance. */
+.removed .code.edited {
+  text-decoration: none;
+}
+
+.removed .edited .changed {
+  color: var(--gr-rubric);
+  text-decoration: line-through;
+  text-decoration-thickness: var(--gr-strike);
+}
+
+.inserted .edited .changed {
+  text-decoration: underline;
+  text-decoration-thickness: var(--gr-strike);
+}
+
 /* Where a running tool's output will come. */
 .code.running {
   font-family: var(--gr-font-text);

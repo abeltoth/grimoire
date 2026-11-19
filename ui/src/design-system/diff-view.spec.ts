@@ -62,6 +62,29 @@ describe('DiffView', () => {
     expect(el.querySelectorAll('.line.same')).toHaveLength(1);
   });
 
+  it('marks only the words that changed in an edited line, past a line added before it', async () => {
+    const { el, texts } = await diff([
+      { kind: 'removed', text: 'Fix every problem that holds.' },
+      { kind: 'inserted', text: 'A brand new paragraph.' },
+      { kind: 'inserted', text: 'Fix every problem that holds. Do not review.' },
+    ]);
+    expect(texts('.line.removed .changed')).toEqual([]);
+    expect(texts('.line.inserted .changed')).toEqual(['Do not review.']);
+    expect([...el.querySelectorAll('.line .edited')].map((node) => node.textContent)).toEqual([
+      'Fix every problem that holds.',
+      'Fix every problem that holds. Do not review.',
+    ]);
+    expect(el.querySelector('.line.inserted:nth-child(2) .edited')).toBeNull();
+  });
+
+  it('shows a replaced line whole', async () => {
+    const { el } = await diff([
+      { kind: 'removed', text: 'const a = compute(first);' },
+      { kind: 'inserted', text: 'return render(other, more);' },
+    ]);
+    expect(el.querySelector('.edited')).toBeNull();
+  });
+
   it('leaves the number column out when the lines come unnumbered', async () => {
     const { el } = await diff([{ kind: 'inserted', text: 'a' }]);
     expect(el.querySelector('.at, .numbered')).toBeNull();
