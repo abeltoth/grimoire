@@ -186,6 +186,21 @@ export function permissionsOf(file: ReadSettings): SetupItem[] {
   return items;
 }
 
+/** The permission rules of all the settings files, denials first, then those that ask and those allowed, then the default mode and the extra folders, each A to Z. */
+function byVerdict(items: SetupItem[]): SetupItem[] {
+  const verdicts: readonly string[] = VERDICTS.map(([, verdict]) => verdict);
+  const rank = (item: SetupItem) => {
+    const verdict = verdicts.indexOf(item.detail ?? '');
+    if (verdict >= 0) return verdict;
+    return item.name === 'Default mode' ? verdicts.length : verdicts.length + 1;
+  };
+  return [...items].sort(
+    (a, b) =>
+      rank(a) - rank(b) ||
+      a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true }),
+  );
+}
+
 /** Everything Claude Code loads in a folder, by section, from what it told and what its settings files hold. */
 export function toSetup(input: {
   cwd: string;
@@ -314,7 +329,7 @@ export function toSetup(input: {
     hooks: read.flatMap(hooksOf),
     mcpServers,
     plugins,
-    permissions: settings.flatMap(permissionsOf),
+    permissions: byVerdict(settings.flatMap(permissionsOf)),
   };
   return {
     cwd,

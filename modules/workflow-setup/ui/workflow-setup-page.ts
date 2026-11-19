@@ -56,6 +56,12 @@ const OTHER_FOLDERS = 8;
 /** A folder to compare by: one kind of slash, no slash at the end, in one case. */
 const folderKey = (folder: string) => folder.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
 
+/** The sections whose order the agent gives: memory in the order it's read, permissions by verdict. */
+const KEPT_ORDER = new Set<SetupSection>(['memory', 'permissions']);
+
+const byName = (a: SetupItem, b: SetupItem) =>
+  a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true });
+
 const SECTION_NAMES: Record<SetupSection, string> = {
   memory: 'Memory',
   skills: 'Skills',
@@ -81,8 +87,8 @@ const SOURCE_NAMES: Record<SetupSource, string> = {
  * The Workflow setup page: everything an agent loads when it works in a folder,
  * the open chat's until you pick another, and where each piece comes
  * from: memory, skills, subagents, commands, hooks, MCP servers, plugins
- * and permission rules, each with what it costs the context, the costliest
- * first and the heavy ones in rubric.
+ * and permission rules, each with what it costs the context and the heavy
+ * ones in rubric.
  */
 @Component({
   selector: 'gr-workflow-setup-page',
@@ -284,14 +290,16 @@ export class WorkflowSetupPage {
     if (folder) this.picked.set(folder);
   }
 
-  /** A section's pieces, the costliest first; those the agent gave no cost for keep their order, last. */
-  protected byCost(items: readonly SetupItem[]): SetupItem[] {
-    return [...items].sort((a, b) => (b.tokens ?? -1) - (a.tokens ?? -1));
+  /** A section's pieces A to Z, to find one by name; memory and permissions keep the agent's order, which means something. */
+  protected ordered(section: SetupSection, items: readonly SetupItem[]): readonly SetupItem[] {
+    return KEPT_ORDER.has(section) ? items : [...items].sort(byName);
   }
 
   protected heavy(item: SetupItem): boolean {
     return (item.tokens ?? 0) >= HEAVY_TOKENS;
   }
+
+  protected readonly memoryTitle = 'In the order they’re read; all of them apply.';
 
   protected readonly heavyTitle = `Heavy: ${HEAVY_TOKENS.toLocaleString()} tokens or more in every chat`;
 

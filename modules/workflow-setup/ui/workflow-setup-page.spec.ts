@@ -26,11 +26,17 @@ describe('workflow-setup', () => {
             path: 'C:/Users/me/.claude/CLAUDE.md',
             tokens: 310,
           },
+          { name: 'CLAUDE.md', source: 'project', path: 'C:/Users/me/CLAUDE.md', tokens: 90 },
         ],
         skills: [
-          { name: 'deploy', source: 'plugin', plugin: 'ship', tokens: 60 },
-          { name: 'notes', source: 'user' },
           { name: 'wrangler', detail: 'Cloudflare Workers CLI', source: 'user', tokens: 2148 },
+          { name: 'notes', source: 'user' },
+          { name: 'Deploy', source: 'plugin', plugin: 'ship', tokens: 60 },
+        ],
+        hooks: [
+          { name: 'Stop', detail: 'say done', source: 'user' },
+          { name: 'PreToolUse · Bash', detail: 'node guard.js', source: 'user' },
+          { name: 'Stop', detail: 'npm test', source: 'project' },
         ],
         mcpServers: [
           {
@@ -70,11 +76,11 @@ describe('workflow-setup', () => {
       'Settings files',
     ]);
     expect(texts('gr-workflow-setup-page summary .n')).toEqual([
-      '1 · 310 tokens',
+      '2 · 400 tokens',
       '3 · 2,208 tokens',
       '0',
       '0',
-      '0',
+      '3',
       '1',
       '0',
       '0',
@@ -86,12 +92,24 @@ describe('workflow-setup', () => {
       [...el.querySelectorAll(`${section(name)} li`)].map((row) =>
         [...row.children].map((cell) => cell.textContent!.trim()).join(' | '),
       );
-    // The costliest first, those without a cost last; the heavy ones flagged.
+    // A to Z, to find one by name; the heavy ones flagged.
     expect(rows('skills')).toEqual([
-      'wrangler | Yours | Cloudflare Workers CLI | 2,148 tokens',
-      'deploy | ship |  | 60 tokens',
+      'Deploy | ship |  | 60 tokens',
       'notes | Yours |  | ',
+      'wrangler | Yours | Cloudflare Workers CLI | 2,148 tokens',
     ]);
+    // A hook's event keeps its hooks together, in the order they run.
+    expect(rows('hooks')).toEqual([
+      'PreToolUse · Bash | Yours | node guard.js | ',
+      'Stop | Yours | say done | ',
+      'Stop | Project | npm test | ',
+    ]);
+    // Memory keeps the order it's read in, numbered, and says so.
+    expect(texts(`${section('memory')} .name`)).toEqual(['~/.claude/CLAUDE.md', 'CLAUDE.md']);
+    expect(el.querySelector(`${section('memory')} ul.numbered`)).not.toBeNull();
+    expect(el.querySelector(`${section('memory')} summary`)!.getAttribute('title')).toBe(
+      'In the order they’re read; all of them apply.',
+    );
     expect(texts(`${section('skills')} li.heavy .name`)).toEqual(['wrangler']);
     expect(el.querySelector(`${section('skills')} li.heavy .n`)!.getAttribute('title')).toBe(
       'Heavy: 2,000 tokens or more in every chat',
@@ -100,7 +118,7 @@ describe('workflow-setup', () => {
       'C:/Users/me/.claude/CLAUDE.md',
     );
     expect(texts(`${section('mcpServers')} .problem`)).toEqual(['spawn gh-mcp ENOENT']);
-    expect(texts(`${section('hooks')} .none`)).toEqual(['None.']);
+    expect(texts(`${section('plugins')} .none`)).toEqual(['None.']);
     expect(rows('settings')).toEqual([
       '~/.claude/settings.json | Yours |  | ',
       '~/git/new/.claude/settings.json | Project | None yet | ',

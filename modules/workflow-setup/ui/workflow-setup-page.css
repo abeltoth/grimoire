@@ -97,6 +97,26 @@ ul {
   margin: 0 0 var(--gr-workflow-setup-group-gap);
 }
 
+/* The memory files, numbered in the margin in the order they're read. */
+.numbered {
+  counter-reset: read;
+}
+
+.numbered li {
+  position: relative;
+  counter-increment: read;
+}
+
+.numbered li::before {
+  content: counter(read);
+  position: absolute;
+  right: 100%;
+  padding-right: var(--gr-workflow-setup-step-gap);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
 /* A piece of the setup: its name, whose it is, what it does, and its cost. */
 li {
   display: grid;

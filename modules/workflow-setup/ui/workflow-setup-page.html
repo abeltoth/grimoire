@@ -46,7 +46,7 @@
         @for (section of sections; track section) {
           @let items = one.setup.sections[section];
           <details class="group" [attr.data-section]="section">
-            <summary>
+            <summary [attr.title]="section === 'memory' ? memoryTitle : null">
               <span class="part">{{ name(section) }}</span>
               <span class="leader" aria-hidden="true"></span>
               <span class="n">
@@ -57,8 +57,8 @@
               </span>
             </summary>
             @if (items.length) {
-              <ul>
-                @for (item of byCost(items); track $index) {
+              <ul [class.numbered]="section === 'memory'">
+                @for (item of ordered(section, items); track $index) {
                   <li [class.trouble]="item.problem" [class.heavy]="heavy(item)">
                     @if (item.path) {
                       <button

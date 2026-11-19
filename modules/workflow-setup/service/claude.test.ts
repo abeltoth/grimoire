@@ -88,7 +88,11 @@ const user: ReadSettings = {
   path: mine('.claude', 'settings.json'),
   exists: true,
   settings: {
-    permissions: { allow: ['Bash(npm test)'], deny: ['Read(.env)'], defaultMode: 'acceptEdits' },
+    permissions: {
+      allow: ['WebSearch', 'Bash(npm test)'],
+      deny: ['Read(.env)'],
+      defaultMode: 'acceptEdits',
+    },
     hooks: {
       PreToolUse: [{ matcher: 'Bash', hooks: [{ type: 'command', command: 'node guard.js' }] }],
       Stop: [
@@ -256,13 +260,14 @@ describe('toSetup', () => {
     ]);
   });
 
-  it('lists the permission rules, denials first, and says which settings file could not be read', () => {
+  it('lists the permission rules of all the settings files by verdict, A to Z, and says which settings file could not be read', () => {
     const { sections, settingsFiles, at: when } = setup();
     expect(sections.permissions).toEqual([
       { name: 'Read(.env)', detail: 'Denied', source: 'user', path: user.path },
-      { name: 'Bash(npm test)', detail: 'Allowed without asking', source: 'user', path: user.path },
-      { name: 'Default mode', detail: 'acceptEdits', source: 'user', path: user.path },
       { name: 'Bash(git push:*)', detail: 'Asks first', source: 'local', path: local.path },
+      { name: 'Bash(npm test)', detail: 'Allowed without asking', source: 'user', path: user.path },
+      { name: 'WebSearch', detail: 'Allowed without asking', source: 'user', path: user.path },
+      { name: 'Default mode', detail: 'acceptEdits', source: 'user', path: user.path },
       {
         name: '../shared',
         detail: 'An extra folder it can work in',

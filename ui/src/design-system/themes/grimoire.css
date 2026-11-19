@@ -631,6 +631,7 @@
   --gr-workflow-setup-row-pad: 3px 0;
   --gr-workflow-setup-name-col: 220px;
   --gr-workflow-setup-from-col: 110px;
+  --gr-workflow-setup-step-gap: 10px;
   --gr-workflow-setup-rule: 1px solid var(--gr-hairline);
   --gr-workflow-setup-leader: var(--gr-leader);
   --gr-workflow-setup-elsewhere-gap: 14px;
