@@ -20,11 +20,16 @@ class FakeProcess {
   }
 }
 
-const made = vi.hoisted(() => ({ processes: [] as unknown[], next: undefined as unknown }));
+const made = vi.hoisted(() => ({
+  processes: [] as unknown[],
+  next: undefined as unknown,
+  started: [] as { options: { extraArgs?: Record<string, string | null> } }[],
+}));
 vi.mock('./probe', async (original) => ({
   ...(await original<typeof import('./probe')>()),
   sdk: async () => ({
-    prewarm: async () => {
+    prewarm: async (started: (typeof made.started)[number]) => {
+      made.started.push(started);
       made.processes.push(made.next);
       return made.next;
     },
@@ -37,12 +42,18 @@ const settle = () => new Promise((resolve) => setImmediate(resolve));
 const events = { closed: () => {} } as unknown as ChatEvents;
 
 let spares: Spares;
+let mcpOff: string[];
+let chrome: boolean;
 beforeEach(() => {
   made.processes = [];
+  made.started = [];
+  mcpOff = [];
+  chrome = false;
   made.next = new FakeProcess(Promise.resolve({ sessionId: 's1' }));
   spares = new Spares({
     agent: 'claude-code',
-    mcpOff: () => [],
+    mcpOff: () => mcpOff,
+    chrome: () => chrome,
     suggestions: () => true,
     followUps: () => true,
     tools: () => [],
@@ -57,8 +68,8 @@ describe('Spares', () => {
     spares.warm();
     await settle();
     expect(made.processes).toHaveLength(1);
-    expect(spares.take()).toBeDefined();
-    expect(spares.take()).toBeUndefined();
+    expect(spares.take([])).toBeDefined();
+    expect(spares.take([])).toBeUndefined();
   });
 
   it('drops a spare that dies parked, and stops one when told', async () => {
@@ -66,16 +77,40 @@ describe('Spares', () => {
     await settle();
     (made.processes[0] as FakeProcess).exit();
     await settle();
-    expect(spares.take()).toBeUndefined();
+    expect(spares.take([])).toBeUndefined();
     spares.warm();
     spares.dispose();
     await settle();
     expect((made.processes[1] as FakeProcess).closed).toBe(1);
   });
 
+  it('stops a spare started with other MCP servers off, or Claude in Chrome otherwise', async () => {
+    spares.warm();
+    await settle();
+    expect(spares.take(['github'])).toBeUndefined();
+    made.next = new FakeProcess(Promise.resolve({ sessionId: 's2' }));
+    spares.warm();
+    chrome = true;
+    await settle();
+    expect(spares.take([])).toBeUndefined();
+    await settle();
+    expect(made.processes.map((process) => (process as FakeProcess).closed)).toEqual([1, 1]);
+  });
+
+  it('connects the spare to Claude in Chrome when it is on', async () => {
+    chrome = true;
+    spares.warm();
+    await settle();
+    expect(made.started[0]!.options.extraArgs).toEqual({
+      'thinking-display': 'summarized',
+      chrome: null,
+    });
+    expect(spares.take([])!.chrome).toBe(true);
+  });
+
   it('starts a chat on the spare under the session ID Claude Code gives it', async () => {
     spares.warm();
-    const spare = spares.take()!;
+    const spare = spares.take([])!;
     const bound: string[] = [];
     await spares.claim(
       spare,
@@ -107,14 +142,14 @@ describe('Spares', () => {
     spares.warm();
     const bound: string[] = [];
     const bind = (chatId: string) => (bound.push(chatId), events);
-    await spares.claim(spares.take()!, { cwd: 'C:/work' }, 'Hi', 'u1', bind, undefined, []);
+    await spares.claim(spares.take([])!, { cwd: 'C:/work' }, 'Hi', 'u1', bind, undefined, []);
     expect(bound).toEqual(['s2']);
   });
 
   it('stops a spare that refuses the claim, so the chat starts on a process of its own', async () => {
     made.next = new FakeProcess(Promise.reject(new Error('not_claimed')));
     spares.warm();
-    const spare = spares.take()!;
+    const spare = spares.take([])!;
     await expect(
       spares.claim(spare, { cwd: 'C:/work' }, 'Hi', 'u1', () => events, undefined, []),
     ).rejects.toThrow('not_claimed');

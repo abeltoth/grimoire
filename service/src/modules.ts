@@ -3,6 +3,7 @@ import { extraModules } from '@grimoire/extra-modules/service';
 import type { ServiceModule } from './module';
 import { autoCompact } from '../../modules/auto-compact/service';
 import { autoLabels } from '../../modules/auto-labels/service';
+import { chrome } from '../../modules/chrome/service';
 import { files } from '../../modules/files/service';
 import { git } from '../../modules/git/service';
 import { history } from '../../modules/history/service';
@@ -18,6 +19,7 @@ import { workflowSetup } from '../../modules/workflow-setup/service';
 export const MODULES: readonly ServiceModule[] = [
   autoCompact,
   autoLabels,
+  chrome,
   files,
   git,
   history,

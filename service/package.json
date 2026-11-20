@@ -10,6 +10,7 @@
     "./core/files": "./src/core/files.ts",
     "./core/folder-watcher": "./src/core/folder-watcher.ts",
     "./core/app-state": "./src/core/app-state.ts",
+    "./claude/chrome": "./src/agents/claude/chrome.ts",
     "./claude/connectors": "./src/agents/claude/connectors.ts",
     "./claude/probe": "./src/agents/claude/probe.ts",
     "./claude/config-dir": "./src/agents/claude/config-dir.ts",

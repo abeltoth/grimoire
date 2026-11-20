@@ -1,4 +1,5 @@
 import type { Query, SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
+import { chromeArgs } from './chrome';
 import { MessageQueue } from './message-queue';
 
 // Loaded on first use: it's large, and the service starts without it.
@@ -16,7 +17,7 @@ export async function probe<T>(ask: (claude: Query) => Promise<T>, cwd?: string)
   const { query } = await sdk();
   const input = new MessageQueue<SDKUserMessage>();
   const options = cwd
-    ? { cwd, permissionMode: 'default' as const, env: claudeEnv() }
+    ? { cwd, permissionMode: 'default' as const, env: claudeEnv(), extraArgs: chromeArgs() }
     : { permissionMode: 'default' as const };
   const claude = query({ prompt: input, options });
   try {

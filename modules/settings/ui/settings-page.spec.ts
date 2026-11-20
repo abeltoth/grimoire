@@ -13,6 +13,7 @@ describe('SettingsPage', () => {
       'gr-page-tab-settings',
       'gr-quick-model-settings',
       'gr-tag-settings',
+      'gr-chrome-settings',
       'gr-label-settings',
       'gr-jira-settings',
       'gr-preset-settings',

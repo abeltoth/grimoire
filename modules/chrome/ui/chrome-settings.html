@@ -1,0 +1,73 @@
+@if (able()) {
+  <section aria-labelledby="gr-settings-chrome">
+    <h2 id="gr-settings-chrome">Claude in Chrome</h2>
+    <p class="lead">
+      {{
+        wording.say(
+          'Chapters can use your Chrome, where you’re signed in: open pages, read them, click and type. Each step asks first, as other tools do.',
+          'Chats can use your Chrome, where you’re signed in: open pages, read them, click and type. Each step asks first, as other tools do.'
+        )
+      }}
+    </p>
+
+    @if (failed(); as error) {
+      <p class="error" role="alert">That couldn’t be done: {{ error }}</p>
+    }
+
+    <div class="form">
+      <span class="label" id="gr-settings-chrome-on">{{
+        wording.say('In new chapters', 'In new chats')
+      }}</span>
+      <span class="words" role="radiogroup" aria-labelledby="gr-settings-chrome-on">
+        <button
+          type="button"
+          class="word"
+          role="radio"
+          [attr.aria-checked]="on()"
+          (click)="set(true)"
+        >
+          On
+        </button>
+        <button
+          type="button"
+          class="word"
+          role="radio"
+          [attr.aria-checked]="!on()"
+          (click)="set(false)"
+        >
+          Off
+        </button>
+      </span>
+      <p class="note status">
+        @let known = state();
+        @if (known === undefined || picked() !== null) {
+          Asking Claude Code…
+        } @else if (known === null) {
+          Claude Code couldn’t say whether the extension is there.
+        } @else if (known.unusable) {
+          {{ known.unusable }}
+        } @else if (!known.installed) {
+          The Chrome extension isn’t installed.
+          <button type="button" class="gr-link" (click)="open(known.installUrl)">Install it</button>
+        } @else if (known.on && known.connected) {
+          Connected{{ known.browser ? ' to ' + known.browser : '' }}.
+        } @else if (known.on) {
+          Not connected: open Chrome, signed in to claude.ai with this account.
+          <button type="button" class="gr-link" (click)="open(known.reconnectUrl)">
+            Reconnect
+          </button>
+        } @else {
+          Installed.
+        }
+      </p>
+      <p class="note">
+        {{
+          wording.say(
+            'Open chapters offer to start again with it. Turn it off for a single chapter among its MCP servers, as claude-in-chrome.',
+            'Open chats offer to restart with it. Turn it off for a single chat among its MCP servers, as claude-in-chrome.'
+          )
+        }}
+      </p>
+    </div>
+  </section>
+}

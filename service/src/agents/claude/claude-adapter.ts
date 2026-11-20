@@ -28,6 +28,7 @@ import type {
 } from '../adapter';
 import type { AgentTool } from '../tools';
 import { AUTO_PROMPT, autoPick, messageForRater } from './auto-model';
+import { chromeArgs, chromeOn } from './chrome';
 import { catalog } from './command-catalog';
 import {
   CLI_ARGS,
@@ -87,6 +88,7 @@ export class ClaudeAdapter implements AgentAdapter {
     this.spares = new Spares({
       agent: this.info.id,
       mcpOff: () => this.mcpOff(),
+      chrome: () => chromeOn(),
       suggestions,
       followUps,
       tools,
@@ -277,7 +279,7 @@ export class ClaudeAdapter implements AgentAdapter {
           enableFileCheckpointing: true,
           promptSuggestions: this.suggestions(),
           env: env(),
-          extraArgs: CLI_ARGS,
+          extraArgs: { ...CLI_ARGS, ...chromeArgs() },
           ...(resume ? { resume: chatId } : { sessionId: chatId, ...(title ? { title } : {}) }),
           ...grimoireOptions(made, {
             ...(offered ? { followUps } : {}),
@@ -308,8 +310,8 @@ export class ClaudeAdapter implements AgentAdapter {
   /**
    * Starts a new chat on the spare process when one is parked; Claude Code
    * then picks the session ID. When there's no spare, the spare refuses the
-   * claim, or it was started with other MCP servers off, the chat starts on
-   * a process of its own.
+   * claim, or it was started with other MCP servers off or Claude in Chrome
+   * otherwise, the chat starts on a process of its own.
    */
   async start(
     settings: ChatSettings,
@@ -319,14 +321,7 @@ export class ClaudeAdapter implements AgentAdapter {
     title?: string,
     attachments: Attachment[] = [],
   ): Promise<LiveChat> {
-    let spare = this.spares.take();
-    if (spare && !sameNames(spare.mcpOff, this.mcpOff(settings))) {
-      void spare.process.then(
-        (process) => process.close(),
-        () => {},
-      );
-      spare = undefined;
-    }
+    const spare = this.spares.take(this.mcpOff(settings));
     try {
       if (spare)
         return await this.spares.claim(
@@ -398,9 +393,4 @@ async function listCommands(cwd: string): Promise<AgentCommand[]> {
     input.end();
     probe.close();
   }
-}
-
-/** Whether two sorted lists name the same. */
-function sameNames(a: readonly string[], b: readonly string[]): boolean {
-  return a.length === b.length && a.every((name, i) => name === b[i]);
 }

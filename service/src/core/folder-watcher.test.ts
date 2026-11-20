@@ -36,6 +36,19 @@ describe('FolderWatcher', () => {
     expect(changed).toHaveBeenCalledTimes(1);
   });
 
+  it('tells every folder watched as changed when asked', () => {
+    const changed = vi.fn();
+    const watcher = new FolderWatcher<{ cwd: string }>(() => [], changed);
+    watchers.push(watcher);
+    watcher.watch('claude-code', { cwd: 'C:/work' });
+    watcher.watch('claude-code', { cwd: 'C:/home' });
+    watcher.changedAll();
+    expect(changed.mock.calls).toEqual([
+      ['claude-code', 'C:/work'],
+      ['claude-code', 'C:/home'],
+    ]);
+  });
+
   it('leaves a folder it can’t watch unwatched', () => {
     const watcher = new FolderWatcher<{ cwd: string }>(
       (told) => [{ folder: path.join(told.cwd, 'missing'), names: '*' }],

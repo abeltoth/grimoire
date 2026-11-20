@@ -16,14 +16,20 @@ const LOADING_KEYS = [
   'enableAllProjectMcpServers',
 ] as const;
 
+/** The setting Claude Code's /chrome "Enabled by default" keeps in .claude.json, which Grimoire's chats start with. */
+export const CHROME_KEY = 'claudeInChromeDefaultEnabled';
+
 /**
  * What a Claude Code process in a folder takes its tools from as it
  * starts, and keeps until it stops: each MCP server's config, by name,
- * and the settings that say which plugins and project servers load.
+ * and the settings that say which plugins, project servers and Claude in
+ * Chrome load.
  */
 export interface ToolSources {
   servers: Record<string, string>;
   loading: string;
+  /** Claude in Chrome is on. */
+  chrome: boolean;
 }
 
 /** Where Claude Code keeps your MCP servers and those of each project: in your Claude folder when it's moved, else your home folder. */
@@ -53,7 +59,11 @@ export function readToolSources(
     if (problem) throw new Error(problem);
     return pick(isObject(settings) ? settings : {});
   });
-  return { servers, loading: JSON.stringify([...loading, pick(project)]) };
+  return {
+    servers,
+    loading: JSON.stringify([...loading, pick(project)]),
+    chrome: config[CHROME_KEY] === true,
+  };
 }
 
 /** What changed between two reads, in a few words; null when nothing that loads tools did. */
@@ -70,6 +80,7 @@ export function toolChange(before: ToolSources, now: ToolSources): string | null
     listed(removed, 'removed'),
     listed(changed, 'changed'),
     before.loading !== now.loading ? 'Tool settings changed' : '',
+    before.chrome !== now.chrome ? `Claude in Chrome turned ${now.chrome ? 'on' : 'off'}` : '',
   ].filter(Boolean);
   return said.length ? said.join('; ') : null;
 }

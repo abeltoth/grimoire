@@ -2,6 +2,7 @@ import { type ApplicationConfig, provideBrowserGlobalErrorListeners } from '@ang
 import { extraProviders } from '@grimoire/extra-modules/ui';
 import { provideAutoLabels } from '../../../modules/auto-labels/ui/auto-labels.providers';
 import { provideChat } from '../../../modules/chat/ui/chat.providers';
+import { provideChrome } from '../../../modules/chrome/ui/chrome.providers';
 import { provideSettings } from '../../../modules/settings/ui/settings.providers';
 import { provideFiles } from '../../../modules/files/ui/files.providers';
 import { provideWorkflowSetup } from '../../../modules/workflow-setup/ui/workflow-setup.providers';
@@ -21,6 +22,8 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideShell(),
+    // First, so its section shows first among the modules' on the Settings page.
+    provideChrome(),
     provideChat(),
     provideFiles(),
     provideGit(),

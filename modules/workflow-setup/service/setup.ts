@@ -53,6 +53,11 @@ export class Setup {
     return this.files.save(agent, cwd ?? homedir(), file, text, changedAt);
   }
 
+  /** Tells each setup watched as changed, for a change its files don't show, such as Claude in Chrome turned on. */
+  changedAll(): void {
+    this.watcher.changedAll();
+  }
+
   /** Stops watching; reading a setup again watches it again. */
   dispose(): void {
     this.watcher.dispose();

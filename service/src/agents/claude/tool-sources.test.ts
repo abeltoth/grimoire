@@ -55,6 +55,15 @@ describe('readToolSources', () => {
     expect(read().loading).not.toBe(before.loading);
   });
 
+  it('reads whether Claude in Chrome is on, but not the rest of .claude.json', () => {
+    write(claudeJson, { numStartups: 4 });
+    const before = read();
+    write(claudeJson, { numStartups: 5 });
+    expect(read()).toEqual(before);
+    write(claudeJson, { numStartups: 5, claudeInChromeDefaultEnabled: true });
+    expect(read().chrome).toBe(true);
+  });
+
   it('throws while a file is half written', () => {
     write(claudeJson, '{"mcpServers": {');
     expect(read).toThrow();
@@ -62,10 +71,11 @@ describe('readToolSources', () => {
 });
 
 describe('toolChange', () => {
-  const sources = (servers: Record<string, string>, loading = '[]'): ToolSources => ({
-    servers,
-    loading,
-  });
+  const sources = (
+    servers: Record<string, string>,
+    loading = '[]',
+    chrome = false,
+  ): ToolSources => ({ servers, loading, chrome });
 
   it('names the servers added, removed and changed', () => {
     expect(toolChange(sources({ a: '1', b: '1' }), sources({ a: '2', c: '1', d: '1' }))).toBe(
@@ -75,6 +85,11 @@ describe('toolChange', () => {
 
   it('says when plugins or MCP settings changed', () => {
     expect(toolChange(sources({}), sources({}, '[{}]'))).toBe('Tool settings changed');
+  });
+
+  it('says when Claude in Chrome was turned on or off', () => {
+    expect(toolChange(sources({}), sources({}, '[]', true))).toBe('Claude in Chrome turned on');
+    expect(toolChange(sources({}, '[]', true), sources({}))).toBe('Claude in Chrome turned off');
   });
 
   it('is null when nothing that loads tools changed', () => {
@@ -112,7 +127,7 @@ describe('watchToolSources', () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
-    current = { servers: {}, loading: '[]' };
+    current = { servers: {}, loading: '[]', chrome: false };
     told = [];
   });
 
@@ -122,7 +137,7 @@ describe('watchToolSources', () => {
 
   it('tells what changed once the files settle, and once they’re back as they were', () => {
     start();
-    current = { servers: { jira: '{}' }, loading: '[]' };
+    current = { servers: { jira: '{}' }, loading: '[]', chrome: false };
     changed!('.mcp.json');
     changed!('.mcp.json');
     vi.advanceTimersByTime(500);
@@ -132,7 +147,7 @@ describe('watchToolSources', () => {
     vi.advanceTimersByTime(500);
     expect(told).toHaveLength(1);
 
-    current = { servers: {}, loading: '[]' };
+    current = { servers: {}, loading: '[]', chrome: false };
     changed!('.mcp.json');
     vi.advanceTimersByTime(500);
     expect(told).toEqual(['jira added', null]);
@@ -140,7 +155,7 @@ describe('watchToolSources', () => {
 
   it('ignores other files in the folders watched', () => {
     start();
-    current = { servers: { jira: '{}' }, loading: '[]' };
+    current = { servers: { jira: '{}' }, loading: '[]', chrome: false };
     changed!('notes.md');
     vi.advanceTimersByTime(500);
     expect(told).toEqual([]);

@@ -2,6 +2,7 @@ import type { SDKUserMessage, SpareProcess } from '@anthropic-ai/claude-agent-sd
 import type { AgentId, AgentModels, Attachment, ChatId, ChatSettings } from '@grimoire/contract';
 import type { ChatEvents, LiveChat } from '../adapter';
 import type { AgentTool } from '../tools';
+import { chromeArgs } from './chrome';
 import { CLI_ARGS, Deferred, MODES, approvalsTo, chatHooks, drive, userMessage } from './drive';
 import { FollowUpsKept } from './follow-ups';
 import { ProcessChat, grimoireOptions } from './grimoire-tools';
@@ -20,6 +21,8 @@ export interface Spare {
   picking: Deferred<PickerSources>;
   /** The MCP servers kept from starting in it, sorted: a chat with others starts on a process of its own. */
   mcpOff: string[];
+  /** Whether it was started connected to Claude in Chrome. */
+  chrome: boolean;
   /** Where its tool keeps the separate tasks offered, for the chat that claims it. */
   followUps: FollowUpsKept;
   /** The chat its tools work in: the one that claims it. */
@@ -31,6 +34,8 @@ export interface SpareSetup {
   agent: AgentId;
   /** The MCP servers off in every chat, sorted, without Grimoire's own. */
   mcpOff: () => string[];
+  /** Whether Claude in Chrome is on, read as each process starts. */
+  chrome: () => boolean;
   suggestions: () => boolean;
   followUps: () => boolean;
   tools: () => readonly AgentTool[];
@@ -53,11 +58,13 @@ export class Spares {
     const followUps = new FollowUpsKept();
     const chat = new ProcessChat();
     const off = this.setup.mcpOff();
+    const chrome = this.setup.chrome();
     const offered = this.setup.followUps();
     const spare: Spare = {
       claimedBy,
       picking,
       mcpOff: off,
+      chrome,
       followUps,
       chat,
       process: sdk().then((made) =>
@@ -72,7 +79,7 @@ export class Spares {
             // Sent as the process starts, so a claim can't change it.
             promptSuggestions: this.setup.suggestions(),
             env: env(),
-            extraArgs: CLI_ARGS,
+            extraArgs: { ...CLI_ARGS, ...chromeArgs(chrome) },
             // Its tools' calls go to the chat that claims it: its separate tasks once its turn ends.
             ...grimoireOptions(made, {
               ...(offered ? { followUps } : {}),
@@ -96,20 +103,24 @@ export class Spares {
     spare.process.then((process) => process.exited.then(drop), drop);
   }
 
-  /** The spare parked, now no longer parked; undefined when there's none. */
-  take(): Spare | undefined {
+  /**
+   * The spare parked, now no longer parked, if it started as a chat with
+   * these MCP servers off would now; undefined when there's none, and one
+   * started otherwise is stopped.
+   */
+  take(mcpOff: readonly string[]): Spare | undefined {
     const spare = this.spare;
     this.spare = undefined;
-    return spare;
+    if (!spare) return undefined;
+    if (sameNames(spare.mcpOff, mcpOff) && spare.chrome === this.setup.chrome()) return spare;
+    stop(spare);
+    return undefined;
   }
 
   /** Stops the spare parked, if there is one. */
   dispose(): void {
-    const spare = this.take();
-    void spare?.process.then(
-      (process) => process.close(),
-      () => {},
-    );
+    if (this.spare) stop(this.spare);
+    this.spare = undefined;
   }
 
   /**
@@ -167,4 +178,16 @@ export class Spares {
       quickModel: this.setup.quickModel,
     });
   }
+}
+
+function stop(spare: Spare): void {
+  void spare.process.then(
+    (process) => process.close(),
+    () => {},
+  );
+}
+
+/** Whether two sorted lists name the same. */
+function sameNames(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((name, i) => name === b[i]);
 }

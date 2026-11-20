@@ -15,6 +15,8 @@ export const workflowSetup: ServiceModule = {
     registry.register('setup.saveFile', ({ agent, cwd, path, text, changedAt }) =>
       setup.saveFile(agent, cwd, path, text, changedAt),
     );
+    // Claude in Chrome turned on or off: the MCP servers listed change, though no file the setups are read from does.
+    events.on('chrome.changed', () => setup.changedAll());
     // Another profile's setups are watched once they're read.
     return { profileSwitched: () => setup.dispose(), stop: () => setup.dispose() };
   },

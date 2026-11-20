@@ -16,6 +16,7 @@ export * from './protocol';
 
 // Each module's additions to the contract.
 export * from '../../modules/auto-labels/contract';
+export * from '../../modules/chrome/contract';
 export * from '../../modules/files/contract';
 export * from '../../modules/git/contract';
 export * from '../../modules/history/contract';
