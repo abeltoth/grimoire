@@ -1,3 +1,4 @@
+import type { BrowserViews } from './browser-views';
 import type { CommandName, CommandRequest, CommandResponse } from './commands';
 import type { EventName, EventPayload } from './events';
 
@@ -26,6 +27,8 @@ export interface GrimoireBridge {
   openExternal(url: string): void;
   /** Draws everything in the window larger or smaller by a factor, 1 as drawn; the windows share it. */
   zoom(factor: number): void;
+  /** Web pages shown over the window, for the browser. */
+  readonly browser: BrowserViews;
 }
 
 /** For the window controls Grimoire draws itself (Windows and Linux). */

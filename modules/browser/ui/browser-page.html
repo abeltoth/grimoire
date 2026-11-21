@@ -1,0 +1,102 @@
+@let shown = tabs.shown();
+<div class="tabs">
+  <div role="tablist" [attr.aria-label]="wording.say('Leaves', 'Browser tabs')">
+    @for (tab of tabs.tabs(); track tab.id) {
+      <span class="tab" [class.shown]="tab.id === shown?.id">
+        <button
+          type="button"
+          role="tab"
+          [attr.aria-selected]="tab.id === shown?.id"
+          [attr.title]="tab.url"
+          (click)="show(tab.id)"
+        >
+          {{ label(tab) || wording.say('Blank leaf', 'New tab') }}
+        </button>
+        <button
+          type="button"
+          class="close"
+          [attr.aria-label]="'Close ' + (label(tab) || 'tab')"
+          title="Close"
+          (click)="tabs.close(tab.id)"
+        >
+          <gr-icon name="close" />
+        </button>
+      </span>
+    }
+  </div>
+  <button type="button" class="gr-link" (click)="tabs.add('')"><gr-icon name="plus" />New</button>
+</div>
+
+<div class="bar">
+  <button
+    type="button"
+    class="move"
+    aria-label="Back"
+    title="Back"
+    [disabled]="!shown?.canGoBack"
+    (click)="go('back')"
+  >
+    ‹
+  </button>
+  <button
+    type="button"
+    class="move"
+    aria-label="Forward"
+    title="Forward"
+    [disabled]="!shown?.canGoForward"
+    (click)="go('forward')"
+  >
+    ›
+  </button>
+  @if (shown?.loading) {
+    <button type="button" class="move" aria-label="Stop" title="Stop" (click)="go('stop')">
+      ✕
+    </button>
+  } @else {
+    <button
+      type="button"
+      class="move"
+      aria-label="Reload"
+      title="Reload"
+      [disabled]="!shown?.url"
+      (click)="go('reload')"
+    >
+      ↻
+    </button>
+  }
+  <input
+    #address
+    type="text"
+    autocomplete="off"
+    spellcheck="false"
+    aria-label="Address"
+    [placeholder]="wording.say('An address, or what to look up', 'Search or type an address')"
+    [value]="shown?.url ?? ''"
+    (focus)="address.select()"
+    (keydown.enter)="enter(address)"
+    (keydown.escape)="escape($event, address)"
+  />
+</div>
+
+<div
+  #spot
+  class="spot"
+  role="tabpanel"
+  [style.background-image]="snapshot() ? 'url(' + snapshot() + ')' : null"
+>
+  @if (shown?.error; as error) {
+    <p class="note" role="alert">
+      {{ wording.say('The page couldn’t be fetched', 'The page couldn’t be loaded') }}:
+      <code>{{ error }}</code>
+    </p>
+  } @else if (!shown?.url) {
+    <p class="note">
+      {{
+        wording.say(
+          'Write an address, or what to look up, above.',
+          'Type an address or a search above.'
+        )
+      }}
+    </p>
+  }
+</div>

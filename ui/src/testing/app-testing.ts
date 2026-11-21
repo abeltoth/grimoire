@@ -1,6 +1,7 @@
 import type { EnvironmentProviders, Provider } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import type {
+  BrowserViews,
   CommandName,
   CommandRequest,
   EventName,
@@ -20,6 +21,37 @@ const ping: PingResult = {
   uptimeMs: 65_000,
   node: '24.22.1',
 };
+
+/** Web pages the fake app shows: what the window asked of them, and what they tell it. */
+export function fakeBrowserViews() {
+  const listeners = new Map<string, Set<(payload: unknown) => void>>();
+  const listen =
+    (kind: string) =>
+    (listener: (payload: never) => void): (() => void) => {
+      const set = listeners.get(kind) ?? new Set();
+      set.add(listener as (payload: unknown) => void);
+      listeners.set(kind, set);
+      return () => set.delete(listener as (payload: unknown) => void);
+    };
+  const views: BrowserViews = {
+    open: vi.fn(),
+    navigate: vi.fn(),
+    go: vi.fn(),
+    place: vi.fn(),
+    snapshot: vi.fn(async () => 'data:image/png;base64,AAAA'),
+    close: vi.fn(),
+    forget: vi.fn(),
+    shortcuts: vi.fn(),
+    onChange: listen('change'),
+    onOpen: listen('open'),
+    onKey: listen('key'),
+    onAction: listen('action'),
+  };
+  /** A page tells the window something, as the app would. */
+  const tell = (kind: 'change' | 'open' | 'key' | 'action', payload: unknown) =>
+    listeners.get(kind)?.forEach((listener) => listener(payload));
+  return { views, tell };
+}
 
 /** A bridge to a fake service: answers commands and lets tests send events. */
 export function fakeBridge(overrides: Partial<GrimoireBridge> = {}) {
@@ -64,6 +96,7 @@ export function fakeBridge(overrides: Partial<GrimoireBridge> = {}) {
       recent: ['C:/Users/me/git/grimoire', 'C:/Users/me', 'C:/Users/me/git/breeder', 'D:/old'],
     }),
     'layout.get': () => ({ current: null, lastUsed: null }),
+    'browser.tabs': () => ({ tabs: [], shown: 0 }),
     'profiles.list': () => ({
       active: 'personal',
       profiles: [{ id: 'personal', name: 'Personal', claudeFolder: null }],
@@ -87,6 +120,7 @@ export function fakeBridge(overrides: Partial<GrimoireBridge> = {}) {
     pathOf: vi.fn(() => ''),
     openExternal: vi.fn(),
     zoom: vi.fn(),
+    browser: fakeBrowserViews().views,
     ...overrides,
   };
   const emit = <K extends EventName>(event: K, payload: EventPayload<K>) =>

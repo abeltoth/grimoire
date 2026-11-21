@@ -14,7 +14,8 @@
   </button>
 
   @if (open() || profiles.refused()) {
-    <div class="menu">
+    <!-- It floats over the pages, so a web page there steps aside for it. -->
+    <div class="menu" data-over-pages>
       @if (profiles.refused(); as reason) {
         <p class="refused" role="alert">
           {{ reason }}

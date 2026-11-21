@@ -1,0 +1,133 @@
+/* The tabs and the address above, the page's spot filling the rest. */
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding-bottom: var(--gr-browser-pad-bottom);
+}
+
+/* The tabs, named for their pages, as the Scriptorium names its shells. */
+.tabs {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  column-gap: var(--gr-browser-tabs-gap);
+  padding-bottom: var(--gr-browser-tabs-pad-bottom);
+}
+
+[role='tablist'] {
+  display: contents;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--gr-browser-close-gap);
+  min-width: 0;
+}
+
+[role='tab'] {
+  max-width: var(--gr-browser-tab-max);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--gr-font-display);
+  font-size: var(--gr-size-browser-tab);
+  line-height: var(--gr-leading-browser-tab);
+  color: var(--gr-ink-soft);
+}
+
+[role='tab']:hover {
+  color: var(--gr-ink);
+}
+
+.tab.shown [role='tab'] {
+  color: var(--gr-ink);
+  box-shadow: inset 0 calc(var(--gr-underline-active) * -1) 0 var(--gr-rubric);
+}
+
+.close {
+  align-self: center;
+  display: inline-flex;
+  color: var(--gr-ink-faint);
+  opacity: 0;
+}
+
+.tab:hover .close,
+.tab.shown .close,
+.close:focus-visible {
+  opacity: 1;
+}
+
+.close:hover {
+  color: var(--gr-rubric);
+}
+
+/* Back, forward and reload, then the address, written in pen as a search is. */
+.bar {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gr-browser-bar-gap);
+  padding: var(--gr-browser-bar-pad);
+  border-top: var(--gr-browser-rule-top);
+}
+
+.move {
+  font-size: var(--gr-size-browser-move);
+  line-height: var(--gr-leading-browser-move);
+  color: var(--gr-ink-soft);
+}
+
+.move:hover:not(:disabled) {
+  color: var(--gr-rubric);
+}
+
+.move:disabled {
+  color: var(--gr-ink-faint);
+}
+
+.bar input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: var(--gr-size-browser-address);
+  color: var(--gr-pen);
+  caret-color: var(--gr-pen);
+  outline: none;
+}
+
+.bar input::placeholder {
+  font-style: italic;
+  color: var(--gr-ink-faint);
+}
+
+button:focus-visible {
+  outline: var(--gr-focus-ring);
+  outline-offset: var(--gr-focus-offset);
+}
+
+/* Where the web page lies; what shows here only shows while it doesn't. */
+.spot {
+  flex: 1;
+  min-height: 0;
+  border-top: var(--gr-browser-rule-spot);
+  background-color: var(--gr-browser-paper);
+  background-size: 100% 100%;
+}
+
+.note {
+  margin: 0;
+  padding: var(--gr-browser-note-pad);
+  font-style: italic;
+  font-size: var(--gr-size-aside);
+  color: var(--gr-ink-soft);
+}
+
+code {
+  font-family: var(--gr-font-mono);
+  font-size: var(--gr-size-code);
+  font-style: normal;
+}

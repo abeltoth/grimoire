@@ -14,6 +14,7 @@ describe('page-tabs', () => {
       'Scheduled chats',
       'Ledger',
       'Scriptorium',
+      'Atlas',
       'Colophon',
       'Index Ctrl K',
     ]);

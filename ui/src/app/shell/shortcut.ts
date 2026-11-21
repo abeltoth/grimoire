@@ -1,5 +1,5 @@
 import { Pipe, type PipeTransform, inject } from '@angular/core';
-import type { GrimoireBridge } from '@grimoire/contract';
+import { type GrimoireBridge, matchesKeys } from '@grimoire/contract';
 import { GRIMOIRE_BRIDGE } from '../core/bridge';
 
 export type Platform = GrimoireBridge['platform'];
@@ -40,16 +40,8 @@ export function matchesShortcut(
   shortcut: Shortcut,
   platform: Platform,
 ): boolean {
-  const keys = shortcut.split('+');
-  const modifiers = new Set(keys.slice(0, -1));
-  const mac = platform === 'mac';
-  return (
-    event.key.toLowerCase() === keys.at(-1)!.toLowerCase() &&
-    (mac ? event.metaKey : event.ctrlKey) === modifiers.has('Mod') &&
-    !(mac ? event.ctrlKey : event.metaKey) &&
-    event.shiftKey === modifiers.has('Shift') &&
-    event.altKey === modifiers.has('Alt')
-  );
+  const { key, ctrlKey: ctrl, metaKey: meta, shiftKey: shift, altKey: alt } = event;
+  return matchesKeys({ key, ctrl, meta, shift, alt }, shortcut, platform);
 }
 
 /** `{{ 'Mod+K' | shortcut: 'keys' }}`, for the platform the app runs on. */

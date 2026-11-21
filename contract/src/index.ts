@@ -12,10 +12,13 @@ export * from './profiles';
 export * from './settings';
 export * from './setup-file';
 export * from './bridge';
+export * from './browser-views';
+export * from './shortcut';
 export * from './protocol';
 
 // Each module's additions to the contract.
 export * from '../../modules/auto-labels/contract';
+export * from '../../modules/browser/contract';
 export * from '../../modules/chrome/contract';
 export * from '../../modules/files/contract';
 export * from '../../modules/git/contract';

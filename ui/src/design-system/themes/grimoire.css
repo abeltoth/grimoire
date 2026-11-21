@@ -709,6 +709,24 @@
   --gr-terminal-bright-cyan: #3a8597;
   --gr-terminal-bright-white: var(--gr-ink);
 
+  /* The Atlas: web pages on tabs, under an address written in pen */
+  --gr-browser-pad-bottom: 18px;
+  --gr-browser-tabs-gap: 26px;
+  --gr-browser-tabs-pad-bottom: 6px;
+  --gr-browser-tab-max: 220px;
+  --gr-size-browser-tab: 18px;
+  --gr-leading-browser-tab: 1.15;
+  --gr-browser-close-gap: 6px;
+  --gr-browser-bar-gap: 14px;
+  --gr-browser-bar-pad: 6px 2px 8px;
+  --gr-browser-rule-top: 1px solid var(--gr-ink-faint);
+  --gr-size-browser-move: 20px;
+  --gr-leading-browser-move: 1;
+  --gr-size-browser-address: var(--gr-size-history-search);
+  --gr-browser-rule-spot: 3px double var(--gr-ink-faint);
+  --gr-browser-paper: var(--gr-page);
+  --gr-browser-note-pad: 14px 6px;
+
   /* Git: the Git page on the facing page */
   --gr-git-width: 640px;
   --gr-git-gap: 12px;

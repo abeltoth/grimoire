@@ -1,6 +1,7 @@
 import { type ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { extraProviders } from '@grimoire/extra-modules/ui';
 import { provideAutoLabels } from '../../../modules/auto-labels/ui/auto-labels.providers';
+import { provideBrowser } from '../../../modules/browser/ui/browser.providers';
 import { provideChat } from '../../../modules/chat/ui/chat.providers';
 import { provideChrome } from '../../../modules/chrome/ui/chrome.providers';
 import { provideSettings } from '../../../modules/settings/ui/settings.providers';
@@ -35,6 +36,7 @@ export const appConfig: ApplicationConfig = {
     provideUsage(),
     provideScheduledChats(),
     provideTerminal(),
+    provideBrowser(),
     provideSettings(),
     provideAutoLabels(),
     // Modules kept outside this repo, such as the pro ones.

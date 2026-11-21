@@ -1,10 +1,11 @@
 import { BrowserWindow, type WebFrameMain, dialog, ipcMain, shell } from 'electron';
+import { registerBrowserIpc } from './browser-ipc';
 import type { ServiceClient } from './service-client';
 import { originOf } from './windows';
 
 /**
  * What a window asks of the app through the preload script: commands for
- * the service, file pickers, its own frame and links. Anything
+ * the service, file pickers, its own frame, links and web pages. Anything
  * not from `origin`, where the UI comes from, is refused.
  */
 export function registerIpc(origin: string, service: () => Promise<ServiceClient>): void {
@@ -52,4 +53,6 @@ export function registerIpc(origin: string, service: () => Promise<ServiceClient
     if (!isTrusted(event.senderFrame) || typeof url !== 'string') return;
     if (originOf(url).startsWith('https://')) void shell.openExternal(url);
   });
+
+  registerBrowserIpc(isTrusted);
 }

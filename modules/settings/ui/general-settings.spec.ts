@@ -64,6 +64,7 @@ describe('general-settings', () => {
       'Scheduled chats',
       'Usage',
       'Terminal',
+      'Browser',
       'Settings',
     ]);
     expect(texts('gr-tab-page .title')).toEqual(['Settings']);

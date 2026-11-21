@@ -43,7 +43,7 @@ describe('page-tab-settings', () => {
 
     await drag('Colophon', 'Table of contents', 'upper');
     expect(tabs()[0]).toBe('Colophon');
-    await drag('Kanban', 'Scriptorium', 'lower');
+    await drag('Kanban', 'Atlas', 'lower');
     expect(tabs().at(-1)).toBe('Kanban');
     // Dropped where it already is, it stays and nothing is kept.
     await drag('Ledger', 'Ledger', 'upper');
@@ -63,6 +63,7 @@ describe('page-tab-settings', () => {
           'scheduled-chats',
           'usage',
           'terminals',
+          'browser',
         ],
       },
       {
@@ -75,6 +76,7 @@ describe('page-tab-settings', () => {
           'scheduled-chats',
           'usage',
           'terminals',
+          'browser',
           'kanban',
         ],
       },

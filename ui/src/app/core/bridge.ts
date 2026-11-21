@@ -28,5 +28,19 @@ function outsideTheApp(): GrimoireBridge {
     window: { minimize() {}, toggleMaximize() {}, close() {} },
     openExternal: () => {},
     zoom: () => {},
+    browser: {
+      open() {},
+      navigate() {},
+      go() {},
+      place() {},
+      snapshot: () => Promise.resolve(''),
+      close() {},
+      forget() {},
+      shortcuts() {},
+      onChange: () => () => {},
+      onOpen: () => () => {},
+      onKey: () => () => {},
+      onAction: () => () => {},
+    },
   };
 }

@@ -4,7 +4,7 @@
  * Electron or the file system.
  */
 import { contextBridge, ipcRenderer, webFrame, webUtils, type IpcRendererEvent } from 'electron';
-import type { GrimoireBridge, Platform } from '@grimoire/contract';
+import type { BrowserViews, GrimoireBridge, Platform, ViewRect } from '@grimoire/contract';
 
 const platform: Platform =
   process.platform === 'darwin' ? 'mac' : process.platform === 'win32' ? 'windows' : 'linux';
@@ -16,6 +16,45 @@ function withoutIpcPrefix<T>(request: Promise<T>): Promise<T> {
     throw new Error(message.replace(/^Error invoking remote method '[^']*': (\w*Error: )?/, ''));
   });
 }
+
+/** Tells the app what to do with a web page. */
+const toBrowser = (action: string, ...args: unknown[]) =>
+  ipcRenderer.send('grimoire:browser', action, ...args);
+
+/** Listens for one kind of what the app tells of the window's web pages. */
+function onBrowser<T>(kind: string, listener: (payload: T) => void): () => void {
+  const handler = (_: IpcRendererEvent, name: string, payload: unknown) => {
+    if (name === kind) listener(payload as T);
+  };
+  ipcRenderer.on('grimoire:browserEvent', handler);
+  return () => ipcRenderer.removeListener('grimoire:browserEvent', handler);
+}
+
+/** A rect in the page's pixels, as the window's pixels: the page may be zoomed. */
+function inWindow(rect: ViewRect): ViewRect {
+  const zoom = webFrame.getZoomFactor();
+  return {
+    x: Math.round(rect.x * zoom),
+    y: Math.round(rect.y * zoom),
+    width: Math.round(rect.width * zoom),
+    height: Math.round(rect.height * zoom),
+  };
+}
+
+const browser: BrowserViews = {
+  open: (id, url, profile) => toBrowser('open', id, url, profile),
+  navigate: (id, url) => toBrowser('navigate', id, url),
+  go: (id, move) => toBrowser('go', id, move),
+  place: (id, rect) => toBrowser('place', id, rect && inWindow(rect)),
+  snapshot: (id) => withoutIpcPrefix(ipcRenderer.invoke('grimoire:browserSnapshot', id)),
+  close: (id) => toBrowser('close', id),
+  forget: (profile) => toBrowser('forget', profile),
+  shortcuts: (keys) => toBrowser('shortcuts', keys),
+  onChange: (listener) => onBrowser('change', listener),
+  onOpen: (listener) => onBrowser('open', listener),
+  onKey: (listener) => onBrowser('key', listener),
+  onAction: (listener) => onBrowser('action', listener),
+};
 
 const bridge: GrimoireBridge = {
   platform,
@@ -38,6 +77,7 @@ const bridge: GrimoireBridge = {
   },
   openExternal: (url) => ipcRenderer.send('grimoire:openExternal', url),
   zoom: (factor) => webFrame.setZoomFactor(factor),
+  browser,
 };
 
 contextBridge.exposeInMainWorld('grimoire', bridge);
